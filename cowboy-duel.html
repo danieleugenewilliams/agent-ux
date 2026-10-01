@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick Draw</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; height: 100%; background: #1a0f1e; overflow: hidden; }
+  canvas { display: block; image-rendering: crisp-edges; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<script>
+(function () {
+'use strict';
+
+// ---------------------------------------------------------------------------
+// Constants & palette
+// ---------------------------------------------------------------------------
+var LW = 128, LH = 96;          // logical resolution
+var HY = 78;                    // horizon row
+var SX = 20, SY = 49;           // cowboy sprite buffer origin in world
+var FLOOR = 85;                 // casing floor
+var LOOP = 600;                 // animation loop length in ticks (10 s)
+var EMPTY = 255;
+
+var PAL = [
+  '#1a0f1e', //  0 ink
+  '#3b1f3a', //  1 night purple
+  '#5a2a4a', //  2 plum
+  '#8a3450', //  3 wine
+  '#c2433c', //  4 red
+  '#e8683a', //  5 orange
+  '#f59a45', //  6 light orange
+  '#ffd070', //  7 gold
+  '#fff4d0', //  8 white-hot
+  '#6b3a2e', //  9 dark leather
+  '#8e5a36', // 10 leather
+  '#b57a45', // 11 tan
+  '#d8a868', // 12 dust
+  '#2e3a5c', // 13 denim dark
+  '#4a5f8a', // 14 denim
+  '#e0b088', // 15 skin
+  '#a86e58', // 16 skin shadow / dusk dirt
+  '#3a3a44', // 17 gunmetal
+  '#6e6e78', // 18 steel
+  '#a8a8b0', // 19 silver / smoke
+  '#d8d0c8', // 20 shirt / smoke light
+  '#4a2a22', // 21 deep brown
+  '#4f6b3a', // 22 cactus
+  '#2f4a2a'  // 23 cactus shadow
+];
+var NPAL = PAL.length;
+var LE = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
+var PAL32 = new Uint32Array(NPAL);
+for (var pi = 0; pi < NPAL; pi++) {
+  var hv = parseInt(PAL[pi].slice(1), 16);
+  var cr = (hv >> 16) & 255, cg = (hv >> 8) & 255, cb = hv & 255;
+  PAL32[pi] = LE ? (((255 << 24) | (cb << 16) | (cg << 8) | cr) >>> 0)
+                 : (((cr << 24) | (cg << 16) | (cb << 8) | 255) >>> 0);
+}
+
+// Rim light (sun side) and muzzle-flash (front edge) remaps
+var RIM = new Uint8Array(NPAL), FLS = new Uint8Array(NPAL);
+for (pi = 0; pi < NPAL; pi++) { RIM[pi] = pi; FLS[pi] = 7; }
+RIM[0] = 21; RIM[3] = 4; RIM[4] = 5; RIM[7] = 8; RIM[9] = 10; RIM[10] = 11; RIM[11] = 12;
+RIM[12] = 7; RIM[13] = 16; RIM[14] = 16; RIM[15] = 6; RIM[16] = 6; RIM[17] = 18;
+RIM[18] = 19; RIM[19] = 7; RIM[20] = 7; RIM[21] = 9;
+FLS[7] = 8; FLS[12] = 8; FLS[15] = 8; FLS[19] = 8; FLS[20] = 8;
+
+var BAYER = new Float32Array([0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]);
+for (pi = 0; pi < 16; pi++) BAYER[pi] = (BAYER[pi] + 0.5) / 16;
+function bay(x, y) { return BAYER[((y & 3) << 2) | (x & 3)]; }
+
+var seed = 0x2f6b3a;
+function srnd() { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }
+function hash(n) { var h = Math.imul(n ^ 0x5bd1e995, 0x27d4eb2d) >>> 0; return (h ^ (h >>> 15)) >>> 0; }
+
+// ---------------------------------------------------------------------------
+// Buffers
+// ---------------------------------------------------------------------------
+var off = document.createElement('canvas');
+off.width = LW; off.height = LH;
+var octx = off.getContext('2d');
+var img = octx.createImageData(LW, LH);
+var fb = new Uint32Array(img.data.buffer);
+var bg = new Uint32Array(LW * LH);
+
+var SW = 48, SH = 40;                 // cowboy work buffer
+var spr = new Uint8Array(SW * SH);
+
+function px(x, y, c) { if (x >= 0 && x < LW && y >= 0 && y < LH) fb[y * LW + x] = PAL32[c]; }
+
+// ---------------------------------------------------------------------------
+// Static background (built once)
+// ---------------------------------------------------------------------------
+var SUNX = 22, SUNY = 66;
+(function buildBackground() {
+  var I = new Uint8Array(LW * LH);
+  function put(x, y, c) { if (x >= 0 && x < LW && y >= 0 && y < LH) I[y * LW + x] = c; }
+  function get(x, y) { return I[y * LW + x]; }
+  var DY = HY - 66;                 // skyline art was laid out for a horizon at 66
+  function pu(x, y, c) { put(x, y + DY, c); }
+  var x, y, i;
+
+  // Sky bands with ordered-dither transitions
+  var SKYC = [1, 2, 3, 4, 5, 6], SKYB = [0, 14, 28, 42, 55, 67, HY];
+  for (y = 0; y < HY; y++) {
+    var bi = 0; while (bi < 5 && y >= SKYB[bi + 1]) bi++;
+    for (x = 0; x < LW; x++) {
+      var d = bay(x, y), c = SKYC[bi];
+      if (bi < 5) { var t = (y - (SKYB[bi + 1] - 4)) / 8; if (t > 0 && d < t) c = SKYC[bi + 1]; }
+      if (bi > 0) { var t2 = (SKYB[bi] + 4 - y) / 8; if (t2 > 0 && d < t2) c = SKYC[bi - 1]; }
+      if (y >= HY - 7 && d < (y - HY + 8) / 20) c = 7;
+      I[y * LW + x] = c;
+    }
+  }
+
+  // Streak clouds: dark tops, sun-lit undersides
+  function cloud(x0, x1, cy, top, lit) {
+    for (x = x0; x <= x1; x++) put(x, cy, top);
+    for (x = x0 + 3; x <= x1 + 2; x++) put(x, cy + 1, lit);
+    for (x = x0 + 5; x <= x0 + ((x1 - x0) >> 1); x++) put(x, cy - 1, top);
+  }
+  cloud(58, 96, 19, 2, 3);
+  cloud(40, 66, 30, 3, 5);
+  cloud(84, 118, 34, 3, 5);
+  cloud(4, 28, 40, 3, 6);
+  cloud(100, 124, 26, 2, 4);
+
+  // Sun disk + dithered halo
+  for (var dy = -12; dy <= 12; dy++) for (var dx = -12; dx <= 12; dx++) {
+    x = SUNX + dx; y = SUNY + dy;
+    if (y < 0 || y >= HY || x < 0 || x >= LW) continue;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist <= 5.5) put(x, y, 8);
+    else if (dist <= 8.5) put(x, y, 7);
+    else if (dist <= 11.5) {
+      var ht = 1 - (dist - 8.5) / 3;
+      if (bay(x, y) < ht * 0.6) {
+        var cur = get(x, y);
+        put(x, y, cur === 4 ? 5 : cur === 5 ? 6 : cur === 6 ? 7 : cur);
+      }
+    }
+  }
+  // Sun heat lines
+  for (x = SUNX - 7; x <= SUNX + 7; x++) { if (get(x, 70) === 7 || get(x, 70) === 8) put(x, 70, 6); }
+  for (x = SUNX - 5; x <= SUNX + 5; x++) { if (get(x, 73) === 7 || get(x, 73) === 8) put(x, 73, 6); }
+
+  // Mesas: flat tops, steep sides, sun-lit top edge
+  function mesa(x0, x1, top, sl, c, rim) {
+    for (x = x0 - sl; x <= x1 + sl; x++) {
+      var ty = top;
+      if (x < x0) ty = top + Math.round((x0 - x) * (HY - top) / sl);
+      else if (x > x1) ty = top + Math.round((x - x1) * (HY - top) / sl);
+      for (y = ty; y < HY; y++) put(x, y, c);
+      if (rim >= 0 && x <= x1) put(x, ty, rim);
+    }
+  }
+  mesa(46, 78, 56 + DY, 5, 3, 4);
+  mesa(79, 86, 60 + DY, 3, 3, -1);
+  for (x = 48; x <= 76; x += 5) for (y = 70; y < 74; y++) if (bay(x, y) < 0.7) put(x, y, 2);
+  mesa(102, 140, 59 + DY, 6, 3, 4);
+  mesa(-6, 14, 59 + DY, 14, 2, 3);
+
+  // Saloon silhouette with lamp-lit windows
+  for (y = 59; y < 66; y++) for (x = 84; x <= 99; x++) pu(x, y, 1);
+  for (y = 55; y < 59; y++) for (x = 87; x <= 96; x++) pu(x, y, 1);
+  for (x = 89; x <= 94; x++) pu(x, 54, 1);
+  for (x = 82; x <= 101; x++) pu(x, 61, 0);
+  pu(83, 62, 0); pu(83, 63, 0); pu(83, 64, 0); pu(83, 65, 0);
+  pu(100, 62, 0); pu(100, 63, 0); pu(100, 64, 0); pu(100, 65, 0);
+  pu(88, 63, 7); pu(89, 63, 7); pu(95, 63, 6); pu(96, 63, 6);
+  pu(91, 63, 0); pu(92, 63, 0); pu(91, 64, 0); pu(92, 64, 0); pu(91, 65, 0); pu(92, 65, 0);
+  pu(90, 57, 3); pu(91, 57, 3); pu(92, 57, 3); pu(93, 57, 3);
+
+  // Water tower silhouette
+  for (y = 45; y <= 53; y++) for (x = 107; x <= 119; x++) pu(x, y, 1);
+  for (x = 107; x <= 119; x++) { pu(x, 47, 0); pu(x, 51, 0); }
+  for (y = 45; y <= 53; y++) pu(107, y, 3);
+  for (x = 108; x <= 118; x++) pu(x, 44, 1);
+  for (x = 110; x <= 116; x++) pu(x, 43, 1);
+  for (x = 112; x <= 114; x++) pu(x, 42, 1);
+  pu(113, 41, 1);
+  for (y = 54; y < 66; y++) {
+    var spl = (y - 54) / 12;
+    pu(108 - Math.round(spl), y, 1); pu(118 + Math.round(spl), y, 1);
+    pu(111, y, 1); pu(115, y, 1);
+  }
+  for (x = 108; x <= 118; x++) pu(x, 58, 1);
+  for (i = 0; i < 3; i++) { pu(108 + i, 59 + i, 1); pu(111 - i, 59 + i, 1); pu(115 + i, 59 + i, 1); pu(118 - i, 59 + i, 1); }
+
+  // Ground bands
+  var GC = [16, 11, 12], GB = [HY + 1, HY + 4, HY + 10, LH];
+  for (x = 0; x < LW; x++) put(x, HY, 9);
+  for (y = HY + 1; y < LH; y++) {
+    var gi = 0; while (gi < 2 && y >= GB[gi + 1]) gi++;
+    for (x = 0; x < LW; x++) {
+      var dd = bay(x, y), gc = GC[gi];
+      if (gi < 2) { var gt = (y - (GB[gi + 1] - 3)) / 6; if (gt > 0 && dd < gt) gc = GC[gi + 1]; }
+      if (gi > 0) { var gt2 = (GB[gi] + 3 - y) / 6; if (gt2 > 0 && dd < gt2) gc = GC[gi - 1]; }
+      I[y * LW + x] = gc;
+    }
+  }
+  function darker(c) { return c === 12 ? 11 : c === 11 ? 16 : c === 16 ? 9 : c; }
+  // Ground streaks
+  for (i = 0; i < 34; i++) {
+    var sx0 = Math.floor(srnd() * LW), sy0 = HY + 2 + Math.floor(srnd() * (LH - HY - 2)), sl = 2 + Math.floor(srnd() * 6);
+    for (x = sx0; x < sx0 + sl && x < LW; x++) put(x, sy0, darker(get(x, sy0)));
+  }
+  // Long cowboy shadow cast away from the low sun
+  for (x = 28; x <= 60; x++) if (x < 52 || bay(x, 85) < (60 - x) / 9) put(x, 85, darker(get(x, 85)));
+  for (x = 31; x <= 52; x++) if (x < 46 || bay(x, 86) < (52 - x) / 7) put(x, 86, darker(get(x, 86)));
+  // Pebbles
+  for (i = 0; i < 16; i++) {
+    var ppx = 2 + Math.floor(srnd() * (LW - 4)), ppy = HY + 2 + Math.floor(srnd() * (LH - HY - 3));
+    if (ppx > 24 && ppx < 44 && ppy > 78 && ppy < 88) continue;
+    put(ppx, ppy, 9); put(ppx - 1, ppy, 12); put(ppx + 1, ppy, darker(get(ppx + 1, ppy)));
+    if (srnd() < 0.4) { put(ppx, ppy - 1, 11); put(ppx + 1, ppy - 1, 9); }
+  }
+
+  // Saguaro (lit from the sun on its right)
+  pu(6, 57, 22);
+  for (y = 58; y <= 76; y++) { pu(5, y, 23); pu(6, y, 22); pu(7, y, 5); }
+  pu(4, 66, 22); pu(4, 67, 23); pu(3, 66, 22); pu(3, 67, 22);
+  pu(3, 61, 22);
+  for (y = 62; y <= 67; y++) { pu(2, y, 23); pu(3, y, 22); }
+  pu(8, 70, 22); pu(8, 71, 23); pu(9, 71, 22);
+  pu(9, 63, 22);
+  for (y = 64; y <= 71; y++) { pu(9, y, 22); pu(10, y, 5); }
+  pu(6, 60, 23); pu(6, 64, 23); pu(6, 68, 23); pu(6, 72, 23);
+  pu(7, 77, 9); pu(4, 77, 9); pu(5, 77, 9); pu(6, 77, 9);
+
+  // Prickly pear in the foreground
+  function pad(cx, cy, rx, ry) {
+    for (var py = -Math.ceil(ry); py <= Math.ceil(ry); py++) for (var qx = -Math.ceil(rx); qx <= Math.ceil(rx); qx++) {
+      var e = (qx * qx) / (rx * rx) + (py * py) / (ry * ry);
+      if (e > 1) continue;
+      var pc = 22;
+      if (qx > 0 && e > 0.45) pc = 23;
+      if (py > 0 && e > 0.6) pc = 23;
+      if (qx < 0 && e > 0.55 && ((qx - 1) * (qx - 1)) / (rx * rx) + (py * py) / (ry * ry) > 1) pc = 11;
+      put(cx + qx, cy + py, pc);
+    }
+  }
+  pad(99, 87, 2.5, 3.2);
+  pad(107, 86, 2.2, 3.2);
+  pad(103, 91, 4.2, 2.6);
+  put(99, 83, 4); put(107, 82, 5); put(107, 81, 4);
+  put(101, 90, 12); put(105, 91, 12); put(99, 86, 12); put(108, 86, 12); put(103, 89, 12);
+  for (x = 99; x <= 108; x++) put(x, 94, darker(get(x, 94)));
+
+  for (i = 0; i < LW * LH; i++) bg[i] = PAL32[I[i]];
+})();
+
+// ---------------------------------------------------------------------------
+// Revolver: hand-drawn source, pre-rotated to 32 angles (nearest neighbour)
+// ---------------------------------------------------------------------------
+var GSRC = [
+  '..d.........',
+  '.ddlllllllll',
+  '.dmmmmmmmmm.',
+  '.wwmm.d.....',
+  '.ww.dd......',
+  'ww..........'
+];
+var GPX = 2, GPY = 4, GR = 12, GD = 25, GN = 32;
+var gunRot = new Uint8Array(GN * GD * GD);
+var MDX = new Int8Array(GN), MDY = new Int8Array(GN);   // muzzle
+var HDX = new Int8Array(GN), HDY = new Int8Array(GN);   // hammer
+var CDX = new Int8Array(GN), CDY = new Int8Array(GN);   // cylinder
+(function buildGun() {
+  var cmap = { d: 17, l: 19, m: 18, w: 10 };
+  gunRot.fill(EMPTY);
+  for (var n = 0; n < GN; n++) {
+    var a = n * 2 * Math.PI / GN, c = Math.cos(a), s = Math.sin(a);
+    for (var dy = -GR; dy <= GR; dy++) for (var dx = -GR; dx <= GR; dx++) {
+      var sx = Math.round(dx * c + dy * s) + GPX, sy = Math.round(-dx * s + dy * c) + GPY;
+      if (sx < 0 || sy < 0 || sy >= GSRC.length || sx >= GSRC[0].length) continue;
+      var ch = GSRC[sy].charAt(sx);
+      if (ch !== '.') gunRot[n * GD * GD + (dy + GR) * GD + (dx + GR)] = cmap[ch];
+    }
+    MDX[n] = Math.round(10 * c + 3 * s); MDY[n] = Math.round(10 * s - 3 * c);
+    HDX[n] = Math.round(4 * s);          HDY[n] = Math.round(-4 * c);
+    CDX[n] = Math.round(2 * c + 2 * s);  CDY[n] = Math.round(2 * s - 2 * c);
+  }
+})();
+
+// ---------------------------------------------------------------------------
+// Tumbleweed: 8 pre-rotated frames of scribbled arcs
+// ---------------------------------------------------------------------------
+var TWD = 9;
+var twF = new Uint8Array(8 * TWD * TWD);
+(function buildTumbleweed() {
+  twF.fill(EMPTY);
+  var arcs = [];
+  for (var a = 0; a < 13; a++) arcs.push([srnd() * 6.283, 1.4 + srnd() * 2.4, 1.0 + srnd() * 1.8, srnd() * 1.6 - 0.8, srnd() * 1.6 - 0.8]);
+  for (var f = 0; f < 8; f++) {
+    var rot = f * Math.PI / 4, cr = Math.cos(rot), sr = Math.sin(rot), base = f * TWD * TWD;
+    for (var k = 0; k < arcs.length; k++) {
+      var A = arcs[k];
+      var ox = A[3] * cr - A[4] * sr, oy = A[3] * sr + A[4] * cr;
+      for (var s = 0; s <= 9; s++) {
+        var ang = A[0] + A[2] * s / 9 + rot;
+        var x = Math.round(4 + ox + A[1] * Math.cos(ang)), y = Math.round(4 + oy + A[1] * Math.sin(ang));
+        if (x < 0 || y < 0 || x >= TWD || y >= TWD) continue;
+        var rr = Math.sqrt((x - 4) * (x - 4) + (y - 4) * (y - 4));
+        twF[base + y * TWD + x] = rr > 3.1 ? 11 : rr > 1.8 ? 10 : 9;
+      }
+    }
+    for (var y2 = 0; y2 < TWD; y2++) for (var x2 = 0; x2 < TWD; x2++) {
+      var i = base + y2 * TWD + x2;
+      if (twF[i] === EMPTY) continue;
+      if (x2 === 0 || twF[i - 1] === EMPTY) twF[i] = 12;
+      else if (y2 === TWD - 1 || twF[i + TWD] === EMPTY) twF[i] = twF[i] === 11 ? 10 : 9;
+    }
+  }
+})();
+
+// ---------------------------------------------------------------------------
+// Pose timeline
+// ---------------------------------------------------------------------------
+var P_AA = 0, P_AR = 1, P_GA = 2, P_GS = 3, P_KN = 4, P_HT = 5, P_FAN = 6, P_BL = 7, NPP = 8;
+// ease: 0 step, 1 linear, 2 smooth in-out, 3 fast-out (snap)
+//  t   ease  armAng reach gunAng gun knee hat fan blow
+var KEYS = [
+  [  0, 1,  104, 4.1,  100, 0, 0,  1, 0,  0],   // STANDOFF: hand hovers over holster
+  [200, 1,  104, 4.1,  100, 0, 0,  1, 0,  0],
+  [236, 2,  108, 4.6,  100, 0, 1,  1, 0,  0],   // tension: hand sinks, knees flex
+  [244, 3,  117, 6.2,  100, 0, 1,  1, 0,  0],   // DRAW: hand slaps the grip
+  [245, 0,  117, 6.2,  100, 1, 1,  1, 0,  0],   // gun in hand
+  [250, 3,   62, 7.6,   45, 1, 2,  1, 0,  0],   // barrel clears leather
+  [254, 3,   -4, 8.0,   -4, 1, 2,  1, 0,  0],   // arm snaps level
+  [262, 1,   -4, 8.0,   -4, 1, 2,  1, 0,  0],   // dead still
+  [267, 3,   -4, 8.0,   -4, 1, 2,  1, 1,  0],   // FIRE: fan hand onto hammer
+  [268, 1,   -4, 8.0,   -4, 1, 2,  1, 1,  0],   // shot 1
+  [271, 3,  -16, 8.0,  -38, 1, 1,  0, .4, 0],   // recoil
+  [278, 2,   -4, 8.0,   -4, 1, 1,  0, .4, 0],
+  [282, 3,   -4, 8.0,   -4, 1, 1,  0, 1,  0],
+  [283, 1,   -4, 8.0,   -4, 1, 1,  0, 1,  0],   // shot 2
+  [286, 3,  -16, 8.0,  -38, 1, 1,  0, .4, 0],
+  [293, 2,   -4, 8.0,   -4, 1, 1,  0, .4, 0],
+  [297, 3,   -4, 8.0,   -4, 1, 1,  0, 1,  0],
+  [298, 1,   -4, 8.0,   -4, 1, 1,  0, 1,  0],   // shot 3
+  [301, 3,  -20, 8.0,  -45, 1, 1, -1, .4, 0],   // big kick knocks the hat back
+  [312, 2,   -4, 8.0,   -4, 1, 1,  0, 0,  0],
+  [334, 1,   -4, 8.0,   -4, 1, 1,  0, 0,  0],   // hold the aim
+  [354, 2,   34, 7.2,  -60, 1, 1,  0, 0,  0],   // RECOVER: barrel up to lips
+  [362, 1,   34, 7.2,  -60, 1, 1,  0, 0,  0],
+  [363, 0,   34, 7.2,  -60, 1, 1, -1, 0,  1],   // blow
+  [382, 0,   34, 7.2,  -60, 1, 1, -1, 0,  0],
+  [396, 2,   51, 6.4,    0, 1, 0,  0, 0,  0],   // lower to the side
+  [468, 1,   51, 6.4, -720, 1, 0,  0, 0,  0],   // twirl x2
+  [484, 2,  117, 6.2, -620, 1, 0,  1, 0,  0],   // into the holster
+  [488, 0,  117, 6.2, -620, 0, 0,  1, 0,  0],   // holstered
+  [510, 2,  104, 4.1, -620, 0, 0,  1, 0,  0],   // hand floats back to hover
+  [600, 1,  104, 4.1,  100, 0, 0,  1, 0,  0]
+];
+var NK = KEYS.length;
+var KT = new Int16Array(NK), KE = new Uint8Array(NK), KV = new Float32Array(NK * NPP);
+for (var ki = 0; ki < NK; ki++) {
+  KT[ki] = KEYS[ki][0]; KE[ki] = KEYS[ki][1];
+  for (var kp = 0; kp < NPP; kp++) KV[ki * NPP + kp] = KEYS[ki][2 + kp];
+}
+
+var EV_DUST = 1, EV_SHOT = 2, EV_SMOKE = 3, EV_BLOW = 4;
+var EVT = new Int16Array([245, 268, 283, 298, 304, 366]);
+var EVK = new Uint8Array([EV_DUST, EV_SHOT, EV_SHOT, EV_SHOT, EV_SMOKE, EV_BLOW]);
+var NEV = EVT.length;
+
+var ST_STANDOFF = 0, ST_DRAW = 1, ST_FIRE = 2, ST_RECOVER = 3;
+var STATE_NAMES = ['STANDOFF', 'DRAW', 'FIRE', 'RECOVER'];
+function stateAt(lt) { return lt < 240 ? 0 : lt < 264 ? 1 : lt < 334 ? 2 : lt < 510 ? 3 : 0; }
+
+var poseL = new Float32Array(NPP);   // eased every tick
+var poseD = new Float32Array(NPP);   // held & displayed at 10-12 fps
+
+function evalTimeline(lt) {
+  var k = 0;
+  while (k < NK - 2 && KT[k + 1] <= lt) k++;
+  var a = (lt - KT[k]) / (KT[k + 1] - KT[k]);
+  if (a < 0) a = 0; else if (a > 1) a = 1;
+  var e = KE[k + 1], w;
+  if (e === 0) w = 0;
+  else if (e === 1) w = a;
+  else if (e === 2) w = a * a * (3 - 2 * a);
+  else { var ia = 1 - a; w = 1 - ia * ia * ia; }
+  var o0 = k * NPP, o1 = o0 + NPP;
+  for (var p = 0; p < NPP; p++) {
+    var va = KV[o0 + p];
+    poseL[p] = (p === P_GS || p === P_BL) ? va : va + (KV[o1 + p] - va) * w;
+  }
+}
+
+// Rig (integer, derived from the displayed pose)
+var rU = 0, rK = 0, rHX = 0, rHY = 0, rGI = 0, rGS = 0, rFan = 0, rHT = 0, rBL = 0;
+var rMX = 0, rMY = 0, rCX = 0, rCY = 0;
+var dBob = 0, dSway = 0, dFing = 3;
+var DEG = Math.PI / 180;
+
+function rig() {
+  rK = Math.round(poseD[P_KN]);
+  rU = rK + dBob;
+  var a = poseD[P_AA] * DEG, r = poseD[P_AR];
+  rHX = Math.round(16 + r * Math.cos(a));
+  rHY = Math.round(18 + rU + r * Math.sin(a));
+  rGS = poseD[P_GS] > 0.5 ? 1 : 0;
+  var gi = Math.round(poseD[P_GA] / (360 / GN)) % GN;
+  if (gi < 0) gi += GN;
+  rGI = gi;
+  rMX = SX + rHX + MDX[gi]; rMY = SY + rHY + MDY[gi];
+  rCX = SX + rHX + CDX[gi]; rCY = SY + rHY + CDY[gi];
+  rFan = poseD[P_FAN];
+  rHT = Math.round(poseD[P_HT]);
+  rBL = poseD[P_BL] > 0.5 ? 1 : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Particles (pooled, struct-of-arrays)
+// ---------------------------------------------------------------------------
+var MAXP = 256;
+var pX = new Float32Array(MAXP), pY = new Float32Array(MAXP);
+var pVX = new Float32Array(MAXP), pVY = new Float32Array(MAXP), pPh = new Float32Array(MAXP);
+var pA = new Int16Array(MAXP), pL = new Int16Array(MAXP), pT = new Uint8Array(MAXP);
+var pNext = 0;
+var T_SPARK = 1, T_SMOKE = 2, T_CASING = 3, T_DUST = 4, T_GRIT = 5;
+var RAMP = new Uint8Array([
+  8, 7, 7, 5, 4, 3,            // spark  0..5
+  20, 20, 19, 19, 18, 17,      // smoke  6..11
+  7, 7, 7, 7, 7, 7, 11, 10,    // casing 12..19
+  12, 12, 11, 16,              // dust   20..23
+  12, 12, 11                   // grit   24..26
+]);
+var RO = new Uint8Array([0, 0, 6, 12, 20, 24]);
+var RN = new Uint8Array([0, 6, 6, 8, 4, 3]);
+var WIND = -0.15;
+
+function spawn(t, x, y, vx, vy, life) {
+  var i = pNext, n = 0;
+  while (pT[i] !== 0 && n < MAXP) { i = (i + 1) & (MAXP - 1); n++; }
+  pNext = (i + 1) & (MAXP - 1);
+  pT[i] = t; pX[i] = x; pY[i] = y; pVX[i] = vx; pVY[i] = vy;
+  pA[i] = 0; pL[i] = life; pPh[i] = Math.random() * 6.283;
+}
+
+function updateParticles() {
+  for (var i = 0; i < MAXP; i++) {
+    var t = pT[i];
+    if (t === 0) continue;
+    var age = ++pA[i];
+    if (age >= pL[i]) { pT[i] = 0; continue; }
+    if (t === T_SPARK) { pVY[i] += 0.06; pVX[i] *= 0.9; }
+    else if (t === T_SMOKE) {
+      pVX[i] = pVX[i] * 0.96 + WIND * 0.04 + Math.sin(age * 0.12 + pPh[i]) * 0.014;
+      pVY[i] = pVY[i] * 0.97 - 0.004;
+    }
+    else if (t === T_DUST) { pVX[i] *= 0.93; pVY[i] = pVY[i] * 0.92 + 0.012; }
+    else if (t === T_CASING) { pVY[i] += 0.13; }
+    else if (t === T_GRIT) { pVY[i] = Math.sin(age * 0.09 + pPh[i]) * 0.08; }
+    pX[i] += pVX[i]; pY[i] += pVY[i];
+    if (t === T_CASING && pY[i] >= FLOOR) {
+      pY[i] = FLOOR;
+      if (pVY[i] > 0.6) { pVY[i] = -pVY[i] * 0.45; pVX[i] *= 0.6; }
+      else { pVY[i] = 0; pVX[i] *= 0.7; }
+    }
+  }
+}
+
+function drawParticles() {
+  for (var i = 0; i < MAXP; i++) {
+    var t = pT[i];
+    if (t === 0) continue;
+    var age = pA[i], life = pL[i];
+    var c = RAMP[RO[t] + ((age * RN[t] / life) | 0)];
+    var x = Math.floor(pX[i] + 0.5), y = Math.floor(pY[i] + 0.5);
+    if (t === T_SMOKE) {
+      px(x, y, c);
+      if (age * 2 < life) { px(x + 1, y, c); px(x, y - 1, c); }
+      if (age * 4 < life) px(x + 1, y - 1, c);
+    } else if (t === T_CASING) {
+      px(x, y, c); px(x + 1, y, c === 7 ? 11 : c);
+    } else px(x, y, c);
+  }
+}
+
+// Bullets
+var NB = 4;
+var bX = new Float32Array(NB), bY = new Int16Array(NB), bOn = new Uint8Array(NB);
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+var tick = -1, curState = -1, sampleT = 0, swayAcc = 0;
+var flashT = 0, shakeT = 0, smokeOn = 0;
+var twOn = 0, twX = 0, twY = 0, twLand = 0;
+var SHX = new Int8Array([0, 1, -1, 1, -1, 2, -2, 2]);
+var SHY = new Int8Array([0, 0, 1, -1, 1, -1, 1, -2]);
+
+function sample(st) {
+  for (var p = 0; p < NPP; p++) poseD[p] = poseL[p];
+  dBob = st === ST_STANDOFF ? (Math.floor(tick / 42) & 1) : 0;
+  dSway = Math.floor(swayAcc) & 3;
+  if (st === ST_STANDOFF && poseD[P_GS] < 0.5) {
+    var h = hash(Math.floor(tick / 16)) & 7;
+    dFing = h < 5 ? 0 : (h === 6 ? 2 : 1);
+  } else dFing = 3;
+  rig();
+}
+
+function fireEvent(k) {
+  var i;
+  if (k === EV_DUST) {
+    for (i = 0; i < 14; i++) {
+      var side = i & 1;
+      spawn(T_DUST, SX + (side ? 18 : 10) + Math.random() * 3, SY + 35,
+            (side ? 1 : -1) * (0.3 + Math.random() * 0.7), -(0.2 + Math.random() * 0.6), 24 + ((Math.random() * 16) | 0));
+    }
+  } else if (k === EV_SHOT) {
+    flashT = 11; shakeT = 7;
+    for (i = 0; i < NB; i++) if (!bOn[i]) { bOn[i] = 1; bX[i] = rMX + 8; bY[i] = rMY; break; }
+    for (i = 0; i < 9; i++)
+      spawn(T_SPARK, rMX + 2, rMY, 1 + Math.random() * 2.2, (Math.random() - 0.5) * 1.8, 8 + ((Math.random() * 9) | 0));
+    for (i = 0; i < 5; i++)
+      spawn(T_SMOKE, rMX + 1 + Math.random() * 3, rMY + (Math.random() - 0.5) * 2,
+            0.2 + Math.random() * 0.6, -0.05 - Math.random() * 0.25, 40 + ((Math.random() * 30) | 0));
+    spawn(T_CASING, rCX, rCY, -0.5 - Math.random() * 0.5, -1.5 - Math.random() * 0.6, 170 + ((Math.random() * 30) | 0));
+  } else if (k === EV_SMOKE) {
+    smokeOn = 1;
+  } else if (k === EV_BLOW) {
+    smokeOn = 0;
+    for (i = 0; i < MAXP; i++) if (pT[i] === T_SMOKE) { pVX[i] += 0.8 + Math.random() * 0.5; pVY[i] += -0.12 + Math.random() * 0.1; }
+    for (i = 0; i < 7; i++)
+      spawn(T_SMOKE, rMX, rMY + Math.random() * 2, 0.7 + Math.random() * 0.7, -0.1 - Math.random() * 0.2, 30 + ((Math.random() * 20) | 0));
+  }
+}
+
+function update() {
+  tick++;
+  var lt = tick % LOOP;
+  evalTimeline(lt);
+  var st = stateAt(lt);
+  var force = st !== curState;
+  curState = st;
+  var e;
+  for (e = 0; e < NEV; e++) if (EVT[e] === lt && EVK[e] === EV_SHOT) force = true;
+
+  swayAcc += 0.1 + 0.05 * Math.sin(tick * 0.013) + ((st === ST_DRAW || st === ST_FIRE) ? 0.12 : 0);
+  if (--sampleT <= 0 || force) {
+    sample(st);
+    sampleT = (st === ST_DRAW || st === ST_FIRE || (lt >= 396 && lt < 468)) ? 5 : 6;
+  }
+  for (e = 0; e < NEV; e++) if (EVT[e] === lt) fireEvent(EVK[e]);
+
+  if (smokeOn && rGS && (tick & 3) === 0)
+    spawn(T_SMOKE, rMX + (Math.random() - 0.5), rMY, (Math.random() - 0.5) * 0.2, -0.2 - Math.random() * 0.15, 50 + ((Math.random() * 30) | 0));
+
+  if (tick % 23 === 0)
+    spawn(T_GRIT, LW + 1, HY + 3 + Math.random() * (LH - HY - 4), -0.6 - Math.random() * 0.5, 0, 220);
+
+  // Tumbleweed rolls past during the standoff
+  if (lt >= 12 && lt < 250) {
+    twOn = 1;
+    twX = 138 - (lt - 12) * 0.62;
+    var phase = (138 - twX) * 0.2;
+    twY = 80 - Math.round(Math.abs(Math.sin(phase)) * 3);
+    var land = Math.floor(phase / Math.PI);
+    if (land !== twLand) {
+      twLand = land;
+      spawn(T_DUST, twX - 1, 84, -0.4, -0.3, 22);
+      spawn(T_DUST, twX + 1, 84, 0.2, -0.25, 20);
+    }
+  } else { twOn = 0; twLand = 0; }
+
+  updateParticles();
+  for (var b = 0; b < NB; b++) if (bOn[b]) { bX[b] += 5; if (bX[b] > LW + 8) bOn[b] = 0; }
+  if (flashT > 0) flashT--;
+  if (shakeT > 0) shakeT--;
+}
+
+// ---------------------------------------------------------------------------
+// Cowboy construction (into index buffer), then outline / rim / flash pass
+// ---------------------------------------------------------------------------
+function sp(x, y, c) { if (x >= 0 && x < SW && y >= 0 && y < SH) spr[y * SW + x] = c; }
+function hr(x0, x1, y, c) { for (var x = x0; x <= x1; x++) sp(x, y, c); }
+
+function thick(x0, y0, x1, y1, c, c2) {
+  var dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+  var sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx - dy, horiz = dx >= dy;
+  for (;;) {
+    if (horiz) { sp(x0, y0 + 1, c2); sp(x0, y0, c); }
+    else { sp(x0 + 1, y0, c2); sp(x0, y0, c); }
+    if (x0 === x1 && y0 === y1) break;
+    var e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 < dx) { err += dx; y0 += sy; }
+  }
+}
+
+function blitGun(gi, hx, hy) {
+  var base = gi * GD * GD;
+  for (var dy = 0; dy < GD; dy++) for (var dx = 0; dx < GD; dx++) {
+    var c = gunRot[base + dy * GD + dx];
+    if (c !== EMPTY) sp(hx + dx - GR, hy + dy - GR, c);
+  }
+}
+
+// Bandana tail frames: (dx, dy) x 3 pixels, 4 frames
+var TAIL = new Int8Array([
+  -2, 0, -3, 1, -4, 1,
+  -2, -1, -3, -1, -4, 0,
+  -2, 0, -3, 0, -4, -1,
+  -2, 1, -3, 1, -4, 2
+]);
+
+function drawFarArm(fanOn) {
+  var sx = 14, sy = 18 + rU, tx = 12, ty = 23 + rU;
+  if (rFan > 0) {
+    var gx = rHX + HDX[rGI], gy = rHY + HDY[rGI] - 1;
+    tx = Math.round(tx + (gx - tx) * rFan);
+    ty = Math.round(ty + (gy - ty) * rFan);
+  }
+  thick(sx, sy, tx, ty, 19, 18);
+  hr(tx - 1, tx, ty - 1, fanOn ? 15 : 16);
+  hr(tx - 1, tx, ty, 16);
+}
+
+function buildCowboy() {
+  spr.fill(EMPTY);
+  var u = rU, k = rK, x, y, t, o;
+  var fanOn = rFan > 0.15;
+  if (!fanOn) drawFarArm(false);
+
+  // Back (far) leg, angled back
+  var legTop = 27 + k, span = 31 - legTop || 1;
+  for (y = legTop; y <= 31; y++) {
+    t = (y - legTop) / span;
+    x = Math.round(11 - 2 * t);
+    o = (k > 0 && y < 30) ? 1 : 0;
+    hr(x + o, x + o + 2, y, 13);
+  }
+  hr(9, 11, 32, 21); hr(9, 11, 33, 9); hr(9, 11, 34, 9); hr(8, 11, 35, 21);
+  sp(7, 34, 18); sp(6, 33, 19); sp(6, 35, 19); sp(5, 34, 19);
+
+  // Front (near) leg
+  for (y = legTop; y <= 31; y++) {
+    t = (y - legTop) / span;
+    x = Math.round(15 + t);
+    o = (k > 0 && y < 30) ? 1 : 0;
+    hr(x + o, x + o + 2, y, 14);
+    sp(x + o + 2, y, 13);
+  }
+  hr(16, 18, 32, 9); hr(16, 18, 33, 10); hr(16, 20, 34, 10); hr(15, 20, 35, 21);
+  sp(14, 34, 18); sp(13, 34, 18); sp(13, 33, 19); sp(13, 35, 19); sp(12, 34, 19);
+
+  // Belts
+  hr(12, 19, 25 + k, 21); sp(19, 25 + k, 7);
+  hr(11, 18, 26 + k, 9); sp(12, 26 + k, 7); sp(17, 26 + k, 7);
+
+  // Holster on the right hip
+  for (y = 27 + k; y <= 30 + k; y++) { hr(13, 14, y, 10); sp(15, y, 9); }
+  sp(14, 31 + k, 9);
+
+  // Torso: vest over shirt
+  var ty0 = 17 + u, ty1 = 24 + k;
+  for (y = ty0; y <= ty1; y++) {
+    hr(y === ty0 ? 13 : 12, 16, y, 10);
+    sp(17, y, 9); sp(18, y, 20); sp(19, y, 20);
+  }
+  sp(18, ty1, 19); sp(19, ty1, 19);
+  sp(15, ty0 + 2, 7);                     // tin star glint
+  sp(13, ty0 + 4, 9); sp(14, ty0 + 4, 9); // pocket
+  if (dSway & 1) sp(11, ty1, 10);         // vest flap in the wind
+
+  // Bandana
+  hr(13, 19, 15 + u, 4); hr(13, 18, 16 + u, 4); sp(13, 16 + u, 3); sp(14, 16 + u, 3);
+  sp(18, 17 + u, 4); sp(19, 17 + u, 4); sp(18, 18 + u, 3);
+  sp(12, 15 + u, 3); sp(12, 16 + u, 4);
+  var tb = (dSway & 3) * 6;
+  for (var j = 0; j < 3; j++) sp(12 + TAIL[tb + j * 2], 15 + u + TAIL[tb + j * 2 + 1], j < 2 ? 4 : 3);
+
+  // Head
+  var hy = 9 + u;
+  hr(13, 19, hy, 16);
+  for (y = hy + 1; y <= hy + 4; y++) hr(13, 19, y, 15);
+  hr(14, 19, hy + 5, 15);
+  sp(13, hy + 1, 21); sp(14, hy + 1, 21); sp(13, hy + 2, 21); sp(14, hy + 2, 21);
+  sp(13, hy + 3, 21); sp(13, hy + 4, 21);
+  sp(15, hy + 2, 16); sp(15, hy + 3, 16);             // ear
+  sp(18, hy + 1, 21); sp(19, hy + 1, 21);             // brow
+  sp(18, hy + 2, 0);                                  // eye (squint)
+  sp(20, hy + 2, 15); sp(20, hy + 3, 16);             // nose
+  hr(17, 19, hy + 4, 16); hr(14, 16, hy + 5, 16);     // stubble, jaw
+  if (rBL) { sp(20, hy + 4, 3); sp(19, hy + 4, 9); }   // pursed lips
+  else sp(19, hy + 4, 9);
+
+  // Hat: dented crown, band, wide brim that tilts
+  var h0 = 4 + u, tl = rHT;
+  hr(13, 15, h0, 10); hr(17, 19, h0, 10); sp(13, h0, 11); sp(14, h0, 11);
+  hr(12, 20, h0 + 1, 10); sp(12, h0 + 1, 11); sp(13, h0 + 1, 11); sp(16, h0 + 1, 9);
+  hr(12, 20, h0 + 2, 10); sp(12, h0 + 2, 11);
+  hr(12, 20, h0 + 3, 21);
+  for (x = 8; x <= 24; x++) {
+    o = x <= 10 ? -tl : (x >= 22 ? tl : 0);
+    sp(x, h0 + 4 + o, 10);
+  }
+  sp(8, h0 + 3 - tl, 10); sp(24, h0 + 3 + tl, 10);
+  for (x = 20; x <= 23; x++) sp(x, h0 + 5 + (x >= 22 ? tl : 0), 21);
+
+  // Holstered grip
+  if (!rGS) { sp(12, 24 + k, 21); sp(13, 24 + k, 11); sp(13, 25 + k, 21); sp(14, 25 + k, 21); sp(15, 25 + k, 17); }
+
+  // Gun arm, revolver, hand
+  thick(16, 18 + u, rHX, rHY, 20, 19);
+  if (rGS) blitGun(rGI, rHX, rHY);
+  hr(rHX - 1, rHX, rHY - 1, 15); hr(rHX - 1, rHX, rHY, 15); sp(rHX - 1, rHY, 16);
+  if (dFing === 0) { sp(rHX - 1, rHY + 1, 15); sp(rHX, rHY + 1, 16); }
+  else if (dFing === 1) { sp(rHX - 1, rHY + 1, 15); sp(rHX, rHY + 2, 16); }
+  else if (dFing === 2) { sp(rHX, rHY + 1, 15); sp(rHX - 1, rHY + 2, 16); }
+
+  if (fanOn) drawFarArm(true);
+}
+
+function compositeCowboy() {
+  var flash = flashT >= 7;
+  for (var y = 0; y < SH; y++) {
+    var wy = SY + y;
+    if (wy < 0 || wy >= LH) continue;
+    for (var x = 0; x < SW; x++) {
+      var wx = SX + x;
+      if (wx < 0 || wx >= LW) continue;
+      var i = y * SW + x, c = spr[i], oc;
+      if (c === EMPTY) {
+        var L = x > 0 && spr[i - 1] !== EMPTY, R = x < SW - 1 && spr[i + 1] !== EMPTY;
+        var U = y > 0 && spr[i - SW] !== EMPTY, D = y < SH - 1 && spr[i + SW] !== EMPTY;
+        if (!(L || R || U || D)) continue;
+        oc = ((R || D) && !(L || U)) ? 21 : 0;   // two-shade outline: warmer on the sun side
+      } else {
+        oc = c;
+        if (x === 0 || spr[i - 1] === EMPTY) oc = RIM[c];
+        if (flash && (x === SW - 1 || spr[i + 1] === EMPTY)) oc = FLS[c];
+      }
+      fb[wy * LW + wx] = PAL32[oc];
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Effects
+// ---------------------------------------------------------------------------
+function parseSprite(rows, oy) {
+  var list = [];
+  for (var y = 0; y < rows.length; y++) for (var x = 0; x < rows[y].length; x++) {
+    var ch = rows[y].charAt(x);
+    if (ch !== '.') list.push(x, y - oy, parseInt(ch, 10));
+  }
+  return new Int8Array(list);
+}
+var FLASH_A = parseSprite(['..5.7....', '...787...', '.78888775', '...787...', '..5.7....'], 2);
+var FLASH_B = parseSprite(['.7.', '785', '.7.'], 1);
+
+function drawSpriteList(list, x, y) {
+  for (var i = 0; i < list.length; i += 3) px(x + list[i], y + list[i + 1], list[i + 2]);
+}
+
+function drawTumbleweed() {
+  if (!twOn) return;
+  var cx = Math.round(twX);
+  for (var sx = cx - 2; sx <= cx + 2; sx++) px(sx, 85, 16);
+  var f = ((Math.floor(twX / 3) % 8) + 8) % 8, base = f * TWD * TWD;
+  var x0 = cx - 4, y0 = twY - 4;
+  for (var y = 0; y < TWD; y++) for (var x = 0; x < TWD; x++) {
+    var c = twF[base + y * TWD + x];
+    if (c !== EMPTY) px(x0 + x, y0 + y, c);
+  }
+}
+
+function drawBullets() {
+  for (var b = 0; b < NB; b++) {
+    if (!bOn[b]) continue;
+    var x = Math.floor(bX[b]), y = bY[b];
+    for (var j = 0; j < 7; j++) px(x - j, y, j === 0 ? 8 : j < 3 ? 7 : j < 5 ? 5 : 4);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Display
+// ---------------------------------------------------------------------------
+var cv = document.getElementById('screen');
+var dctx = cv.getContext('2d', { alpha: false });
+var DW = 1, DH = 1, SC = 1, OX = 0, OY = 0;
+
+function resize() {
+  var dpr = window.devicePixelRatio || 1;
+  var cw = window.innerWidth, ch = window.innerHeight;
+  DW = Math.max(1, Math.round(cw * dpr));
+  DH = Math.max(1, Math.round(ch * dpr));
+  cv.width = DW; cv.height = DH;
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  SC = Math.max(1, Math.floor(Math.min(DW / LW, DH / LH)));
+  OX = Math.floor((DW - LW * SC) / 2);
+  OY = Math.floor((DH - LH * SC) / 2);
+  dctx.imageSmoothingEnabled = false;
+  dctx.fillStyle = PAL[0];
+}
+window.addEventListener('resize', resize);
+resize();
+
+function render() {
+  fb.set(bg);
+  drawTumbleweed();
+  buildCowboy();
+  compositeCowboy();
+  drawBullets();
+  drawParticles();
+  if (flashT >= 7) drawSpriteList(FLASH_A, rMX, rMY);
+  else if (flashT >= 3) drawSpriteList(FLASH_B, rMX, rMY);
+  octx.putImageData(img, 0, 0);
+  dctx.fillRect(0, 0, DW, DH);
+  dctx.drawImage(off, OX + SHX[shakeT] * SC, OY + SHY[shakeT] * SC, LW * SC, LH * SC);
+}
+
+var STEP = 1000 / 60, last = -1, acc = 0, paused = false;
+function frame(now) {
+  if (last < 0) last = now;
+  var d = now - last;
+  last = now;
+  if (d > 250) d = 250;
+  if (!paused) {
+    acc += d;
+    var n = 0;
+    while (acc >= STEP && n < 5) { update(); acc -= STEP; n++; }
+    if (acc >= STEP) acc = 0;
+  }
+  render();
+  requestAnimationFrame(frame);
+}
+
+update();
+render();
+requestAnimationFrame(frame);
+
+// Debug hook for inspection
+window.__duel = {
+  canvas: off,
+  palette: PAL,
+  get lt() { return tick % LOOP; },
+  get state() { return STATE_NAMES[curState]; },
+  get flashT() { return flashT; },
+  get rig() { return rHX + ',' + rHY + ',' + rGI + ',' + rGS + ',' + rFan.toFixed(2); },
+  casingY: function () { for (var i = 0; i < MAXP; i++) if (pT[i] === T_CASING) return pY[i]; return -1; },
+  pause: function (b) { paused = !!b; },
+  jump: function (t) { tick = t - 1 + Math.floor(tick / LOOP) * LOOP; sampleT = 0; update(); render(); },
+  step: function (n) { for (var i = 0; i < (n || 1); i++) update(); render(); }
+};
+})();
+</script>
+</body>
+</html>
