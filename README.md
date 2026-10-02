@@ -8,6 +8,7 @@ Single-file browser games and scenes. Each one is a self-contained HTML page: op
 | `cowboy-duel.html` | **Quick Draw**, a pixel-art cowboy duel. |
 | `ocean.html` | **Open Water**, a sailing and fishing game on a realistic 3D ocean. |
 | `ocean-scene-v1.html` | The earlier ocean scenery, with no gameplay. |
+| `neon-dash.html` | **Neon Dash**, a 2.5D rhythm runner built from Orion and Apollo's Geometry Dash clone. 1 player, or a 2-player split-screen race. |
 
 ## Running
 
@@ -84,3 +85,45 @@ You skipper an 11 m sloop on the open Atlantic off the Outer Banks. You sail to 
 | Drag · scroll | Look around · zoom | 1 / 2 / 3 | Spoon / jig / live bait |
 
 L opens the catch log, M toggles sound and H hides the conditions panel. Sound is generated in the browser and starts on your first key press. It's keyboard and mouse only, with no touch controls.
+
+## Neon Dash (neon-dash.html)
+
+Orion and Apollo designed this game in their "Coding with Dad" class, starting from their own Canvas2D Geometry Dash clone. Neon Dash keeps all of their ideas and rebuilds them with glowing 3D graphics and music that drives the level.
+
+**The four modes, each with its own world and music**
+
+| Mode | Portal | World | How it plays |
+| --- | --- | --- | --- |
+| Cube | blue | Neon City | Tap or hold to jump. A jump lasts exactly one beat. |
+| Ship | pink | Outer Space | Hold to fly up and let go to drop. |
+| Up/Down | green | Crystal Cave | Tap to flip between the floor and the ceiling. |
+| Spider | red | The Web | Tap to teleport straight to the other side. |
+
+**Music drives the level.** Everything is laid out on a beat grid at 130 BPM: four blocks of running is one beat. If you jump on the kick drum, you land on the next one. Each world plays its own part of the song, and walking through a portal switches the world and the music together.
+
+**Modes**
+
+- **Levels:** First Steps (easy), Lift Off, Crystal Flip, and Spider's Web (hard). Each has three hidden coins.
+  - The game tracks your best %, how many attempts you've made, and keeps a ghost of your best run to race against.
+- **Practice:** a checkpoint drops every couple of bars once you've made it safely past. Press Z to place your own checkpoint and X to remove the last one.
+- **Endless:** the original game's mode. It keeps going through every world.
+  - The orange orb gives you a shield for 10 seconds.
+  - The green orb gives you a super shield for 8 seconds and doubles your points.
+  - The high-score board starts with OMW's scores from the original game.
+- **2P race:** split-screen on one keyboard. If you crash, you go back to your last checkpoint, and the first player to the finish wins. The music follows the race clock, so a player who falls behind after a crash is slightly off the beat until the race ends.
+- **Icon:** pick colours, a face and a trail for each player.
+
+**Controls**
+
+| | Jump / fly / flip / teleport |
+| --- | --- |
+| Solo | Space, W, ↑, click or tap |
+| 2P race | Player 1: W or Space · Player 2: ↑ or Enter · gamepads 1 and 2 |
+
+On the menu, use ← → to pick a level and Enter to play. During a game, Esc or P pauses, R restarts and M toggles the music.
+
+**How it's built.** The physics runs at a fixed 240 steps a second, so it plays the same on any screen. A built-in solver runs that same physics to prove every level can be beaten, and it measures how much timing leeway each jump gets. That solver also plays the demo behind the menu.
+
+For tests, `window.__nd` exposes `start`, `step`, `frames`, `autoplay` and `solve`.
+
+*Geometry Dash* is a trademark of RobTop Games. Neon Dash is an unofficial, non-commercial fan project with no affiliation or endorsement, and it uses no assets from the original game.
