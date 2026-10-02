@@ -20,6 +20,15 @@ python3 -m http.server 8765
 
 The 3D pages load [three.js](https://threejs.org/) from the jsDelivr CDN and fonts from Google Fonts, so they need an internet connection.
 
+## Checking
+
+```sh
+./scripts/check-html.sh            # every .html in the repo root
+./scripts/check-html.sh ocean.html # or just the files you name
+```
+
+It runs `node --check` over each page's inline `<script>` blocks and exits non-zero on a syntax error. It does not catch runtime errors or a broken CDN import, so still open the page after a change.
+
 ## Fall Guys: Family Knockout
 
 A show of 12, 20 or 30 beans plays through race and survival rounds to a final, and the last bean standing wins the crown.
