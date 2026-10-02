@@ -4,7 +4,7 @@ Single-file browser games and scenes. Each one is a self-contained HTML page: op
 
 | File | What it is |
 | --- | --- |
-| `fall-guys.html` | **Fall Guys: Family Knockout**, a fan-made, Fall Guys–style party game. 1 player, or 2 players split-screen, against AI beans. |
+| `family-knockout.html` | **Family Knockout**, a fan-made party game in the style of Fall Guys. 1 player, or 2 players split-screen, against AI beans. |
 | `cowboy-duel.html` | **Quick Draw**, a pixel-art cowboy duel. |
 | `ocean.html` | **Open Water**, a sailing and fishing game on a realistic 3D ocean. |
 | `ocean-scene-v1.html` | The earlier ocean scenery, with no gameplay. |
@@ -15,7 +15,7 @@ Open a file directly in Chrome, or serve the folder:
 
 ```sh
 python3 -m http.server 8765
-# then open http://localhost:8765/fall-guys.html
+# then open http://localhost:8765/family-knockout.html
 ```
 
 The 3D pages load [three.js](https://threejs.org/) from the jsDelivr CDN and fonts from Google Fonts, so they need an internet connection.
@@ -29,7 +29,7 @@ The 3D pages load [three.js](https://threejs.org/) from the jsDelivr CDN and fon
 
 It runs `node --check` over each page's inline `<script>` blocks and exits non-zero on a syntax error. It does not catch runtime errors or a broken CDN import, so still open the page after a change.
 
-## Fall Guys: Family Knockout
+## Family Knockout
 
 A show of 12, 20 or 30 beans plays through race and survival rounds to a final, and the last bean standing wins the crown.
 
