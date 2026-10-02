@@ -229,7 +229,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const PROG = [[0, 3, 7], [-4, 0, 3], [3, 7, 10], [-2, 2, 5]];   // Am  F  C  G
 const TRANSPOSE = [0, 0, 3, -2];                                 // per world
 const Audio = {
-  ctx: null, on: store.get('music', true), playing: false, world: 0, sess: null,
+  ctx: null, lat: 0, on: store.get('music', true), playing: false, world: 0, sess: null,
   anchorCtx: 0, anchorBeat: 0, nextStep: 0, intro: true,
   unlock() {
     if (!this.ctx) {
@@ -259,7 +259,9 @@ const Audio = {
     if (!this.ctx) return;
     this.stop(0.03);
     this.sess = this.ctx.createGain(); this.sess.connect(this.musicBus);
-    this.anchorCtx = this.ctx.currentTime - (this.ctx.outputLatency || this.ctx.baseLatency || 0); this.anchorBeat = beat; this.world = world; this.intro = intro;
+    this.lat = this.ctx.outputLatency || this.ctx.baseLatency || 0;
+    // schedule early by the output latency, so you hear the beat when you see it
+    this.anchorCtx = this.ctx.currentTime - this.lat; this.anchorBeat = beat; this.world = world; this.intro = intro;
     this.nextStep = Math.ceil(beat * 4 - 1e-6); this.playing = true;
   },
   stop(fade = 0.05) {
@@ -271,7 +273,7 @@ const Audio = {
       this.sess = null;
     }
   },
-  beatNow() { return this.anchorBeat + (this.ctx.currentTime - this.anchorCtx) / SPB; },
+  beatNow() { return this.anchorBeat + (this.ctx.currentTime - this.anchorCtx - this.lat) / SPB; },   // the beat the player is seeing now
   stepTime(step) { return this.anchorCtx + (step / 4 - this.anchorBeat) * SPB; },
   pump() {
     if (!this.playing || !this.ctx || this.ctx.state !== 'running') return;
@@ -1559,7 +1561,7 @@ function updateHud(dt) {
 // Screens
 // ===========================================================================
 const SCREENS = ['menu', 'custom', 'scores', 'pause', 'results', 'over', 'raceEnd'];
-function showScreen(name) { for (const s of SCREENS) $(s).classList.toggle('on', s === name); }
+function showScreen(name) { for (const s of SCREENS) $(s).classList.toggle('on', s === name); Game.screenT = performance.now(); }
 function goMenu() {
   Game.state = 'menu'; showScreen('menu'); buildCard(); startDemo();
 }
@@ -1700,10 +1702,10 @@ addEventListener('keydown', e => {
   } else if (st === 'paused') {
     if (e.code === 'Escape' || e.code === 'KeyP') resume(); else if (e.code === 'KeyR') { showScreen(null); restartRun(); }
   } else if (st === 'results' || st === 'raceEnd') {
-    if (e.code === 'Enter' || e.code === 'Space') (st === 'results' ? play : () => startRun('race', { level: Game.sel }))();
+    if ((e.code === 'Enter' || e.code === 'Space') && performance.now() - Game.screenT > 1200) (st === 'results' ? play : () => startRun('race', { level: Game.sel }))();
     else if (e.code === 'Escape') { endRun(); goMenu(); }
   } else if (st === 'over') {
-    if (e.code === 'Escape') { endRun(); goMenu(); } else if (e.code === 'Enter' || e.code === 'Space') startRun('endless');
+    if (e.code === 'Escape') { endRun(); goMenu(); } else if ((e.code === 'Enter' || e.code === 'Space') && performance.now() - Game.screenT > 1200) startRun('endless');
   } else if (st === 'custom' || st === 'scores') { if (e.code === 'Escape') { endRun(); goMenu(); } }
 });
 addEventListener('keyup', e => keys.delete(e.code));
@@ -1823,6 +1825,7 @@ window.__nd = {
   goto(x) { for (const p of Game.players) { while (p.sim.x < x && !p.sim.dead && !p.sim.done) tick(); } syncLevel(); return this.state(); },
   menu() { endRun(); goMenu(); return Game.state; },
   solveSlice() { solveSlice(); return !!Game.solving; },
+  update(dt = 1 / 60) { update(dt); render(dt); return this.state(); },
 };
 
 // ===========================================================================
