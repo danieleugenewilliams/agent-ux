@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(gh pr list*, gh pr view*, gh pr diff*, gh pr comment*, gh pr edit*, gh api repos/danieleugenewilliams/agent-ux/issues/*/timeline*, gh label*, git fetch*, git worktree*, git rev-parse*, git log*, git show*, git diff*, git status*, git add*, git commit*, git push origin HEAD:*, jq*, comm*, printf*, sort*, grep*, sleep*, date*, ./scripts/check-html.sh*), Monitor, TaskStop, Agent, PushNotification
+allowed-tools: Bash(gh pr list*, gh pr view*, gh pr diff*, gh pr comment*, gh pr edit*, gh api repos/danieleugenewilliams/agent-ux/issues/*/timeline*, gh label*, git fetch*, git worktree*, git rev-parse*, git log*, git show*, git diff*, git status*, git add*, git commit*, git push origin HEAD:*, jq*, comm*, printf*, sort*, grep*, sleep*, date*, ./scripts/check-html.sh*, */scripts/check-html.sh*), Monitor, TaskStop, Agent, PushNotification
 description: Watch the reviewer queue and review each PR that enters it. Usage: /reviewer-watch [poll-seconds] [max-active]
 ---
 
