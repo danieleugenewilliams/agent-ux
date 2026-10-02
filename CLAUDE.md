@@ -1,0 +1,1 @@
+- Builder–reviewer loop: see `docs/review-loop.md` (roles, labels, merge predicate). Sessions named builder/reviewer run `/builder-watch` and `/reviewer-watch`.
