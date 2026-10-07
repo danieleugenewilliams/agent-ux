@@ -175,6 +175,30 @@
   .homeTile { display: flex; flex-direction: column; align-items: center; gap: 8px; font: 800 18px 'Asap', sans-serif; }
   #hud .mate.home { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255,216,61,.7); opacity: .75; }
   #hud .prompt .pfix.full::after { content: '🏠'; position: absolute; left: -10px; top: -10px; font-size: 22px; }
+  /* ---------- TITLE: pick your pilot (a tap starts the game); PAUSE: ▶ carries on as the same pilot ---------- */
+  #start .pilots { display: none; margin: 26px auto 0; flex-wrap: wrap; justify-content: center; gap: 16px; width: min(1000px, 94vw); }
+  #start.title .pilots { display: flex; }
+  #start .resume { display: flex; margin-top: 26px; align-items: center; justify-content: center; gap: 22px; }
+  #start.title .resume { display: none; }
+  #start .resume .who { display: flex; flex-direction: column; align-items: center; gap: 4px; font: 900 22px 'Asap', sans-serif; color: var(--c, #fff); text-shadow: 2px 2px 0 var(--ink); }
+  #start .resume .who img { width: 96px; height: 96px; border-radius: 50%; border: 6px solid var(--c, #fff); box-shadow: 0 6px 0 var(--ink), 0 0 26px var(--c, #fff); background: var(--ink); }
+  #start #go { margin-top: 0; }
+  .pilot { position: relative; width: 142px; padding: 10px 6px 12px; border-radius: 26px; border: 5px solid var(--ink); background: rgba(20,24,42,.78); color: var(--c); cursor: pointer;
+    box-shadow: 0 7px 0 var(--ink), inset 0 0 0 4px var(--c); display: flex; flex-direction: column; align-items: center; gap: 6px; font: 900 22px 'Asap', sans-serif; transition: transform .1s; }
+  .pilot img { width: 112px; height: 112px; border-radius: 50%; display: block; pointer-events: none; }
+  .pilot span { pointer-events: none; text-shadow: 2px 2px 0 var(--ink); }
+  .pilot:hover, .pilot.cur { transform: scale(1.07); box-shadow: 0 7px 0 var(--ink), inset 0 0 0 4px var(--c), 0 0 0 5px var(--c), 0 0 30px var(--c); }
+  .pilot:active { transform: translateY(5px) scale(1.03); box-shadow: 0 2px 0 var(--ink), inset 0 0 0 4px var(--c); }
+  @media (max-width: 700px) { .pilot { width: 104px; font-size: 17px; } .pilot img { width: 80px; height: 80px; } #start .logo { font-size: 44px; } #start .keys { display: none; } }
+  /* ---------- HUD: the pilot's helmet portrait beside the hearts; parts found in the grass ---------- */
+  #hud .health .who { display: none; flex-direction: column; align-items: center; gap: 1px; font: 900 15px 'Asap', sans-serif; color: var(--c, #fff); text-shadow: 1px 1px 0 var(--ink); }
+  #hud .health .who.on { display: flex; }
+  #hud .health .face { width: 56px; height: 56px; border-radius: 50%; border: 4px solid var(--c, #fff); box-shadow: 0 0 12px var(--c, #fff); background: var(--ink); }
+  #hud .parts { position: relative; }
+  #hud .parts .pop { position: absolute; left: 4px; top: 4px; font: 900 28px 'Asap', sans-serif; color: var(--yellow); white-space: nowrap; pointer-events: none;
+    text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink); animation: drop 1.4s ease-out forwards; }
+  @keyframes drop { from { transform: translateY(0); opacity: 1; } to { transform: translateY(58px); opacity: 0; } }
+  #hud .found { font-size: 24px; padding: 10px 14px; }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -188,11 +212,14 @@
 <canvas id="c"></canvas>
 <div id="loading">🤖</div>
 
-<!-- START: press play, then mouse aims (pointer lock) -->
-<div id="start" class="screen on">
+<!-- START: the title screen (tap a pilot to play) and the pause screen (▶ carries on); then the mouse aims (pointer lock) -->
+<div id="start" class="screen on title">
   <div class="wrap">
     <div class="logo rb-title">ROBOT <span>BATTLE</span></div>
-    <button id="go" aria-label="Play">▶</button>
+    <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
+    <div class="pilots" id="pilots"></div>
+    <!-- PAUSE: who's piloting, and ▶ to carry on -->
+    <div class="resume"><div class="who" id="who"></div><button id="go" aria-label="Play">▶</button></div>
     <div class="keys">
       <div class="hint"><div class="keyset">
         <div class="key e"></div><div class="key">W</div><div class="key e"></div>
@@ -209,11 +236,12 @@
   </div>
 </div>
 
-<!-- HUD: health, weapons, speed bars (boot icon) and a compass showing legs vs torso -->
+<!-- HUD: the pilot and health, weapons, speed bars (boot icon), a compass showing legs vs torso;
+     top right the squad, parts collected (🔩), hidden parts found (🔍) and the bag -->
 <div id="hurt"></div>
 <div id="hud" class="screen on">
   <div class="reticle"></div>
-  <div class="health" id="health"><span class="ico">❤️</span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech">🔧<small>R</small></button></div>
+  <div class="health" id="health"><div class="who" id="pilotHud"><img class="face" id="pilotFace" alt=""><span id="pilotName"></span></div><span class="ico">❤️</span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech">🔧<small>R</small></button></div>
   <div class="weapons" id="weapons"></div>
   <div class="speed" id="speed"><span class="ico">🦿</span></div>
   <div class="compass">
@@ -221,7 +249,7 @@
     <div class="arm torso" id="cTorso"><b>🎯</b></div>
     <div class="hub"></div>
   </div>
-  <div class="right"><div id="squad" class="squad"></div><div class="parts"><span>🔩</span><b id="partsN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag">🎒<small>B</small></button></div>
+  <div class="right"><div id="squad" class="squad"></div><div class="parts" id="partsBox"><span>🔩</span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span>🔍</span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag">🎒<small>B</small></button></div>
   <div class="prompt" id="prompt">
     <button class="pfix" id="pFix" aria-label="Fix">🔧<small>F</small></button>
     <button class="pparts" id="pParts" aria-label="Take parts">🔩<small>G</small></button>
@@ -402,10 +430,45 @@ const SHAPE_SVG = {
   circle: '<circle cx="20" cy="20" r="14"/>',
   star: '<polygon points="20,3 25,14.5 37,15.5 28,23.5 30.5,35.5 20,29 9.5,35.5 12,23.5 3,15.5 15,14.5"/>',
 };
+// a squadmate's steady glow level (in its own colour); color: the fallback for its name label
 const ALLY = { glow: 2.6, color: '#3ff0ff' };
 // where squadmates walk, in the leader's frame: [right, behind] metres
 const SQUAD_SLOTS = [[-6, 7], [6, 7], [0, 12]];
 const ROBOT_NAMES = ['Bolt', 'Sprocket', 'Rusty', 'Zippy', 'Clank', 'Gizmo', 'Sparky', 'Dynamo', 'Piston', 'Cog', 'Nugget', 'Turbo', 'Pixel', 'Rivet', 'Widget', 'Boomer'];
+// The pilots: the family. Each one is a colour and a helmet portrait (their initial on the visor,
+// an emblem under it), drawn by pilotFace(). The colour and emblem are placeholders the family
+// can swap here. Picking one on the title screen starts the game.
+const PILOTS = [
+  { id: 'othello', name: 'Othello', hex: '#ff4d5e', emblem: '⭐' },
+  { id: 'korra',   name: 'Korra',   hex: '#a77bff', emblem: '🔥' },
+  { id: 'beau',    name: 'Beau',    hex: '#4f9dff', emblem: '💎' },
+  { id: 'sneezy',  name: 'Sneezy',  hex: '#3ee07a', emblem: '🌀' },
+  { id: 'nala',    name: 'Nala',    hex: '#ff5fa2', emblem: '🌙' },
+  { id: 'thunder', name: 'Thunder', hex: '#ffd83d', emblem: '⚡' },
+];
+// a pilot by id or name (any case), or by index
+const pilotOf = (p) => (Number.isInteger(p) ? PILOTS[p] : PILOTS.find((q) => q.id === String(p).toLowerCase() || q.name.toLowerCase() === String(p).toLowerCase())) || null;
+// Every robot gets a random glow colour (the family's rule: the colour means nothing; a glitched
+// robot's glow flickers and a fixed one's holds steady). Bright hues only, and each is scaled to the
+// same brightness (glowK, from GLOW_LUM), so the flicker and the steady glow read the same in any colour.
+const GLOW_COLORS = ['#ff2f5b', '#ff7a1a', '#ffd21a', '#a6ff2e', '#2eff7a', '#2effe0', '#3fb4ff', '#c06bff', '#ff4de1'];
+const GLOW_LUM = 0.4;
+// Smashables: trees, big rocks and fence sections. A player's attacks wear their hp down (damage as
+// dealt to a robot, times `weapon[w]`: the electromagnet is electronic and does nothing to wood or
+// stone), and so does a player's mech walking into one: `walk` hp a second pushing in at top speed,
+// less when slower, none under walkMin m/s. Broken stays broken: it leaves `obstacles`, so it no
+// longer blocks anything or stops a round, and it never grows back.
+const PROP = {
+  tree:  { hp: 60, walk: 50 },
+  rock:  { hp: 90, walk: 30 },
+  fence: { hp: 20, walk: 400 },     // a fence section goes as soon as a mech leans on it
+  walkMin: 1.5, weapon: { em: 0 },
+};
+// Hidden parts: typed parts half-hidden in the grass round the meadow (seeded, so they're in the
+// same places every visit). Only a glint now and then gives one away, until a squadmate drone
+// scouts it and marks it. Walking over one puts it in the bag, once.
+// (Never the 🔭 scope: only a Sniper carries one, and it unlocks the rail gun.)
+const HIDDEN = { n: 8, reach: 3.5, kinds: ['armour', 'battery', 'motor', 'wiring'] };
 
 const V3 = THREE.Vector3;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -561,6 +624,12 @@ const Sfx = {
   home() { [784, 659, 523].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.14, null, i * 0.11)); this.tone(400, 0.7, 'sine', 0.08, 1800, 0.35); },
   boing(k = 1, n = 0) { const f = 170 * Math.pow(1.19, Math.min(n, 6)); this.tone(f, 0.35, 'sine', 0.3 * k, f * 2.6); this.tone(f * 0.5, 0.2, 'triangle', 0.15 * k, f * 1.2); },
   scout() { this.tone(880, 0.1, 'sine', 0.12); this.tone(1320, 0.16, 'sine', 0.12, null, 0.12); },
+  // Smashing the meadow: a tree's trunk cracks (it thuds when it lands), a rock crumbles, a fence splinters.
+  // Finding a hidden part: a bright little rising sparkle.
+  crack(k = 1) { this.noise(0.08, 0.4 * k, 2600, 0, 0.8, 'highpass'); this.noise(0.5, 0.25 * k, 600, 0.03, 0.7, 'lowpass'); this.tone(130, 0.4, 'sawtooth', 0.08 * k, 60, 0.02); [0.12, 0.2, 0.31].forEach((d) => this.noise(0.04, 0.15 * k, 1800, d, 1.5)); },
+  crumble(k = 1) { this.tone(65, 0.45, 'sine', 0.45 * k, 30); [0, 0.05, 0.11, 0.18, 0.26, 0.35].forEach((d) => this.noise(0.09, 0.22 * k, 900 + Math.random() * 900, d, 1)); },
+  splinter(k = 1) { this.noise(0.05, 0.3 * k, 3000, 0, 1); [0.04, 0.09, 0.15].forEach((d) => this.noise(0.05, 0.18 * k, 1400 + Math.random() * 800, d, 2)); this.tone(240, 0.12, 'triangle', 0.08 * k, 140); },
+  find() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.13, null, i * 0.06)); this.noise(0.2, 0.06, 7500, 0.18, 2, 'highpass'); },
   salvage() { this.clang(1); this.clang(0.7); this.tone(260, 0.12, 'square', 0.06, 180, 0.12); this.tone(340, 0.12, 'square', 0.06, 220, 0.26); this.noise(0.3, 0.2, 900, 0.1, 0.8); },
   // A low engine hum that rises with speed
   startHum() {
@@ -646,7 +715,9 @@ function groundH(x, z) {
   const rim = r > 90 ? Math.min(1, Math.pow((r - 90) / 35, 2)) * 12 : 0;   // the meadow rises into hills at the edge
   return hills * 0.8 + rim;
 }
-const obstacles = [];   // { x, z, r, h, kind } circles the mech can't walk through ('tree' | 'rock')
+// { x, z, r, h, kind, prop } circles the mech can't walk through ('tree' | 'rock' | 'fence'); prop is
+// the smashable it belongs to (Props). Smashing one takes its circles out of here.
+const obstacles = [];
 
 function makeSky() {
   const geo = new THREE.SphereGeometry(500, 32, 16);
@@ -741,17 +812,21 @@ const Meadow = {
     }
     scene.add(im);
   },
+  // A tree: a stump, and on a pivot at the stump's top the rest of the trunk and the leaves, which
+  // topple over when it's smashed (Props). The same random draws as ever, so the meadow doesn't move.
   addTree(x, z, s) {
     const t = new THREE.Group(); t.position.set(x, groundH(x, z) - 0.2, z);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * s, 0.6 * s, 4.5 * s, 7), mat('#7a5232', { roughness: 0.9, metalness: 0 }));
-    trunk.position.y = 2.25 * s; trunk.castShadow = true; t.add(trunk);
+    const bark = mat('#7a5232', { roughness: 0.9, metalness: 0 });
+    const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.544 * s, 0.6 * s, 1.0 * s, 7), bark); stump.position.y = 0.5 * s; stump.castShadow = true; t.add(stump);
+    const top = new THREE.Group(); top.position.y = 1.0 * s; t.add(top);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * s, 0.544 * s, 3.5 * s, 7), bark); trunk.position.y = 1.75 * s; trunk.castShadow = true; top.add(trunk);
     const greens = ['#2f8f3a', '#3fa548', '#4db84f'];
     for (let k = 0; k < 3; k++) {
       const f = new THREE.Mesh(new THREE.IcosahedronGeometry((2.6 - k * 0.55) * s, 1), mat(greens[k], { roughness: 0.85, metalness: 0, flatShading: true }));
-      f.position.set(srange(-0.4, 0.4) * s, (4.6 + k * 1.5) * s, srange(-0.4, 0.4) * s); f.rotation.set(srand(), srand(), srand());
-      f.castShadow = true; t.add(f);
+      f.position.set(srange(-0.4, 0.4) * s, (3.6 + k * 1.5) * s, srange(-0.4, 0.4) * s); f.rotation.set(srand(), srand(), srand());
+      f.castShadow = true; top.add(f);
     }
-    scene.add(t); obstacles.push({ x, z, r: 0.8 * s, h: 5, kind: 'tree' });
+    scene.add(t); Props.add('tree', x, z, [{ x, z, r: 0.8 * s, h: 5 }], { root: t, top, s });
   },
   addRock(x, z, s, small = false) {
     const geo = new THREE.DodecahedronGeometry(1, 1), p = geo.attributes.position;
@@ -760,9 +835,132 @@ const Meadow = {
     const r = new THREE.Mesh(geo, mat(srand() < 0.5 ? '#8a8f99' : '#a3a39a', { roughness: 0.95, metalness: 0, flatShading: true }));
     r.scale.setScalar(s); r.rotation.y = srange(0, 6); r.position.set(x, groundH(x, z) + s * 0.25, z);
     r.castShadow = true; r.receiveShadow = true; scene.add(r);
-    if (!small) obstacles.push({ x, z, r: s * 0.95, h: s * 1.1, kind: 'rock' });
+    if (!small) Props.add('rock', x, z, [{ x, z, r: s * 0.95, h: s * 1.1 }], { root: r, s, col: r.material.color.getStyle() });
+  },
+  // Fences: straight runs of FENCE.len-metre sections, each its own smashable (two posts and two
+  // rails, blocking as two circles), so smashing one opens a gap. Built after the trees, rocks and
+  // kits on their own seed, so nothing that was already in the meadow moves; a section that would
+  // land on something is left out. Runs: [angle, distance from the middle, sections, twist].
+  buildFences() {
+    seed = 2468;
+    const runs = [[-0.75, 34, 4, 0.2], [0.9, 48, 5, -0.3], [2.4, 40, 4, 0.4], [-2.2, 58, 5, 0.1], [1.9, 76, 4, -0.2], [-1.35, 82, 3, 0.5], [0.15, 66, 4, 0.3]];
+    for (const [a, d, n, tw] of runs) {
+      const cx = Math.cos(a) * d, cz = Math.sin(a) * d, yaw = a + Math.PI / 2 + tw;   // across the radius, give or take
+      const ux = Math.cos(yaw), uz = Math.sin(yaw);
+      for (let i = 0; i < n; i++) {
+        const o = (i - (n - 1) / 2) * FENCE.len, x = cx + ux * o, z = cz + uz * o;
+        // clear if nothing sits on the section's own line (a tree right beside it is fine)
+        const off = (px, pz) => { const t = clamp((px - x) * ux + (pz - z) * uz, -FENCE.len / 2, FENCE.len / 2); return Math.hypot(px - x - ux * t, pz - z - uz * t); };
+        const free = obstacles.every((q) => q.kind === 'fence' || off(q.x, q.z) > q.r + 0.6) && Kits.list.every((k) => off(k.x, k.z) > 2.5);
+        if (free) this.addFence(x, z, ux, uz);
+      }
+    }
+  },
+  addFence(x, z, ux, uz) {
+    const g = new THREE.Group(), L = FENCE.len, post = mat('#8a5a32', { roughness: 0.9, metalness: 0 }), rail = mat('#c08a52', { roughness: 0.85, metalness: 0 });
+    g.position.set(x, groundH(x, z), z); g.rotation.order = 'YXZ'; g.rotation.y = Math.atan2(-uz, ux);   // local x runs along the fence (and a shake leans it about that)
+    const posts = [], rails = [];
+    for (const s of [-1, 1]) {
+      const p = new THREE.Mesh(FENCE.geo.post, post); p.position.set(s * (L / 2 - 0.2), 0.85, 0); p.rotation.y = srange(-0.2, 0.2); p.castShadow = true; g.add(p); posts.push(p);
+    }
+    for (const y of [0.7, 1.3]) { const r = new THREE.Mesh(FENCE.geo.rail, rail); r.position.set(0, y, 0.14); r.rotation.z = srange(-0.03, 0.03); r.castShadow = true; g.add(r); rails.push(r); }
+    scene.add(g);
+    const c = (k) => ({ x: x + ux * k, z: z + uz * k, r: 1.05, h: 1.7 });
+    Props.add('fence', x, z, [c(-1), c(1)], { root: g, posts, rails });
   },
 };
+const FENCE = { len: 4, geo: { post: new THREE.BoxGeometry(0.24, 1.7, 0.24), rail: new THREE.BoxGeometry(3.9, 0.2, 0.09) } };
+
+// ===========================================================================
+// Props: everything in the meadow that can be smashed (trees, big rocks, fence
+// sections). hit() wears one down; at 0 it breaks for good: its circles leave
+// `obstacles`, a tree topples over (Props.tick, so it's simulated and testable),
+// a rock crumbles to rubble, a fence's posts snap and its rails drop.
+// ===========================================================================
+const Props = {
+  list: [], nextId: 1,
+  add(kind, x, z, circles, look) {
+    const p = { id: this.nextId++, kind, x, z, hp: PROP[kind].hp, maxHp: PROP[kind].hp, broken: false, by: null, hits: 0, obs: [], wob: 0, fall: null, ...look };
+    for (const c of circles) { const o = { ...c, kind, prop: p }; p.obs.push(o); obstacles.push(o); }
+    this.list.push(p);
+    return p;
+  },
+  // p takes `dmg` from weapon w ('walk' = a mech leaning on it) travelling along (dx, dz).
+  // Returns true if that broke it.
+  hit(p, dmg, w, dx, dz) {
+    if (!p || p.broken) return false;
+    const d = dmg * (PROP.weapon[w] ?? 1); if (!(d > 0)) return false;
+    p.hp = Math.max(0, p.hp - d); p.hits++; p.wob = Math.min(1, p.wob + (w === 'walk' ? 0.08 : 0.5));
+    if (p.hp > 0) return false;
+    this.smash(p, w, dx, dz);
+    return true;
+  },
+  smash(p, w, dx, dz) {
+    p.broken = true; p.by = w; p.hp = 0;
+    for (const o of p.obs) { const i = obstacles.indexOf(o); if (i >= 0) obstacles.splice(i, 1); }
+    const L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L, y = groundH(p.x, p.z), at = new V3(p.x, y + 1.2, p.z), k = loud(at);
+    if (p.kind === 'tree') {
+      // it tips over away from whatever hit it
+      p.fall = { t: 0, axis: new V3(uz, 0, -ux), landed: false };
+      Impacts.chip(new V3(p.x, y + 1.1 * p.s, p.z), 14, ['#7a5232', '#a07444', '#c9a273'], 7, -ux, -uz, 0.16);
+      Impacts.chip(new V3(p.x, y + 4.5 * p.s, p.z), 18, ['#2f8f3a', '#3fa548', '#4db84f'], 5, ux, uz, 0.2);
+      if (k > 0) Sfx.crack(k);
+    } else if (p.kind === 'rock') {
+      // the rock crumbles into a ring of rubble that a mech walks over
+      p.root.visible = false;
+      const g = new THREE.Group(), m = mat(p.col, { roughness: 0.95, metalness: 0, flatShading: true });
+      Props.rubble = Props.rubble || new THREE.DodecahedronGeometry(1, 0);
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2 + Math.random() * 0.6, d = p.s * (0.35 + Math.random() * 0.6), s = p.s * (0.22 + Math.random() * 0.18);
+        const c = new THREE.Mesh(Props.rubble, m); c.scale.set(s, s * 0.6, s); c.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+        const cx = p.x + Math.cos(a) * d, cz = p.z + Math.sin(a) * d; c.position.set(cx, groundH(cx, cz) + s * 0.3, cz); c.castShadow = true; c.receiveShadow = true; g.add(c);
+      }
+      scene.add(g); p.debris = g;
+      Impacts.chip(at, 22, ['#8a8f99', '#a3a39a', '#6c707a'], 8, -ux, -uz, 0.2); Impacts.puff(at, 6, 2.2);
+      Sparks.spray(at.x, at.y, at.z, 10, SPARK_HOT, 7, -ux, -uz);
+      if (k > 0) Sfx.crumble(k);
+    } else {
+      // the posts snap to splintered stubs and the rails drop flat into the grass
+      for (const q of p.posts) { q.scale.y = 0.35; q.position.y = 0.3; q.rotation.set(Math.random() * 0.5 - 0.25, q.rotation.y, Math.random() * 0.5 - 0.25); }
+      p.rails.forEach((q, i) => { q.position.set((Math.random() - 0.5) * 0.8, 0.12 + i * 0.1, 0.6 + i * 0.9); q.rotation.set(Math.PI / 2 * 0.15, (Math.random() - 0.5) * 0.7, 0); });
+      Impacts.chip(at, 18, ['#8a5a32', '#c08a52', '#e0b07a'], 7, ux, uz, 0.15); Impacts.puff(at, 3, 1.4);
+      if (k > 0) Sfx.splinter(k);
+    }
+  },
+  // the simulated part: a toppling tree's fall, and the shake of a prop being hit
+  tick(dt) {
+    for (const p of this.list) {
+      p.wob = Math.max(0, p.wob - dt * 3);
+      const f = p.fall; if (!f || f.landed) continue;
+      f.t += dt;
+      if (f.t >= 1.1) {
+        f.landed = true;
+        const k = loud(p); if (k > 0) Sfx.thud(0.8 * k);
+        const ax = f.axis, lx = p.x - ax.z * 5 * p.s, lz = p.z + ax.x * 5 * p.s;    // where the leaves land
+        Impacts.puff(new V3(lx, groundH(lx, lz), lz), 6, 2.4);
+        for (const h of Game.humans) if (Math.hypot(h.mech.pos.x - p.x, h.mech.pos.z - p.z) < 25) h.rig.kick(0.5);
+      }
+    }
+  },
+  // the drawn part: the fall's angle (eases in, like falling) and the shake
+  sync() {
+    for (const p of this.list) {
+      if (p.kind === 'tree') {
+        if (p.fall) p.top.quaternion.setFromAxisAngle(p.fall.axis, 1.45 * Math.min(1, (p.fall.t / 1.1) ** 2));
+        else p.top.rotation.set(Math.sin(Game.ticks * 0.9) * p.wob * 0.06, 0, Math.cos(Game.ticks * 1.1) * p.wob * 0.06);
+      } else if (p.kind === 'fence' && !p.broken) p.root.rotation.x = Math.sin(Game.ticks * 1.3) * p.wob * 0.08;
+    }
+  },
+};
+// A player's mech leaning on props as it walks (from mechTick): damage by how fast it's pushing in
+function pushProps(m, touched, dt) {
+  const fx = -Math.sin(m.legHeading), fz = -Math.cos(m.legHeading);
+  for (const [o, dx, dz, d] of touched) {
+    const into = -(fx * m.speed * dx + fz * m.speed * dz) / d;     // speed toward the obstacle
+    if (into < PROP.walkMin) continue;
+    if (Props.hit(o.prop, PROP[o.kind].walk * into / MECH.topSpeed * dt, 'walk', -dx, -dz)) m.human?.rig.kick(o.kind === 'fence' ? 0.4 : 0.8);
+  }
+}
 
 // ===========================================================================
 // The mech, built from parts: legs, torso, arms, cockpit
@@ -867,7 +1065,47 @@ function buildMech(paint = PAINT) {
     if (!o.isMesh || !o.material.emissive || !(o.material.emissiveIntensity > 0)) return;
     o.material = o.material.clone(); lights.push({ mat: o.material, k: o.material.emissiveIntensity });
   });
-  return { root, body, pelvis, torso, legs, arms, flashes, muzzleLight, lights };
+  return { root, body, pelvis, torso, legs, arms, flashes, muzzleLight, lights, cockpit, canopy, ringGlow };
+}
+
+// A pilot's helmet portrait: a helmet in their colour, their initial glowing on the visor and
+// their emblem underneath. One canvas per pilot, used on the title screen, the HUD and the mech.
+function pilotFace(P) {
+  pilotFace.cache = pilotFace.cache || new Map();
+  if (pilotFace.cache.has(P.id)) return pilotFace.cache.get(P.id);
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#14182a'; g.beginPath(); g.arc(128, 128, 128, 0, Math.PI * 2); g.fill();
+  const gr = g.createRadialGradient(96, 80, 10, 128, 128, 118); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.18, P.hex); gr.addColorStop(1, P.hex);
+  g.fillStyle = gr; g.beginPath(); g.arc(128, 128, 116, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(20,24,42,.28)'; g.fillRect(122, 14, 12, 70);                          // a crest down the helmet
+  g.fillStyle = '#14182a'; g.beginPath(); g.roundRect(34, 86, 188, 92, 40); g.fill();        // the visor
+  g.fillStyle = 'rgba(160,240,255,.22)'; g.beginPath(); g.roundRect(46, 94, 70, 20, 10); g.fill();
+  g.font = '900 84px "Titan One", "Asap", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = P.hex; g.shadowBlur = 18; g.fillStyle = P.hex; g.fillText(P.name[0], 128, 136); g.shadowBlur = 0;
+  g.font = '50px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.fillText(P.emblem, 128, 214);
+  pilotFace.cache.set(P.id, c);
+  return c;
+}
+// Put pilot P in player h's mech: a helmeted pilot in the cockpit, the canopy and the turret ring
+// lit in their colour (the mech's own cloned materials), and their portrait on the back of the torso,
+// where the chase camera sees it.
+function setPilot(h, P) {
+  h.pilot = P;
+  const md = h.mech.model, col = new THREE.Color(P.hex);
+  if (!md.pilot) {
+    const fig = new THREE.Group(); fig.position.set(0, 0.32, 0.12); md.cockpit.add(fig);
+    const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 12), new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.2 })); helmet.position.y = 0.3; helmet.castShadow = true; fig.add(helmet);
+    const visor = new THREE.Mesh(new THREE.SphereGeometry(0.43, 18, 8, Math.PI * 0.65, Math.PI * 0.7, Math.PI * 0.35, Math.PI * 0.25), new THREE.MeshStandardMaterial({ color: '#0b1020', emissive: '#ffffff', emissiveIntensity: 0.6, roughness: 0.1 })); visor.position.y = 0.3; fig.add(visor);
+    const shoulders = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.5, 4, 8), new THREE.MeshStandardMaterial({ roughness: 0.6 })); shoulders.rotation.z = Math.PI / 2; shoulders.position.y = -0.18; fig.add(shoulders);
+    const badge = new THREE.Mesh(new THREE.CircleGeometry(0.62, 32), new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false }));
+    badge.position.set(0, 0.95, 1.72); md.torso.add(badge);                                   // on the back armour, facing the camera
+    md.lights.push({ mat: visor.material, k: visor.material.emissiveIntensity });             // so it goes dark when the mech powers down
+    md.pilot = { fig, helmet, visor, shoulders, badge };
+  }
+  const p = md.pilot;
+  p.helmet.material.color.copy(col); p.shoulders.material.color.copy(col).multiplyScalar(0.55); p.visor.material.emissive.copy(col);
+  p.badge.material.map?.dispose(); p.badge.material.map = new THREE.CanvasTexture(pilotFace(P)); p.badge.material.map.colorSpace = THREE.SRGBColorSpace; p.badge.material.needsUpdate = true;
+  md.canopy.material.emissive.copy(col); md.ringGlow.material.emissive.copy(col);
 }
 
 // Simulation state for one mech. Players and robots write the same `input`
@@ -913,10 +1151,15 @@ function mechTick(m, dt) {
   m.pos.x += fx * m.speed * dt; m.pos.z += fz * m.speed * dt;
   // Knockback from rams and kicks slides the mech and fades out
   m.pos.x += m.push.x * dt; m.pos.z += m.push.z * dt; m.push.multiplyScalar(Math.exp(-3.5 * dt));
+  let touched = null;    // the props a player's mech is leaning on (smashed after the loop: it changes `obstacles`)
   for (const o of obstacles) {
     const dx = m.pos.x - o.x, dz = m.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + S.radius;
-    if (d < min && d > 1e-6) { m.pos.x = o.x + dx / d * min; m.pos.z = o.z + dz / d * min; }
+    if (d < min && d > 1e-6) {
+      m.pos.x = o.x + dx / d * min; m.pos.z = o.z + dz / d * min;
+      if (m.human && o.prop) (touched ||= []).push([o, dx, dz, d]);
+    }
   }
+  if (touched) pushProps(m, touched, dt);
   const r = Math.hypot(m.pos.x, m.pos.z);
   if (r > WORLD_R) { m.pos.x *= WORLD_R / r; m.pos.z *= WORLD_R / r; }
   m.pos.y = groundH(m.pos.x, m.pos.z);
@@ -1020,11 +1263,54 @@ class CamRig {
 // swarms = each drone swarm by id: { id, n, wp (where it's roaming to), seen (tick it last saw a player), kit (dropped yet) }
 // unlocked = the weapons a player can pick (every WEAPON without `locked`, plus any a part has unlocked)
 // lastRail = the last rail-gun shot: { hits: robot ids it passed through, len, end }
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
+// pilot = player 0's pilot (a PILOTS entry), null until one is picked on the title screen
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null };
+// The start screen is the title (pick a pilot) until a pilot is picked, then the pause screen (▶)
 function setPause(on) {
   Game.paused = on;
   $('start').classList.toggle('on', on);
+  Title.draw();
   if (on && document.pointerLockElement) document.exitPointerLock();
+}
+
+// ===========================================================================
+// Title screen: ROBOT BATTLE and a big tile per pilot. A tap (or the d-pad / ◀ ▶
+// keys and A / Enter) picks one and starts the game: startGame(), the same path as
+// __rb.start(pilot). The sim already runs behind it, so the mech idles in the meadow.
+// ===========================================================================
+const Title = {
+  cur: 0,
+  get on() { return $('start').classList.contains('on'); },
+  build() {
+    const last = pilotOf(store.get('pilot', '')); this.cur = last ? PILOTS.indexOf(last) : 0;
+    $('pilots').innerHTML = PILOTS.map((P) => `<button class="pilot" data-p="${P.id}" aria-label="${P.name}" style="--c:${P.hex}"><img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span></button>`).join('');
+    this.draw();
+  },
+  draw() {
+    const title = !Game.pilot, st = $('start');
+    st.classList.toggle('title', title);
+    [...$('pilots').children].forEach((b, i) => b.classList.toggle('cur', i === this.cur));
+    const P = Game.pilot, who = $('who');
+    if (P && who.dataset.p !== P.id) { who.dataset.p = P.id; who.style.setProperty('--c', P.hex); who.innerHTML = `<img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span>`; }
+  },
+  // keys and pad on the title (not in manual mode: checks use __rb.start)
+  input(pad) {
+    if (Game.manual || !this.on) return;
+    const n = PILOTS.length, kp = (...c) => c.some((k) => keysPressed.has(k));
+    if (!Game.pilot) {
+      const d = (kp('ArrowRight', 'KeyD') || pad?.rightP ? 1 : 0) - (kp('ArrowLeft', 'KeyA') || pad?.leftP ? 1 : 0);
+      if (d) { this.cur = (this.cur + d + n) % n; this.draw(); Sfx.click(); }
+      if (kp('Enter', 'Space') || pad?.aP) startGame(PILOTS[this.cur].id);
+    } else if (kp('Enter') || pad?.aP) startPlay();
+  },
+};
+// Pick pilot `p` (an id, a name or an index) for player 0 and start: the title gives way to the game.
+function startGame(p) {
+  const P = pilotOf(p), h = Game.humans[0];
+  if (!P || !h) return { ok: false, why: 'no such pilot' };
+  Game.pilot = P; setPilot(h, P); store.set('pilot', P.id); Title.cur = PILOTS.indexOf(P);
+  startPlay();
+  return { ok: true, pilot: P.id };
 }
 
 function spawnPlayer(i, x, z, heading) {
@@ -1212,6 +1498,8 @@ const Bullets = {
       // anything else in the way: the first of the ground or a tree / rock along the segment
       const land = this.landing(p0, seg);
       if (land) {
+        // a player's round wears down the tree, rock or fence it lands in (Props)
+        if (land.o && b.owner?.human) Props.hit(land.o.prop, b.dmg, b.kind, b.v.x, b.v.z);
         if (b.kind === 'em') { Sparks.burst(land.p.x, land.p.y + 0.3, land.p.z, 14, SPARK_ZAP, 5); Impacts.flash(land.p, 1.2); }   // a pulse fizzles out
         else Impacts.at(land.kind, land.p, b.v);
         this.list.splice(k, 1); continue;
@@ -1232,9 +1520,9 @@ const Bullets = {
       const t = cq < 0 ? 0 : (-bq - Math.sqrt(disc)) / a;
       if (t < 0 || t > 1 || (best && t >= best.t)) continue;
       const x = p0.x + seg.x * t, z = p0.z + seg.z * t;
-      if (p0.y + seg.y * t < groundH(x, z) + o.h) best = { t, kind: o.kind };
+      if (p0.y + seg.y * t < groundH(x, z) + o.h) best = { t, kind: o.kind, o };
     }
-    return best && { kind: best.kind, p: p0.clone().addScaledVector(seg, best.t) };
+    return best && { kind: best.kind, p: p0.clone().addScaledVector(seg, best.t), o: best.o ?? null };
   },
   sync() {
     const dir = new V3();
@@ -1548,6 +1836,18 @@ function aimDir(m, from, range) {
     const off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - yaw));
     if (off < best && Math.hypot(dx, dz) < range) { best = off; dir.subVectors(c, from).normalize(); }
   }
+  // no robot to lock onto: a tree, rock or fence straight ahead of the mech (under the reticle) gets
+  // the shot instead, since the cannon sits off to one side and would fly past it
+  if (best === AIM_ASSIST) {
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    let near = Math.min(range, 30);                 // close by only: past that the shot goes where it's aimed
+    for (const o of obstacles) {
+      if (!o.prop) continue;
+      const ox = o.x - m.pos.x, oz = o.z - m.pos.z, along = ox * fx + oz * fz;
+      if (along <= 0 || along >= near || Math.abs(ox * fz - oz * fx) > o.r + 0.3) continue;
+      near = along; dir.set(o.x, groundH(o.x, o.z) + Math.min(o.h * 0.6, 3.5), o.z).sub(from).normalize();
+    }
+  }
   return dir;
 }
 // The cannon sits on the right arm. The shot starts at the shoulder (so a
@@ -1601,6 +1901,7 @@ function railShot(m) {
   hits.sort((a, b) => a.t - b.t);
   for (const q of hits) hitRobot(q.r, W.dmg, 'rail', dir.x, dir.z, q.at);
   if (land) Impacts.at(land.kind, land.p, dir);
+  if (land?.o && m.human) Props.hit(land.o.prop, W.dmg, 'rail', dir.x, dir.z);   // the prop that stopped it takes the shot
   RailFx.fire(from.clone().addScaledVector(dir, 3.2), end);
   Game.lastRail = { hits: hits.map((q) => q.r.id), len: Math.round(len * 10) / 10, end: land ? land.kind : 'range' };
   m.flash = MUZZLE.flash * 2; m.recoil = 1;
@@ -1617,6 +1918,20 @@ function meleeStrike(m, w) {
     if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
     const at = new V3(r.pos.x - dx / d * r.spec.radius, r.pos.y + T.hitY * (w === 'kick' ? 0.6 : 1.1), r.pos.z - dz / d * r.spec.radius);
     hitRobot(r, W.dmg, w, dx, dz, at); any = true;
+  }
+  // and any tree, rock or fence within reach and in the arc (a prop counts once, however many circles it has)
+  for (const p of Props.list) {
+    if (p.broken) continue;
+    for (const o of p.obs) {
+      const dx = o.x - m.pos.x, dz = o.z - m.pos.z, d = Math.hypot(dx, dz) || 1;
+      if (d - o.r > MECH.radius + W.reach) continue;
+      if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc + Math.atan2(o.r, d)) continue;
+      const at = new V3(o.x - dx / d * o.r, groundH(o.x, o.z) + Math.min(o.h * 0.6, w === 'kick' ? 1.2 : 3), o.z - dz / d * o.r);
+      Impacts.at(o.kind, at, new V3(dx, 0, dz)); Impacts.flash(at, 1.2);
+      if (!Game.manual) Sfx.whack(0.6);
+      Props.hit(p, W.dmg, w, dx, dz); any = true;
+      break;
+    }
   }
   if (any) m.human?.rig.kick(w === 'kick' ? 0.8 : 0.5);
 }
@@ -1976,8 +2291,16 @@ function spawnRobot(type, x, z) {
     lurches: 0,                    // a drone's glitch lurches
   });
   r.model = T.build(T.paint); scene.add(r.model.root);
+  setGlowColor(r, GLOW_COLORS[Math.floor(Math.random() * GLOW_COLORS.length)]);
   Game.robots.push(r);
   return r;
+}
+// A robot's glow colour (its own material, so only it changes) and glowK, which scales its glow
+// level so every colour peaks at the same brightness (GLOW_LUM): r.glow means the same in any colour.
+function setGlowColor(r, hex) {
+  const c = new THREE.Color(hex), lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;   // linear
+  r.glowColor = hex; r.glowK = clamp(GLOW_LUM / lum, 0.55, 2.5);
+  r.model.glow.emissive.copy(c);
 }
 // Drop robots into the meadow: spawn('sniper', x, z). A swarm type (drones) comes as a
 // whole swarm in a ring round (x, z) and returns the list; any other type returns the robot.
@@ -2193,15 +2516,17 @@ function droneFly(r, dt) {
   r.sputter = Math.max(0, (r.sputter || 0) - dt);
   r.lift = Math.max(0.6, damp(r.lift, want + Math.sin(r.t * 2.3 + r.id) * 0.25, 3, dt));
 }
-// Squad job: scouting. A squadmate drone flies off to the nearest repair kit within `scout`
-// metres of its leader (but past scoutMin: one right beside you needs no finding) that nobody has found yet, marks it with a beacon (🧰 high over it),
-// then comes back. (Hidden parts arrive in slice 6; until then it scouts for kits.)
+// Squad job: scouting. A squadmate drone flies off to the nearest hidden part or repair kit within
+// `scout` metres of its leader (but past scoutMin: one right beside you needs no finding) that nobody
+// has spotted yet, marks it with a beacon (its icon high over it: the part's, or 🧰), then comes back.
+// ai.scout is the thing it's off to (a Hidden.list or Kits.list entry; their .kind says which).
+const scoutable = (k) => (k.kind === 'kit' ? Kits.list.includes(k) : !k.found);
 function allyDrone(r, dt) {
   const ai = r.ai, T = ROBOT_TYPES.drone, lead = r.leader?.mech;
   ai.scoutT = (ai.scoutT || 0) - dt;
   if (ai.mode === 'scout') {
-    const k = Kits.list.find((q) => q.id === ai.scout);
-    if (!k || !lead || Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z) > T.scout + 20) { ai.mode = 'follow'; ai.scout = null; ai.scoutT = 2; }
+    const k = ai.scout;
+    if (!k || !scoutable(k) || !lead || Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z) > T.scout + 20) { ai.mode = 'follow'; ai.scout = null; ai.scoutT = 2; }
     else {
       const d = steer(r, k.x, k.z, 1, 6);
       r.input.boost = false; r.input.aimYaw = r.legHeading;
@@ -2216,8 +2541,8 @@ function allyDrone(r, dt) {
   if (ai.scoutT <= 0 && lead && lead.state !== 'down') {
     const claimed = new Set(Game.squad.map((q) => q.ai.scout).filter(Boolean));
     let best = null, bd = T.scout;
-    for (const k of Kits.list) { if (k.spotted || claimed.has(k.id)) continue; const d = Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z); if (d < bd && d > T.scoutMin) { bd = d; best = k; } }
-    if (best) { ai.mode = 'scout'; ai.scout = best.id; ai.hover = 0; return; }
+    for (const k of [...Hidden.list.filter(scoutable), ...Kits.list]) { if (k.spotted || claimed.has(k)) continue; const d = Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z); if (d < bd && d > T.scoutMin) { bd = d; best = k; } }
+    if (best) { ai.mode = 'scout'; ai.scout = best; ai.hover = 0; return; }
     ai.scoutT = 1;
   }
   allyAI(r, dt);
@@ -2581,7 +2906,7 @@ function fixRobot(h, r) {
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
   r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
-  r.glowMode = 'steady'; r.glow = ALLY.glow; r.model.glow.emissive.set(ALLY.color);
+  r.glowMode = 'steady'; r.glow = ALLY.glow;      // its own colour, held steady (the glitch flicker is gone)
   setRobotName(r, rp.name);
   Game.squad.push(r);
   Sparks.burst(r.pos.x, r.pos.y + 3.5, r.pos.z, 50, SPARK_ZAP, 9);
@@ -2598,7 +2923,7 @@ function setRobotName(r, name) {
   const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d');
   g.font = '900 72px "Titan One", "Asap", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#14182a'; g.strokeText(name, 256, 66);
-  g.fillStyle = ALLY.color; g.fillText(name, 256, 66);
+  g.fillStyle = r.glowColor || ALLY.color; g.fillText(name, 256, 66);     // in its glow colour, like its HUD tag
   md.label.material.map?.dispose(); md.label.material.map = new THREE.CanvasTexture(c); md.label.material.map.colorSpace = THREE.SRGBColorSpace; md.label.material.needsUpdate = true;
 }
 // Take the picked parts (ids from r.parts) into the bag; the rest is scrapped
@@ -2767,8 +3092,7 @@ const Kits = {
   init() {
     const box = new RoundedBoxGeometry(1.5, 0.95, 1.0, 3, 0.16), bar = new THREE.BoxGeometry(0.18, 0.5, 0.06), handle = new THREE.TorusGeometry(0.32, 0.07, 6, 16, Math.PI);
     const ring = new THREE.TorusGeometry(1.25, 0.07, 6, 32);
-    const beam = new THREE.CylinderGeometry(0.04, 0.04, 12, 6, 1, true);
-    this.geo = { box, bar, handle, ring, beam };
+    this.geo = { box, bar, handle, ring };
     seed = 515;
     const trees = obstacles.filter((o) => o.kind === 'tree' && Math.hypot(o.x, o.z) > 30 && Math.hypot(o.x, o.z) < 100);
     for (let t = 0; t < 200 && this.list.length < HEAL.kits; t++) {
@@ -2787,10 +3111,9 @@ const Kits = {
     const hd = new THREE.Mesh(G.handle, mat('#2d3446', { metalness: 0.6, roughness: 0.4 })); hd.position.y = 1.07; g.add(hd);
     const rg = new THREE.Mesh(G.ring, glowMat('#3ee07a', 2.2)); rg.rotation.x = Math.PI / 2; rg.position.y = 0.12; g.add(rg);
     // the beacon a scouting squadmate drone leaves: a tall light and a 🧰 high over the kit
-    const beacon = new THREE.Mesh(G.beam, glowMat('#3ee07a', 1.1)); beacon.position.y = 6; beacon.visible = false; g.add(beacon);
-    const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex('🧰'), depthWrite: false, toneMapped: false, transparent: true })); mark.scale.set(1.3, 1.3, 1); mark.position.y = 9; mark.visible = false; g.add(mark);
+    const { beam: beacon, mark } = Beacon.add(g, '#3ee07a', '🧰');
     g.position.set(x, groundH(x, z), z); g.scale.setScalar(1.4); scene.add(g);
-    const k = { id: this.nextId++, x, z, from, g, beacon, mark, t: Math.random() * 6, spotted: false };
+    const k = { id: this.nextId++, kind: 'kit', x, z, from, g, beacon, mark, t: Math.random() * 6, spotted: false };
     this.list.push(k);
     return k;
   },
@@ -2810,9 +3133,79 @@ const Kits = {
   sync(dt) {
     for (const k of this.list) {
       k.t += dt; k.g.children[0].position.y = 0.6 + Math.sin(k.t * 2.4) * 0.12; k.g.rotation.y = k.t * 0.7;
-      k.beacon.visible = k.mark.visible = k.spotted; if (k.spotted) k.mark.position.y = 9 + Math.sin(k.t * 3) * 0.3;
+      Beacon.show(k, k.spotted, k.t);
     }
   },
+};
+// The beacon a scouting squadmate drone leaves over what it found (a kit, a hidden part): a tall
+// light in `hex` and `icon` high over it. Added to group g, hidden until Beacon.show turns it on.
+const Beacon = {
+  // top: the mark's height (local units)
+  add(g, hex, icon, top = 9) {
+    this.geo = this.geo || new THREE.CylinderGeometry(0.04, 0.04, 12, 6, 1, true);
+    const beam = new THREE.Mesh(this.geo, glowMat(hex, 1.1)); beam.position.y = 6; beam.visible = false; g.add(beam);
+    const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex(icon), depthWrite: false, toneMapped: false, transparent: true })); mark.scale.set(1.3, 1.3, 1); mark.position.y = top; mark.visible = false; g.add(mark);
+    mark.userData.top = top;
+    return { beam, mark };
+  },
+  // q has .beacon and .mark; the mark bobs on t
+  show(q, on, t) { q.beacon.visible = q.mark.visible = on; if (on) q.mark.position.y = q.mark.userData.top + Math.sin(t * 3) * 0.3; },
+};
+
+// ===========================================================================
+// Hidden parts 🔍: a typed part (HIDDEN.kinds) lying half-hidden in the grass in a
+// small rusty crate, at seeded spots a mech can stand on. A glint now and then is
+// the only clue, until a squadmate drone scouts one: then a beacon in the part's
+// colour and its icon stand over it. Walking over it puts the part in the bag once
+// (found), whatever the mech's health; it's gone from the meadow after that.
+// ===========================================================================
+const SPARK_GLINT = [4, 3.7, 2.4];
+const Hidden = {
+  list: [], nextId: 1,
+  init() {
+    seed = 8080;
+    for (let t = 0; t < 600 && this.list.length < HIDDEN.n; t++) {
+      const a = srange(0, Math.PI * 2), r = Math.sqrt(srange(30 * 30, 96 * 96)), x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + MECH.radius + 0.5)) continue;   // a mech can stand right on it
+      if (Kits.list.some((k) => Math.hypot(k.x - x, k.z - z) < 12)) continue;
+      if (this.list.some((q) => Math.hypot(q.x - x, q.z - z) < 30)) continue;                       // spread round the meadow
+      this.add(x, z, HIDDEN.kinds[this.list.length % HIDDEN.kinds.length]);
+    }
+  },
+  add(x, z, part) {
+    const P = PARTS[part], g = new THREE.Group();
+    this.geo = this.geo || { box: new RoundedBoxGeometry(0.9, 0.55, 0.7, 2, 0.1), band: new THREE.BoxGeometry(0.94, 0.12, 0.74) };
+    const crate = new THREE.Mesh(this.geo.box, mat('#6b5a4a', { roughness: 0.8, metalness: 0.4 })); crate.position.y = 0.12; crate.rotation.set(0.12, Math.random() * 3, 0.2); crate.castShadow = true; g.add(crate);
+    const band = new THREE.Mesh(this.geo.band, glowMat(P.hex, 0.5)); band.position.y = 0.12; band.rotation.copy(crate.rotation); g.add(band);
+    // bigger than a kit's (a part is small and down in the grass), and the mark at the beam's top, over a hovering drone's name
+    const { beam: beacon, mark } = Beacon.add(g, P.hex, P.icon, 13);
+    beacon.scale.set(2.5, 1, 2.5); mark.scale.set(2.6, 2.6, 1);
+    g.position.set(x, groundH(x, z), z); scene.add(g);
+    const q = { id: this.nextId++, kind: 'part', part, x, z, g, beacon, mark, t: Math.random() * 6, glintT: Math.random() * 3, found: false, spotted: false, by: null };
+    this.list.push(q);
+    return q;
+  },
+  // player h walks over a hidden part: it goes in the bag (once). Returns the part id, or null.
+  check(h) {
+    const m = h.mech; if (m.state === 'down') return null;
+    const q = this.list.find((k) => !k.found && Math.hypot(k.x - m.pos.x, k.z - m.pos.z) < HIDDEN.reach); if (!q) return null;
+    q.found = true; q.foundBy = h.idx; scene.remove(q.g);
+    Game.bag[q.part] = (Game.bag[q.part] || 0) + 1;
+    if (h.idx === 0) updateHud.partPop = (updateHud.partPop || []).concat(q.part);   // +1 and its icon drop out of the 🔩 count
+    const y = groundH(q.x, q.z) + 1;
+    Sparks.burst(q.x, y, q.z, 36, SPARK_GLINT, 7); Impacts.flash(new V3(q.x, y, q.z), 2.5);
+    if (!Game.manual) Sfx.find();
+    return q.part;
+  },
+  // a glint every few seconds, so a sharp eye can spot one in the grass
+  tick(dt) {
+    for (const q of this.list) {
+      if (q.found) continue;
+      q.glintT -= dt;
+      if (q.glintT <= 0) { q.glintT = 2.2 + Math.random() * 1.6; const y = groundH(q.x, q.z) + 0.7; Sparks.burst(q.x, y, q.z, 3, SPARK_GLINT, 1.5); Impacts.flash(new V3(q.x, y, q.z), 0.9); }
+    }
+  },
+  sync(dt) { for (const q of this.list) if (!q.found) { q.t += dt; Beacon.show(q, q.spotted, q.t); } },
 };
 
 // ===========================================================================
@@ -2871,6 +3264,7 @@ function playerTick(h, dt) {
   m.slump = approach(m.slump, m.state === 'down' ? 1 : 0, dt * 1.6);
   allyMend(h, dt);
   Kits.check(h);
+  Hidden.check(h);
 }
 
 function syncRobotModel(r, dt) {
@@ -2882,7 +3276,7 @@ function syncRobotModel(r, dt) {
   for (const L of md.legs) L.hip.rotation.x = Math.sin(r.phase + L.ph) * 0.55 * k;
   const mode = r.state === 'down' ? (r.repairBy ? 'repair' : 'down') : r.ai.mode;
   T.pose(r, md, dt, mode);
-  md.glow.emissiveIntensity = r.glow;
+  md.glow.emissiveIntensity = r.glow * r.glowK;
   md.armour.emissiveIntensity = r.hitFlash * 0.8;
   const f = r.health / r.maxHealth, up = r.state !== 'down';
   md.back.visible = up; md.fill.visible = up && f > 0;
@@ -2960,8 +3354,11 @@ function gatherInput(dt) {
     const sc = SCHEMES[h.idx];
     const k = (n) => anyKey(sc[n]) || (solo && anyKey(SOLO_EXTRA[n]));
     const pad = readPad(h.idx);
-    if (pad && pad.startP) setPause(!Game.paused);
-    if (pad && pad.aP && Game.paused) startPlay();
+    // Start pauses and carries on; on the title it picks the highlighted pilot. The title's own keys and
+    // pad (◀ ▶, A) go to Title.input, and while it's up (outside manual mode) the mech isn't driven.
+    if (pad && pad.startP) { if (!Game.pilot && h.idx === 0 && !Game.manual) startGame(PILOTS[Title.cur].id); else setPause(!Game.paused); }
+    const titleUp = h.idx === 0 && Title.on && !Game.manual;
+    if (titleUp) Title.input(pad);
     sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) selectWeapon(h, WEAPONS[w]); });
     if (pad && (pad.lbP || pad.rbP)) cycleWeapon(h, pad.rbP ? 1 : -1);
     const picking = h.repair?.kind === 'parts', mending = h.idx === 0 && FixUI.mode === 'mend';
@@ -2978,7 +3375,7 @@ function gatherInput(dt) {
     if (solo && mouse.locked) { h.rig.yaw = wrapAngle(h.rig.yaw - mouse.dx * 0.0025); h.rig.pitch = clamp(h.rig.pitch - mouse.dy * 0.002, -0.35, 0.5); }
     const m = h.mech; if (!m) continue;
     m.input.weapon = h.weapon;
-    if (Game.paused) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
+    if (Game.paused || titleUp) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
     // powered down: nothing moves, aims or fires until it reboots
     if (m.state === 'down') { m.input.throttle = m.input.turn = 0; m.input.attack = false; m.input.aimYaw = h.rig.yaw = m.torsoYaw; m.input.aimPitch = m.aimPitch; continue; }
     m.input.throttle = clamp(thr, -1, 1); m.input.turn = clamp(turn, -1, 1);
@@ -3053,6 +3450,8 @@ function tick(dt) {
   Sparks.tick(dt);
   Impacts.tick(dt);
   RailFx.tick(dt);
+  Props.tick(dt);
+  Hidden.tick(dt);
   Game.hurtFlash = Math.max(0, Game.hurtFlash - dt * 2.5);
 }
 
@@ -3322,14 +3721,33 @@ function updateHud() {
   const camYaw = m.torsoYaw;
   $('cLegs').style.transform = `rotate(${-(m.legHeading - camYaw)}rad)`;
   $('cTorso').style.transform = `rotate(${-(m.torsoYaw - camYaw)}rad)`;
-  // parts count (and the bag, if it's open) and squad name tags
+  // the pilot: their helmet portrait and name, in their colour, beside the hearts
+  const P = h.pilot, pk = P ? P.id : '';
+  if (pk !== updateHud.pilotKey) {
+    updateHud.pilotKey = pk; const el = $('pilotHud'); el.classList.toggle('on', !!P);
+    if (P) { el.style.setProperty('--c', P.hex); $('pilotFace').src = pilotFace(P).toDataURL(); $('pilotName').textContent = P.name; }
+  }
+  // parts count (and the bag, if it's open), hidden parts found, and squad name tags
   $('partsN').textContent = Game.parts;
+  $('foundN').textContent = `${Hidden.list.filter((q) => q.found).length}/${Hidden.list.length}`;
+  // a hidden part just picked up: +1 and its icon drop out of the 🔩 count
+  for (const id of updateHud.partPop || []) {
+    const pop = document.createElement('span'); pop.className = 'pop'; pop.textContent = `+1 ${PARTS[id].icon}`;
+    pop.addEventListener('animationend', () => pop.remove()); $('partsBox').append(pop);
+    while ($('partsBox').querySelectorAll('.pop').length > 4) $('partsBox').querySelector('.pop').remove();
+  }
+  updateHud.partPop = null;
   FixUI.drawBag();
+  // each squadmate's tag is edged in its glow colour, to match it in the meadow
   // (the squadmate picked to go home wears a 🏠 until the new robot's fix is done)
   const goHome = h.repair?.home, sk = Game.squad.map((r) => r.id + ':' + r.name).join('|') + '/' + (goHome?.id ?? '');
   if (sk !== updateHud.squadKey) {
     updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
-    for (const r of Game.squad) { const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : ''); const b = document.createElement('b'); b.textContent = r === goHome ? '🏠' : ROBOT_TYPES[r.type].icon; d.append(b, r.name); el.append(d); }
+    for (const r of Game.squad) {
+      const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : '');
+      if (r !== goHome) { d.style.borderColor = r.glowColor; d.style.boxShadow = `0 0 10px ${r.glowColor}`; }
+      const b = document.createElement('b'); b.textContent = r === goHome ? '🏠' : ROBOT_TYPES[r.type].icon; d.append(b, r.name); el.append(d);
+    }
   }
   // the prompt sits beside the downed robot on screen
   const pr = !h.repair && !Game.paused && promptRobot(h), pe = $('prompt');
@@ -3380,6 +3798,8 @@ function render(dt) {
   Sparks.sync();
   Impacts.sync();
   Kits.sync(dt);
+  Hidden.sync(dt);
+  Props.sync();
   Beams.sync();
   Dust.update(dt);
   const h = Game.humans[0]; if (!h) return;
@@ -3410,7 +3830,7 @@ function frame(now) {
 function startPlay() {
   Sfx.unlock(); Sfx.click();
   setPause(false);
-  // the first press of play sends a Charger out of the trees ahead; a Sniper, a drone
+  // the first start (a pilot picked on the title screen) sends a Charger out of the trees ahead; a Sniper, a drone
   // swarm and a Bouncer are already roaming the meadow further out
   const p = Game.humans[0]?.mech;
   if (p && !Game.robots.length && !Game.manual) {
@@ -3418,9 +3838,11 @@ function startPlay() {
     spawnRobot('charger', ...at(0, 45));
     spawn('sniper', ...at(1.9, 85)); spawn('drone', ...at(-2.0, 75)); spawn('bouncer', ...at(Math.PI, 65));
   }
-  if (Game.humans.length === 1) canvas.requestPointerLock?.();
+  // (a pad's A or a hook isn't a user gesture, so the lock can be refused: the mouse just isn't captured yet)
+  if (Game.humans.length === 1) canvas.requestPointerLock?.()?.catch?.(() => {});
 }
 $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
+$('pilots').addEventListener('click', (e) => { const b = e.target.closest('.pilot'); if (b) { e.stopPropagation(); startGame(b.dataset.p); } });
 
 // ===========================================================================
 // Test hooks: the Chrome test tab gets no animation frames, so checks drive
@@ -3435,7 +3857,9 @@ function robotState(r) {
     state: r.state,                                   // 'glitched' | 'down' | 'ally'
     mode: r.ai.mode,                                  // roam | off; Charger stalk | windup | charge | recover; Sniper flee | close | hold;
                                                       // drone orbit | dive; Bouncer stalk | crouch | air | land; squad follow | idle (drone scout)
-    glow: { mode: r.glowMode, level: r3(r.glow) },    // flicker (glitched) | off | blink (about to reboot) | steady (ally)
+    // flicker (glitched) | off | blink (about to reboot) | steady (ally); color: its random glow colour;
+    // level is the same in any colour (it's drawn at level × k, so every colour is as bright)
+    glow: { mode: r.glowMode, level: r3(r.glow), color: r.glowColor, k: r3(r.glowK) },
     rebootIn: r.state === 'down' ? r3(r.downT) : null, downs: r.downs, reboots: r.reboots,
     repairing: !!r.repairBy,                          // its reboot clock holds while true
     // plugs[i] belongs in the port with the same colour; link[i] = the port it's in (-1 = loose)
@@ -3461,12 +3885,17 @@ function robotState(r) {
     bounces: r.type === 'bouncer' ? r.bounces : null,
     bounce: r.type === 'bouncer' ? { now: r.bounces, last: r.lastChain, best: r.bestChain, total: r.totalBounces, air: !!r.air, miss: r3(r.miss), wild: r.wild, stomps: r.stomps } : null,
     sniper: r.type === 'sniper' ? { aiming: r.ai.aimT > 0, shots: r.shots || 0 } : null,
-    drone: r.type === 'drone' ? { lurches: r.lurches, zaps: r.zaps || 0, scout: r.ai.scout ?? null } : null,
+    // scout: the id of the hidden part or kit a squadmate drone is off to mark; scoutKind: 'part' | 'kit'
+    drone: r.type === 'drone' ? { lurches: r.lurches, zaps: r.zaps || 0, scout: r.ai.scout?.id ?? null, scoutKind: r.ai.scout?.kind ?? null } : null,
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
+  // pick player 0's pilot (an id or a name from PILOTS, any case, or an index) and start, as a tap on
+  // their tile does: the title goes, and (outside manual mode) the robots come out. Again mid-game it
+  // swaps the pilot and carries on.
+  start(pilot) { const res = startGame(pilot); return { ...res, state: Game.state, paused: Game.paused, title: this.state().title, pilot: this.state().pilot }; },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
   render(dt = 1 / 60) { render(dt); return true; },
   // hold a key code down (or release it): hold('KeyW', true)
@@ -3504,8 +3933,8 @@ window.__rb = {
   teleport(i, x, z) {
     const h = Game.humans[i]; if (!h) return null;
     const m = h.mech; m.pos.set(x, groundH(x, z), z); m.speed = 0; m.turnVel = 0; m.push.set(0, 0, 0); h.rig.snap = true;
-    const kit = Kits.check(h);
-    return { ...this.state().players[i], kit: r3(kit) };
+    const kit = Kits.check(h), found = Hidden.check(h);
+    return { ...this.state().players[i], kit: r3(kit), found };
   },
   // setup only: hurt player i without a robot (how: 'hit' lands on the hull, 'ram' on hull and legs)
   hurt(i, amount, how = 'hit') {
@@ -3596,6 +4025,7 @@ window.__rb = {
           needs: AREAS.filter((a) => hurtIn(m, a)).map((a) => ({ area: a, part: partFor(a) ?? null, have: Game.bag[partFor(a)] || 0 })),
           heal: Object.fromEntries(Object.entries(h.heals).map(([s, v]) => [s, r3(v)])),   // health mended this tick, by source
           beam: h.beam ? h.beam.id : null,                     // the squadmate mending this mech now
+          pilot: h.pilot?.name ?? null,                        // who's in the cockpit
         };
       }),
       robots: Game.robots.map(robotState),
@@ -3621,6 +4051,16 @@ window.__rb = {
       faultRules: { ...FAULTS, weight: { ...FAULTS.weight } },
       pulses: Bullets.list.filter((b) => b.kind === 'em').length, railFx: RailFx.live(),
       fx: { ...Impacts.live(), sparks: Sparks.list.filter((p) => p.t < p.life).length },
+      // the pilot picked on the title screen (null until then); title: the title / pause screen is up
+      pilot: Game.pilot ? { id: Game.pilot.id, name: Game.pilot.name, color: Game.pilot.hex } : null,
+      title: Title.on ? (Game.pilot ? 'pause' : 'title') : null,
+      pilots: PILOTS.map((P) => P.name),
+      // hidden parts in the meadow: found = in the bag now (gone from the meadow); spotted = a squadmate drone marked it (by = its id)
+      hidden: Hidden.list.map((q) => ({ id: q.id, part: q.part, x: r3(q.x), z: r3(q.z), found: q.found, spotted: q.spotted, by: q.by })),
+      hiddenFound: Hidden.list.filter((q) => q.found).length,
+      // every smashable: 'tree' | 'rock' | 'fence' (a fence section); broken for good once hp is 0 (by = what broke it, 'walk' = walked into)
+      props: Props.list.map((p) => ({ id: p.id, kind: p.kind, x: r3(p.x), z: r3(p.z), hp: r3(p.hp), maxHp: p.maxHp, broken: p.broken, by: p.by, blocking: p.obs.some((o) => obstacles.includes(o)) })),
+      propsBroken: Props.list.filter((p) => p.broken).length,
     };
   },
 };
@@ -3636,13 +4076,18 @@ Impacts.init();
 Pulses.init();
 RailFx.init();
 Kits.init();
+Meadow.buildFences();     // after the kits, on their own seed, so nothing already in the meadow moves
+Hidden.init();
 Beams.init();
 spawnPlayer(0, 0, 0, 0);
 buildHud();
 FixUI.init();
 onResize();
+Title.build();
+// the portraits' initials use the web font: draw them again once it has loaded
+document.fonts?.ready.then(() => { pilotFace.cache?.clear(); Title.build(); $('who').dataset.p = ''; Title.draw(); if (Game.pilot) setPilot(Game.humans[0], Game.pilot); updateHud.pilotKey = null; });
 Game.state = 'play';
-setPause(true);           // waits behind the ▶ button; hooks can still step
+setPause(true);           // waits on the title screen for a pilot; hooks can still step
 Game.paused = false;      // ...but the sim runs, so the mech idles in the meadow
 $('loading').remove();
 requestAnimationFrame(frame);
