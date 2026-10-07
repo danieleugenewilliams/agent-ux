@@ -1827,7 +1827,7 @@ function gunPose(m, side = 2.4) {
 }
 // Where a shot from `from` goes: along the torso aim, locked onto a glitched robot close to
 // it (within AIM_ASSIST and `range`): kids get to hit what they point at.
-function aimDir(m, from, range) {
+function aimDir(m, from, range, props = true) {
   const yaw = m.torsoYaw, cp = Math.cos(m.aimPitch), dir = new V3(-Math.sin(yaw) * cp, Math.sin(m.aimPitch), -Math.cos(yaw) * cp);
   let best = AIM_ASSIST;
   for (const r of Game.robots) {
@@ -1837,8 +1837,9 @@ function aimDir(m, from, range) {
     if (off < best && Math.hypot(dx, dz) < range) { best = off; dir.subVectors(c, from).normalize(); }
   }
   // no robot to lock onto: a tree, rock or fence straight ahead of the mech (under the reticle) gets
-  // the shot instead, since the cannon sits off to one side and would fly past it
-  if (best === AIM_ASSIST) {
+  // the shot instead, since the cannon sits off to one side and would fly past it (not the left-arm
+  // electromagnet: it does nothing to a prop, so it keeps its line past one)
+  if (best === AIM_ASSIST && props) {
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
     let near = Math.min(range, 30);                 // close by only: past that the shot goes where it's aimed
     for (const o of obstacles) {
@@ -1863,7 +1864,7 @@ function shoot(m) {
 }
 // The electromagnetic pulse leaves the left-arm pod: a crackling ball (Bullets 'em', drawn by Pulses)
 function emPulse(m) {
-  const { from } = gunPose(m, -2.4), dir = aimDir(m, from, WEAPON.em.range);
+  const { from } = gunPose(m, -2.4), dir = aimDir(m, from, WEAPON.em.range, false);
   Bullets.fire(from, dir, m, 'em');
   const p = from.clone().addScaledVector(dir, 2.4); Sparks.burst(p.x, p.y, p.z, 10, SPARK_ZAP, 4);
   m.human?.rig.kick(0.12);
