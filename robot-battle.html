@@ -627,9 +627,12 @@ const Dust = {
     }
   },
   puff(m, k) {
-    const side = m.fallFoot ? 1 : -1, h = m.legHeading;
+    // Even footfall index = right leg (s = +1) landing going forward; going backward the
+    // index steps down, so the same mapping picks the left leg. The landing foot is ahead
+    // of the hips walking forward and behind them walking backward.
+    const side = m.fallFoot ? -1 : 1, h = m.legHeading, ahead = m.speed < 0 ? -1.2 : 1.2;
     const fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
-    const x = m.pos.x + rx * side * 1.75 + fx * 1.2, z = m.pos.z + rz * side * 1.75 + fz * 1.2;
+    const x = m.pos.x + rx * side * 1.75 + fx * ahead, z = m.pos.z + rz * side * 1.75 + fz * ahead;
     for (let n = 0; n < 3; n++) {
       const d = this.list.find((q) => q.t > 1) || this.list[0];
       d.t = 0; d.k = k; d.x = x + (Math.random() - 0.5) * 1.2; d.z = z + (Math.random() - 0.5) * 1.2; d.y = groundH(x, z) + 0.3;
