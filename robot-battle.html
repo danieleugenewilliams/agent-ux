@@ -193,8 +193,10 @@ const WORLD_R = 115;
 const MECH_HEALTH = 100;
 // Weapons. The cannon fires bullets; punch and kick are melee swings that land
 // at `strike` seconds in. Punch follows the torso, kick follows the legs.
+// The cannon fires short bursts while fire is held: `burst` rounds `cool` apart,
+// then a `rest`. That keeps the old 10 dmg / 0.16 s rate (62.5 a second).
 const WEAPON = {
-  gun:   { icon: '🔫', dmg: 10, cool: 0.16, speed: 85, range: 95, push: 0.8 },
+  gun:   { icon: '🔫', dmg: 10, cool: 0.075, burst: 3, rest: 0.33, speed: 280, range: 95, push: 0.8 },
   punch: { icon: '👊', dmg: 22, cool: 0.55, strike: 0.16, dur: 0.5, reach: 3.4, arc: 0.85, push: 6 },
   kick:  { icon: '🦶', dmg: 34, cool: 0.9, strike: 0.32, dur: 0.85, reach: 3.2, arc: 0.7, push: 12 },
 };
@@ -320,7 +322,26 @@ const Sfx = {
   servo() { this.tone(180, 0.12, 'sawtooth', 0.025, 240); },
   click() { this.tone(660, 0.06, 'triangle', 0.15, 990); },
   // Combat. `k` is a 0..1 loudness for sounds out in the meadow.
-  shot() { this.tone(900, 0.09, 'square', 0.07, 260); this.noise(0.07, 0.12, 2600, 0, 1.2); },
+  // The cannon: a sharp crack, a chesty boom under it, and a short ringing tail
+  shot() {
+    const p = 0.92 + Math.random() * 0.16;
+    this.noise(0.05, 0.42, 3200 * p, 0, 0.5, 'highpass');
+    this.noise(0.22, 0.4, 900 * p, 0, 0.7, 'lowpass');
+    this.tone(150 * p, 0.2, 'sine', 0.5, 42);
+    this.tone(70, 0.28, 'triangle', 0.28, 34);
+    this.noise(0.35, 0.06, 1400 * p, 0.04, 2.5);
+  },
+  // A round striking armour: a hard tick and two clashing metal partials
+  ping(k = 1) {
+    const p = 0.9 + Math.random() * 0.25;
+    this.noise(0.03, 0.22 * k, 6000, 0, 1, 'highpass');
+    this.tone(1720 * p, 0.16, 'triangle', 0.11 * k, 1600 * p);
+    this.tone(2630 * p, 0.11, 'sine', 0.06 * k, 2500 * p);
+    this.tone(410 * p, 0.12, 'square', 0.03 * k, 300 * p);
+  },
+  // A round going into the dirt, or knocking a chip off a rock or a tree
+  dirt(k = 1) { this.noise(0.12, 0.16 * k, 500, 0, 0.7, 'lowpass'); this.noise(0.05, 0.05 * k, 2400, 0, 1); },
+  chip(k = 1) { this.noise(0.06, 0.16 * k, 1800, 0, 1.5); this.tone(260 + Math.random() * 120, 0.07, 'triangle', 0.08 * k, 180); },
   swing() { this.noise(0.18, 0.1, 900, 0, 0.6); },
   clang(k = 1) { this.tone(520, 0.25, 'triangle', 0.2 * k, 470); this.tone(1310, 0.18, 'triangle', 0.08 * k, 1180); this.noise(0.12, 0.18 * k, 3200, 0, 1.5); },
   whack(k = 1) { this.tone(95, 0.3, 'sine', 0.5 * k, 45); this.clang(0.8 * k); },
@@ -414,7 +435,7 @@ function groundH(x, z) {
   const rim = r > 90 ? Math.min(1, Math.pow((r - 90) / 35, 2)) * 12 : 0;   // the meadow rises into hills at the edge
   return hills * 0.8 + rim;
 }
-const obstacles = [];   // { x, z, r } circles the mech can't walk through
+const obstacles = [];   // { x, z, r, h, kind } circles the mech can't walk through ('tree' | 'rock')
 
 function makeSky() {
   const geo = new THREE.SphereGeometry(500, 32, 16);
@@ -519,7 +540,7 @@ const Meadow = {
       f.position.set(srange(-0.4, 0.4) * s, (4.6 + k * 1.5) * s, srange(-0.4, 0.4) * s); f.rotation.set(srand(), srand(), srand());
       f.castShadow = true; t.add(f);
     }
-    scene.add(t); obstacles.push({ x, z, r: 0.8 * s });
+    scene.add(t); obstacles.push({ x, z, r: 0.8 * s, h: 5, kind: 'tree' });
   },
   addRock(x, z, s, small = false) {
     const geo = new THREE.DodecahedronGeometry(1, 1), p = geo.attributes.position;
@@ -528,7 +549,7 @@ const Meadow = {
     const r = new THREE.Mesh(geo, mat(srand() < 0.5 ? '#8a8f99' : '#a3a39a', { roughness: 0.95, metalness: 0, flatShading: true }));
     r.scale.setScalar(s); r.rotation.y = srange(0, 6); r.position.set(x, groundH(x, z) + s * 0.25, z);
     r.castShadow = true; r.receiveShadow = true; scene.add(r);
-    if (!small) obstacles.push({ x, z, r: s * 0.95 });
+    if (!small) obstacles.push({ x, z, r: s * 0.95, h: s * 1.1, kind: 'rock' });
   },
 };
 
@@ -599,7 +620,7 @@ function buildMech(paint = PAINT) {
   const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), glowMat('#ff3f6a', 3)); tip.position.set(0.9, 3.1, 0.9); torso.add(tip);
 
   // Arms: shoulder pods that pitch with the aim. Right: twin cannon. Left: rocket pod.
-  const arms = [];
+  const arms = [], flashes = []; let muzzleLight = null;
   for (const s of [-1, 1]) {
     const shoulder = new THREE.Group(); shoulder.position.set(s * 2.25, 1.0, -0.1); torso.add(shoulder);
     const pod = ball(0.7, paint.dark, metal); shoulder.add(pod);
@@ -614,7 +635,10 @@ function buildMech(paint = PAINT) {
       for (const bx of [-0.2, 0.2]) {
         const barrel = cyl(0.13, 0.15, 1.6, '#3a4152', { metalness: 0.8, roughness: 0.3 }, 12); barrel.rotation.x = Math.PI / 2; barrel.position.set(bx, 0, -2.4); fore.add(barrel);
         const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 6, 16), glowMat(paint.glow, 2.4)); muzzle.position.set(bx, 0, -3.2); fore.add(muzzle);
+        flashes.push(MuzzleFx.build(fore, bx));
       }
+      // the flash's light: always in the scene at zero, so a shot never changes the light count
+      muzzleLight = new THREE.PointLight('#ffc070', 0, 13, 2); muzzleLight.position.set(0, 0.2, -3.8); fore.add(muzzleLight);
     } else {
       const podBox = rbox(1.1, 1.0, 1.9, 0.28, paint.armour); podBox.position.z = -0.7; fore.add(podBox);
       for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
@@ -625,7 +649,7 @@ function buildMech(paint = PAINT) {
     arms.push({ s, shoulder, arm, fore });
   }
   root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
-  return { root, body, pelvis, torso, legs, arms };
+  return { root, body, pelvis, torso, legs, arms, flashes, muzzleLight };
 }
 
 // Simulation state for one mech. Players and robots write the same `input`
@@ -702,6 +726,12 @@ function syncMechModel(m) {
   md.body.rotation.x = -m.speed / MECH.topSpeed * 0.04;          // lean into the walk
   md.torso.rotation.y = wrapAngle(m.torsoYaw - m.legHeading);
   for (const A of md.arms) { A.arm.rotation.x = m.aimPitch; A.fore.position.z = 0; }   // arms pitch with the aim
+  // The cannon arm kicks back and up on each round; the flash sits on the barrel that fired
+  const R = md.arms.find((a) => a.s > 0), rc = m.recoil || 0;
+  R.fore.position.z = rc * 0.55; R.arm.rotation.x = m.aimPitch + rc * 0.09;
+  const fl = m.flash > 0 ? m.flash / MUZZLE.flash : 0;
+  md.flashes.forEach((f, k) => MuzzleFx.show(f, k === (m.barrel ? 1 : 0) ? fl : 0));
+  if (md.muzzleLight) md.muzzleLight.intensity = fl * MUZZLE.light;
   // Melee: cock back until the strike, snap out, then ease home.
   // Punch throws the left (rocket-pod) arm; kick swings the right leg.
   const sw = m.swing;
@@ -724,8 +754,10 @@ function syncMechModel(m) {
 // Camera rig (Family Knockout's CamRig, aimed by the torso)
 // ===========================================================================
 class CamRig {
-  constructor(i) { this.i = i; this.cam = new THREE.PerspectiveCamera(60, 1, 0.1, 1200); this.yaw = 0; this.pitch = 0; this.dist = 15; this.target = new V3(); this.shake = 0; this.snap = true; this.t = 0; }
+  constructor(i) { this.i = i; this.cam = new THREE.PerspectiveCamera(60, 1, 0.1, 1200); this.yaw = 0; this.pitch = 0; this.dist = 15; this.target = new V3(); this.shake = 0; this.rec = 0; this.snap = true; this.t = 0; }
   kick(k) { this.shake = Math.min(1.2, this.shake + k); }
+  // a gun's kick: the view jolts back and up, then settles (shake is for thuds)
+  recoil(k) { this.rec = Math.min(1, this.rec + k); }
   update(dt, m) {
     if (!m) return;
     this.t += dt;
@@ -744,6 +776,8 @@ class CamRig {
       look.y += Math.sin(t * 1.7 + 2) * s * 0.5;
     }
     this.shake *= Math.exp(-6 * dt);
+    if (this.rec > 0.001) { c.position.x += Math.sin(yaw) * this.rec * 0.45; c.position.z += Math.cos(yaw) * this.rec * 0.45; c.position.y += this.rec * 0.12; look.y += this.rec * 0.75; }
+    this.rec *= Math.exp(-14 * dt);
     c.lookAt(look);
   }
 }
@@ -828,7 +862,8 @@ const Sparks = {
     const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d');
     const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
-    this.points = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.5, map: new THREE.CanvasTexture(c), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    this.tex = new THREE.CanvasTexture(c);
+    this.points = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.5, map: this.tex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
     this.points.frustumCulled = false; scene.add(this.points);
     for (let k = 0; k < this.N; k++) this.list.push({ x: 0, y: -999, z: 0, vx: 0, vy: 0, vz: 0, t: 1, life: 1, c: SPARK_HOT });
   },
@@ -839,6 +874,17 @@ const Sparks = {
       p.x = x; p.y = y; p.z = z; p.c = c;
       p.vx = Math.cos(a) * speed * u; p.vz = Math.sin(a) * speed * u; p.vy = speed * (0.3 + Math.random() * 0.9);
       p.t = 0; p.life = 0.25 + Math.random() * 0.45;
+    }
+  },
+  // like burst, but thrown back along (bx, bz): off armour toward whoever shot it
+  spray(x, y, z, n, c, speed, bx, bz) {
+    for (let k = 0; k < n; k++) {
+      const p = this.list[this.i = (this.i + 1) % this.N];
+      const u = 0.3 + Math.random() * 0.7;
+      p.x = x; p.y = y; p.z = z; p.c = c;
+      p.vx = (bx * 0.8 + (Math.random() - 0.5) * 1.1) * speed * u; p.vz = (bz * 0.8 + (Math.random() - 0.5) * 1.1) * speed * u;
+      p.vy = speed * (0.1 + Math.random() * 0.7);
+      p.t = 0; p.life = 0.15 + Math.random() * 0.3;
     }
   },
   tick(dt) {
@@ -859,15 +905,24 @@ const Sparks = {
 };
 
 // ===========================================================================
-// Bullets: glowing slugs from the right-arm cannon. Each tick a bullet sweeps
-// the segment it travelled, so a fast slug can't skip through a robot.
+// Bullets: tracer rounds from the right-arm cannon. Each tick a round sweeps
+// the segment it travelled, so a fast round can't skip through a robot (or a
+// tree). Drawn as a thin hot core in an amber sheath with a short streak.
 // ===========================================================================
 const UP = new V3(0, 1, 0);
+const TRACER = { streak: 13, muzzle: 3.2 };   // streak length (m); the barrel's reach past the shoulder
 const Bullets = {
   list: [], pool: [],
   init() {
-    const geo = new THREE.CapsuleGeometry(0.13, 1.5, 4, 8), m = glowMat('#7ff8ff', 4);
-    for (let k = 0; k < 48; k++) { const b = new THREE.Mesh(geo, m); b.visible = false; scene.add(b); this.pool.push(b); }
+    // a unit tube from y = -1 (tail) to 0 (head), stretched along the flight
+    const geo = new THREE.CylinderGeometry(1, 1, 1, 6, 1, true); geo.translate(0, -0.5, 0);
+    const core = new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 2.7, 1.7), toneMapped: false });
+    const sheath = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.9, 0.75, 0.12), toneMapped: false, transparent: true, opacity: 0.5, depthWrite: false });
+    for (let k = 0; k < 48; k++) {
+      const g = new THREE.Group(), c = new THREE.Mesh(geo, core), sh = new THREE.Mesh(geo, sheath);
+      c.scale.set(0.045, 1, 0.045); sh.scale.set(0.15, 1, 0.15); g.add(c, sh);
+      g.visible = false; scene.add(g); this.pool.push(g);
+    }
   },
   fire(from, dir, owner) { this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(WEAPON.gun.speed), d: 0, owner }); if (this.list.length > this.pool.length) this.list.shift(); },
   tick(dt) {
@@ -886,19 +941,208 @@ const Bullets = {
         if (q.distanceTo(c) < T.hitR && t < best) { best = t; hit = r; at = q.clone(); }
       }
       if (hit) { hitRobot(hit, W.dmg, 'gun', b.v.x, b.v.z, at); this.list.splice(k, 1); continue; }
-      const gy = groundH(b.p.x, b.p.z);
-      const tree = b.p.y < gy + 5 && obstacles.find((o) => Math.hypot(b.p.x - o.x, b.p.z - o.z) < o.r);
-      if (b.p.y < gy || tree || b.d > W.range) {
-        if (b.d <= W.range) Sparks.burst(b.p.x, Math.max(b.p.y, gy + 0.1), b.p.z, 3, SPARK_HOT, 3);
-        this.list.splice(k, 1);
-      }
+      // anything else in the way: the first of the ground or a tree / rock along the segment
+      const land = this.landing(p0, seg);
+      if (land) { Impacts.at(land.kind, land.p, b.v); this.list.splice(k, 1); continue; }
+      if (b.d > W.range) this.list.splice(k, 1);
     }
   },
+  // Where the segment p0 -> p0 + seg first meets the ground or an obstacle (null = clear)
+  landing(p0, seg) {
+    let best = null;
+    const g0 = p0.y - groundH(p0.x, p0.z), g1 = p0.y + seg.y - groundH(p0.x + seg.x, p0.z + seg.z);
+    if (g1 < 0) best = { t: g0 > 0 ? g0 / (g0 - g1) : 0, kind: 'ground' };
+    const a = seg.x * seg.x + seg.z * seg.z;
+    if (a > 1e-9) for (const o of obstacles) {
+      // the segment against the obstacle's circle, then a height check where it enters
+      const fx = p0.x - o.x, fz = p0.z - o.z, bq = fx * seg.x + fz * seg.z, cq = fx * fx + fz * fz - o.r * o.r;
+      const disc = bq * bq - a * cq; if (disc < 0) continue;
+      const t = cq < 0 ? 0 : (-bq - Math.sqrt(disc)) / a;
+      if (t < 0 || t > 1 || (best && t >= best.t)) continue;
+      const x = p0.x + seg.x * t, z = p0.z + seg.z * t;
+      if (p0.y + seg.y * t < groundH(x, z) + o.h) best = { t, kind: o.kind };
+    }
+    return best && { kind: best.kind, p: p0.clone().addScaledVector(seg, best.t) };
+  },
   sync() {
-    this.pool.forEach((mesh, k) => {
-      const b = this.list[k]; mesh.visible = !!b; if (!b) return;
-      mesh.position.copy(b.p); mesh.quaternion.setFromUnitVectors(UP, b.v.clone().normalize());
+    const dir = new V3();
+    this.pool.forEach((g, k) => {
+      const b = this.list[k];
+      // the streak trails the head but never reaches back inside the barrel
+      const len = b ? Math.min(TRACER.streak, b.d - TRACER.muzzle) : 0;
+      g.visible = len > 0.2; if (!g.visible) return;
+      g.position.copy(b.p); g.quaternion.setFromUnitVectors(UP, dir.copy(b.v).normalize()); g.scale.set(1, len, 1);
     });
+  },
+};
+
+// ===========================================================================
+// Muzzle flash: a hot star at the barrel that fired, a forward flame tongue in
+// two crossed planes, and a light pulse. Built into the player's mech and shown
+// for MUZZLE.flash seconds after each round.
+// ===========================================================================
+const MUZZLE = { flash: 0.06, light: 45, recoil: 0.11, camKick: 0.32 };
+const MuzzleFx = {
+  tex() {
+    if (this.star) return;
+    const mk = (draw) => { const c = document.createElement('canvas'); c.width = c.height = 64; draw(c.getContext('2d')); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+    // a round hot core with four short spikes
+    this.star = mk((g) => {
+      const gr = g.createRadialGradient(32, 32, 0, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,240,1)'); gr.addColorStop(0.25, 'rgba(255,220,140,0.9)'); gr.addColorStop(1, 'rgba(255,140,40,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+      g.fillStyle = 'rgba(255,240,200,0.85)';
+      for (let a = 0; a < 4; a++) { g.save(); g.translate(32, 32); g.rotate(a * Math.PI / 2 + 0.4); g.beginPath(); g.moveTo(-3, 0); g.lineTo(0, -31); g.lineTo(3, 0); g.fill(); g.restore(); }
+    });
+    // a flame tongue: wide and white at the barrel (bottom), thin and orange at the tip (top)
+    this.cone = mk((g) => {
+      const gr = g.createLinearGradient(0, 64, 0, 0); gr.addColorStop(0, 'rgba(255,250,225,1)'); gr.addColorStop(0.45, 'rgba(255,190,90,0.8)'); gr.addColorStop(1, 'rgba(255,110,20,0)');
+      g.fillStyle = gr; g.beginPath(); g.moveTo(14, 64); g.quadraticCurveTo(26, 20, 32, 0); g.quadraticCurveTo(38, 20, 50, 64); g.fill();
+    });
+  },
+  build(fore, bx) {
+    this.tex();
+    const add = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false };
+    const g = new THREE.Group(); g.position.set(bx, 0, -3.3); g.visible = false; fore.add(g);
+    // the star skips the depth test: from the chase camera the arm itself hides the barrel's tip,
+    // so the flash has to glow past the player's own shoulder to be seen at all
+    const star = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.star, color: new THREE.Color(2.4, 1.9, 1.2), ...add, depthTest: false })); g.add(star);
+    const cm = new THREE.MeshBasicMaterial({ map: this.cone, color: new THREE.Color(2.2, 1.6, 0.9), side: THREE.DoubleSide, ...add });
+    const plane = new THREE.PlaneGeometry(0.75, 1.9); plane.translate(0, 0.95, 0); plane.rotateX(-Math.PI / 2);   // pokes out along -z
+    const tongues = [0, Math.PI / 2].map((rz) => { const t = new THREE.Mesh(plane, cm); t.rotation.z = rz; g.add(t); return t; });
+    return { g, star, tongues };
+  },
+  // f: 1 the instant a round leaves, 0 once the flash is over
+  show(fx, f) {
+    fx.g.visible = f > 0; if (!(f > 0)) return;
+    const s = 0.6 + 0.6 * f;
+    fx.star.scale.setScalar(2.2 * s); fx.star.material.rotation = Math.random() * Math.PI;
+    fx.tongues.forEach((t) => t.scale.set(s, 0.7 + 0.6 * f, s));
+    fx.g.rotation.z = Math.random() * Math.PI;
+  },
+};
+
+// ===========================================================================
+// Impacts: what a round leaves behind, pooled and stepped in tick() so a long
+// burst never makes new objects. Sparks, a flash and steel flakes on a robot;
+// dirt puffs and clods on the ground; chips off rocks and trees. Spent casings
+// tumble out of the cannon, bounce, and shrink away.
+// ===========================================================================
+const Impacts = {
+  CHIPS: 160, CASINGS: 48, PUFFS: 32, FLASHES: 16,
+  ci: 0, ki: 0, pi: 0, fi: 0,
+  init() {
+    const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+    const inst = (geo, mtl, n) => { const im = new THREE.InstancedMesh(geo, mtl, n); im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); for (let k = 0; k < n; k++) im.setMatrixAt(k, zero); im.frustumCulled = false; im.castShadow = true; scene.add(im); return im; };
+    // chips: little flat-shaded shards, each with its own colour (dirt, stone, wood, steel)
+    this.chipMesh = inst(new THREE.DodecahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.1, flatShading: true }), this.CHIPS);
+    this.chips = []; const white = new THREE.Color('#ffffff');
+    for (let k = 0; k < this.CHIPS; k++) { this.chips.push({ t: 9, life: 1, p: new V3(), v: new V3(), r: new THREE.Euler(), w: new V3(), s: 0.1, rest: false }); this.chipMesh.setColorAt(k, white); }
+    // casings: brass tubes
+    this.caseMesh = inst(new THREE.CylinderGeometry(0.075, 0.075, 0.36, 8), new THREE.MeshStandardMaterial({ color: '#d9a441', metalness: 0.9, roughness: 0.3 }), this.CASINGS);
+    this.casings = [];
+    for (let k = 0; k < this.CASINGS; k++) this.casings.push({ t: 9, life: 2.4, p: new V3(), v: new V3(), r: new THREE.Euler(), w: new V3(), rest: false });
+    // puffs: soft dirt clouds (Dust's texture); flashes: brief hot blooms where a round lands
+    this.puffs = []; this.flashes = [];
+    for (let k = 0; k < this.PUFFS; k++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: Dust.tex, color: '#8a6a45', transparent: true, depthWrite: false, opacity: 0 }));
+      sp.visible = false; scene.add(sp); this.puffs.push({ sp, t: 9, life: 0.8, p: new V3(), v: new V3(), k: 1 });
+    }
+    for (let k = 0; k < this.FLASHES; k++) {
+      // no depth test: it's a flare of light on the plating, so a ram or a bumper can't swallow it
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: Sparks.tex, color: new THREE.Color(2.6, 1.9, 1.0), transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+      sp.visible = false; scene.add(sp); this.flashes.push({ sp, t: 9, life: 0.07, p: new V3(), k: 1 });
+    }
+  },
+  // kind: 'robot' | 'ground' | 'rock' | 'tree'; v is the round's velocity; r the robot it hit
+  at(kind, p, v, r) {
+    const L = Math.hypot(v.x, v.z) || 1, bx = -v.x / L, bz = -v.z / L;   // back toward the shooter
+    if (kind === 'robot') {
+      // p is the round's closest pass to the robot's middle; walk back out to its plating, on the shooter's side
+      const T = ROBOT_TYPES[r.type], cx = p.x - r.pos.x, cz = p.z - r.pos.z, side = cx * bz - cz * bx;
+      const out = Math.sqrt(Math.max(0, T.hitR * T.hitR - side * side)) * 0.95, back = out - (cx * bx + cz * bz);
+      p = p.clone(); p.x += bx * back; p.z += bz * back;
+      Sparks.spray(p.x, p.y, p.z, 12, SPARK_HOT, 9, bx, bz);
+      this.flash(p, 1.7);
+      this.chip(p, 2, ['#c9ced8', '#3a4152'], 4, bx, bz, 0.08);
+      return;
+    }
+    const k = loud(p);
+    if (kind === 'ground') {
+      this.puff(p, 3, 1.5); this.chip(p, 6, ['#6b4a2b', '#4f7d32', '#7d5a36'], 6, bx, bz, 0.14);
+      if (k > 0) Sfx.dirt(k);
+    } else if (kind === 'rock') {
+      this.flash(p, 0.8); this.puff(p, 1, 0.6);
+      this.chip(p, 6, ['#8a8f99', '#a3a39a', '#6c707a'], 6, bx, bz, 0.11);
+      Sparks.spray(p.x, p.y, p.z, 4, SPARK_HOT, 6, bx, bz);
+      if (k > 0) Sfx.chip(k);
+    } else {
+      this.chip(p, 6, ['#7a5232', '#a07444', '#c9a273'], 5, bx, bz, 0.1);
+      if (k > 0) Sfx.chip(0.8 * k);
+    }
+  },
+  chip(p, n, cols, speed, bx, bz, size) {
+    const c = new THREE.Color();
+    for (let j = 0; j < n; j++) {
+      const i = this.ci = (this.ci + 1) % this.CHIPS, q = this.chips[i];
+      q.p.copy(p); q.t = 0; q.rest = false; q.life = 0.7 + Math.random() * 0.6; q.s = size * (0.6 + Math.random() * 0.8);
+      q.v.set(bx * speed * (0.3 + Math.random()) + (Math.random() - 0.5) * speed, speed * (0.4 + Math.random() * 0.8), bz * speed * (0.3 + Math.random()) + (Math.random() - 0.5) * speed);
+      q.r.set(Math.random() * 6, Math.random() * 6, 0); q.w.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, 0);
+      this.chipMesh.setColorAt(i, c.set(cols[j % cols.length]));
+    }
+    this.chipMesh.instanceColor.needsUpdate = true;
+  },
+  puff(p, n, k) {
+    for (let j = 0; j < n; j++) {
+      const q = this.puffs[this.pi = (this.pi + 1) % this.PUFFS];
+      q.t = 0; q.k = k; q.life = 0.6 + Math.random() * 0.4;
+      q.p.set(p.x + (Math.random() - 0.5) * 0.6, p.y + 0.5, p.z + (Math.random() - 0.5) * 0.6);   // up out of the grass
+      q.v.set((Math.random() - 0.5) * 1.2, 1.2 + Math.random(), (Math.random() - 0.5) * 1.2);
+    }
+  },
+  flash(p, k) { const q = this.flashes[this.fi = (this.fi + 1) % this.FLASHES]; q.t = 0; q.k = k; q.p.copy(p); },
+  // a spent casing flicks out of the cannon's right side, up and back
+  eject(from, rx, rz, fx, fz) {
+    const q = this.casings[this.ki = (this.ki + 1) % this.CASINGS];
+    q.t = 0; q.rest = false; q.life = 2 + Math.random() * 0.8;
+    q.p.set(from.x + rx * 0.5 + fx * 1.4, from.y - 0.9, from.z + rz * 0.5 + fz * 1.4);
+    const out = 3.5 + Math.random() * 2, back = -1 - Math.random() * 1.5;
+    q.v.set(rx * out + fx * back, 4 + Math.random() * 2.5, rz * out + fz * back);
+    q.r.set(Math.random() * 6, Math.random() * 6, Math.random() * 6); q.w.set(8 + Math.random() * 14, (Math.random() - 0.5) * 10, 6 + Math.random() * 10);
+  },
+  // chips and casings: gravity, a bounce or two, then they settle
+  fall(q, dt, bounce) {
+    q.v.y -= 18 * dt; q.p.addScaledVector(q.v, dt);
+    q.r.x += q.w.x * dt; q.r.y += q.w.y * dt; q.r.z += q.w.z * dt;
+    const gy = groundH(q.p.x, q.p.z) + 0.05;
+    if (q.p.y < gy) {
+      q.p.y = gy; q.v.y = Math.abs(q.v.y) * bounce; q.v.x *= 0.5; q.v.z *= 0.5; q.w.multiplyScalar(0.5);
+      if (q.v.y < 0.6) { q.v.set(0, 0, 0); q.w.set(0, 0, 0); q.rest = true; }
+    }
+  },
+  tick(dt) {
+    for (const q of this.chips) if (q.t < q.life) { q.t += dt; if (!q.rest) this.fall(q, dt, 0.3); }
+    for (const q of this.casings) if (q.t < q.life) { q.t += dt; if (!q.rest) this.fall(q, dt, 0.45); }
+    for (const q of this.puffs) if (q.t < q.life) { q.t += dt; q.p.addScaledVector(q.v, dt); q.v.multiplyScalar(Math.exp(-2 * dt)); }
+    for (const q of this.flashes) if (q.t < q.life) q.t += dt;
+  },
+  sync() {
+    const o = this.o || (this.o = new THREE.Object3D());
+    const put = (im, q, k, s) => { o.position.copy(q.p); o.rotation.copy(q.r); o.scale.setScalar(s); o.updateMatrix(); im.setMatrixAt(k, o.matrix); };
+    this.chips.forEach((q, k) => put(this.chipMesh, q, k, q.t < q.life ? q.s * Math.min(1, (q.life - q.t) * 4) : 0));   // shrink away at the end
+    this.casings.forEach((q, k) => put(this.caseMesh, q, k, q.t < q.life ? Math.min(1, (q.life - q.t) * 2.5) : 0));
+    this.chipMesh.instanceMatrix.needsUpdate = true; this.caseMesh.instanceMatrix.needsUpdate = true;
+    for (const q of this.puffs) {
+      const u = q.t / q.life; q.sp.visible = u < 1; if (u >= 1) continue;
+      const sc = (0.7 + u * 2.2) * q.k; q.sp.position.copy(q.p); q.sp.scale.set(sc, sc * 0.8, 1); q.sp.material.opacity = 0.9 * (1 - u * u);
+    }
+    for (const q of this.flashes) {
+      const u = q.t / q.life; q.sp.visible = u < 1; if (u >= 1) continue;
+      const sc = q.k * (1 - 0.5 * u); q.sp.position.copy(q.p); q.sp.scale.set(sc, sc, 1); q.sp.material.opacity = 1 - u;
+    }
+  },
+  live() {
+    const n = (a) => a.filter((q) => q.t < q.life).length;
+    return { chips: n(this.chips), casings: n(this.casings), puffs: n(this.puffs), flashes: n(this.flashes) };
   },
 };
 
@@ -909,12 +1153,21 @@ const Bullets = {
 function startAttack(m, w) {
   const W = WEAPON[w]; if (!W) return false;
   m.cool = W.cool;
-  if (w === 'gun') shoot(m);
+  if (w === 'gun') {
+    shoot(m);
+    // held fire comes in bursts: after `burst` rounds the cannon rests
+    m.burstN = (m.burstN || 0) + 1;
+    if (m.burstN >= W.burst) { m.cool = W.rest; m.burstN = 0; }
+  }
   else { m.swing = { w, t: 0, struck: false }; if (!Game.manual) Sfx.swing(); }
   return true;
 }
 function combatTick(m, dt) {
   m.cool = Math.max(0, m.cool - dt);
+  m.flash = Math.max(0, (m.flash || 0) - dt);
+  m.recoil = Math.max(0, (m.recoil || 0) - dt / MUZZLE.recoil);
+  // letting go mid-burst still owes that burst's share of the rest, so tapping isn't faster than holding
+  if (!m.input.attack && m.burstN) { const G = WEAPON.gun; m.cool += G.rest * m.burstN / G.burst; m.burstN = 0; }
   const sw = m.swing;
   if (sw) {
     const W = WEAPON[sw.w]; sw.t += dt;
@@ -940,8 +1193,9 @@ function shoot(m) {
     if (off < best && Math.hypot(dx, dz) < WEAPON.gun.range) { best = off; dir.subVectors(c, from).normalize(); }
   }
   Bullets.fire(from, dir, m);
-  Sparks.burst(from.x + fx * 2.7, from.y, from.z + fz * 2.7, 2, SPARK_ZAP, 2);
-  m.human?.rig.kick(0.06);
+  m.flash = MUZZLE.flash; m.recoil = 1;
+  Impacts.eject(from, rx, rz, fx, fz);
+  m.human?.rig.recoil(MUZZLE.camKick); m.human?.rig.kick(0.1);
   if (!Game.manual) Sfx.shot();
 }
 function meleeStrike(m, w) {
@@ -962,9 +1216,11 @@ function hitRobot(r, dmg, w, dx, dz, at) {
   const W = WEAPON[w], L = Math.hypot(dx, dz) || 1;
   r.hits[w]++;
   r.push.x += dx / L * W.push; r.push.z += dz / L * W.push;
-  r.hitFlash = 1;
-  Sparks.burst(at.x, at.y, at.z, w === 'gun' ? 6 : 18, SPARK_HOT, w === 'gun' ? 5 : 9);
-  const k = loud(r.pos); if (k > 0) (w === 'gun' ? Sfx.clang(0.5 * k) : Sfx.whack(k));
+  // a round only warms the armour a little, so a burst can't wash out the glitch flicker
+  r.hitFlash = w === 'gun' ? Math.min(0.45, r.hitFlash + 0.2) : 1;
+  if (w === 'gun') Impacts.at('robot', at, new V3(dx, 0, dz), r);
+  else Sparks.burst(at.x, at.y, at.z, 18, SPARK_HOT, 9);
+  const k = loud(r.pos); if (k > 0) (w === 'gun' ? Sfx.ping(k) : Sfx.whack(k));
   hurtRobot(r, dmg, w);
 }
 function hurtRobot(r, amount, w) {
@@ -1405,6 +1661,7 @@ function tick(dt) {
   rams();
   separate();
   Sparks.tick(dt);
+  Impacts.tick(dt);
   Game.hurtFlash = Math.max(0, Game.hurtFlash - dt * 2.5);
 }
 
@@ -1550,6 +1807,7 @@ function render(dt) {
   for (const r of Game.robots) syncRobotModel(r, dt);
   Bullets.sync();
   Sparks.sync();
+  Impacts.sync();
   Dust.update(dt);
   const h = Game.humans[0]; if (!h) return;
   h.rig.update(dt, h.mech);
@@ -1675,6 +1933,7 @@ window.__rb = {
           torsoOffset: r3(wrapAngle(m.torsoYaw - m.legHeading)), // torso relative to legs
           speed: r3(m.speed), topSpeed: MECH.topSpeed, footfalls: m.footfalls,
           health: m.health, maxHealth: m.maxHealth, weapon: h.weapon, hitsTaken: m.hitsTaken,
+          gun: { flash: r3(m.flash || 0), recoil: r3(m.recoil || 0), burst: m.burstN || 0, cool: r3(m.cool) },   // muzzle flash time left, arm recoil 0..1, rounds into this burst
         };
       }),
       robots: Game.robots.map(robotState),
@@ -1684,6 +1943,10 @@ window.__rb = {
       repair: h0?.repair ? { id: h0.repair.r.id, name: h0.repair.name } : null,
       ui: FixUI.mode,                                     // null | 'wires' | 'name'
       bullets: Bullets.list.length,
+      // each live round: speed (m/s) and how far it has flown
+      shots: Bullets.list.map((b) => ({ speed: r3(b.v.length()), d: r3(b.d), x: r3(b.p.x), y: r3(b.p.y), z: r3(b.p.z) })),
+      gunSpeed: WEAPON.gun.speed,
+      fx: { ...Impacts.live(), sparks: Sparks.list.filter((p) => p.t < p.life).length },
     };
   },
 };
@@ -1695,6 +1958,7 @@ Meadow.build();
 Dust.init();
 Sparks.init();
 Bullets.init();
+Impacts.init();
 spawnPlayer(0, 0, 0, 0);
 buildHud();
 FixUI.init();
