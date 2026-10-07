@@ -2059,11 +2059,13 @@ function bouncerFly(r, dt) {
 function bounceLand(r) {
   const A = r.air, J = ROBOT_TYPES.bouncer.jump; r.air = null;
   const under = (b, rad) => Math.hypot(b.pos.x - r.pos.x, b.pos.z - r.pos.z) < rad + J.foot;
+  // the hop off a stomped mech always comes down on the ground (A.last): the stomp ended the chain,
+  // so landing on a robot or a mech there is no new bounce and no second stomp
   // a running player's mech under a glitched Bouncer: a stomp
-  const m = r.state === 'glitched' ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius)) : null;
+  const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius)) : null;
   if (m) return bounceStomp(r, m, A);
   // another robot: spring off its head
-  const q = Game.robots.find((o) => o !== r && !o.air && ROBOT_TYPES[o.type].top != null && under(o, o.spec.radius));
+  const q = A.last ? null : Game.robots.find((o) => o !== r && !o.air && ROBOT_TYPES[o.type].top != null && under(o, o.spec.radius));
   if (q) return bounceOff(r, q, A);
   // the ground: the chain is over (aimed at a head that moved away, it drops the rest of the way)
   r.lift = Math.max(0, A.to.y - groundH(r.pos.x, r.pos.z));
@@ -2090,7 +2092,7 @@ function bounceStomp(r, m, A) {
   if (!Game.manual) Sfx.whack(1);
   // it springs off the mech's head to the ground beyond
   const a = Math.atan2(m.pos.z - A.from.z, m.pos.x - A.from.x) + (Math.random() - 0.5);
-  hop(r, { x: m.pos.x + Math.cos(a) * 9, z: m.pos.z + Math.sin(a) * 9 }, []);
+  hop(r, { x: m.pos.x + Math.cos(a) * 9, z: m.pos.z + Math.sin(a) * 9 }, []); r.air.last = true;
 }
 function bouncerAI(r, dt) {
   const ai = r.ai, inp = r.input, J = ROBOT_TYPES.bouncer.jump;
