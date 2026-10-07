@@ -283,10 +283,19 @@ const WEAPON = {
 };
 const WEAPONS = ['gun', 'punch', 'kick'];
 const AIM_ASSIST = 0.2;      // rad: the cannon locks onto a robot this close to the torso aim
+// Robots' own attacks. They aren't player weapons (no slot, no __rb.fire), but they land
+// through the same hitRobot / hurtMech paths and count in a robot's `hits` by key.
+// dmg is what a glitched robot does to a player; allyDmg what a squadmate does to a robot.
+const ROBOT_HITS = {
+  snipe: { dmg: 12, allyDmg: 20, speed: 130, range: 100, push: 1.5 },   // a Sniper's round: slower than the cannon, so it can be dodged
+  zap:   { dmg: 3, push: 0 },                                          // a drone diving in
+  stomp: { dmg: 8, combo: 5, allyDmg: 18, push: 4 },                   // a Bouncer landing; each bounce before it adds `combo`
+};
 const ROBOT = {
   downTime: 12,              // seconds a beaten robot stays powered down
   warnTime: 3,               // ...the last of which it blinks before rebooting
   rebootHealth: 0.5,         // fraction of health it comes back with
+  alert: 10,                 // seconds a hit robot hunts its attacker, however far away
 };
 // Fix it or take the parts. A downed robot within promptRange shows the choice.
 // While a player has a robot's Quick Fix open its reboot clock holds (the world
@@ -303,6 +312,9 @@ const PARTS = {
   motor:   { icon: '⚙️', hex: '#ff8a1f', fixes: 'legs' },     // leg motor
   wiring:  { icon: '🔌', hex: '#56B4E9', fixes: 'wiring' },
   ram:     { icon: '🐏', hex: '#c9ced8', fixes: null },        // the Charger's ram
+  scope:   { icon: '🔭', hex: '#ff5fa2', fixes: null, unlocks: 'rail' },   // the Sniper's scope; only a Sniper carries one
+  rotor:   { icon: '🌀', hex: '#ffd83d', fixes: null },        // a drone's rotor
+  spring:  { icon: '➰', hex: '#9f7bff', fixes: null },        // the Bouncer's coil spring
 };
 // Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
 // always maxHealth minus the damage in every area, so every heal mends areas too.
@@ -313,7 +325,9 @@ const PARTS = {
 //    `kits` lie tucked beside trees; a robot drops one the first time it's beaten.
 const AREAS = ['hull', 'legs', 'power', 'wiring'];
 const AREA_ICON = { hull: '🤖', legs: '🦿', power: '⚡', wiring: '〰️' };
-const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 } };   // where each kind of hit lands
+// where each kind of hit lands: a Sniper's round on the hull, a drone's zap in the power and
+// wiring (so 🔋 and 🔌 have something to mend), a Bouncer's stomp mostly in the legs
+const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 } };
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 50, kitReach: 3.5, kits: 6 };
 const HEAL_ICON = { parts: '🔧', ally: '🤖', kit: '🧰', reboot: '🔌' };
 // At 0 hearts the mech powers down like a robot: dark, no moving, aiming or firing,
@@ -467,6 +481,13 @@ const Sfx = {
   mendParts() { [0, 0.07, 0.14].forEach((d) => this.noise(0.04, 0.2, 2600, d, 2)); this.tone(392, 0.14, 'square', 0.07, 523, 0.2); this.tone(784, 0.3, 'triangle', 0.16, 1047, 0.28); },
   mendAlly() { this.tone(660, 0.22, 'sine', 0.07, 990); this.tone(1320, 0.16, 'sine', 0.035, 1760, 0.08); },
   kit() { [659, 880, 1109, 1319, 1760].forEach((f, i) => this.tone(f, 0.18, 'sine', 0.15, null, i * 0.055)); this.noise(0.25, 0.06, 7000, 0.2, 2, 'highpass'); },
+  // The new robots: a Sniper's rising aim whine and its crack, a drone's zap, a Bouncer's boing
+  // (higher with every bounce in a chain), and a squadmate drone's "found one" chirp
+  aimWhine(k = 1) { this.tone(500, 1.0, 'sine', 0.05 * k, 1700); },
+  snipe(k = 1) { this.noise(0.04, 0.35 * k, 5200, 0, 0.6, 'highpass'); this.tone(1500, 0.16, 'square', 0.1 * k, 320); this.tone(95, 0.25, 'sine', 0.3 * k, 40); },
+  droneZap(k = 1) { this.noise(0.15, 0.2 * k, 4000, 0, 4); this.tone(2400, 0.12, 'square', 0.05 * k, 900); },
+  boing(k = 1, n = 0) { const f = 170 * Math.pow(1.19, Math.min(n, 6)); this.tone(f, 0.35, 'sine', 0.3 * k, f * 2.6); this.tone(f * 0.5, 0.2, 'triangle', 0.15 * k, f * 1.2); },
+  scout() { this.tone(880, 0.1, 'sine', 0.12); this.tone(1320, 0.16, 'sine', 0.12, null, 0.12); },
   salvage() { this.clang(1); this.clang(0.7); this.tone(260, 0.12, 'square', 0.06, 180, 0.12); this.tone(340, 0.12, 'square', 0.06, 220, 0.26); this.noise(0.3, 0.2, 900, 0.1, 0.8); },
   // A low engine hum that rises with speed
   startHum() {
@@ -922,7 +943,8 @@ class CamRig {
 // Game
 // ===========================================================================
 // bag = parts collected, by kind ({ armour: 2, ram: 1 }); parts = their total (the HUD's 🔩)
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
+// swarms = each drone swarm by id: { id, n, wp (where it's roaming to), seen (tick it last saw a player), kit (dropped yet) }
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
 function setPause(on) {
   Game.paused = on;
   $('start').classList.toggle('on', on);
@@ -1054,40 +1076,65 @@ const Sparks = {
 // ===========================================================================
 const UP = new V3(0, 1, 0);
 const TRACER = { streak: 13, muzzle: 3.2 };   // streak length (m); the barrel's reach past the shoulder
+// The same rounds carry a Sniper's shots ('snipe'): a glitched Sniper's rounds (foe) hit
+// players' mechs and pass through robots; a squadmate Sniper's hit glitched robots.
+// Each look has its own colours: amber for the cannon, red for a glitched Sniper, cyan for a squadmate.
+const MECH_HIT = { y: 4.8, r: 2.8 };   // a player's mech as a target for robots' rounds
 const Bullets = {
-  list: [], pool: [],
+  list: [], pool: [], looks: {},
   init() {
     // a unit tube from y = -1 (tail) to 0 (head), stretched along the flight
     const geo = new THREE.CylinderGeometry(1, 1, 1, 6, 1, true); geo.translate(0, -0.5, 0);
-    const core = new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 2.7, 1.7), toneMapped: false });
-    const sheath = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.9, 0.75, 0.12), toneMapped: false, transparent: true, opacity: 0.5, depthWrite: false });
+    const look = (core, sheath) => ({
+      core: new THREE.MeshBasicMaterial({ color: new THREE.Color(...core), toneMapped: false }),
+      sheath: new THREE.MeshBasicMaterial({ color: new THREE.Color(...sheath), toneMapped: false, transparent: true, opacity: 0.5, depthWrite: false }),
+    });
+    this.looks = { gun: look([3.2, 2.7, 1.7], [1.9, 0.75, 0.12]), foe: look([3.4, 1.6, 2.0], [2.4, 0.15, 0.45]), ally: look([1.8, 3.2, 3.4], [0.2, 1.6, 2.0]) };
     for (let k = 0; k < 48; k++) {
-      const g = new THREE.Group(), c = new THREE.Mesh(geo, core), sh = new THREE.Mesh(geo, sheath);
+      const g = new THREE.Group(), c = new THREE.Mesh(geo, this.looks.gun.core), sh = new THREE.Mesh(geo, this.looks.gun.sheath);
       c.scale.set(0.045, 1, 0.045); sh.scale.set(0.15, 1, 0.15); g.add(c, sh);
       g.visible = false; scene.add(g); this.pool.push(g);
     }
   },
-  fire(from, dir, owner) { this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(WEAPON.gun.speed), d: 0, owner }); if (this.list.length > this.pool.length) this.list.shift(); },
+  // kind: 'gun' (a player's cannon) | 'snipe' (a Sniper's rifle); dmg defaults to the kind's
+  fire(from, dir, owner, kind = 'gun', dmg) {
+    const W = kind === 'gun' ? WEAPON.gun : ROBOT_HITS[kind], foe = !!owner?.type && owner.state === 'glitched';
+    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(W.speed), d: 0, owner, kind, foe, spd: W.speed, range: W.range, dmg: dmg ?? W.dmg, look: kind === 'gun' ? 'gun' : foe ? 'foe' : 'ally' });
+    if (this.list.length > this.pool.length) this.list.shift();
+  },
   tick(dt) {
-    const W = WEAPON.gun, p0 = new V3(), seg = new V3(), c = new V3(), q = new V3();
+    const p0 = new V3(), seg = new V3(), c = new V3(), q = new V3();
+    const sweep = (x, y, z, R, t0) => {   // how far along the segment it passes within R of (x, y, z), or null
+      c.set(x, y, z);
+      const t = clamp(c.clone().sub(p0).dot(seg) / seg.lengthSq(), 0, 1);
+      q.copy(p0).addScaledVector(seg, t);
+      return q.distanceTo(c) < R && t < t0 ? t : null;
+    };
     for (let k = this.list.length - 1; k >= 0; k--) {
       const b = this.list[k];
-      p0.copy(b.p); b.p.addScaledVector(b.v, dt); b.d += W.speed * dt;
+      p0.copy(b.p); b.p.addScaledVector(b.v, dt); b.d += b.spd * dt;
       seg.subVectors(b.p, p0);
       let hit = null, best = 2, at = null;
-      for (const r of Game.robots) {
-        if (r.state === 'ally') continue;              // shots pass squadmates
-        const T = ROBOT_TYPES[r.type];
-        c.set(r.pos.x, r.pos.y + T.hitY, r.pos.z);
-        const t = clamp(c.clone().sub(p0).dot(seg) / seg.lengthSq(), 0, 1);
-        q.copy(p0).addScaledVector(seg, t);
-        if (q.distanceTo(c) < T.hitR && t < best) { best = t; hit = r; at = q.clone(); }
+      if (b.foe) {
+        for (const m of Game.mechs) {
+          if (m.state === 'down') continue;            // a powered-down mech is left alone
+          const t = sweep(m.pos.x, m.pos.y + MECH_HIT.y, m.pos.z, MECH_HIT.r, best);
+          if (t != null) { best = t; hit = m; at = q.clone(); }
+        }
+        if (hit) { shotMech(hit, b, at); this.list.splice(k, 1); continue; }
+      } else {
+        for (const r of Game.robots) {
+          if (r.state === 'ally' || r === b.owner) continue;   // shots pass squadmates
+          const T = ROBOT_TYPES[r.type];
+          const t = sweep(r.pos.x, r.pos.y + T.hitY, r.pos.z, T.hitR, best);
+          if (t != null) { best = t; hit = r; at = q.clone(); }
+        }
+        if (hit) { hitRobot(hit, b.dmg, b.kind, b.v.x, b.v.z, at); this.list.splice(k, 1); continue; }
       }
-      if (hit) { hitRobot(hit, W.dmg, 'gun', b.v.x, b.v.z, at); this.list.splice(k, 1); continue; }
       // anything else in the way: the first of the ground or a tree / rock along the segment
       const land = this.landing(p0, seg);
       if (land) { Impacts.at(land.kind, land.p, b.v); this.list.splice(k, 1); continue; }
-      if (b.d > W.range) this.list.splice(k, 1);
+      if (b.d > b.range) this.list.splice(k, 1);
     }
   },
   // Where the segment p0 -> p0 + seg first meets the ground or an obstacle (null = clear)
@@ -1114,6 +1161,7 @@ const Bullets = {
       // the streak trails the head but never reaches back inside the barrel
       const len = b ? Math.min(TRACER.streak, b.d - TRACER.muzzle) : 0;
       g.visible = len > 0.2; if (!g.visible) return;
+      const L = this.looks[b.look]; g.children[0].material = L.core; g.children[1].material = L.sheath;
       g.position.copy(b.p); g.quaternion.setFromUnitVectors(UP, dir.copy(b.v).normalize()); g.scale.set(1, len, 1);
     });
   },
@@ -1355,22 +1403,34 @@ function meleeStrike(m, w) {
   if (any) m.human?.rig.kick(w === 'kick' ? 0.8 : 0.5);
 }
 // A real hit from a weapon: counts it, knocks the robot back, throws sparks, then hurts it
+// w is a WEAPON key, or a ROBOT_HITS key when a squadmate lands it ('snipe', 'stomp')
 function hitRobot(r, dmg, w, dx, dz, at) {
-  const W = WEAPON[w], L = Math.hypot(dx, dz) || 1;
-  r.hits[w]++;
+  const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe';
+  r.hits[w] = (r.hits[w] || 0) + 1;
   r.push.x += dx / L * W.push; r.push.z += dz / L * W.push;
   // a round only warms the armour a little, so a burst can't wash out the glitch flicker
-  r.hitFlash = w === 'gun' ? Math.min(0.45, r.hitFlash + 0.2) : 1;
-  if (w === 'gun') Impacts.at('robot', at, new V3(dx, 0, dz), r);
+  r.hitFlash = round ? Math.min(0.45, r.hitFlash + 0.2) : 1;
+  if (round) Impacts.at('robot', at, new V3(dx, 0, dz), r);
   else Sparks.burst(at.x, at.y, at.z, 18, SPARK_HOT, 9);
-  const k = loud(r.pos); if (k > 0) (w === 'gun' ? Sfx.ping(k) : Sfx.whack(k));
+  const k = loud(r.pos); if (k > 0) (round ? Sfx.ping(k) : Sfx.whack(k));
   hurtRobot(r, dmg, w);
 }
 function hurtRobot(r, amount, w) {
   if (r.state === 'down') return false;
   r.health = Math.max(0, r.health - amount); r.lastHitBy = w;
+  r.ai.alert = ROBOT.alert;                     // a hit wakes a roaming robot
   if (r.health <= 0) powerDown(r);
   return true;
+}
+// A glitched Sniper's round reaches a player's mech: sparks off the plating, then the hit
+function shotMech(m, b, at) {
+  const L = Math.hypot(b.v.x, b.v.z) || 1, bx = -b.v.x / L, bz = -b.v.z / L;
+  Sparks.spray(at.x, at.y, at.z, 14, SPARK_HOT, 9, bx, bz);
+  Impacts.flash(at, 2);
+  Impacts.chip(at, 3, ['#ff8a1f', '#2d3446'], 4, bx, bz, 0.1);
+  m.push.x -= bx * ROBOT_HITS[b.kind].push; m.push.z -= bz * ROBOT_HITS[b.kind].push;
+  if (!Game.manual) Sfx.ping(1);
+  hurtMech(m, b.dmg, b.kind);
 }
 // A player's mech takes a hit. `how` (a HIT_AREAS key) shares the damage out over
 // the areas it lands in: a plain hit hurts the hull, a ram the hull and the legs.
@@ -1493,24 +1553,167 @@ function buildCharger(paint) {
     const hoof = cyl(0.55, 0.62, 0.35, paint.dark, metal, 12); hoof.position.y = -1.65; hip.add(hoof);
     legs.push({ hip, ph });
   }
-  // health bar and a status icon, both billboards
-  const sm = (o) => new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, ...o });
-  const back = new THREE.Sprite(sm({ color: '#14182a', opacity: 0.75 })); back.scale.set(3.2, 0.42, 1); back.position.y = 5.1; back.renderOrder = 5; root.add(back);
-  const fill = new THREE.Sprite(sm({ color: '#3ee07a' })); fill.scale.set(3.0, 0.26, 1); fill.position.y = 5.1; fill.renderOrder = 6; root.add(fill);
-  const icon = new THREE.Sprite(sm({ map: iconTex('❗') })); icon.scale.set(1.7, 1.7, 1); icon.position.y = 6.4; icon.visible = false; root.add(icon);
-  return { root, body, legs, glow, armour, back, fill, icon };
+  return { root, body, legs, glow, armour, ...robotHud(root, 5.1) };
+}
+// A robot's health bar and status icon, both billboards: the bar at height y, w wide,
+// the icon 1.3 above it (scaled with the bar, so a drone's are small)
+function robotHud(root, y, w = 3.0) {
+  const sm = (o) => new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, ...o }), s = w / 3;
+  const back = new THREE.Sprite(sm({ color: '#14182a', opacity: 0.75 })); back.scale.set(w + 0.2 * s, 0.42 * s, 1); back.position.y = y; back.renderOrder = 5; root.add(back);
+  const fill = new THREE.Sprite(sm({ color: '#3ee07a' })); fill.scale.set(w, 0.26 * s, 1); fill.position.y = y; fill.renderOrder = 6; root.add(fill);
+  const icon = new THREE.Sprite(sm({ map: iconTex('❗') })); icon.scale.set(1.7 * Math.max(s, 0.75), 1.7 * Math.max(s, 0.75), 1); icon.position.y = y + 1.3 * Math.max(s, 0.75); icon.visible = false; root.add(icon);
+  return { back, fill, icon, barY: y, barW: w, iconY: icon.position.y };
+}
+// Each glitched robot type and its own materials: the armour flashes when hit and the glow flickers
+function robotMats(paint) {
+  return {
+    armour: new THREE.MeshStandardMaterial({ color: paint.armour, roughness: 0.5, metalness: 0.3, emissive: '#ffffff', emissiveIntensity: 0 }),
+    glow: new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: paint.glow, emissiveIntensity: 3, roughness: 0.3 }),
+  };
+}
+const ownMesh = (geo, m) => { const x = new THREE.Mesh(geo, m); x.castShadow = true; x.receiveShadow = true; return x; };
+
+// The Sniper: tall and thin on two stilt legs, a long rifle and one big scope eye.
+// Its head swings on its own (like the player's torso) to aim; a laser shows where.
+function buildSniper(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
+  const { armour, glow } = robotMats(paint);
+  const hips = rbox(1.8, 0.6, 1.0, 0.2, paint.frame, metal); hips.position.y = 4.3; body.add(hips);
+  const legs = [];
+  for (const [s, ph] of [[-1, 0], [1, Math.PI]]) {
+    const hip = new THREE.Group(); hip.position.set(s * 0.75, 4.2, 0); body.add(hip);
+    hip.add(ball(0.32, paint.dark, metal));
+    const thigh = cyl(0.16, 0.2, 2.2, paint.frame, metal, 10); thigh.position.y = -1.1; hip.add(thigh);
+    const shin = cyl(0.13, 0.17, 2.0, paint.ram, steel, 10); shin.position.y = -3.0; hip.add(shin);
+    const foot = rbox(0.6, 0.22, 1.0, 0.08, paint.dark, metal); foot.position.set(0, -4.05, -0.15); hip.add(foot);
+    legs.push({ hip, ph });
+  }
+  // the head turns to aim: armour shell, scope eye, rifle and laser
+  const head = new THREE.Group(); head.position.y = 4.9; body.add(head);
+  const shell = ownMesh(new RoundedBoxGeometry(1.4, 1.5, 1.8, 3, 0.35), armour); shell.position.y = 0.55; head.add(shell);
+  const scope = cyl(0.42, 0.42, 0.9, paint.dark, metal, 18); scope.rotation.x = Math.PI / 2; scope.position.set(0, 0.85, -0.95); head.add(scope);
+  const lens = ownMesh(new THREE.CylinderGeometry(0.33, 0.33, 0.06, 18), glow); lens.rotation.x = Math.PI / 2; lens.position.set(0, 0.85, -1.42); head.add(lens);
+  const rifle = cyl(0.1, 0.13, 3.4, paint.ram, steel, 10); rifle.rotation.x = Math.PI / 2; rifle.position.set(0.85, 0.35, -1.4); head.add(rifle);
+  const stock = rbox(0.4, 0.5, 1.2, 0.1, paint.stripe); stock.position.set(0.85, 0.3, 0.2); head.add(stock);
+  for (const s of [-1, 1]) { const fin = ownMesh(new THREE.BoxGeometry(0.06, 0.5, 0.5), glow); fin.position.set(s * 0.72, 1.0, 0.3); head.add(fin); }
+  const antenna = cyl(0.03, 0.04, 1.2, paint.ram, steel, 6); antenna.position.set(-0.45, 1.8, 0.5); head.add(antenna);
+  // the aim laser: a thin beam out of the rifle, stretched to the target while it aims
+  const laserMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 0.3, 0.6), toneMapped: false, transparent: true, opacity: 0.85, depthWrite: false });
+  const lgeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 6, 1, true); lgeo.translate(0, 0.5, 0); lgeo.rotateX(-Math.PI / 2);   // from 0 to -1 along z
+  const laser = new THREE.Mesh(lgeo, laserMat); laser.position.set(0.85, 0.35, -3.1); laser.visible = false; head.add(laser);
+  return { root, body, legs, glow, armour, head, laser, laserMat, ...robotHud(root, 8.0) };
 }
 
+// A drone: a small yellow-and-black flyer with four rotors and a glowing eye. Swarms of them.
+function buildDrone(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.55, roughness: 0.4 };
+  const { armour, glow } = robotMats(paint);
+  const shell = ownMesh(new THREE.SphereGeometry(0.5, 16, 12), armour); shell.scale.set(1, 0.75, 1.15); body.add(shell);
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.47, 0.07, 6, 20), mat(paint.dark, metal)); band.rotation.x = Math.PI / 2; band.scale.set(1, 1.2, 1); body.add(band);
+  const eye = ownMesh(new THREE.SphereGeometry(0.17, 12, 8), glow); eye.position.set(0, 0.05, -0.52); body.add(eye);
+  // kept to a few meshes: a swarm is six of these, and every mesh is a draw call (twice with shadows)
+  const rotors = [];
+  const blade = new THREE.BoxGeometry(0.8, 0.03, 0.11);    // a two-bladed rotor
+  for (const ry of [Math.PI / 4, -Math.PI / 4]) { const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 1.7), mat(paint.dark, metal)); arm.position.y = 0.12; arm.rotation.y = ry; body.add(arm); }
+  for (const [ax, az] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const rotor = new THREE.Mesh(blade, mat(paint.frame, metal)); rotor.position.set(ax * 0.6, 0.2, az * 0.6); rotor.rotation.y = ax * az; body.add(rotor);
+    rotors.push(rotor);
+  }
+  return { root, body, legs: [], glow, armour, rotors, ...robotHud(root, 1.3, 1.6) };
+}
+
+// The Bouncer: a round body with one big eye on a coil spring. It jumps on you, and
+// springs off other robots' heads on the way to build a combo.
+function buildBouncer(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
+  const { armour, glow } = robotMats(paint);
+  // the spring: a steel helix on a foot pad; it squashes and stretches with every jump
+  const spring = new THREE.Group(); body.add(spring);
+  const helix = new (class extends THREE.Curve { getPoint(t, o = new V3()) { const a = t * Math.PI * 2 * 4; return o.set(Math.cos(a) * 0.7, t * 1.5, Math.sin(a) * 0.7); } })();
+  spring.add(ownMesh(new THREE.TubeGeometry(helix, 96, 0.11, 6), mat(paint.ram, steel)));
+  const pad = cyl(0.9, 1.0, 0.25, paint.dark, metal, 18); pad.position.y = 0.05; body.add(pad);
+  const top = new THREE.Group(); top.position.y = 1.5; body.add(top);   // rides on the spring's top (the pose moves it)
+  const shell = ownMesh(new THREE.SphereGeometry(1.3, 24, 16), armour); shell.position.y = 1.25; top.add(shell);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.12, 8, 30), mat(paint.dark, metal)); rim.rotation.x = Math.PI / 2; rim.position.y = 1.0; top.add(rim);
+  const eyeRing = cyl(0.62, 0.62, 0.3, paint.dark, metal, 20); eyeRing.rotation.x = Math.PI / 2; eyeRing.position.set(0, 1.45, -1.12); top.add(eyeRing);
+  const eye = ownMesh(new THREE.SphereGeometry(0.48, 16, 12), glow); eye.scale.z = 0.5; eye.position.set(0, 1.45, -1.25); top.add(eye);
+  for (const s of [-1, 1]) {
+    const ear = cyl(0.05, 0.07, 0.9, paint.ram, steel, 6); ear.position.set(s * 0.6, 2.75, 0); ear.rotation.z = -s * 0.35; top.add(ear);
+    const tip = ownMesh(new THREE.SphereGeometry(0.16, 10, 8), glow); tip.position.set(s * 0.77, 3.2, 0); top.add(tip);
+  }
+  return { root, body, legs: [], glow, armour, spring, top, ...robotHud(root, 5.0) };
+}
+
+// Every robot type. Shared fields:
+//  icon: its squad tag; health; hitY/hitR: the sphere rounds hit (hitY above r.pos);
+//  top: how high its head is (a Bouncer can spring off it; null = not a springboard);
+//  beamY: where a mending beam leaves it; spec: stands in for MECH; paint; build: its model;
+//  ai: its glitched brain; ally: its brain as a squadmate (its squad job); pose: its animation;
+//  parts: what it's built from (ids in PARTS); takeMax: parts a player may take (default REPAIR.takeMax);
+//  notice: how close a player has to be before it stops roaming and comes for them;
+//  tell: its glitch tell (named in state()); hot(r): about to attack (the ❗ and a faster flicker);
+//  sparkBox: [width, depth, height, height range] it spits glitch sparks from.
+// Optional: move(r, dt) moves it itself (returns true) instead of walking; tick(r, dt) after
+// it walks (a drone holds its height); flicker(r, dt, hot) its own glitched glow; flies; swarm.
 const ROBOT_TYPES = {
   charger: {
-    health: 100, hitY: 2.2, hitR: 2.5,
+    icon: '🐏', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
     spec: { topSpeed: 6.5, backSpeed: 5, accel: 4.5, brake: 8, boostSpeed: 17, boostAccel: 18, legTurn: 2.4, torsoTurn: 4, stride: 1.6, radius: 2.0 },
     paint: { armour: '#8a5cff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
-    build: buildCharger,
-    ai: chargerAI,
-    parts: ['armour', 'battery', 'motor', 'wiring', 'ram'],   // what it's built from (ids in PARTS)
+    build: buildCharger, ai: chargerAI, ally: allyAI, pose: chargerPose,
+    parts: ['armour', 'battery', 'motor', 'wiring', 'ram'],
+    notice: 60,
+    tell: 'jolt',        // its glow flickers and its body jolts when the glitch spikes
+    hot: (r) => r.ai.mode === 'windup' || r.ai.mode === 'charge',
+    sparkBox: [3, 4, 2, 1.6],
+  },
+  // Keeps its distance and shoots: backs off inside keep[0], closes in past keep[1].
+  // A shot is `gun.aim` seconds of laser on the target, then one round.
+  sniper: {
+    icon: '🔭', health: 70, hitY: 5.3, hitR: 1.8, top: 6.4, beamY: 5.6,
+    spec: { topSpeed: 6.2, backSpeed: 2.5, accel: 3.2, brake: 6, legTurn: 2.2, torsoTurn: 3.0, stride: 2.8, radius: 1.5 },
+    paint: { armour: '#2e9f86', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
+    build: buildSniper, ai: sniperAI, ally: allySniper, pose: sniperPose, flicker: stutterGlow,
+    parts: ['scope', 'armour', 'motor', 'wiring'],          // the 🔭 scope is the Sniper's alone
+    notice: 75, keep: [36, 54],
+    gun: { aim: 1.1, cool: 2.4, range: 75, allyAim: 0.5, allyCool: 1.8, allyRange: 70 },
+    tell: 'stutter',     // its eye blinks in stuttering pairs and its aim laser shakes
+    hot: (r) => r.ai.aimT > 0,
+    sparkBox: [1.4, 1.8, 4.6, 1.6],
+  },
+  // Small flyers that come as a swarm of `swarm`. They circle a player at `orbit` metres and
+  // take turns diving in to zap (at most two at once). The whole swarm drops one repair kit.
+  drone: {
+    icon: '🐝', health: 20, hitY: 0, hitR: 1.0, top: null, beamY: 0.2, flies: true, alt: 5.2, swarm: 6,
+    spec: { topSpeed: 9, backSpeed: 4, accel: 9, brake: 10, legTurn: 3.6, torsoTurn: 6, stride: 50, radius: 0.7 },
+    paint: { armour: '#ffd83d', frame: '#3a4152', dark: '#14182a', glow: '#ff2f5b' },
+    build: buildDrone, ai: droneAI, ally: allyDrone, pose: dronePose, tick: droneFly,
+    parts: ['rotor', 'battery', 'wiring'], takeMax: 1,     // a small robot: one part each
+    notice: 45, orbit: 10, zapReach: 1.8, scout: 70, scoutMin: 15,
+    tell: 'lurch',       // it drops and lurches in the air, and its rotors sputter
+    hot: (r) => r.ai.mode === 'dive',
+    sparkBox: [0.8, 0.8, -0.2, 0.5], sparkN: 0.4,
+  },
+  // Jumps on you; on the way it springs off other robots' heads, and each bounce adds to the stomp.
+  // jump: reach (how far it jumps at a player), hop (how far between springboards), foot (landing slop),
+  // crouch/land (seconds), wild (chance a glitched hop goes off at random), miss (how far off a glitched hop lands).
+  bouncer: {
+    icon: '🦘', health: 70, hitY: 2.6, hitR: 1.7, top: 4.1, beamY: 3.0,
+    spec: { topSpeed: 4.5, backSpeed: 2, accel: 4, brake: 6, legTurn: 2.5, torsoTurn: 4, stride: 2.4, radius: 1.4 },
+    paint: { armour: '#4f7dff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', glow: '#ff2f5b' },
+    build: buildBouncer, ai: bouncerAI, ally: allyBouncer, pose: bouncerPose, move: bouncerFly,
+    parts: ['spring', 'motor', 'armour', 'battery'],
+    notice: 45,
+    jump: { reach: 22, hop: 13, foot: 1.6, crouch: 0.5, land: 0.7, wild: 0.15, miss: [0.6, 2.4], allyCool: 3 },
+    tell: 'misbounce',   // it bounces off at random and lands in the wrong spot
+    hot: (r) => r.ai.mode === 'crouch' || !!r.air,
+    sparkBox: [2, 2, 2, 1.6],
   },
 };
+const takeMaxOf = (r) => ROBOT_TYPES[r.type].takeMax ?? REPAIR.takeMax;
 
 function spawnRobot(type, x, z) {
   const T = ROBOT_TYPES[type]; if (!T) return null;
@@ -1520,13 +1723,35 @@ function spawnRobot(type, x, z) {
     id: Game.nextId++, type, spec: T.spec, health: T.health, maxHealth: T.health, state: 'glitched',
     t: 0, downT: 0, downs: 0, reboots: 0, glow: 3, glowMode: 'flicker', flickT: 0, sparkT: Math.random() * 0.5, hitFlash: 0,
     hits: { gun: 0, punch: 0, kick: 0 },
-    ai: { think: Math.random() * 0.05, mode: 'stalk', t: 0.6 },
+    ai: { think: Math.random() * 0.05, mode: 'stalk', t: 0.6, alert: 0 },
     wires: makeWires(REPAIR.wires), wrongWires: 0, repairBy: null, name: null, leader: null,
     parts: T.parts.slice(),        // the parts still on it, offered when it's taken apart
+    lift: 0,                       // height above the ground (a drone's flight, a Bouncer dropping)
+    swarm: null,                   // a drone's swarm id
+    // a Bouncer: its hop in progress, bounces in this chain, the last finished chain, its best, all of them,
+    // how far its last hop landed from where it meant to, hops gone off at random, stomps landed
+    air: null, bounces: 0, lastChain: 0, bestChain: 0, totalBounces: 0, miss: 0, wild: 0, stomps: 0,
+    lurches: 0,                    // a drone's glitch lurches
   });
   r.model = T.build(T.paint); scene.add(r.model.root);
   Game.robots.push(r);
   return r;
+}
+// Drop robots into the meadow: spawn('sniper', x, z). A swarm type (drones) comes as a
+// whole swarm in a ring round (x, z) and returns the list; any other type returns the robot.
+let nextSwarm = 1;
+function spawn(type, x, z) {
+  const T = ROBOT_TYPES[type]; if (!T) return null;
+  if (!T.swarm) return spawnRobot(type, x, z);
+  const sw = { id: nextSwarm++, n: T.swarm, wp: null, wpUntil: 0, seen: -1e9, kit: false };
+  Game.swarms[sw.id] = sw;
+  const out = [];
+  for (let i = 0; i < T.swarm; i++) {
+    const a = i / T.swarm * Math.PI * 2, r = spawnRobot(type, x + Math.cos(a) * 3, z + Math.sin(a) * 3);
+    r.swarm = sw.id; r.orbitA = a; r.lift = T.alt; r.pos.y += T.alt;
+    out.push(r);
+  }
+  return out;
 }
 
 function nearestPlayer(r) {
@@ -1552,10 +1777,34 @@ function avoid(r, err, dist, bodies = []) {
   return err;
 }
 
+// Head for (x, z), bending round trees and rocks: `pace` throttle when facing it, slow while
+// turning, and easing off inside `slowR` metres (0 = no easing). Returns how far it is.
+function steer(r, x, z, pace = 1, slowR = 0) {
+  const dx = x - r.pos.x, dz = z - r.pos.z, dist = Math.hypot(dx, dz);
+  const err = avoid(r, wrapAngle(Math.atan2(-dx, -dz) - r.legHeading), dist);
+  r.input.throttle = Math.abs(err) > 1.2 ? 0.2 * pace : slowR ? pace * clamp(dist / slowR, 0.15, 1) : pace;
+  r.input.turn = clamp(-err * 2.5, -1, 1);
+  return dist;
+}
+// A glitched robot comes for the nearest running player inside its type's `notice` range,
+// or for anyone at all for ROBOT.alert seconds after it's been hit. Otherwise it roams.
+function engaged(r, tgt) { return !!tgt && (flatDist(r, tgt) < ROBOT_TYPES[r.type].notice || r.ai.alert > 0); }
+const meadowSpot = (rMax = 92) => { const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * rMax; return { x: Math.cos(a) * d, z: Math.sin(a) * d }; };
+// Roaming: amble to a random spot in the meadow, then pick another (giving up on one after 25 s)
+function roam(r, dt, pace = 0.45) {
+  const ai = r.ai;
+  ai.wpT = (ai.wpT || 0) - dt;
+  if (!ai.wp || ai.wpT <= 0 || Math.hypot(ai.wp.x - r.pos.x, ai.wp.z - r.pos.z) < 6) { ai.wp = meadowSpot(); ai.wpT = 25; }
+  steer(r, ai.wp.x, ai.wp.z, pace);
+  r.input.boost = false; r.input.aimYaw = r.legHeading;
+  ai.mode = 'roam';
+}
+
 function chargerAI(r, dt) {
   const ai = r.ai, inp = r.input, S = r.spec, tgt = nearestPlayer(r);
   inp.boost = false;
-  if (!tgt) { inp.throttle = inp.turn = 0; return; }
+  if (!engaged(r, tgt)) { roam(r, dt); return; }
+  if (ai.mode === 'roam') { ai.mode = 'stalk'; ai.t = 0.6; }
   const dx = tgt.pos.x - r.pos.x, dz = tgt.pos.z - r.pos.z, dist = Math.hypot(dx, dz);
   const want = Math.atan2(-dx, -dz);
   let err = wrapAngle(want - r.legHeading);
@@ -1580,10 +1829,329 @@ function chargerAI(r, dt) {
   inp.aimYaw = r.legHeading;
 }
 
+// ---------------------------------------------------------------------------
+// The Sniper. Keeps its distance: inside keep[0] it turns and walks away (sliding
+// along the rim if it's backed up against the hills), past keep[1] it closes in,
+// between the two it stands. Its head tracks the target the whole time, so it
+// can aim back over its shoulder while it walks off.
+// ---------------------------------------------------------------------------
+function sniperAI(r, dt) {
+  const ai = r.ai, inp = r.input, T = ROBOT_TYPES.sniper, tgt = nearestPlayer(r);
+  inp.boost = false;
+  ai.gunT = (ai.gunT || 0) - dt;
+  if (!engaged(r, tgt)) { ai.aimT = 0; roam(r, dt); return; }
+  const dx = tgt.pos.x - r.pos.x, dz = tgt.pos.z - r.pos.z, dist = Math.hypot(dx, dz);
+  if (dist < T.keep[0]) {
+    let ax = -dx / dist, az = -dz / dist;
+    const R = Math.hypot(r.pos.x, r.pos.z);
+    if (R > 80) {
+      // backed up against the rim: run round it (the way that's more "away"), edging back in
+      const ox = r.pos.x / R, oz = r.pos.z / R, s = (-oz * ax + ox * az) >= 0 ? 1 : -1;
+      ax = -oz * s - ox * 0.35; az = ox * s - oz * 0.35;
+    }
+    ai.mode = 'flee';
+    steer(r, r.pos.x + ax * 20, r.pos.z + az * 20, 1);
+  } else if (dist > T.keep[1]) { ai.mode = 'close'; steer(r, tgt.pos.x, tgt.pos.z, 0.6); }
+  else { ai.mode = 'hold'; inp.throttle = 0; inp.turn = clamp(-wrapAngle(Math.atan2(-dx, -dz) - r.legHeading) * 2.5, -1, 1); }
+  sniperGun(r, tgt, false, dt);
+}
+// Where a round should go to hit a body: a robot's middle, or a mech's
+function aimPoint(b) { return new V3(b.pos.x, b.pos.y + (b.type ? ROBOT_TYPES[b.type].hitY : MECH_HIT.y), b.pos.z); }
+// The rifle: the head swings to the target; a shot is a laser aim (gun.aim seconds), then one
+// round once the head is on target. Glitched, the round goes a little wide (the stutter).
+function sniperGun(r, tgt, ally, dt) {
+  const ai = r.ai, G = ROBOT_TYPES.sniper.gun, inp = r.input, tp = aimPoint(tgt);
+  const dist = Math.hypot(tp.x - r.pos.x, tp.z - r.pos.z);
+  inp.aimYaw = Math.atan2(-(tp.x - r.pos.x), -(tp.z - r.pos.z));
+  ai.aimAt = tgt;
+  if (ai.aimT > 0) {
+    ai.aimT -= dt;
+    if (ai.aimT <= 0) {
+      if (Math.abs(wrapAngle(r.torsoYaw - inp.aimYaw)) < 0.25) { sniperShoot(r, tp, ally); ai.gunT = ally ? G.allyCool : G.cool; }
+      else ai.aimT = 0.15;                               // still swinging round: hold the aim a moment longer
+    }
+  } else if (ai.gunT <= 0 && dist < (ally ? G.allyRange : G.range)) {
+    ai.aimT = ally ? G.allyAim : G.aim;
+    const k = loud(r.pos); if (k > 0) Sfx.aimWhine(k);
+  }
+}
+function sniperShoot(r, tp, ally) {
+  const yaw = r.torsoYaw, fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  const from = new V3(r.pos.x + rx * 0.85 + fx * 3.2, r.pos.y + 5.25, r.pos.z + rz * 0.85 + fz * 3.2);
+  const dir = tp.clone().sub(from).normalize();
+  if (!ally) { dir.applyAxisAngle(UP, (Math.random() - 0.5) * 0.05); dir.y += (Math.random() - 0.5) * 0.02; dir.normalize(); }
+  Bullets.fire(from, dir, r, 'snipe', ally ? ROBOT_HITS.snipe.allyDmg : undefined);
+  r.shots = (r.shots || 0) + 1;
+  Sparks.burst(from.x, from.y, from.z, 6, ally ? SPARK_ZAP : SPARK_HOT, 4);
+  const k = loud(r.pos); if (k > 0) Sfx.snipe(k);
+}
+// Squad job: hits from far away. Follows like any squadmate, and picks off the nearest
+// glitched robot within gun.allyRange with its rifle (a quick cyan laser, then a round).
+function allySniper(r, dt) {
+  allyAI(r, dt);
+  const G = ROBOT_TYPES.sniper.gun; let best = null, bd = G.allyRange;
+  r.ai.gunT = (r.ai.gunT || 0) - dt;
+  for (const q of Game.robots) if (q.state === 'glitched') { const d = flatDist(q, r); if (d < bd) { bd = d; best = q; } }
+  if (!best) { r.ai.aimT = 0; return; }
+  sniperGun(r, best, true, dt);
+}
+
+// ---------------------------------------------------------------------------
+// The drone swarm. Roaming, each drone flies to its own place round the swarm's
+// waypoint. Once any drone spots a player (or is hit) the whole swarm wakes: they
+// circle the player and take turns diving in to zap, two at most at once.
+// ---------------------------------------------------------------------------
+function droneAI(r, dt) {
+  const ai = r.ai, inp = r.input, T = ROBOT_TYPES.drone, sw = Game.swarms[r.swarm], tgt = nearestPlayer(r);
+  inp.boost = false; inp.aimYaw = r.legHeading;
+  if (engaged(r, tgt)) sw.seen = Game.ticks;
+  const mates = Game.robots.filter((q) => q.swarm === r.swarm && q.state === 'glitched');
+  if (!tgt || Game.ticks - sw.seen > 4 * SIM_HZ) {
+    let cx = 0, cz = 0; for (const q of mates) { cx += q.pos.x; cz += q.pos.z; } cx /= mates.length; cz /= mates.length;
+    if (!sw.wp || Math.hypot(sw.wp.x - cx, sw.wp.z - cz) < 8 || Game.ticks > sw.wpUntil) { sw.wp = meadowSpot(); sw.wpUntil = Game.ticks + 25 * SIM_HZ; }
+    ai.mode = 'roam';
+    steer(r, sw.wp.x + Math.cos(r.orbitA) * 4, sw.wp.z + Math.sin(r.orbitA) * 4, 0.5, 4);
+    return;
+  }
+  ai.diveT = (ai.diveT ?? 1 + Math.random() * 3) - dt;
+  if (ai.mode === 'dive') {
+    ai.t -= dt;
+    const d = steer(r, tgt.pos.x, tgt.pos.z, 1);
+    if (d < MECH.radius + T.zapReach) { droneZap(r, tgt); ai.mode = 'orbit'; ai.diveT = 2.5 + Math.random() * 3.5; }
+    else if (ai.t <= 0) { ai.mode = 'orbit'; ai.diveT = 1.5; }
+    return;
+  }
+  ai.mode = 'orbit';
+  const a = r.orbitA + r.t * 0.6;
+  steer(r, tgt.pos.x + Math.cos(a) * T.orbit, tgt.pos.z + Math.sin(a) * T.orbit, 1, 5);
+  if (ai.diveT <= 0 && mates.filter((q) => q.ai.mode === 'dive').length < 2) { ai.mode = 'dive'; ai.t = 4; }
+}
+// A zap: a little damage in the mech's power and wiring
+function droneZap(r, m) {
+  hurtMech(m, ROBOT_HITS.zap.dmg, 'zap');
+  r.zaps = (r.zaps || 0) + 1;
+  Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 14, SPARK_ZAP, 6);
+  Sparks.burst(r.pos.x, r.pos.y, r.pos.z, 6, SPARK_ZAP, 3);
+  if (!Game.manual) Sfx.droneZap(1);
+}
+// Each tick, after it moves: hold its height (a little lower diving, higher as a squadmate),
+// drop out of the air when it's beaten. The glitch tell: every second or two it lurches,
+// dropping a metre or more and skidding sideways, and its rotors sputter.
+function droneFly(r, dt) {
+  const T = ROBOT_TYPES.drone;
+  if (r.state === 'down') { r.lift = Math.max(0.35, r.lift - 9 * dt); r.sputter = 0; return; }
+  const want = r.state === 'ally' ? T.alt + 1 : r.ai.mode === 'dive' ? T.alt - 1 : T.alt;
+  if (r.state === 'glitched') {
+    r.lurchT = (r.lurchT ?? Math.random() * 2) - dt;
+    if (r.lurchT <= 0) {
+      r.lurchT = 0.6 + Math.random() * 2.2; r.lift -= 1 + Math.random() * 1.3; r.lurches++; r.sputter = 0.35;
+      const a = Math.random() * Math.PI * 2; r.push.x += Math.cos(a) * 3; r.push.z += Math.sin(a) * 3;
+    }
+  }
+  r.sputter = Math.max(0, (r.sputter || 0) - dt);
+  r.lift = Math.max(0.6, damp(r.lift, want + Math.sin(r.t * 2.3 + r.id) * 0.25, 3, dt));
+}
+// Squad job: scouting. A squadmate drone flies off to the nearest repair kit within `scout`
+// metres of its leader (but past scoutMin: one right beside you needs no finding) that nobody has found yet, marks it with a beacon (🧰 high over it),
+// then comes back. (Hidden parts arrive in slice 6; until then it scouts for kits.)
+function allyDrone(r, dt) {
+  const ai = r.ai, T = ROBOT_TYPES.drone, lead = r.leader?.mech;
+  ai.scoutT = (ai.scoutT || 0) - dt;
+  if (ai.mode === 'scout') {
+    const k = Kits.list.find((q) => q.id === ai.scout);
+    if (!k || !lead || Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z) > T.scout + 20) { ai.mode = 'follow'; ai.scout = null; ai.scoutT = 2; }
+    else {
+      const d = steer(r, k.x, k.z, 1, 6);
+      r.input.boost = false; r.input.aimYaw = r.legHeading;
+      if (d < 3) {
+        if (!k.spotted) { k.spotted = true; k.by = r.id; if (!Game.manual) Sfx.scout(); }
+        ai.hover = (ai.hover || 0) + dt;
+        if (ai.hover > 1.5) { ai.mode = 'follow'; ai.scout = null; ai.scoutT = 3; }
+      }
+      return;
+    }
+  }
+  if (ai.scoutT <= 0 && lead && lead.state !== 'down') {
+    const claimed = new Set(Game.squad.map((q) => q.ai.scout).filter(Boolean));
+    let best = null, bd = T.scout;
+    for (const k of Kits.list) { if (k.spotted || claimed.has(k.id)) continue; const d = Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z); if (d < bd && d > T.scoutMin) { bd = d; best = k; } }
+    if (best) { ai.mode = 'scout'; ai.scout = best.id; ai.hover = 0; return; }
+    ai.scoutT = 1;
+  }
+  allyAI(r, dt);
+}
+
+// ---------------------------------------------------------------------------
+// The Bouncer. On the ground it walks in little hops toward you, crouches (❗), and
+// jumps. Its plan: spring off any robots on the way (each one a bounce, so the chain
+// grows), then land on your mech's head. A stomp hurts more for every bounce before
+// it. It springs off you to the ground, and the chain ends when it touches down.
+// Glitched, a hop can fly off at random (`wild`) and the rest land off target (`miss`).
+// ---------------------------------------------------------------------------
+// The springboards on the way to `goal` (nearest first, each nearer the goal), up to `max`;
+// pick(q) says which robots count. The first may be up to jump.reach away, then jump.hop.
+function bouncePlan(r, goal, pick, max) {
+  const J = ROBOT_TYPES.bouncer.jump, plan = [], used = new Set([r]);
+  let cx = r.pos.x, cz = r.pos.z;
+  for (let k = 0; k < max; k++) {
+    let best = null, bd = k ? J.hop : J.reach;
+    const dg = goal ? Math.hypot(goal.pos.x - cx, goal.pos.z - cz) : 0;
+    for (const q of Game.robots) {
+      if (used.has(q) || q.air || ROBOT_TYPES[q.type].top == null || !pick(q)) continue;
+      const d = Math.hypot(q.pos.x - cx, q.pos.z - cz);
+      if (d < bd && (!goal || Math.hypot(goal.pos.x - q.pos.x, goal.pos.z - q.pos.z) < dg + 2)) { bd = d; best = q; }
+    }
+    if (!best) break;
+    plan.push({ body: best }); used.add(best); cx = best.pos.x; cz = best.pos.z;
+  }
+  return plan;
+}
+// The end of a glitched chain: the nearest player's head if it's in reach, else a random spot
+function bounceFinish(r) {
+  const m = nearestPlayer(r);
+  if (m && flatDist(r, m) < ROBOT_TYPES.bouncer.jump.reach + 6) return { body: m };
+  const a = Math.random() * Math.PI * 2; return { x: r.pos.x + Math.cos(a) * 8, z: r.pos.z + Math.sin(a) * 8 };
+}
+// The end of a squadmate's chain: back to its place beside its leader
+function bounceHome(r) {
+  const lead = r.leader?.mech || Game.humans[0]?.mech; if (!lead) return { x: r.pos.x, z: r.pos.z };
+  const [sx, sb] = SQUAD_SLOTS[r.ai.slot % SQUAD_SLOTS.length], h = lead.legHeading;
+  return { x: lead.pos.x + Math.cos(h) * sx + Math.sin(h) * sb, z: lead.pos.z - Math.sin(h) * sx + Math.cos(h) * sb };
+}
+// Landing height on a body: a robot's head, a mech's head, or the ground
+function landY(body, p) { return !body ? groundH(p.x, p.z) : body.type ? body.pos.y + ROBOT_TYPES[body.type].top : body.pos.y + 7.8; }
+// Start a hop toward target ({ body } or { x, z }); plan is the targets after it
+function hop(r, target, plan) {
+  const J = ROBOT_TYPES.bouncer.jump, from = r.pos.clone();
+  let x = target.body ? target.body.pos.x : target.x, z = target.body ? target.body.pos.z : target.z, off = { x: 0, z: 0 };
+  r.miss = 0;
+  if (r.state === 'glitched') {
+    const a = Math.random() * Math.PI * 2;
+    if (Math.random() < J.wild) {
+      // it bounces off at random: somewhere 5-13 m away, and the rest of the plan is lost
+      const d = 5 + Math.random() * 8, wx = from.x + Math.cos(a) * d, wz = from.z + Math.sin(a) * d;
+      r.miss = Math.hypot(wx - x, wz - z); x = wx; z = wz; target = { x, z }; plan = []; r.wild++;
+    } else {
+      const d = J.miss[0] + Math.random() * (J.miss[1] - J.miss[0]);
+      off = { x: Math.cos(a) * d, z: Math.sin(a) * d }; r.miss = d;
+    }
+  }
+  // never off the edge of the meadow
+  const R = Math.hypot(x + off.x, z + off.z), lim = WORLD_R - 4;
+  if (R > lim) { const k = lim / R; off.x = (x + off.x) * k - x; off.z = (z + off.z) * k - z; }
+  const to = new V3(x + off.x, 0, z + off.z); to.y = landY(target.body, to);
+  const dist = Math.hypot(to.x - from.x, to.z - from.z);
+  r.air = { from, to, off, body: target.body || null, plan, u: 0, dur: clamp(0.5 + dist / 18, 0.55, 1.3), h: 3 + dist * 0.18 };
+  if (dist > 0.1) r.legHeading = r.torsoYaw = Math.atan2(-(to.x - from.x), -(to.z - from.z));
+  r.speed = 0; r.ai.mode = 'air';
+  const k = loud(r.pos); if (k > 0) Sfx.boing(k, r.bounces);
+}
+// Each tick of a hop: along the arc (following a robot it's aiming for), then land
+function bouncerFly(r, dt) {
+  const A = r.air; if (!A) return false;
+  A.u += dt / A.dur;
+  if (A.body?.type && Game.robots.includes(A.body)) { A.to.x = A.body.pos.x + A.off.x; A.to.z = A.body.pos.z + A.off.z; A.to.y = landY(A.body, A.to); }
+  const u = Math.min(A.u, 1);
+  r.pos.lerpVectors(A.from, A.to, u); r.pos.y += A.h * 4 * u * (1 - u);
+  if (A.u >= 1) bounceLand(r);
+  return true;
+}
+function bounceLand(r) {
+  const A = r.air, J = ROBOT_TYPES.bouncer.jump; r.air = null;
+  const under = (b, rad) => Math.hypot(b.pos.x - r.pos.x, b.pos.z - r.pos.z) < rad + J.foot;
+  // a running player's mech under a glitched Bouncer: a stomp
+  const m = r.state === 'glitched' ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius)) : null;
+  if (m) return bounceStomp(r, m, A);
+  // another robot: spring off its head
+  const q = Game.robots.find((o) => o !== r && !o.air && ROBOT_TYPES[o.type].top != null && under(o, o.spec.radius));
+  if (q) return bounceOff(r, q, A);
+  // the ground: the chain is over (aimed at a head that moved away, it drops the rest of the way)
+  r.lift = Math.max(0, A.to.y - groundH(r.pos.x, r.pos.z));
+  r.lastChain = r.bounces; r.speed = 0;
+  r.ai.mode = 'land'; r.ai.t = J.land;
+  Sparks.burst(r.pos.x, groundH(r.pos.x, r.pos.z) + 0.3, r.pos.z, 10, SPARK_HOT, 4);
+  const k = loud(r.pos); if (k > 0) Sfx.thud(0.5 * k);
+}
+function bounceOff(r, q, A) {
+  r.bounces++; r.totalBounces++; r.bestChain = Math.max(r.bestChain, r.bounces);
+  if (r.state === 'ally' && q.state === 'glitched') {
+    const S = ROBOT_HITS.stomp;
+    hitRobot(q, S.allyDmg + S.combo * (r.bounces - 1), 'stomp', q.pos.x - A.from.x, q.pos.z - A.from.z, new V3(q.pos.x, q.pos.y + ROBOT_TYPES[q.type].top, q.pos.z));
+  } else Sparks.burst(r.pos.x, r.pos.y, r.pos.z, 16, SPARK_ZAP, 6);
+  // on to the next target in the plan that's still there, else the finish
+  let next = null;
+  while (A.plan.length && !next) { const t = A.plan.shift(); if (Game.robots.includes(t.body) || Game.mechs.includes(t.body)) next = t; }
+  hop(r, next || (r.state === 'glitched' ? bounceFinish(r) : bounceHome(r)), A.plan);
+}
+function bounceStomp(r, m, A) {
+  const S = ROBOT_HITS.stomp, dmg = S.dmg + S.combo * Math.min(r.bounces, 4);
+  hurtMech(m, dmg, 'stomp'); r.stomps++; r.lastStomp = dmg;
+  Sparks.burst(m.pos.x, m.pos.y + 7.8, m.pos.z, 30, SPARK_HOT, 8);
+  if (!Game.manual) Sfx.whack(1);
+  // it springs off the mech's head to the ground beyond
+  const a = Math.atan2(m.pos.z - A.from.z, m.pos.x - A.from.x) + (Math.random() - 0.5);
+  hop(r, { x: m.pos.x + Math.cos(a) * 9, z: m.pos.z + Math.sin(a) * 9 }, []);
+}
+function bouncerAI(r, dt) {
+  const ai = r.ai, inp = r.input, J = ROBOT_TYPES.bouncer.jump;
+  inp.boost = false; inp.aimYaw = r.legHeading;
+  if (r.air) { inp.throttle = inp.turn = 0; return; }
+  ai.t -= dt;
+  if (ai.mode === 'land' || ai.mode === 'crouch') {
+    inp.throttle = inp.turn = 0;
+    if (ai.t > 0) return;
+    if (ai.mode === 'crouch') {
+      r.bounces = 0;
+      const plan = bouncePlan(r, nearestPlayer(r), () => true, 3);
+      hop(r, plan.shift() || bounceFinish(r), plan);
+      return;
+    }
+    ai.mode = 'stalk'; ai.t = 0.6 + Math.random() * 0.8;
+  }
+  const tgt = nearestPlayer(r);
+  if (!engaged(r, tgt)) { roam(r, dt); return; }
+  if (ai.mode !== 'stalk') ai.mode = 'stalk';
+  const dist = steer(r, tgt.pos.x, tgt.pos.z, 1);
+  if (dist < 12) inp.throttle = 0;
+  if (ai.t <= 0 && dist < J.reach) { ai.mode = 'crouch'; ai.t = J.crouch; inp.throttle = inp.turn = 0; }
+}
+// Squad job: bouncing from enemy to enemy. When a glitched robot comes within jump.reach
+// (and near its leader) it crouches and springs from one glitched robot's head to the
+// next, each stomp harder than the last, then hops back to its place.
+function allyBouncer(r, dt) {
+  const ai = r.ai, J = ROBOT_TYPES.bouncer.jump, inp = r.input, lead = r.leader?.mech;
+  inp.boost = false;
+  if (r.air) { inp.throttle = inp.turn = 0; return; }
+  ai.cool = (ai.cool || 0) - dt;
+  if (ai.mode === 'land' || ai.mode === 'crouch') {
+    inp.throttle = inp.turn = 0; ai.t -= dt;
+    if (ai.t > 0) return;
+    if (ai.mode === 'crouch') {
+      r.bounces = 0;
+      const plan = bouncePlan(r, null, (q) => q.state === 'glitched', 4);
+      if (plan.length) { hop(r, plan.shift(), plan); return; }
+    }
+    ai.mode = 'follow';
+  }
+  if (ai.cool <= 0 && lead && Game.robots.some((q) => q.state === 'glitched' && !q.air && ROBOT_TYPES[q.type].top != null && flatDist(q, r) < J.reach && flatDist(q, lead) < 35)) {
+    ai.mode = 'crouch'; ai.t = 0.35; ai.cool = J.allyCool; inp.throttle = inp.turn = 0;
+    return;
+  }
+  allyAI(r, dt);
+}
+
 function powerDown(r) {
-  r.state = 'down'; r.downT = ROBOT.downTime; r.downs++; r.ai.mode = 'off';
+  r.state = 'down'; r.downT = ROBOT.downTime; r.downs++; r.ai.mode = 'off'; r.ai.aimT = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
-  if (r.downs === 1) Kits.drop(r);              // the first time it's beaten it drops a repair kit
+  // beaten mid-hop: it drops out of the air
+  if (r.air) { r.lift = Math.max(0, r.pos.y - groundH(r.pos.x, r.pos.z)); r.air = null; }
+  // the first time it's beaten it drops a repair kit; a drone swarm drops one between
+  // them, when the last of its drones is beaten for the first time
+  if (r.downs === 1) {
+    const sw = Game.swarms[r.swarm];
+    if (!sw) Kits.drop(r);
+    else if (!sw.kit && Game.robots.every((q) => q.swarm !== r.swarm || q.downs > 0)) { sw.kit = true; Kits.drop(r); }
+  }
   Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 40, SPARK_HOT, 10);
   const k = loud(r.pos); if (k > 0) Sfx.powerDown(k);
 }
@@ -1598,7 +2166,7 @@ function reboot(r) {
 // ===========================================================================
 // Fix it or take the parts. A downed robot nearby shows a prompt: 🔧 opens
 // the Quick Fix (drag each wire to the port of the same colour and shape),
-// 🔩 opens the parts picker (choose up to REPAIR.takeMax of its parts; the
+// 🔩 opens the parts picker (choose up to takeMaxOf(r) of its parts; the
 // rest is scrapped with the robot). A fixed robot gets a name, glows steady and
 // joins the squad. Players, the prompt's buttons and __rb.choose / __rb.wire all
 // go through chooseFor / connectWire / pickPart / takeParts. While either panel
@@ -1658,13 +2226,13 @@ function cancelRepair(h) {
   if (h.idx === 0 && (FixUI.mode === 'wires' || FixUI.mode === 'parts')) FixUI.close();
 }
 // In the picker: tap a part to pick it, tap again to put it back. A pick past
-// REPAIR.takeMax is refused (buzz, the tiles shake).
+// the robot's take limit (takeMaxOf: 2, or 1 for a drone) is refused (buzz, the tiles shake).
 function pickPart(h, id) {
   const rp = h.repair; if (!rp || rp.kind !== 'parts') return 'not taking';
   if (!rp.r.parts.includes(id)) return 'not on this robot';
   const i = rp.picks.indexOf(id);
   if (i >= 0) { rp.picks.splice(i, 1); if (!Game.manual) Sfx.click(); return 'off'; }
-  if (rp.picks.length >= REPAIR.takeMax) { if (!Game.manual) Sfx.buzz(); return 'full'; }
+  if (rp.picks.length >= takeMaxOf(rp.r)) { if (!Game.manual) Sfx.buzz(); return 'full'; }
   rp.picks.push(id);
   if (!Game.manual) Sfx.plug();
   return 'on';
@@ -1705,7 +2273,7 @@ function setRobotName(r, name) {
   const md = r.model;
   if (!md.label) {
     md.label = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true }));
-    md.label.scale.set(5, 1.25, 1); md.label.position.y = 6.2; md.label.renderOrder = 7; md.root.add(md.label);
+    md.label.scale.set(5, 1.25, 1); md.label.position.y = md.barY + 1.1; md.label.renderOrder = 7; md.root.add(md.label);
   }
   const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d');
   g.font = '900 72px "Titan One", "Asap", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -1718,7 +2286,7 @@ function setRobotName(r, name) {
 // the robot down where it was and the bag as it was.
 function takeParts(h, r, picks) {
   if (!Array.isArray(picks) || !picks.length) return { ok: false, why: 'pick a part' };
-  if (picks.length > REPAIR.takeMax) return { ok: false, why: 'too many', max: REPAIR.takeMax };
+  if (picks.length > takeMaxOf(r)) return { ok: false, why: 'too many', max: takeMaxOf(r) };
   if (new Set(picks).size !== picks.length) return { ok: false, why: 'same part twice' };
   if (!picks.every((id) => r.parts.includes(id))) return { ok: false, why: 'not on this robot' };
   if (r.repairBy) cancelRepair(r.repairBy);
@@ -1765,34 +2333,54 @@ function allyAI(r, dt) {
 // when winding up or charging. Down: dark, then blinks as the reboot nears.
 function robotGlow(r, dt) {
   if (r.state === 'glitched') {
+    const T = ROBOT_TYPES[r.type];
     r.glowMode = 'flicker';
-    r.flickT -= dt;
-    if (r.flickT <= 0) {
-      const hot = r.ai.mode === 'windup' || r.ai.mode === 'charge', u = Math.random();
-      r.flickT = hot ? 0.03 + Math.random() * 0.05 : 0.04 + Math.random() * 0.14;
-      r.glow = u < 0.3 ? 0.04 : u < 0.42 ? 0.6 : hot ? 6 + Math.random() * 2 : 2.8 + Math.random() * 2.4;
-    }
+    (T.flicker || glitchFlicker)(r, dt, T.hot(r));
   } else if (r.state === 'ally') { r.glowMode = 'steady'; r.glow = ALLY.glow; }
   else if (r.downT > ROBOT.warnTime || r.repairBy) { r.glowMode = 'off'; r.glow = 0.03; }
   else { r.glowMode = 'blink'; const hz = 1.5 + (ROBOT.warnTime - r.downT) * 1.5; r.glow = Math.sin(r.t * hz * Math.PI * 2) > 0.3 ? 3.5 : 0.03; }
 }
 
+// The glitched flicker (the Charger's, the drones' and the Bouncer's): jumps between
+// near-dark and far past the bloom threshold, faster when it's about to attack.
+function glitchFlicker(r, dt, hot) {
+  r.flickT -= dt;
+  if (r.flickT <= 0) {
+    const u = Math.random();
+    r.flickT = hot ? 0.03 + Math.random() * 0.05 : 0.04 + Math.random() * 0.14;
+    r.glow = u < 0.3 ? 0.04 : u < 0.42 ? 0.6 : hot ? 6 + Math.random() * 2 : 2.8 + Math.random() * 2.4;
+  }
+}
+// The Sniper's tell: its eye stutters in pairs (blink-blink, pause), twice as fast while
+// it aims, and every so often a pair drops out
+function stutterGlow(r, dt, hot) {
+  const P = hot ? 0.45 : 0.9, u = (r.t % P) / P, cyc = Math.floor(r.t / P);
+  const skip = (cyc * 7919 + r.id * 104729) % 5 === 0;
+  r.glow = !skip && (u < 0.12 || (u > 0.24 && u < 0.36)) ? (hot ? 6.5 : 4.5) : 0.05;
+}
+
 function robotTick(r, dt) {
+  const T = ROBOT_TYPES[r.type];
   r.t += dt;
   if (r.state === 'down') {
     r.input.throttle = r.input.turn = 0; r.input.boost = false;
     if (!r.repairBy) r.downT -= dt;          // the clock holds while someone is fixing it
     if (r.downT <= 0) reboot(r);
   }
-  mechTick(r, dt);
+  // a Bouncer mid-hop moves itself along its arc; everything else walks (or flies) like a mech
+  if (!T.move?.(r, dt)) {
+    mechTick(r, dt);
+    if (T.tick) T.tick(r, dt); else r.lift = Math.max(0, r.lift - 14 * dt);   // drones hold their height; anything else drops to the ground
+    r.pos.y += r.lift;
+  }
   robotGlow(r, dt);
   // sparks: a glitched robot spits them often, a downed one now and then
   r.sparkT -= dt;
   if (r.sparkT <= 0) {
-    const g = r.state === 'glitched', h = r.legHeading;
+    const g = r.state === 'glitched', h = r.legHeading, [bw, bd, by, br] = T.sparkBox, sn = T.sparkN ?? 1;
     r.sparkT = g ? 0.2 + Math.random() * 0.7 : 0.8 + Math.random() * 1.6;
-    const lx = (Math.random() - 0.5) * 3, lz = (Math.random() - 0.5) * 4, y = r.pos.y + 2 + Math.random() * 1.6;
-    Sparks.burst(r.pos.x + lx * Math.cos(h) + lz * Math.sin(h), y, r.pos.z - lx * Math.sin(h) + lz * Math.cos(h), g ? 4 + Math.floor(Math.random() * 6) : 2, g && Math.random() < 0.5 ? SPARK_ZAP : SPARK_HOT, g ? 6 : 3);
+    const lx = (Math.random() - 0.5) * bw, lz = (Math.random() - 0.5) * bd, y = r.pos.y + by + Math.random() * br;
+    Sparks.burst(r.pos.x + lx * Math.cos(h) + lz * Math.sin(h), y, r.pos.z - lx * Math.sin(h) + lz * Math.cos(h), Math.max(1, Math.round((g ? 4 + Math.floor(Math.random() * 6) : 2) * sn)), g && Math.random() < 0.5 ? SPARK_ZAP : SPARK_HOT, g ? 6 : 3);
     const k = loud(r.pos); if (g && k > 0) Sfx.zap(k);
   }
   r.hitFlash = Math.max(0, r.hitFlash - dt * 6);
@@ -1817,16 +2405,17 @@ function rams() {
     }
   }
 }
-// Keep bodies apart: a light robot gives way to a heavy mech
+// Keep bodies apart: a light robot gives way to a heavy mech. A Bouncer mid-hop is above
+// it all; a drone keeps its height (lift) as it's nudged.
 function separate() {
-  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.map((r) => [r, r.spec.radius, 0.8])];
+  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air).map((r) => [r, r.spec.radius, 0.8])];
   for (let a = 0; a < bodies.length; a++) for (let b = a + 1; b < bodies.length; b++) {
     const [A, ra, wa] = bodies[a], [B, rb, wb] = bodies[b];
     const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz) || 1e-3, min = ra + rb;
     if (d >= min) continue;
     const o = min - d, sa = wa / (wa + wb), sb = wb / (wa + wb);
     A.pos.x -= dx / d * o * sa; A.pos.z -= dz / d * o * sa; B.pos.x += dx / d * o * sb; B.pos.z += dz / d * o * sb;
-    A.pos.y = groundH(A.pos.x, A.pos.z); B.pos.y = groundH(B.pos.x, B.pos.z);
+    A.pos.y = groundH(A.pos.x, A.pos.z) + (A.lift || 0); B.pos.y = groundH(B.pos.x, B.pos.z) + (B.lift || 0);
   }
 }
 
@@ -1841,7 +2430,8 @@ const Kits = {
   init() {
     const box = new RoundedBoxGeometry(1.5, 0.95, 1.0, 3, 0.16), bar = new THREE.BoxGeometry(0.18, 0.5, 0.06), handle = new THREE.TorusGeometry(0.32, 0.07, 6, 16, Math.PI);
     const ring = new THREE.TorusGeometry(1.25, 0.07, 6, 32);
-    this.geo = { box, bar, handle, ring };
+    const beam = new THREE.CylinderGeometry(0.04, 0.04, 12, 6, 1, true);
+    this.geo = { box, bar, handle, ring, beam };
     seed = 515;
     const trees = obstacles.filter((o) => o.kind === 'tree' && Math.hypot(o.x, o.z) > 30 && Math.hypot(o.x, o.z) < 100);
     for (let t = 0; t < 200 && this.list.length < HEAL.kits; t++) {
@@ -1859,8 +2449,11 @@ const Kits = {
     for (const sz of [-1, 1]) for (const rz of [0, Math.PI / 2]) { const b = new THREE.Mesh(G.bar, white); b.position.set(0, 0.6, sz * 0.51); b.rotation.z = rz; g.add(b); }
     const hd = new THREE.Mesh(G.handle, mat('#2d3446', { metalness: 0.6, roughness: 0.4 })); hd.position.y = 1.07; g.add(hd);
     const rg = new THREE.Mesh(G.ring, glowMat('#3ee07a', 2.2)); rg.rotation.x = Math.PI / 2; rg.position.y = 0.12; g.add(rg);
+    // the beacon a scouting squadmate drone leaves: a tall light and a 🧰 high over the kit
+    const beacon = new THREE.Mesh(G.beam, glowMat('#3ee07a', 1.1)); beacon.position.y = 6; beacon.visible = false; g.add(beacon);
+    const mark = new THREE.Sprite(new THREE.SpriteMaterial({ map: iconTex('🧰'), depthWrite: false, toneMapped: false, transparent: true })); mark.scale.set(1.3, 1.3, 1); mark.position.y = 9; mark.visible = false; g.add(mark);
     g.position.set(x, groundH(x, z), z); g.scale.setScalar(1.4); scene.add(g);
-    const k = { id: this.nextId++, x, z, from, g, t: Math.random() * 6 };
+    const k = { id: this.nextId++, x, z, from, g, beacon, mark, t: Math.random() * 6, spotted: false };
     this.list.push(k);
     return k;
   },
@@ -1877,7 +2470,12 @@ const Kits = {
     if (!Game.manual) Sfx.kit();
     return got;
   },
-  sync(dt) { for (const k of this.list) { k.t += dt; k.g.children[0].position.y = 0.6 + Math.sin(k.t * 2.4) * 0.12; k.g.rotation.y = k.t * 0.7; } },
+  sync(dt) {
+    for (const k of this.list) {
+      k.t += dt; k.g.children[0].position.y = 0.6 + Math.sin(k.t * 2.4) * 0.12; k.g.rotation.y = k.t * 0.7;
+      k.beacon.visible = k.mark.visible = k.spotted; if (k.spotted) k.mark.position.y = 9 + Math.sin(k.t * 3) * 0.3;
+    }
+  },
 };
 
 // ===========================================================================
@@ -1915,7 +2513,7 @@ const Beams = {
       const B = this.list[i] || (this.list[i] = this.mk()), r = h.beam;
       B.g.visible = !!r; if (!r) return;
       const m = h.mech;
-      a.set(r.pos.x, r.pos.y + 3.6, r.pos.z); b.set(m.pos.x, m.pos.y + 5 - m.slump, m.pos.z);
+      a.set(r.pos.x, r.pos.y + ROBOT_TYPES[r.type].beamY, r.pos.z); b.set(m.pos.x, m.pos.y + 5 - m.slump, m.pos.z);
       d.subVectors(b, a); const len = d.length();
       B.g.position.copy(a); B.g.quaternion.setFromUnitVectors(UP, d.normalize()); B.g.scale.set(1, len, 1);
       const w = 0.2 + 0.07 * Math.sin(Game.ticks * 0.6); B.s.scale.set(w, 1, w);
@@ -1939,26 +2537,69 @@ function playerTick(h, dt) {
 }
 
 function syncRobotModel(r, dt) {
-  const md = r.model, S = r.spec;
-  const jit = r.state === 'glitched' && r.glow > 5 ? 0.08 : 0;   // it jolts when the glitch spikes
+  const md = r.model, S = r.spec, T = ROBOT_TYPES[r.type];
+  const jit = T.tell === 'jolt' && r.state === 'glitched' && r.glow > 5 ? 0.08 : 0;   // a Charger jolts when the glitch spikes
   md.root.position.set(r.pos.x + (Math.random() - 0.5) * jit, r.pos.y, r.pos.z + (Math.random() - 0.5) * jit);
   md.root.rotation.y = r.legHeading;
   const k = clamp(Math.abs(r.speed) / S.topSpeed, 0, 1);
   for (const L of md.legs) L.hip.rotation.x = Math.sin(r.phase + L.ph) * 0.55 * k;
   const mode = r.state === 'down' ? (r.repairBy ? 'repair' : 'down') : r.ai.mode;
+  T.pose(r, md, dt, mode);
+  md.glow.emissiveIntensity = r.glow;
+  md.armour.emissiveIntensity = r.hitFlash * 0.8;
+  const f = r.health / r.maxHealth, up = r.state !== 'down';
+  md.back.visible = up; md.fill.visible = up && f > 0;
+  if (f > 0) { md.fill.scale.x = md.barW * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
+  const icon = mode === 'repair' ? (r.repairBy.repair?.kind === 'parts' ? '🔩' : '🔧') : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️')
+    : r.state === 'glitched' && T.hot(r) ? '❗' : r.state === 'ally' && mode === 'scout' ? '🔍' : null;
+  md.icon.visible = !!icon;
+  if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = md.iconY + Math.sin(r.t * 6) * 0.15; }
+}
+// Each type's own animation on top of the shared walk. mode: its ai mode, or 'down' / 'repair'.
+function chargerPose(r, md, dt, mode) {
   if (mode === 'windup') md.legs[0].hip.rotation.x = Math.sin(r.t * 16) * 0.6;   // paws the ground
   const pose = mode === 'windup' ? [-0.35, 0.12, 0] : mode === 'charge' ? [-0.15, 0.1, 0] : mode === 'down' || mode === 'repair' ? [-0.9, 0.18, 0.32] : [0, 0, 0];
   md.body.position.y = damp(md.body.position.y, pose[0], 8, dt);
   md.body.rotation.x = damp(md.body.rotation.x, pose[1], 8, dt);
   md.body.rotation.z = damp(md.body.rotation.z, pose[2], 4, dt);
-  md.glow.emissiveIntensity = r.glow;
-  md.armour.emissiveIntensity = r.hitFlash * 0.8;
-  const f = r.health / r.maxHealth, up = r.state !== 'down';
-  md.back.visible = up; md.fill.visible = up && f > 0;
-  if (f > 0) { md.fill.scale.x = 3.0 * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
-  const icon = mode === 'windup' || mode === 'charge' ? '❗' : mode === 'repair' ? (r.repairBy.repair?.kind === 'parts' ? '🔩' : '🔧') : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️') : null;
-  md.icon.visible = !!icon;
-  if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = 6.4 + Math.sin(r.t * 6) * 0.15; }
+}
+// The Sniper: the head turns to its aim; powered down, its stilts fold. While it aims, the
+// laser runs out to the target, red and shaking when glitched, steady cyan in the squad.
+function sniperPose(r, md, dt, mode) {
+  md.head.rotation.y = wrapAngle(r.torsoYaw - r.legHeading);
+  const down = mode === 'down' || mode === 'repair';
+  md.body.position.y = damp(md.body.position.y, down ? -2.3 : 0, 6, dt);
+  md.body.rotation.x = damp(md.body.rotation.x, down ? 0.25 : 0, 6, dt);
+  const t = !down && r.ai.aimT > 0 ? r.ai.aimAt : null;
+  md.laser.visible = !!t;
+  if (!t) return;
+  const ty = aimPoint(t).y, d = Math.hypot(t.pos.x - r.pos.x, t.pos.z - r.pos.z), g = r.state === 'glitched';
+  md.laser.scale.z = Math.max(1, d - 3);
+  md.laser.rotation.x = Math.atan2(ty - (r.pos.y + 5.25), Math.max(1, d - 3));
+  md.laser.rotation.y = g ? (Math.random() - 0.5) * 0.04 : 0;
+  md.laserMat.color.setRGB(g ? 3 : 0.4, g ? 0.3 : 2.6, g ? 0.6 : 3);
+  md.laserMat.opacity = 0.45 + 0.45 * Math.sin(r.t * 30) ** 2;
+}
+// A drone: rotors spin (and sputter in a lurch), it tips into its flight, and lies tilted when down
+function dronePose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair';
+  const spin = down ? 0 : r.sputter > 0 ? 6 + Math.random() * 20 : 45;
+  for (const p of md.rotors) p.rotation.y += spin * dt;
+  md.body.rotation.x = damp(md.body.rotation.x, down ? 0 : -clamp(r.speed / r.spec.topSpeed, -1, 1) * 0.35, 6, dt);
+  md.body.rotation.z = damp(md.body.rotation.z, down ? 0.5 : 0, 6, dt);
+}
+// The Bouncer: the spring squashes to crouch and land, stretches on the way up, and its
+// walk is a run of little hops. In the air it flips once per hop.
+function bouncerPose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair', A = r.air;
+  const sq = down ? 0.35 : mode === 'crouch' ? 0.45 : A ? (A.u < 0.5 ? 1.35 : 1.35 - (A.u - 0.5) * 1.2) : mode === 'land' ? 0.6
+    : 0.85 + 0.25 * Math.abs(Math.sin(r.phase));
+  md.springK = damp(md.springK ?? 1, sq, 14, dt);
+  md.spring.scale.y = md.springK; md.top.position.y = 1.5 * md.springK;
+  const walk = !A && !down && mode !== 'crouch' && mode !== 'land' ? Math.abs(Math.sin(r.phase)) * 0.5 * clamp(Math.abs(r.speed) / r.spec.topSpeed, 0, 1) : 0;
+  md.body.position.y = walk;
+  md.top.rotation.x = A ? -Math.min(A.u, 1) * Math.PI * 2 : damp(wrapAngle(md.top.rotation.x), 0, 10, dt);
+  md.top.rotation.z = damp(md.top.rotation.z, down ? 0.5 : 0, 6, dt);
 }
 
 function cycleWeapon(h, d) {
@@ -2027,10 +2668,11 @@ function tick(dt) {
   Game.ticks++;
   Meadow.time.value += dt;
   // Robots think at 20 Hz (Family Knockout's bot loop), writing their input.
-  // Glitched ones run their type's brain; squadmates run allyAI.
+  // Glitched ones run their type's brain; squadmates their type's squad job (each built on allyAI).
   for (const r of Game.robots) {
     if (r.state === 'down') continue;
-    r.ai.think -= dt; if (r.ai.think <= 0) { r.ai.think = 0.05; (r.state === 'ally' ? allyAI : ROBOT_TYPES[r.type].ai)(r, 0.05); }
+    r.ai.think -= dt;
+    if (r.ai.think <= 0) { const T = ROBOT_TYPES[r.type]; r.ai.think = 0.05; r.ai.alert = Math.max(0, (r.ai.alert || 0) - 0.05); (r.state === 'ally' ? T.ally : T.ai)(r, 0.05); }
   }
   // a repair holds only while the player stays by the robot
   for (const h of Game.humans) { const rp = h.repair; if (rp && (rp.r.state !== 'down' || flatDist(rp.r, h.mech) > REPAIR.keepRange)) cancelRepair(h); }
@@ -2119,13 +2761,13 @@ const FixUI = {
   drawPicker() {
     const h = Game.humans[0], rp = h?.repair;
     if (this.mode !== 'parts' || !rp || rp.kind !== 'parts') return;
-    const full = rp.picks.length >= REPAIR.takeMax, pad = padConnected();
+    const full = rp.picks.length >= takeMaxOf(rp.r), pad = padConnected();
     [...$('pickTiles').children].forEach((t, i) => {
       const on = rp.picks.includes(t.dataset.part);
       t.classList.toggle('on', on); t.classList.toggle('dim', full && !on); t.classList.toggle('cur', pad && i === rp.cur);
     });
     let slots = '';
-    for (let i = 0; i < REPAIR.takeMax; i++) { const id = rp.picks[i]; slots += id ? `<div class="slot full" style="background:${PARTS[id].hex}">${PARTS[id].icon}</div>` : '<div class="slot"></div>'; }
+    for (let i = 0; i < takeMaxOf(rp.r); i++) { const id = rp.picks[i]; slots += id ? `<div class="slot full" style="background:${PARTS[id].hex}">${PARTS[id].icon}</div>` : '<div class="slot"></div>'; }
     $('slots').innerHTML = slots;
     $('pickOk').classList.toggle('off', !rp.picks.length);
   },
@@ -2266,7 +2908,7 @@ function updateHud() {
   const sk = Game.squad.map((r) => r.id + ':' + r.name).join('|');
   if (sk !== updateHud.squadKey) {
     updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
-    for (const r of Game.squad) { const d = document.createElement('div'); d.className = 'mate'; const b = document.createElement('b'); b.textContent = '🤖'; d.append(b, r.name); el.append(d); }
+    for (const r of Game.squad) { const d = document.createElement('div'); d.className = 'mate'; const b = document.createElement('b'); b.textContent = ROBOT_TYPES[r.type].icon; d.append(b, r.name); el.append(d); }
   }
   // the prompt sits beside the downed robot on screen
   const pr = !h.repair && !Game.paused && promptRobot(h), pe = $('prompt');
@@ -2345,9 +2987,14 @@ function frame(now) {
 function startPlay() {
   Sfx.unlock(); Sfx.click();
   setPause(false);
-  // the first press of play sends a Charger out of the trees ahead
+  // the first press of play sends a Charger out of the trees ahead; a Sniper, a drone
+  // swarm and a Bouncer are already roaming the meadow further out
   const p = Game.humans[0]?.mech;
-  if (p && !Game.robots.length && !Game.manual) spawnRobot('charger', p.pos.x - Math.sin(p.legHeading) * 45, p.pos.z - Math.cos(p.legHeading) * 45);
+  if (p && !Game.robots.length && !Game.manual) {
+    const at = (a, d) => [p.pos.x - Math.sin(p.legHeading + a) * d, p.pos.z - Math.cos(p.legHeading + a) * d];
+    spawnRobot('charger', ...at(0, 45));
+    spawn('sniper', ...at(1.9, 85)); spawn('drone', ...at(-2.0, 75)); spawn('bouncer', ...at(Math.PI, 65));
+  }
   if (Game.humans.length === 1) canvas.requestPointerLock?.();
 }
 $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
@@ -2363,7 +3010,8 @@ function robotState(r) {
     id: r.id, type: r.type, name: r.name, x: r3(r.pos.x), z: r3(r.pos.z),
     health: r.health, maxHealth: r.maxHealth,
     state: r.state,                                   // 'glitched' | 'down' | 'ally'
-    mode: r.ai.mode,                                  // stalk | windup | charge | recover | off | follow | idle
+    mode: r.ai.mode,                                  // roam | off; Charger stalk | windup | charge | recover; Sniper flee | close | hold;
+                                                      // drone orbit | dive; Bouncer stalk | crouch | air | land; squad follow | idle (drone scout)
     glow: { mode: r.glowMode, level: r3(r.glow) },    // flicker (glitched) | off | blink (about to reboot) | steady (ally)
     rebootIn: r.state === 'down' ? r3(r.downT) : null, downs: r.downs, reboots: r.reboots,
     repairing: !!r.repairBy,                          // its reboot clock holds while true
@@ -2371,11 +3019,23 @@ function robotState(r) {
     wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link] }, wrongWires: r.wrongWires,
     hits: { ...r.hits },                              // real weapon hits only (damage() doesn't count)
     parts: r.state === 'down' ? [...r.parts] : null,  // part ids it can be taken apart for (ids in PARTS); null unless down
+    takeMax: takeMaxOf(r),                            // how many of them a player may take
     speed: r3(r.speed), dist: p0 ? r3(flatDist(r, p0)) : null,
+    y: r3(r.pos.y), lift: r3(r.lift),                 // height, and height above the ground (a drone's flight)
+    tell: ROBOT_TYPES[r.type].tell,                   // its glitch tell: jolt | stutter | lurch | misbounce
+    hot: r.state === 'glitched' && ROBOT_TYPES[r.type].hot(r),   // about to attack (the ❗)
+    swarm: r.swarm,                                   // a drone's swarm id (null for anything else)
+    alert: r3(r.ai.alert || 0),                       // seconds left hunting whoever hit it, however far
+    // a Bouncer: bounces off robots in the chain now (or the last one), the last finished chain,
+    // its best and all of them; in the air; how far its last hop landed from its target; wild hops; stomps
+    bounces: r.type === 'bouncer' ? r.bounces : null,
+    bounce: r.type === 'bouncer' ? { now: r.bounces, last: r.lastChain, best: r.bestChain, total: r.totalBounces, air: !!r.air, miss: r3(r.miss), wild: r.wild, stomps: r.stomps } : null,
+    sniper: r.type === 'sniper' ? { aiming: r.ai.aimT > 0, shots: r.shots || 0 } : null,
+    drone: r.type === 'drone' ? { lurches: r.lurches, zaps: r.zaps || 0, scout: r.ai.scout ?? null } : null,
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
   render(dt = 1 / 60) { render(dt); return true; },
@@ -2390,8 +3050,13 @@ window.__rb = {
     const m = h.mech; m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch; m.torsoYaw = h.rig.yaw; m.aimPitch = h.rig.pitch;
     return this.state().players[i];
   },
-  // drop a robot into the meadow: spawn('charger', x, z)
-  spawn(type, x, z) { const r = spawnRobot(type, x, z); return r ? this.state().robots.find((q) => q.id === r.id) : null; },
+  // drop a robot into the meadow: spawn('charger' | 'sniper' | 'bouncer', x, z) returns its state;
+  // spawn('drone', x, z) drops a whole swarm round (x, z) and returns the list of their states
+  spawn(type, x, z) {
+    const out = spawn(type, x, z); if (!out) return null;
+    const st = this.state().robots, of = (r) => st.find((q) => q.id === r.id);
+    return Array.isArray(out) ? out.map(of) : of(out);
+  },
   // player i uses a weapon now ('gun' | 'punch' | 'kick'), through the same attack
   // code as the keys. Bullets fly and swings land over the next steps.
   fire(i, weapon) {
@@ -2484,7 +3149,8 @@ window.__rb = {
       parts: Game.parts,                                  // total parts collected (the HUD's 🔩)
       bag: { ...Game.bag },                               // parts collected, by kind: { armour: 2, ram: 1 }
       takeMax: REPAIR.takeMax,
-      kits: Kits.list.map((k) => ({ id: k.id, x: r3(k.x), z: r3(k.z), from: k.from })),   // repair kits lying in the meadow ('meadow' | 'robot')
+      kits: Kits.list.map((k) => ({ id: k.id, x: r3(k.x), z: r3(k.z), from: k.from, spotted: k.spotted })),   // repair kits lying in the meadow ('meadow' | 'robot'); spotted = a squadmate drone has marked it
+      swarms: Object.values(Game.swarms).map((sw) => ({ id: sw.id, n: sw.n, drones: Game.robots.filter((r) => r.swarm === sw.id).map((r) => r.id), kit: sw.kit })),   // kit: its one kit has dropped
       rules: { heal: { ...HEAL }, player: { ...PLAYER } },
       prompt: h0 && !h0.repair ? promptRobot(h0)?.id ?? null : null,   // the downed robot the prompt is beside
       repair: h0?.repair ? { id: h0.repair.r.id, kind: h0.repair.kind, name: h0.repair.name ?? null, picks: h0.repair.picks ? [...h0.repair.picks] : null } : null,
