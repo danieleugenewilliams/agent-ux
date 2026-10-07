@@ -199,6 +199,13 @@
     text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink); animation: drop 1.4s ease-out forwards; }
   @keyframes drop { from { transform: translateY(0); opacity: 1; } to { transform: translateY(58px); opacity: 0; } }
   #hud .found { font-size: 24px; padding: 10px 14px; }
+  /* narrow screens: the pilot drops under the hearts and 🔍 under the bag, so the top row is no wider than
+     before and the 🔩 box doesn't cover the 🔧 button */
+  @media (max-width: 760px) {
+    #hud .health .who.on { position: absolute; left: 0; top: calc(100% + 8px); flex-direction: row; gap: 8px; }
+    #hud .health .face { width: 44px; height: 44px; }
+    #hud .found { position: absolute; right: 0; top: calc(100% + 8px); }
+  }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
