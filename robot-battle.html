@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Battle</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Asap:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #ff8a1f; --yellow: #ffd83d; --cyan: #3ff0ff; --ink: #14182a; --green: #3ee07a; --white: #fff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8fc8ff; font-family: 'Asap', system-ui, sans-serif; user-select: none; -webkit-user-select: none; color: #fff; }
+  canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .screen { position: fixed; inset: 0; display: none; pointer-events: none; }
+  .screen.on { display: block; }
+  .screen.on button { pointer-events: auto; }
+  .rb-title {
+    font-family: 'Titan One', 'Asap', sans-serif; color: #fff; letter-spacing: .5px;
+    text-shadow: 3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink),
+                 2px 2px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink), 0 6px 0 var(--ink);
+  }
+  /* ---------- START OVERLAY ---------- */
+  #start { background: radial-gradient(ellipse at center, rgba(20,24,42,.25), rgba(20,24,42,.7)); }
+  #start .wrap { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; }
+  #start .logo { font-size: 64px; line-height: 1; transform: rotate(-3deg); }
+  #start .logo span { color: var(--orange); }
+  #go { margin-top: 26px; width: 150px; height: 150px; border-radius: 50%; border: 6px solid var(--ink); background: var(--orange); box-shadow: 0 10px 0 var(--ink), 0 0 40px rgba(255,138,31,.6); font-size: 64px; color: #fff; cursor: pointer; transition: transform .1s; }
+  #go:hover { transform: scale(1.06); }
+  #go:active { transform: translateY(6px); box-shadow: 0 4px 0 var(--ink); }
+  .keys { margin-top: 28px; display: flex; gap: 26px; justify-content: center; align-items: center; }
+  .keyset { display: grid; grid-template-columns: repeat(3, 40px); gap: 5px; }
+  .key { width: 40px; height: 40px; border-radius: 9px; background: rgba(255,255,255,.92); color: var(--ink); font-weight: 900; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 0 rgba(0,0,0,.35); }
+  .key.e { visibility: hidden; }
+  .hint { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 30px; }
+  .hint small { font-size: 26px; }
+  /* ---------- HUD ---------- */
+  #hud .speed { position: absolute; left: 22px; bottom: 22px; display: flex; align-items: flex-end; gap: 5px; padding: 12px 14px; border-radius: 18px; background: rgba(20,24,42,.6); }
+  #hud .speed .ico { font-size: 30px; margin-right: 6px; }
+  #hud .speed i { display: block; width: 14px; border-radius: 4px; background: rgba(255,255,255,.18); }
+  #hud .speed i.on { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+  #hud .speed i.on.max { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
+  #hud .compass { position: absolute; right: 22px; bottom: 22px; width: 120px; height: 120px; border-radius: 50%; background: rgba(20,24,42,.6); border: 4px solid rgba(255,255,255,.25); }
+  #hud .compass .arm { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+  #hud .compass .arm b { position: absolute; left: -14px; top: -52px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  #hud .compass .arm::before { content: ''; position: absolute; left: -3px; top: -28px; width: 6px; height: 28px; border-radius: 3px; }
+  #hud .compass .legs::before { background: var(--orange); }
+  #hud .compass .torso::before { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  #hud .compass .hub { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px; border-radius: 50%; background: #fff; border: 3px solid var(--ink); }
+  #hud .reticle { position: absolute; left: 50%; top: 42%; width: 34px; height: 34px; margin: -17px; border: 3px solid var(--cyan); border-radius: 50%; box-shadow: 0 0 10px var(--cyan); opacity: .85; }
+  #hud .reticle::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; background: var(--cyan); border-radius: 50%; }
+  #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="loading">🤖</div>
+
+<!-- START: press play, then mouse aims (pointer lock) -->
+<div id="start" class="screen on">
+  <div class="wrap">
+    <div class="logo rb-title">ROBOT <span>BATTLE</span></div>
+    <button id="go" aria-label="Play">▶</button>
+    <div class="keys">
+      <div class="hint"><div class="keyset">
+        <div class="key e"></div><div class="key">W</div><div class="key e"></div>
+        <div class="key">A</div><div class="key">S</div><div class="key">D</div>
+      </div><small>🦿</small></div>
+      <div class="hint">🖱️<small>🎯</small></div>
+      <div class="hint">🎮</div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD: speed bars (boot icon) and a compass showing legs vs torso -->
+<div id="hud" class="screen on">
+  <div class="reticle"></div>
+  <div class="speed" id="speed"><span class="ico">🦿</span></div>
+  <div class="compass">
+    <div class="arm legs" id="cLegs"><b>🦶</b></div>
+    <div class="arm torso" id="cTorso"><b>🎯</b></div>
+    <div class="hub"></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ===========================================================================
+// Tuning. Metres and seconds. The mech is heavy: it gathers speed slowly,
+// tops out, and every footfall lands with a thud and a camera shake.
+// ===========================================================================
+const SIM_HZ = 60, DT = 1 / SIM_HZ, MAX_STEPS = 8;
+const MECH = {
+  topSpeed: 5.5,      // forward cap (m/s)
+  backSpeed: 2.4,     // reverse cap
+  accel: 1.9,         // m/s^2 speeding up
+  brake: 3.4,         // m/s^2 slowing down
+  legTurn: 0.95,      // rad/s the legs can turn
+  torsoTurn: 2.4,     // rad/s the torso can swing to the aim
+  stride: 3.2,        // metres per footfall
+  radius: 2.3,
+};
+const WORLD_R = 115;
+
+const V3 = THREE.Vector3;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const damp = (a, b, k, dt) => lerp(a, b, 1 - Math.exp(-k * dt));
+const wrapAngle = (a) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
+const approach = (a, b, max) => (a < b ? Math.min(b, a + max) : Math.max(b, a - max));
+const turnToward = (a, b, max) => wrapAngle(a + clamp(wrapAngle(b - a), -max, max));
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('robotbattle.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('robotbattle.' + k, JSON.stringify(v)); } catch (e) {} },
+};
+// Seeded random so the meadow is the same every visit
+let seed = 1337;
+const srand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const srange = (a, b) => a + (b - a) * srand();
+
+// ===========================================================================
+// Renderer + bloom (Neon Dash's UnrealBloomPass setup)
+// ===========================================================================
+const canvas = $('c');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(DPR);
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog('#bfe3ff', 60, 210);
+const composerRT = new THREE.WebGLRenderTarget(innerWidth * DPR, innerHeight * DPR, { type: THREE.HalfFloatType, samples: 4 });
+const composer = new EffectComposer(renderer, composerRT);
+const renderPass = new RenderPass(scene, new THREE.PerspectiveCamera());
+composer.addPass(renderPass);
+// High threshold: only the emissive glow parts bloom, and they hold steady.
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.7, 0.5, 0.86);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function onResize() { renderer.setSize(innerWidth, innerHeight, false); composer.setSize(innerWidth, innerHeight); }
+addEventListener('resize', onResize);
+
+const matCache = new Map();
+function mat(color, opts = {}) {
+  const key = color + JSON.stringify(opts);
+  if (!matCache.has(key)) matCache.set(key, new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.2, ...opts }));
+  return matCache.get(key);
+}
+const glowMat = (color, k = 2.6) => mat(color, { emissive: color, emissiveIntensity: k, roughness: 0.3 });
+
+// ===========================================================================
+// Audio (all synthesised, Family Knockout's Sfx shape)
+// ===========================================================================
+const Sfx = {
+  ctx: null, master: null, hum: null,
+  unlock() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain(); this.master.gain.value = 0.6; this.master.connect(this.ctx.destination);
+      const len = this.ctx.sampleRate; const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate); const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.noiseBuf = buf;
+      this.startHum();
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  tone(f, dur, type = 'sine', vol = 0.25, f2 = null, delay = 0) {
+    if (!this.ctx) return; const t = this.ctx.currentTime + delay;
+    const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.05);
+  },
+  noise(dur, vol = 0.2, freq = 1500, delay = 0, q = 1, type = 'bandpass') {
+    if (!this.ctx) return; const t = this.ctx.currentTime + delay;
+    const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf;
+    const f = this.ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+  },
+  // A heavy footfall: a sub thump, a dirt crunch and a hydraulic hiss
+  thud(k = 1) {
+    this.tone(72, 0.38, 'sine', 0.55 * k, 34);
+    this.tone(48, 0.5, 'triangle', 0.3 * k, 28);
+    this.noise(0.25, 0.25 * k, 260, 0, 0.7, 'lowpass');
+    this.noise(0.18, 0.05 * k, 4200, 0.06, 2, 'highpass');
+  },
+  servo() { this.tone(180, 0.12, 'sawtooth', 0.025, 240); },
+  click() { this.tone(660, 0.06, 'triangle', 0.15, 990); },
+  // A low engine hum that rises with speed
+  startHum() {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 42; f.type = 'lowpass'; f.frequency.value = 180; g.gain.value = 0.04;
+    o.connect(f); f.connect(g); g.connect(this.master); o.start();
+    this.hum = { o, g, f };
+  },
+  setHum(k) { if (!this.hum) return; const t = this.ctx.currentTime; this.hum.o.frequency.setTargetAtTime(42 + k * 26, t, 0.2); this.hum.g.gain.setTargetAtTime(0.035 + k * 0.04, t, 0.2); this.hum.f.frequency.setTargetAtTime(160 + k * 220, t, 0.2); },
+};
+
+// ===========================================================================
+// Input (Family Knockout's SCHEMES / readPad / pointer lock)
+// ===========================================================================
+const keys = new Set();
+const keysPressed = new Set();
+// up/down = throttle, left/right = turn the legs, camL/camR = swing the torso aim
+const SCHEMES = [
+  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'] },
+  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'] },
+];
+const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [] };
+const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab']);
+addEventListener('keydown', (e) => {
+  if (GAME_KEYS.has(e.code)) e.preventDefault();
+  if (!e.repeat) keysPressed.add(e.code);
+  keys.add(e.code);
+  Sfx.unlock();
+});
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+addEventListener('pointerdown', () => Sfx.unlock());
+const anyKey = (list) => list.some((k) => keys.has(k));
+
+const mouse = { dx: 0, dy: 0, locked: false };
+canvas.addEventListener('click', () => { if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked) canvas.requestPointerLock?.(); });
+document.addEventListener('pointerlockchange', () => {
+  mouse.locked = document.pointerLockElement === canvas;
+  if (!mouse.locked && Game.state === 'play') setPause(true);
+});
+addEventListener('mousemove', (e) => { if (mouse.locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
+
+const padPrev = [{}, {}, {}, {}];
+function readPad(i) {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  const list = [...pads].filter(Boolean);
+  const p = list[i]; if (!p) return null;
+  const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v);
+  const b = (n) => !!(p.buttons[n] && p.buttons[n].pressed);
+  const prev = padPrev[i];
+  const cur = { start: b(9), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0) };
+  const out = {
+    lx: dz(p.axes[0] || 0) + (cur.right ? 1 : 0) - (cur.left ? 1 : 0),
+    ly: dz(p.axes[1] || 0) + (cur.down ? 1 : 0) - (cur.up ? 1 : 0),
+    rx: dz(p.axes[2] || 0), ry: dz(p.axes[3] || 0),
+    startP: cur.start && !prev.start, aP: cur.a && !prev.a,
+  };
+  padPrev[i] = cur;
+  return out;
+}
+
+// ===========================================================================
+// The meadow: rolling ground, wind-blown grass, rocks and trees
+// ===========================================================================
+function groundH(x, z) {
+  const r = Math.hypot(x, z);
+  const hills = 0.9 * Math.sin(x * 0.045) * Math.cos(z * 0.038) + 0.45 * Math.sin(x * 0.11 + z * 0.07) + 0.3 * Math.cos(z * 0.13 - x * 0.05);
+  const rim = r > 90 ? Math.min(1, Math.pow((r - 90) / 35, 2)) * 12 : 0;   // the meadow rises into hills at the edge
+  return hills * 0.8 + rim;
+}
+const obstacles = [];   // { x, z, r } circles the mech can't walk through
+
+function makeSky() {
+  const geo = new THREE.SphereGeometry(500, 32, 16);
+  const m = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color('#3f8cff') }, mid: { value: new THREE.Color('#9fd4ff') }, bot: { value: new THREE.Color('#e8f6ff') } },
+    vertexShader: 'varying vec3 vp; void main(){ vp = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vp; void main(){ float h = normalize(vp).y; vec3 c = h > 0.0 ? mix(mid, top, pow(h, 0.6)) : mix(mid, bot, min(1.0, -h * 4.0)); gl_FragColor = vec4(c, 1.0); }',
+  });
+  const sky = new THREE.Mesh(geo, m); sky.renderOrder = -1; scene.add(sky); return sky;
+}
+
+const Meadow = {
+  time: { value: 0 },
+  build() {
+    this.sky = makeSky();
+    scene.add(new THREE.HemisphereLight('#dff1ff', '#5d8a3a', 1.25));
+    const sun = new THREE.DirectionalLight('#fff3d6', 2.6);
+    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+    const sc = sun.shadow.camera; sc.left = -40; sc.right = 40; sc.top = 40; sc.bottom = -40; sc.near = 1; sc.far = 160;
+    sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04;
+    scene.add(sun); scene.add(sun.target); this.sun = sun;
+
+    // Ground
+    const g = new THREE.PlaneGeometry(260, 260, 160, 160); g.rotateX(-Math.PI / 2);
+    const p = g.attributes.position, col = [];
+    const cA = new THREE.Color('#5fae3c'), cB = new THREE.Color('#86c94a'), cC = new THREE.Color('#7a6a3c'), tmp = new THREE.Color();
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), z = p.getZ(i), y = groundH(x, z); p.setY(i, y);
+      const n = 0.5 + 0.5 * Math.sin(x * 0.21 + Math.cos(z * 0.17) * 2);
+      tmp.copy(cA).lerp(cB, n); if (y > 4) tmp.lerp(cC, clamp((y - 4) / 8, 0, 0.6));
+      col.push(tmp.r, tmp.g, tmp.b);
+    }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+    const ground = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
+    ground.receiveShadow = true; scene.add(ground);
+
+    this.buildGrass();
+    this.buildFlowers();
+    seed = 4242;
+    for (let i = 0; i < 70; i++) { const [x, z] = this.spot(30, 108); this.addTree(x, z, srange(0.8, 1.35)); }
+    for (let i = 0; i < 55; i++) { const [x, z] = this.spot(26, 105); this.addRock(x, z, srange(0.6, 2.4)); }
+    for (let i = 0; i < 14; i++) { const a = srange(0, Math.PI * 2), r = srange(8, 24); this.addRock(Math.cos(a) * r, Math.sin(a) * r, srange(0.25, 0.5), true); }
+  },
+  // A random spot in a ring, away from the spawn clearing and other obstacles
+  spot(r0, r1) {
+    for (let t = 0; t < 40; t++) {
+      const a = srange(0, Math.PI * 2), r = Math.sqrt(srange(r0 * r0, r1 * r1));
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      if (obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + 4)) return [x, z];
+    }
+    return [srange(-r1, r1), srange(-r1, r1)];
+  },
+  buildGrass() {
+    const blade = new THREE.BufferGeometry();
+    // a tapered, slightly bent blade: 5 verts
+    blade.setAttribute('position', new THREE.Float32BufferAttribute([-0.07, 0, 0, 0.07, 0, 0, -0.045, 0.45, 0.03, 0.045, 0.45, 0.03, 0, 0.9, 0.1], 3));
+    blade.setIndex([0, 1, 2, 2, 1, 3, 2, 3, 4]); blade.computeVertexNormals();
+    const m = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide });
+    const time = this.time;
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uTime = time;
+      sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+        vec4 ip = instanceMatrix[3];
+        float w = sin(uTime * 1.6 + ip.x * 0.18 + ip.z * 0.12) * 0.5 + sin(uTime * 3.1 + ip.x * 0.7) * 0.15;
+        transformed.x += w * position.y * position.y * 0.35;
+        transformed.z += w * position.y * position.y * 0.18;`);
+    };
+    const N = 45000;
+    const im = new THREE.InstancedMesh(blade, m, N);
+    const o = new THREE.Object3D(), c = new THREE.Color();
+    seed = 99;
+    for (let i = 0; i < N; i++) {
+      const a = srange(0, Math.PI * 2), r = Math.sqrt(srand()) * 100;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      o.position.set(x, groundH(x, z) - 0.02, z); o.rotation.set(0, srange(0, Math.PI), 0);
+      const s = srange(0.6, 1.5); o.scale.set(s, s * srange(0.8, 1.4), s); o.updateMatrix();
+      im.setMatrixAt(i, o.matrix);
+      c.setHSL(srange(0.22, 0.3), srange(0.5, 0.7), srange(0.3, 0.45)); im.setColorAt(i, c);
+    }
+    im.frustumCulled = false; scene.add(im);
+  },
+  buildFlowers() {
+    const geo = new THREE.IcosahedronGeometry(0.12, 0);
+    const N = 900, im = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial(), N);
+    const o = new THREE.Object3D(), c = new THREE.Color(), hues = ['#ffffff', '#ffd83d', '#ff5fa2', '#9f7bff', '#ff8a1f'];
+    seed = 7;
+    for (let i = 0; i < N; i++) {
+      const a = srange(0, Math.PI * 2), r = Math.sqrt(srand()) * 95, x = Math.cos(a) * r, z = Math.sin(a) * r;
+      o.position.set(x, groundH(x, z) + srange(0.35, 0.6), z); o.updateMatrix(); im.setMatrixAt(i, o.matrix);
+      im.setColorAt(i, c.set(hues[Math.floor(srand() * hues.length)]));
+    }
+    scene.add(im);
+  },
+  addTree(x, z, s) {
+    const t = new THREE.Group(); t.position.set(x, groundH(x, z) - 0.2, z);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * s, 0.6 * s, 4.5 * s, 7), mat('#7a5232', { roughness: 0.9, metalness: 0 }));
+    trunk.position.y = 2.25 * s; trunk.castShadow = true; t.add(trunk);
+    const greens = ['#2f8f3a', '#3fa548', '#4db84f'];
+    for (let k = 0; k < 3; k++) {
+      const f = new THREE.Mesh(new THREE.IcosahedronGeometry((2.6 - k * 0.55) * s, 1), mat(greens[k], { roughness: 0.85, metalness: 0, flatShading: true }));
+      f.position.set(srange(-0.4, 0.4) * s, (4.6 + k * 1.5) * s, srange(-0.4, 0.4) * s); f.rotation.set(srand(), srand(), srand());
+      f.castShadow = true; t.add(f);
+    }
+    scene.add(t); obstacles.push({ x, z, r: 0.8 * s });
+  },
+  addRock(x, z, s, small = false) {
+    const geo = new THREE.DodecahedronGeometry(1, 1), p = geo.attributes.position;
+    for (let i = 0; i < p.count; i++) { const k = 0.78 + 0.35 * Math.abs(Math.sin(p.getX(i) * 3.1 + p.getY(i) * 5.3 + p.getZ(i) * 2.7 + x)); p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * 0.7, p.getZ(i) * k); }
+    geo.computeVertexNormals();
+    const r = new THREE.Mesh(geo, mat(srand() < 0.5 ? '#8a8f99' : '#a3a39a', { roughness: 0.95, metalness: 0, flatShading: true }));
+    r.scale.setScalar(s); r.rotation.y = srange(0, 6); r.position.set(x, groundH(x, z) + s * 0.25, z);
+    r.castShadow = true; r.receiveShadow = true; scene.add(r);
+    if (!small) obstacles.push({ x, z, r: s * 0.95 });
+  },
+};
+
+// ===========================================================================
+// The mech, built from parts: legs, torso, arms, cockpit
+// ===========================================================================
+const PAINT = { armour: '#ff8a1f', trim: '#ffd83d', frame: '#2d3446', dark: '#1a1f2c', glow: '#3ff0ff' };
+function rbox(w, h, d, r, color, opts) { const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, r), mat(color, opts)); m.castShadow = true; m.receiveShadow = true; return m; }
+function cyl(rt, rb, h, color, opts, seg = 16) { const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat(color, opts)); m.castShadow = true; return m; }
+function ball(r, color, opts) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 12), mat(color, opts)); m.castShadow = true; return m; }
+function capsule(r, len, color, opts) { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 12), mat(color, opts)); m.castShadow = true; return m; }
+
+function buildMech(paint = PAINT) {
+  const root = new THREE.Group();
+  const body = new THREE.Group(); root.add(body);            // bobs with the gait
+  const metal = { metalness: 0.55, roughness: 0.4 };
+  // Pelvis: a heavy hub the legs hang from
+  const pelvis = new THREE.Group(); pelvis.position.y = 4.2; body.add(pelvis);
+  const hub = cyl(0.9, 1.1, 1.0, paint.frame, metal, 20); pelvis.add(hub);
+  const hipBar = capsule(0.42, 2.6, paint.dark, metal); hipBar.rotation.z = Math.PI / 2; pelvis.add(hipBar);
+  const skirt = rbox(2.2, 0.5, 1.6, 0.22, paint.armour); skirt.position.set(0, -0.35, 0); pelvis.add(skirt);
+
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const hip = new THREE.Group(); hip.position.set(s * 1.75, 0, 0); pelvis.add(hip);
+    const hipJoint = ball(0.62, paint.dark, metal); hip.add(hipJoint);
+    const hipCap = cyl(0.7, 0.7, 0.35, paint.trim, metal, 18); hipCap.rotation.z = Math.PI / 2; hipCap.position.x = s * 0.45; hip.add(hipCap);
+    // thigh: piston frame with an armour plate
+    const thigh = capsule(0.42, 1.4, paint.frame, metal); thigh.position.y = -1.0; hip.add(thigh);
+    const thighPlate = rbox(0.95, 1.6, 0.8, 0.25, paint.armour); thighPlate.position.set(s * 0.12, -0.95, -0.18); thighPlate.rotation.x = 0.08; hip.add(thighPlate);
+    const knee = new THREE.Group(); knee.position.y = -2.0; hip.add(knee);
+    knee.add(ball(0.5, paint.dark, metal));
+    const kneePad = rbox(0.75, 0.75, 0.5, 0.2, paint.trim); kneePad.position.set(0, 0.05, -0.42); knee.add(kneePad);
+    // shin: tapered, heavier at the bottom
+    const shin = cyl(0.38, 0.55, 1.7, paint.frame, metal); shin.position.y = -1.0; knee.add(shin);
+    const shinGuard = rbox(0.9, 1.5, 0.55, 0.22, paint.armour); shinGuard.position.set(0, -0.9, -0.3); knee.add(shinGuard);
+    const piston = cyl(0.11, 0.11, 1.5, '#c9ced8', { metalness: 0.9, roughness: 0.2 }); piston.position.set(0, -0.9, 0.42); knee.add(piston);
+    const ankle = new THREE.Group(); ankle.position.y = -1.95; knee.add(ankle);
+    ankle.add(ball(0.42, paint.dark, metal));
+    // foot: wide splayed toes and a heel spur, for a planted stance
+    const foot = new THREE.Group(); foot.position.y = -0.3; ankle.add(foot);
+    const sole = rbox(1.35, 0.4, 2.1, 0.18, paint.frame, metal); sole.position.set(0, -0.05, -0.3); foot.add(sole);
+    for (const t of [-0.42, 0.42]) { const toe = rbox(0.5, 0.35, 0.9, 0.15, paint.armour); toe.position.set(t, -0.08, -1.3); toe.rotation.y = t * 0.3; foot.add(toe); }
+    const heel = rbox(0.55, 0.35, 0.7, 0.15, paint.armour); heel.position.set(0, -0.08, 0.85); foot.add(heel);
+    legs.push({ s, hip, knee, ankle });
+  }
+
+  // Torso: sits on a turret ring so it can swing round on its own
+  const torso = new THREE.Group(); torso.position.y = 5.0; body.add(torso);
+  const ring = cyl(1.05, 1.05, 0.4, paint.dark, metal, 24); ring.position.y = -0.4; torso.add(ring);
+  const ringGlow = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.06, 8, 40), glowMat(paint.glow, 2)); ringGlow.rotation.x = Math.PI / 2; ringGlow.position.y = -0.4; torso.add(ringGlow);
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), mat(paint.armour, { roughness: 0.45, metalness: 0.25 }));
+  hull.scale.set(2.0, 1.25, 1.65); hull.position.y = 0.75; hull.castShadow = true; torso.add(hull);
+  const chest = rbox(2.6, 1.3, 0.7, 0.3, paint.trim); chest.position.set(0, 0.35, -1.25); chest.rotation.x = -0.25; torso.add(chest);
+  const back = rbox(2.8, 1.6, 1.1, 0.35, paint.frame, metal); back.position.set(0, 0.9, 1.15); torso.add(back);
+  for (const s of [-1, 1]) {   // exhaust stacks
+    const stack = cyl(0.22, 0.28, 1.6, paint.dark, metal, 12); stack.position.set(s * 0.8, 1.9, 1.45); stack.rotation.x = 0.15; torso.add(stack);
+    const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.05, 12), glowMat('#ff6a2a', 2.2)); vent.position.set(s * 0.8, 2.7, 1.57); torso.add(vent);
+  }
+  // Cockpit: a bubble canopy at the front with a glowing visor
+  const cockpit = new THREE.Group(); cockpit.position.set(0, 1.35, -1.0); torso.add(cockpit);
+  const cowl = new THREE.Mesh(new THREE.SphereGeometry(0.95, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.frame, metal));
+  cowl.scale.set(1.15, 0.8, 1.2); cowl.castShadow = true; cockpit.add(cowl);
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 16, Math.PI * 0.15, Math.PI * 0.7, Math.PI * 0.2, Math.PI * 0.35),
+    new THREE.MeshStandardMaterial({ color: '#0b2f3a', emissive: paint.glow, emissiveIntensity: 1.6, roughness: 0.1, metalness: 0.6 }));
+  canopy.rotation.y = Math.PI; canopy.scale.set(1.15, 0.85, 1.25); canopy.position.y = 0.05; cockpit.add(canopy);
+  const antenna = cyl(0.03, 0.05, 1.4, '#c9ced8', { metalness: 0.9 }, 6); antenna.position.set(0.9, 2.4, 0.9); torso.add(antenna);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), glowMat('#ff3f6a', 3)); tip.position.set(0.9, 3.1, 0.9); torso.add(tip);
+
+  // Arms: shoulder pods that pitch with the aim. Right: twin cannon. Left: rocket pod.
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const shoulder = new THREE.Group(); shoulder.position.set(s * 2.25, 1.0, -0.1); torso.add(shoulder);
+    const pod = ball(0.7, paint.dark, metal); shoulder.add(pod);
+    const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.95, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.armour));
+    pauldron.scale.set(1.1, 0.75, 1.25); pauldron.position.set(s * 0.2, 0.2, 0); pauldron.castShadow = true; shoulder.add(pauldron);
+    const arm = new THREE.Group(); arm.position.set(s * 0.35, -0.55, 0); shoulder.add(arm);
+    const upper = capsule(0.32, 0.8, paint.frame, metal); upper.position.y = -0.4; arm.add(upper);
+    const fore = new THREE.Group(); fore.position.y = -1.0; arm.add(fore);
+    fore.add(ball(0.38, paint.dark, metal));
+    if (s > 0) {
+      const housing = rbox(0.9, 0.9, 2.2, 0.25, paint.armour); housing.position.z = -0.8; fore.add(housing);
+      for (const bx of [-0.2, 0.2]) {
+        const barrel = cyl(0.13, 0.15, 1.6, '#3a4152', { metalness: 0.8, roughness: 0.3 }, 12); barrel.rotation.x = Math.PI / 2; barrel.position.set(bx, 0, -2.4); fore.add(barrel);
+        const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 6, 16), glowMat(paint.glow, 2.4)); muzzle.position.set(bx, 0, -3.2); fore.add(muzzle);
+      }
+    } else {
+      const podBox = rbox(1.1, 1.0, 1.9, 0.28, paint.armour); podBox.position.z = -0.7; fore.add(podBox);
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
+        const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 12), glowMat('#ffd83d', 1.8));
+        tube.rotation.x = Math.PI / 2; tube.position.set(-0.24 + c * 0.48, -0.2 + r * 0.4, -1.66); fore.add(tube);
+      }
+    }
+    arms.push({ s, shoulder, arm, fore });
+  }
+  root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
+  return { root, body, pelvis, torso, legs, arms };
+}
+
+// Simulation state for one mech. Players and (later) robots write `input`.
+function newMech(x, z, heading) {
+  return {
+    pos: new V3(x, groundH(x, z), z),
+    legHeading: heading,      // where the legs face and walk
+    torsoYaw: heading,        // where the torso faces (world yaw)
+    aimPitch: 0,
+    speed: 0,                 // signed, along legHeading
+    turnVel: 0,
+    phase: 0, footfalls: 0, lastFall: 0, fallFoot: 0,
+    input: { throttle: 0, turn: 0, aimYaw: heading, aimPitch: 0 },
+    model: null,
+  };
+}
+
+function mechTick(m, dt) {
+  const inp = m.input;
+  // Throttle: ease toward the target speed. Heavy: slow to gain, quicker to shed.
+  const target = inp.throttle >= 0 ? inp.throttle * MECH.topSpeed : inp.throttle * MECH.backSpeed;
+  const speeding = Math.abs(target) > Math.abs(m.speed) && target * m.speed >= 0;
+  m.speed = approach(m.speed, target, (speeding ? MECH.accel : MECH.brake) * dt);
+  m.speed = clamp(m.speed, -MECH.backSpeed, MECH.topSpeed);
+  // Legs turn slowly, a little slower at speed
+  const turnRate = MECH.legTurn * (1 - 0.3 * Math.abs(m.speed) / MECH.topSpeed);
+  m.turnVel = approach(m.turnVel, -inp.turn * turnRate, turnRate * 3 * dt);
+  m.legHeading = wrapAngle(m.legHeading + m.turnVel * dt);
+  // Torso swings toward the aim on its own turret ring
+  m.torsoYaw = turnToward(m.torsoYaw, inp.aimYaw, MECH.torsoTurn * dt);
+  m.aimPitch = approach(m.aimPitch, clamp(inp.aimPitch, -0.35, 0.5), 1.5 * dt);
+  // Walk
+  const fx = -Math.sin(m.legHeading), fz = -Math.cos(m.legHeading);
+  m.pos.x += fx * m.speed * dt; m.pos.z += fz * m.speed * dt;
+  for (const o of obstacles) {
+    const dx = m.pos.x - o.x, dz = m.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + MECH.radius;
+    if (d < min && d > 1e-6) { m.pos.x = o.x + dx / d * min; m.pos.z = o.z + dz / d * min; }
+  }
+  const r = Math.hypot(m.pos.x, m.pos.z);
+  if (r > WORLD_R) { m.pos.x *= WORLD_R / r; m.pos.z *= WORLD_R / r; }
+  m.pos.y = groundH(m.pos.x, m.pos.z);
+  // Gait: a footfall every stride, at the front of each leg's swing
+  const prevPhase = m.phase;
+  m.phase += (m.speed * dt / MECH.stride) * Math.PI;
+  if (Math.abs(m.speed) < 0.05 && Math.abs(m.turnVel) > 0.05) m.phase += Math.abs(m.turnVel) * dt * 1.6;  // shuffle when turning on the spot
+  const fallIdx = (ph) => Math.floor((ph - Math.PI / 2) / Math.PI);
+  if (fallIdx(m.phase) !== fallIdx(prevPhase)) { m.footfalls++; m.lastFall = 0; m.fallFoot = fallIdx(m.phase) & 1; m.onFootfall?.(m); }
+  m.lastFall += dt;
+}
+
+function syncMechModel(m) {
+  const md = m.model; if (!md) return;
+  md.root.position.copy(m.pos);
+  md.root.rotation.y = m.legHeading;
+  const k = clamp(Math.abs(m.speed) / MECH.topSpeed + Math.abs(m.turnVel) * 0.6, 0, 1);
+  for (const L of md.legs) {
+    const p = m.phase + (L.s > 0 ? 0 : Math.PI);
+    const swing = Math.sin(p), lift = Math.max(0, Math.cos(p));
+    L.hip.rotation.x = swing * 0.42 * k - 0.12;
+    L.knee.rotation.x = -(0.25 + lift * 0.85 * k);
+    L.ankle.rotation.x = -(L.hip.rotation.x + L.knee.rotation.x);
+  }
+  const bob = -0.22 * k * Math.pow(Math.abs(Math.sin(m.phase)), 6) - 0.12;
+  md.body.position.y = bob;
+  md.body.rotation.z = Math.sin(m.phase) * 0.025 * k;           // weight shifts side to side
+  md.body.rotation.x = -m.speed / MECH.topSpeed * 0.04;          // lean into the walk
+  md.torso.rotation.y = wrapAngle(m.torsoYaw - m.legHeading);
+  for (const A of md.arms) A.arm.rotation.x = m.aimPitch;   // arms pitch with the aim
+}
+
+// ===========================================================================
+// Camera rig (Family Knockout's CamRig, aimed by the torso)
+// ===========================================================================
+class CamRig {
+  constructor(i) { this.i = i; this.cam = new THREE.PerspectiveCamera(60, 1, 0.1, 1200); this.yaw = 0; this.pitch = 0; this.dist = 15; this.target = new V3(); this.shake = 0; this.snap = true; this.t = 0; }
+  kick(k) { this.shake = Math.min(1.2, this.shake + k); }
+  update(dt, m) {
+    if (!m) return;
+    this.t += dt;
+    const k = this.snap ? 1 : 1 - Math.exp(-10 * dt);
+    this.target.x = lerp(this.target.x, m.pos.x, k); this.target.z = lerp(this.target.z, m.pos.z, k);
+    this.target.y = lerp(this.target.y, m.pos.y + 6.2, this.snap ? 1 : 1 - Math.exp(-5 * dt));
+    this.snap = false;
+    const yaw = m.torsoYaw, el = clamp(0.32 - m.aimPitch * 0.8, 0.02, 0.85), c = this.cam;
+    const cp = Math.cos(el);
+    c.position.set(this.target.x + Math.sin(yaw) * cp * this.dist, this.target.y + Math.sin(el) * this.dist, this.target.z + Math.cos(yaw) * cp * this.dist);
+    const g = groundH(c.position.x, c.position.z) + 1.5; if (c.position.y < g) c.position.y = g;
+    const look = new V3(this.target.x - Math.sin(yaw) * 10, this.target.y + Math.tan(m.aimPitch) * 10, this.target.z - Math.cos(yaw) * 10);
+    if (this.shake > 0.001) {
+      const s = this.shake * this.shake * 0.35, t = this.t * 40;
+      c.position.y += Math.sin(t * 1.3) * s; c.position.x += Math.sin(t * 0.9 + 1) * s * 0.6;
+      look.y += Math.sin(t * 1.7 + 2) * s * 0.5;
+    }
+    this.shake *= Math.exp(-6 * dt);
+    c.lookAt(look);
+  }
+}
+
+// ===========================================================================
+// Game
+// ===========================================================================
+const Game = { state: 'loading', humans: [], mechs: [], manual: false, paused: false, acc: 0, ticks: 0 };
+function setPause(on) {
+  Game.paused = on;
+  $('start').classList.toggle('on', on);
+  if (on && document.pointerLockElement) document.exitPointerLock();
+}
+
+function spawnPlayer(i, x, z, heading) {
+  const m = newMech(x, z, heading);
+  m.model = buildMech(); scene.add(m.model.root);
+  const h = { idx: i, rig: new CamRig(i), mech: m, ci: { camX: 0, camY: 0 } };
+  h.rig.yaw = heading;
+  m.onFootfall = (mm) => {
+    const k = 0.4 + 0.6 * Math.min(1, Math.abs(mm.speed) / MECH.topSpeed);
+    h.rig.kick(0.35 + 0.45 * k);
+    if (!Game.manual) { Sfx.thud(k); Sfx.servo(); }
+    Dust.puff(mm, k);
+  };
+  Game.humans.push(h); Game.mechs.push(m);
+  return h;
+}
+
+// Dust puffs where a foot lands
+const Dust = {
+  list: [],
+  init() {
+    const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(210,190,150,0.8)'); gr.addColorStop(1, 'rgba(210,190,150,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    this.tex = new THREE.CanvasTexture(c); this.tex.colorSpace = THREE.SRGBColorSpace;
+    for (let i = 0; i < 24; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.tex, transparent: true, depthWrite: false, opacity: 0 }));
+      s.visible = false; scene.add(s); this.list.push({ s, t: 9 });
+    }
+  },
+  puff(m, k) {
+    const side = m.fallFoot ? 1 : -1, h = m.legHeading;
+    const fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
+    const x = m.pos.x + rx * side * 1.75 + fx * 1.2, z = m.pos.z + rz * side * 1.75 + fz * 1.2;
+    for (let n = 0; n < 3; n++) {
+      const d = this.list.find((q) => q.t > 1) || this.list[0];
+      d.t = 0; d.k = k; d.x = x + (Math.random() - 0.5) * 1.2; d.z = z + (Math.random() - 0.5) * 1.2; d.y = groundH(x, z) + 0.3;
+      d.s.visible = true;
+    }
+  },
+  update(dt) {
+    for (const d of this.list) {
+      if (d.t > 1) { d.s.visible = false; continue; }
+      d.t += dt * 1.1;
+      const sc = (1.2 + d.t * 3) * (0.6 + d.k * 0.6);
+      d.s.position.set(d.x, d.y + d.t * 0.8, d.z); d.s.scale.set(sc, sc * 0.6, 1);
+      d.s.material.opacity = 0.7 * (1 - d.t);
+    }
+  },
+};
+
+function gatherInput(dt) {
+  const solo = Game.humans.length === 1;
+  for (const h of Game.humans) {
+    const sc = SCHEMES[h.idx];
+    const k = (n) => anyKey(sc[n]) || (solo && anyKey(SOLO_EXTRA[n]));
+    const pad = readPad(h.idx);
+    if (pad && pad.startP) setPause(!Game.paused);
+    if (pad && pad.aP && Game.paused) startPlay();
+    let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
+    if (pad) { turn += pad.lx; thr -= pad.ly; }
+    h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
+    h.ci.camY = pad ? -pad.ry : 0;
+    h.rig.yaw = wrapAngle(h.rig.yaw - h.ci.camX * 1.8 * dt);
+    h.rig.pitch = clamp(h.rig.pitch + h.ci.camY * 1.0 * dt, -0.35, 0.5);
+    if (solo && mouse.locked) { h.rig.yaw = wrapAngle(h.rig.yaw - mouse.dx * 0.0025); h.rig.pitch = clamp(h.rig.pitch - mouse.dy * 0.002, -0.35, 0.5); }
+    const m = h.mech; if (!m) continue;
+    if (Game.paused) { m.input.throttle = m.input.turn = 0; continue; }
+    m.input.throttle = clamp(thr, -1, 1); m.input.turn = clamp(turn, -1, 1);
+    m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch;
+  }
+  mouse.dx = mouse.dy = 0;
+  keysPressed.clear();
+}
+
+function tick(dt) {
+  if (Game.state !== 'play' || Game.paused) return;
+  Game.ticks++;
+  Meadow.time.value += dt;
+  for (const m of Game.mechs) mechTick(m, dt);
+}
+
+// HUD: speed bars and legs-vs-torso compass
+const SPEED_BARS = 8;
+function buildHud() {
+  const el = $('speed');
+  for (let i = 0; i < SPEED_BARS; i++) { const b = document.createElement('i'); b.style.height = (14 + i * 5) + 'px'; el.appendChild(b); }
+}
+function updateHud() {
+  const h = Game.humans[0]; if (!h) return;
+  const m = h.mech, f = Math.abs(m.speed) / MECH.topSpeed, on = Math.round(f * SPEED_BARS);
+  [...$('speed').querySelectorAll('i')].forEach((b, i) => { b.classList.toggle('on', i < on); b.classList.toggle('max', on >= SPEED_BARS); });
+  // compass is camera-up: torso is always up-ish, legs show their offset
+  const camYaw = m.torsoYaw;
+  $('cLegs').style.transform = `rotate(${-(m.legHeading - camYaw)}rad)`;
+  $('cTorso').style.transform = `rotate(${-(m.torsoYaw - camYaw)}rad)`;
+}
+
+function render(dt) {
+  const W = innerWidth, H = innerHeight;
+  for (const m of Game.mechs) syncMechModel(m);
+  Dust.update(dt);
+  const h = Game.humans[0]; if (!h) return;
+  h.rig.update(dt, h.mech);
+  const c = h.rig.cam; c.aspect = W / H; c.updateProjectionMatrix();
+  // keep the sun's shadow box on the player
+  const s = Meadow.sun, p = h.mech.pos;
+  s.position.set(p.x + 30, p.y + 55, p.z + 18); s.target.position.copy(p); s.target.updateMatrixWorld();
+  Meadow.sky.position.copy(c.position);
+  renderPass.camera = c;
+  composer.render(dt);
+  if (!Game.manual && Sfx.ctx) Sfx.setHum(Math.abs(h.mech.speed) / MECH.topSpeed);
+  updateHud();
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
+  if (!Game.manual) {
+    gatherInput(dt);
+    if (!Game.paused) { Game.acc += dt; let n = 0; while (Game.acc >= DT && n < MAX_STEPS) { tick(DT); Game.acc -= DT; n++; } if (n >= MAX_STEPS) Game.acc = 0; }
+    else Game.acc = 0;
+    render(dt);
+  }
+  requestAnimationFrame(frame);
+}
+
+function startPlay() {
+  Sfx.unlock(); Sfx.click();
+  setPause(false);
+  if (Game.humans.length === 1) canvas.requestPointerLock?.();
+}
+$('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
+
+// ===========================================================================
+// Test hooks: the Chrome test tab gets no animation frames, so checks drive
+// the game with __rb.manual(true), __rb.step(n) and __rb.render().
+// ===========================================================================
+const r3 = (v) => Math.round(v * 1000) / 1000;
+window.__rb = {
+  Game, THREE, renderer, composer, MECH,
+  manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
+  step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
+  render(dt = 1 / 60) { render(dt); return true; },
+  // hold a key code down (or release it): hold('KeyW', true)
+  hold(code, on = true) { if (on) { keys.add(code); keysPressed.add(code); } else keys.delete(code); return [...keys]; },
+  // point player i's torso (and camera) at a world yaw/pitch. As a setup hook it
+  // snaps the torso there; mouse and stick aim swing it at MECH.torsoTurn.
+  aim(i, yaw, pitch = 0) {
+    const h = Game.humans[i]; if (!h) return null;
+    h.rig.yaw = wrapAngle(yaw); h.rig.pitch = clamp(pitch, -0.35, 0.5);
+    const m = h.mech; m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch; m.torsoYaw = h.rig.yaw; m.aimPitch = h.rig.pitch;
+    return this.state().players[i];
+  },
+  state() {
+    return {
+      state: Game.state, paused: Game.paused, ticks: Game.ticks, hz: SIM_HZ,
+      players: Game.humans.map((h) => {
+        const m = h.mech;
+        return {
+          x: r3(m.pos.x), y: r3(m.pos.y), z: r3(m.pos.z),
+          legHeading: r3(m.legHeading),                        // world yaw the legs face; forward = (-sin, -cos)
+          torsoAim: { yaw: r3(m.torsoYaw), pitch: r3(m.aimPitch) },
+          torsoOffset: r3(wrapAngle(m.torsoYaw - m.legHeading)), // torso relative to legs
+          speed: r3(m.speed), topSpeed: MECH.topSpeed, footfalls: m.footfalls,
+        };
+      }),
+    };
+  },
+};
+
+// ===========================================================================
+// Boot
+// ===========================================================================
+Meadow.build();
+Dust.init();
+spawnPlayer(0, 0, 0, 0);
+buildHud();
+onResize();
+Game.state = 'play';
+setPause(true);           // waits behind the ▶ button; hooks can still step
+Game.paused = false;      // ...but the sim runs, so the mech idles in the meadow
+$('loading').remove();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
