@@ -68,6 +68,8 @@
   #hud .parts { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 18px; background: rgba(20,24,42,.6); font-size: 30px; font-weight: 900; }
   #hud .mate { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 18px; background: rgba(20,24,42,.6); border: 3px solid var(--cyan); box-shadow: 0 0 10px rgba(63,240,255,.5); font-size: 18px; font-weight: 800; }
   #hud .mate b { font-size: 26px; }
+  #hud .bagb { position: relative; width: 62px; height: 62px; border-radius: 50%; border: 4px solid var(--ink); background: var(--yellow); font-size: 32px; cursor: pointer; box-shadow: 0 5px 0 var(--ink); }
+  #hud .bagb small, .panel .ok small { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
   /* ---------- PROMPT beside a downed robot: Fix or Take parts ---------- */
   #hud .prompt { position: absolute; display: none; gap: 12px; transform: translateY(-50%); }
   #hud .prompt.on { display: flex; }
@@ -99,6 +101,26 @@
   #namer button { width: 64px; height: 64px; border-radius: 50%; border: 4px solid var(--ink); font-size: 32px; cursor: pointer; box-shadow: 0 5px 0 var(--ink); }
   #nameDice { background: var(--yellow); }
   #nameOk { background: var(--green); }
+  /* ---------- CHOOSE PARTS: tap up to two parts, ✔ takes them, the rest is scrapped ---------- */
+  #picker .panel, #bag .panel { border-color: var(--orange); box-shadow: 0 0 30px rgba(255,138,31,.45); }
+  .slots { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; }
+  .slot { width: 70px; height: 70px; border-radius: 50%; border: 5px dashed rgba(255,255,255,.45); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+  .slot.full { border-style: solid; border-color: #fff; }
+  .tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; max-width: min(560px, 86vw); }
+  .tile { position: relative; width: 88px; height: 88px; border-radius: 50%; border: 5px solid var(--ink); box-shadow: 0 6px 0 var(--ink); font-size: 44px; cursor: pointer; padding: 0; transition: transform .1s, filter .1s; }
+  .tile.on { outline: 6px solid #fff; outline-offset: 3px; transform: scale(1.08); }
+  .tile.on::after { content: '✔'; position: absolute; right: -10px; top: -10px; width: 30px; height: 30px; border-radius: 50%; background: var(--green); border: 3px solid var(--ink); color: #fff; font-size: 17px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  .tile.dim { filter: grayscale(.8) brightness(.55); }
+  .tile.cur { box-shadow: 0 6px 0 var(--ink), 0 0 0 5px var(--yellow), 0 0 24px var(--yellow); }
+  .tiles.bad { animation: shake .3s; }
+  .panel .foot { display: flex; justify-content: center; margin-top: 18px; }
+  .panel .ok { position: relative; width: 78px; height: 78px; border-radius: 50%; border: 5px solid var(--ink); background: var(--green); font-size: 38px; cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
+  .panel .ok.off { filter: grayscale(1) brightness(.6); cursor: not-allowed; }
+  /* ---------- PARTS BAG: what's been collected, as icons with counts ---------- */
+  .tile.have { cursor: default; }
+  .tile .n { position: absolute; right: -12px; bottom: -8px; min-width: 38px; height: 32px; padding: 0 6px; border-radius: 16px; background: #fff; border: 3px solid var(--ink); color: var(--ink); font: 900 20px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; }
+  .bagtotal { font-size: 30px; font-weight: 900; margin-left: 14px; }
+  .empty { font-size: 64px; opacity: .35; text-align: center; padding: 10px 40px; }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -144,7 +166,7 @@
     <div class="arm torso" id="cTorso"><b>🎯</b></div>
     <div class="hub"></div>
   </div>
-  <div class="right"><div id="squad" class="squad"></div><div class="parts"><span>🔩</span><b id="partsN">0</b></div></div>
+  <div class="right"><div id="squad" class="squad"></div><div class="parts"><span>🔩</span><b id="partsN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag">🎒<small>B</small></button></div>
   <div class="prompt" id="prompt">
     <button class="pfix" id="pFix" aria-label="Fix">🔧<small>F</small></button>
     <button class="pparts" id="pParts" aria-label="Take parts">🔩<small>G</small></button>
@@ -156,6 +178,24 @@
   <div class="panel">
     <div class="top"><span>🔧🤖</span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
     <div class="board" id="board"><svg id="wireSvg"></svg><div class="col" id="plugs"></div><div class="col" id="ports"></div></div>
+  </div>
+</div>
+
+<!-- CHOOSE PARTS: the downed robot's parts; tap up to two, ✔ takes them, the rest is scrapped -->
+<div id="picker" class="screen">
+  <div class="panel">
+    <div class="top"><span>🔩🤖</span><button class="x" id="pickX" aria-label="Stop">✖</button></div>
+    <div class="slots" id="slots"></div>
+    <div class="tiles" id="pickTiles"></div>
+    <div class="foot"><button class="ok" id="pickOk" aria-label="Take these parts">✔<small>G</small></button></div>
+  </div>
+</div>
+
+<!-- PARTS BAG: every part collected, as icons with counts -->
+<div id="bag" class="screen">
+  <div class="panel">
+    <div class="top"><span>🎒<span class="bagtotal">🔩 <b id="bagN">0</b></span></span><button class="x" id="bagX" aria-label="Close">✖</button></div>
+    <div class="tiles" id="bagTiles"></div>
   </div>
 </div>
 
@@ -210,7 +250,19 @@ const ROBOT = {
 // Fix it or take the parts. A downed robot within promptRange shows the choice.
 // While a player has a robot's Quick Fix open its reboot clock holds (the world
 // keeps running); walking past keepRange drops the repair and the clock runs again.
-const REPAIR = { wires: 3, promptRange: 11, keepRange: 16, squadMax: 3 };
+// Taking parts: the player picks up to takeMax of the robot's parts; the rest is scrapped.
+const REPAIR = { wires: 3, promptRange: 11, keepRange: 16, squadMax: 3, takeMax: 2 };
+// Every kind of part, by id. A robot type lists the ids it is built from
+// (ROBOT_TYPES[type].parts); the same kind from two robot types stacks in the bag.
+// `fixes` is what the part can mend on the player's own mech (read by self-repair,
+// e.g. armour for hull damage). A type-only part can later carry `unlocks: '<weapon>'`.
+const PARTS = {
+  armour:  { icon: '🛡️', hex: '#8a5cff', fixes: 'hull' },     // armour plate
+  battery: { icon: '🔋', hex: '#3ee07a', fixes: 'power' },
+  motor:   { icon: '⚙️', hex: '#ff8a1f', fixes: 'legs' },     // leg motor
+  wiring:  { icon: '🔌', hex: '#56B4E9', fixes: 'wiring' },
+  ram:     { icon: '🐏', hex: '#c9ced8', fixes: null },        // the Charger's ram
+};
 // Wire colours: Okabe-Ito colour-blind-safe hues, each with its own shape too
 const WIRE_COLORS = [
   { color: 'yellow', hex: '#F0E442', shape: 'triangle' },
@@ -372,12 +424,13 @@ const keys = new Set();
 const keysPressed = new Set();
 // up/down = throttle, left/right = turn the legs, camL/camR = swing the torso aim
 // fire = use the current weapon; wpn = pick gun / punch / kick
-// fix / parts = answer the prompt beside a downed robot
+// fix / parts = answer the prompt beside a downed robot (parts again = take the picks)
+// bag = open or close the parts bag
 const SCHEMES = [
-  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'], fix: ['KeyF'], parts: ['KeyG'] },
-  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'], fix: ['Period'], parts: ['Comma'] },
+  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'], fix: ['KeyF'], parts: ['KeyG'], bag: ['KeyB'] },
+  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'], fix: ['Period'], parts: ['Comma'], bag: ['Slash'] },
 ];
-const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [], fix: [], parts: [] };
+const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [], fix: [], parts: [], bag: [] };
 const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab', 'Enter']);
 addEventListener('keydown', (e) => {
   // typing a robot's name: the keys spell the name and don't drive the mech
@@ -407,6 +460,7 @@ addEventListener('mouseup', (e) => { if (e.button === 0) mouse.down = false; });
 addEventListener('wheel', (e) => { if (mouse.locked && Game.humans[0]) cycleWeapon(Game.humans[0], e.deltaY > 0 ? 1 : -1); }, { passive: true });
 
 const padPrev = [{}, {}, {}, {}];
+const padConnected = () => [...(navigator.getGamepads ? navigator.getGamepads() : [])].some(Boolean);
 function readPad(i) {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   const list = [...pads].filter(Boolean);
@@ -414,12 +468,13 @@ function readPad(i) {
   const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v);
   const b = (n) => !!(p.buttons[n] && p.buttons[n].pressed);
   const prev = padPrev[i];
-  const cur = { start: b(9), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0), x: b(2), y: b(3), lb: b(4), rb: b(5), rt: b(7) || (p.buttons[7] && p.buttons[7].value > 0.4) };
+  const cur = { start: b(9), back: b(8), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0), b: b(1), x: b(2), y: b(3), lb: b(4), rb: b(5), rt: b(7) || (p.buttons[7] && p.buttons[7].value > 0.4) };
   const out = {
     lx: dz(p.axes[0] || 0) + (cur.right ? 1 : 0) - (cur.left ? 1 : 0),
     ly: dz(p.axes[1] || 0) + (cur.down ? 1 : 0) - (cur.up ? 1 : 0),
     rx: dz(p.axes[2] || 0), ry: dz(p.axes[3] || 0),
-    startP: cur.start && !prev.start, aP: cur.a && !prev.a, xP: cur.x && !prev.x, yP: cur.y && !prev.y,
+    startP: cur.start && !prev.start, aP: cur.a && !prev.a, bP: cur.b && !prev.b, xP: cur.x && !prev.x, yP: cur.y && !prev.y, backP: cur.back && !prev.back,
+    dpadX: (cur.right ? 1 : 0) - (cur.left ? 1 : 0), leftP: cur.left && !prev.left, rightP: cur.right && !prev.right,
     rt: cur.rt, lbP: cur.lb && !prev.lb, rbP: cur.rb && !prev.rb,
   };
   padPrev[i] = cur;
@@ -785,7 +840,8 @@ class CamRig {
 // ===========================================================================
 // Game
 // ===========================================================================
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], parts: 0, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
+// bag = parts collected, by kind ({ armour: 2, ram: 1 }); parts = their total (the HUD's 🔩)
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
 function setPause(on) {
   Game.paused = on;
   $('start').classList.toggle('on', on);
@@ -1296,7 +1352,7 @@ const ROBOT_TYPES = {
     paint: { armour: '#8a5cff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
     build: buildCharger,
     ai: chargerAI,
-    parts: 3,                  // what taking it apart is worth
+    parts: ['armour', 'battery', 'motor', 'wiring', 'ram'],   // what it's built from (ids in PARTS)
   },
 };
 
@@ -1310,6 +1366,7 @@ function spawnRobot(type, x, z) {
     hits: { gun: 0, punch: 0, kick: 0 },
     ai: { think: Math.random() * 0.05, mode: 'stalk', t: 0.6 },
     wires: makeWires(REPAIR.wires), wrongWires: 0, repairBy: null, name: null, leader: null,
+    parts: T.parts.slice(),        // the parts still on it, offered when it's taken apart
   });
   r.model = T.build(T.paint); scene.add(r.model.root);
   Game.robots.push(r);
@@ -1381,9 +1438,11 @@ function reboot(r) {
 // ===========================================================================
 // Fix it or take the parts. A downed robot nearby shows a prompt: 🔧 opens
 // the Quick Fix (drag each wire to the port of the same colour and shape),
-// 🔩 takes it apart. A fixed robot gets a name, glows steady and joins the
-// squad. Players, the prompt's buttons and __rb.choose / __rb.wire all go
-// through chooseFor / connectWire.
+// 🔩 opens the parts picker (choose up to REPAIR.takeMax of its parts; the
+// rest is scrapped with the robot). A fixed robot gets a name, glows steady and
+// joins the squad. Players, the prompt's buttons and __rb.choose / __rb.wire all
+// go through chooseFor / connectWire / pickPart / takeParts. While either panel
+// is open, h.repair = { r, kind: 'fix' | 'parts', ... } and the robot's clock holds.
 // ===========================================================================
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 // plugs[i] and ports[j] are indexes into WIRE_COLORS; link[i] is the port plug i is in (-1 = loose)
@@ -1405,20 +1464,28 @@ function promptRobot(h) {
   for (const r of Game.robots) { if (r.state !== 'down' || r.repairBy) continue; const d = flatDist(r, h.mech); if (d < bd) { bd = d; best = r; } }
   return best;
 }
-// choice: 'fix' opens the Quick Fix, 'parts' takes the robot apart.
+// choice: 'fix' opens the Quick Fix, 'parts' opens the parts picker.
 // name: what to call it once fixed; leave it out and a random one is filled in
 // (and the player is offered the chance to type their own).
-function chooseFor(h, r, choice, name) {
+// picks: with 'parts', a list of part ids takes those straight away (no picker).
+function chooseFor(h, r, choice, name, picks) {
   if (!h || !r) return { ok: false, why: 'no robot' };
   if (r.state !== 'down') return { ok: false, why: 'not down' };
   if (flatDist(r, h.mech) > REPAIR.promptRange) return { ok: false, why: 'too far' };
   if (r.repairBy && r.repairBy !== h) return { ok: false, why: 'busy' };
-  if (choice === 'parts') { takeParts(h, r); return { ok: true }; }
+  if (choice === 'parts') {
+    if (picks !== undefined) return takeParts(h, r, picks);
+    if (h.repair) cancelRepair(h);
+    h.repair = { r, kind: 'parts', picks: [], cur: 0 };
+    r.repairBy = h;
+    if (h.idx === 0) FixUI.openPicker(r);
+    return { ok: true };
+  }
   if (choice !== 'fix') return { ok: false, why: 'fix or parts' };
   if (Game.squad.length >= REPAIR.squadMax) return { ok: false, why: 'squad full' };
-  if (h.repair && h.repair.r !== r) cancelRepair(h);
+  if (h.repair) cancelRepair(h);
   const typed = typeof name === 'string' && name.trim() !== '';
-  h.repair = { r, name: typed ? name.trim().slice(0, 12) : randomName(), askName: !typed };
+  h.repair = { r, kind: 'fix', name: typed ? name.trim().slice(0, 12) : randomName(), askName: !typed };
   r.repairBy = h; r.wires.link.fill(-1);
   if (h.idx === 0) FixUI.openWires(r);
   return { ok: true };
@@ -1426,13 +1493,25 @@ function chooseFor(h, r, choice, name) {
 function cancelRepair(h) {
   const rp = h.repair; if (!rp) return;
   rp.r.repairBy = null; h.repair = null;
-  if (h.idx === 0 && FixUI.mode === 'wires') FixUI.close();
+  if (h.idx === 0 && (FixUI.mode === 'wires' || FixUI.mode === 'parts')) FixUI.close();
+}
+// In the picker: tap a part to pick it, tap again to put it back. A pick past
+// REPAIR.takeMax is refused (buzz, the tiles shake).
+function pickPart(h, id) {
+  const rp = h.repair; if (!rp || rp.kind !== 'parts') return 'not taking';
+  if (!rp.r.parts.includes(id)) return 'not on this robot';
+  const i = rp.picks.indexOf(id);
+  if (i >= 0) { rp.picks.splice(i, 1); if (!Game.manual) Sfx.click(); return 'off'; }
+  if (rp.picks.length >= REPAIR.takeMax) { if (!Game.manual) Sfx.buzz(); return 'full'; }
+  rp.picks.push(id);
+  if (!Game.manual) Sfx.plug();
+  return 'on';
 }
 // One wire: plug index -> port index. A wire in the wrong colour buzzes, sparks
 // and springs back out; the robot stays down. The last right wire fixes it.
 function connectWire(h, r, plug, port) {
   const W = r.wires;
-  if (!h.repair || h.repair.r !== r) return 'not fixing';
+  if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
   if (!(plug >= 0 && plug < W.plugs.length && port >= 0 && port < W.ports.length)) return 'no such wire';
   if (W.link[plug] >= 0 || W.link.includes(port)) return 'taken';
   if (W.plugs[plug] !== W.ports[port]) {
@@ -1472,9 +1551,16 @@ function setRobotName(r, name) {
   g.fillStyle = ALLY.color; g.fillText(name, 256, 66);
   md.label.material.map?.dispose(); md.label.material.map = new THREE.CanvasTexture(c); md.label.material.map.colorSpace = THREE.SRGBColorSpace; md.label.material.needsUpdate = true;
 }
-function takeParts(h, r) {
+// Take the picked parts (ids from r.parts) into the bag; the rest is scrapped
+// with the robot. Every check runs before anything changes, so a refusal leaves
+// the robot down where it was and the bag as it was.
+function takeParts(h, r, picks) {
+  if (!Array.isArray(picks) || !picks.length) return { ok: false, why: 'pick a part' };
+  if (picks.length > REPAIR.takeMax) return { ok: false, why: 'too many', max: REPAIR.takeMax };
+  if (new Set(picks).size !== picks.length) return { ok: false, why: 'same part twice' };
+  if (!picks.every((id) => r.parts.includes(id))) return { ok: false, why: 'not on this robot' };
   if (r.repairBy) cancelRepair(r.repairBy);
-  Game.parts += ROBOT_TYPES[r.type].parts;
+  for (const id of picks) Game.bag[id] = (Game.bag[id] || 0) + 1;
   Game.robots.splice(Game.robots.indexOf(r), 1);
   scene.remove(r.model.root);
   // its own materials, every mesh geometry (each robot builds fresh ones) and its sprite materials;
@@ -1483,6 +1569,7 @@ function takeParts(h, r) {
   md.root.traverse((o) => { if (o.isMesh) o.geometry.dispose(); else if (o.isSprite) o.material.dispose(); });
   Sparks.burst(r.pos.x, r.pos.y + 2.5, r.pos.z, 45, SPARK_HOT, 8);
   if (!Game.manual) Sfx.salvage();
+  return { ok: true, took: picks.slice(), scrapped: r.parts.filter((id) => !picks.includes(id)) };
 }
 // A squadmate's brain: the same 20 Hz think and the same input fields as a
 // glitched robot, but it walks to its slot beside and behind its leader.
@@ -1599,7 +1686,7 @@ function syncRobotModel(r, dt) {
   const f = r.health / r.maxHealth, up = r.state !== 'down';
   md.back.visible = up; md.fill.visible = up && f > 0;
   if (f > 0) { md.fill.scale.x = 3.0 * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
-  const icon = mode === 'windup' || mode === 'charge' ? '❗' : mode === 'repair' ? '🔧' : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️') : null;
+  const icon = mode === 'windup' || mode === 'charge' ? '❗' : mode === 'repair' ? (r.repairBy.repair?.kind === 'parts' ? '🔩' : '🔧') : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️') : null;
   md.icon.visible = !!icon;
   if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = 6.4 + Math.sin(r.t * 6) * 0.15; }
 }
@@ -1619,8 +1706,9 @@ function gatherInput(dt) {
     if (pad && pad.aP && Game.paused) startPlay();
     sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) { h.weapon = WEAPONS[w]; if (!Game.manual) Sfx.click(); } });
     if (pad && (pad.lbP || pad.rbP)) cycleWeapon(h, pad.rbP ? 1 : -1);
+    const picking = h.repair?.kind === 'parts';
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
-    if (pad) { turn += pad.lx; thr -= pad.ly; }
+    if (pad) { turn += pad.lx - (picking ? pad.dpadX : 0); thr -= pad.ly; }   // in the picker the d-pad moves between parts, the stick still steers
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
     h.ci.camY = pad ? -pad.ry : 0;
     h.rig.yaw = wrapAngle(h.rig.yaw - h.ci.camX * 1.8 * dt);
@@ -1637,7 +1725,17 @@ function gatherInput(dt) {
     if (pr) {
       if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
       else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
+    } else if (picking) {
+      // the parts picker: d-pad ◀ ▶ moves, A picks, Y (or the 🔩 key) takes them, B backs out
+      const rp = h.repair, n = rp.r.parts.length;
+      if (pad && (pad.leftP || pad.rightP)) rp.cur = (rp.cur + (pad.rightP ? 1 : -1) + n) % n;
+      if (pad && pad.aP) FixUI.pick(h, rp.r.parts[rp.cur]);
+      if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) FixUI.takePicks(h);
+      else if (pad && pad.bP) { cancelRepair(h); if (h.idx === 0) FixUI.relock(); }
+      if (h.idx === 0) FixUI.drawPicker();
     }
+    // the parts bag: 🎒 key or pad Back (or B when no panel is open)
+    if (h.idx === 0 && !picking && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
   }
   mouse.dx = mouse.dy = 0;
   keysPressed.clear();
@@ -1666,9 +1764,10 @@ function tick(dt) {
 }
 
 // ===========================================================================
-// Quick Fix + naming panels (player 0). Drag a plug onto the port with the
-// same colour and shape, or tap a plug then tap its port. The world keeps
-// running behind the panel; only the mouse is freed from pointer lock.
+// Quick Fix, naming, parts picker and parts bag panels (player 0). Drag a plug
+// onto the port with the same colour and shape, or tap a plug then tap its port.
+// In the picker, tap up to two parts and ✔. The world keeps running behind every
+// panel; only the mouse is freed from pointer lock.
 // ===========================================================================
 const FixUI = {
   mode: null, r: null, sel: -1, drag: null,
@@ -1696,10 +1795,17 @@ const FixUI = {
     $('nameDice').addEventListener('click', () => { if (this.r) { setRobotName(this.r, randomName()); $('nameIn').value = this.r.name; } if (!Game.manual) Sfx.click(); });
     $('pFix').addEventListener('click', (e) => { e.stopPropagation(); this.fromPrompt('fix'); });
     $('pParts').addEventListener('click', (e) => { e.stopPropagation(); this.fromPrompt('parts'); });
+    $('pickTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.pick(Game.humans[0], t.dataset.part); });
+    $('pickOk').addEventListener('click', () => this.takePicks(Game.humans[0]));
+    $('pickX').addEventListener('click', () => this.dismiss());
+    $('bagBtn').addEventListener('click', (e) => { e.stopPropagation(); this.toggleBag(); });
+    $('bagX').addEventListener('click', () => this.dismiss());
   },
   fromPrompt(choice) { const h = Game.humans[0], r = h && promptRobot(h); if (r) chooseFor(h, r, choice); },
   icon(ci, fill, stroke) { return `<svg viewBox="0 0 40 40"><g fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round">${SHAPE_SVG[WIRE_COLORS[ci].shape]}</g></svg>`; },
-  show(id) { $('fix').classList.toggle('on', id === 'fix'); $('namer').classList.toggle('on', id === 'namer'); },
+  show(id) { for (const p of ['fix', 'namer', 'picker', 'bag']) $(p).classList.toggle('on', id === p); },
+  // a round part tile: its icon on its colour
+  tile(id, cls = '') { const P = PARTS[id]; return `<button class="tile ${cls}" data-part="${id}" aria-label="${id}" style="background:${P.hex}">${P.icon}</button>`; },
   openWires(r) {
     this.r = r; this.mode = 'wires'; this.sel = -1; this.drag = null;
     const W = r.wires, C = WIRE_COLORS;
@@ -1713,12 +1819,64 @@ const FixUI = {
     $('nameIn').value = r.name;      // a random name is already there: ✔ keeps it
     this.show('namer');
   },
+  // the parts picker: every part still on the robot, two empty slots that fill as you pick
+  openPicker(r) {
+    this.r = r; this.mode = 'parts';
+    $('pickTiles').innerHTML = r.parts.map((id) => this.tile(id)).join('');
+    this.show('picker'); this.drawPicker();
+    if (document.pointerLockElement) document.exitPointerLock();
+  },
+  drawPicker() {
+    const h = Game.humans[0], rp = h?.repair;
+    if (this.mode !== 'parts' || !rp || rp.kind !== 'parts') return;
+    const full = rp.picks.length >= REPAIR.takeMax, pad = padConnected();
+    [...$('pickTiles').children].forEach((t, i) => {
+      const on = rp.picks.includes(t.dataset.part);
+      t.classList.toggle('on', on); t.classList.toggle('dim', full && !on); t.classList.toggle('cur', pad && i === rp.cur);
+    });
+    let slots = '';
+    for (let i = 0; i < REPAIR.takeMax; i++) { const id = rp.picks[i]; slots += id ? `<div class="slot full" style="background:${PARTS[id].hex}">${PARTS[id].icon}</div>` : '<div class="slot"></div>'; }
+    $('slots').innerHTML = slots;
+    $('pickOk').classList.toggle('off', !rp.picks.length);
+  },
+  pick(h, id) {
+    const res = pickPart(h, id);
+    if (res === 'full' && h.idx === 0) { const b = $('pickTiles'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
+    if (h.idx === 0) this.drawPicker();
+    return res;
+  },
+  takePicks(h) {
+    const rp = h.repair; if (!rp || rp.kind !== 'parts') return { ok: false, why: 'not taking' };
+    const res = takeParts(h, rp.r, rp.picks.slice());
+    if (!res.ok) { if (!Game.manual) Sfx.buzz(); return res; }
+    if (h.idx === 0) this.relock();
+    return res;
+  },
+  // the parts bag: open it when no other panel is up, close it if it is open
+  toggleBag() {
+    if (this.mode === 'bag') { this.close(); this.relock(); }
+    else if (!this.mode) {
+      this.mode = 'bag'; this.bagKey = null;
+      this.show('bag'); this.drawBag();
+      if (document.pointerLockElement) document.exitPointerLock();
+    }
+    if (!Game.manual) Sfx.click();
+    return this.mode === 'bag';
+  },
+  drawBag() {
+    if (this.mode !== 'bag') return;
+    const key = JSON.stringify(Game.bag); if (key === this.bagKey) return; this.bagKey = key;
+    const have = Object.keys(PARTS).filter((id) => Game.bag[id] > 0);
+    $('bagTiles').innerHTML = have.length ? have.map((id) => this.tile(id, 'have').replace('</button>', `<b class="n">×${Game.bag[id]}</b></button>`)).join('') : '<div class="empty">🎒</div>';
+    $('bagN').textContent = Game.parts;
+  },
   close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.show(null); $('nameIn').blur(); },
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.(); },
-  // ✖ / Escape: leave the wiring (the robot's clock runs again), or keep the name
+  // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
+  // nothing is taken), close the bag, or keep the name
   dismiss() {
     if (this.mode === 'name') { this.confirmName(); return; }
-    if (this.mode === 'wires') cancelRepair(Game.humans[0]);
+    if (this.mode === 'wires' || this.mode === 'parts') cancelRepair(Game.humans[0]);
     this.close(); this.relock();
   },
   confirmName() {
@@ -1779,8 +1937,9 @@ function updateHud() {
   const camYaw = m.torsoYaw;
   $('cLegs').style.transform = `rotate(${-(m.legHeading - camYaw)}rad)`;
   $('cTorso').style.transform = `rotate(${-(m.torsoYaw - camYaw)}rad)`;
-  // parts count and squad name tags
+  // parts count (and the bag, if it's open) and squad name tags
   $('partsN').textContent = Game.parts;
+  FixUI.drawBag();
   const sk = Game.squad.map((r) => r.id + ':' + r.name).join('|');
   if (sk !== updateHud.squadKey) {
     updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
@@ -1862,6 +2021,7 @@ function robotState(r) {
     // plugs[i] belongs in the port with the same colour; link[i] = the port it's in (-1 = loose)
     wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link] }, wrongWires: r.wrongWires,
     hits: { ...r.hits },                              // real weapon hits only (damage() doesn't count)
+    parts: r.state === 'down' ? [...r.parts] : null,  // part ids it can be taken apart for (ids in PARTS); null unless down
     speed: r3(r.speed), dist: p0 ? r3(flatDist(r, p0)) : null,
   };
 }
@@ -1904,13 +2064,19 @@ window.__rb = {
     return this.state().robots.find((q) => q.id === id);
   },
   // deal with a downed robot as player 0 (who must be within REPAIR.promptRange):
-  // 'fix' opens its Quick Fix (name is optional; a random one is used if left out),
-  // 'parts' takes it apart. Same path as the prompt's keys and buttons.
-  choose(id, choice, name) {
+  // 'fix' opens its Quick Fix (name is optional; a random one is used if left out).
+  // 'parts' with picks (a list of part ids from state().robots[i].parts, at most
+  // REPAIR.takeMax) takes those into the bag and scraps the robot; without picks it
+  // opens the parts picker, the same as the prompt's 🔩. Same path as keys and buttons.
+  choose(id, choice, name, picks) {
     const r = Game.robots.find((q) => q.id === id);
-    const res = r ? chooseFor(Game.humans[0], r, choice, name) : { ok: false, why: 'no robot' };
-    return { ...res, robot: r && Game.robots.includes(r) ? robotState(r) : null, squad: this.state().squad, parts: Game.parts };
+    const res = r ? chooseFor(Game.humans[0], r, choice, name, picks) : { ok: false, why: 'no robot' };
+    return { ...res, robot: r && Game.robots.includes(r) ? robotState(r) : null, squad: this.state().squad, parts: Game.parts, bag: { ...Game.bag } };
   },
+  // tap a part in the open picker (as a click would): 'on' | 'off' | 'full' | ...
+  pick(id) { return { result: FixUI.pick(Game.humans[0], id), picks: Game.humans[0].repair?.picks?.slice() ?? null }; },
+  // open or close the parts bag (as the 🎒 button does); returns whether it's open
+  bag() { return FixUI.toggleBag(); },
   // plug wires in: pairs = [[plug, port], ...] (indexes into state().robots[i].wires).
   // Each goes through the same connectWire as a drag: right colour stays in, wrong
   // colour springs out. The last right wire fixes the robot.
@@ -1918,7 +2084,7 @@ window.__rb = {
     const r = Game.robots.find((q) => q.id === id); if (!r) return null;
     const results = pairs.map(([a, b]) => connectWire(Game.humans[0], r, a, b));
     FixUI.draw();
-    return { results, robot: robotState(r), squad: this.state().squad, parts: Game.parts };
+    return { results, robot: robotState(r), squad: this.state().squad, parts: Game.parts, bag: { ...Game.bag } };
   },
   state() {
     const p0 = Game.humans[0]?.mech, h0 = Game.humans[0];
@@ -1938,10 +2104,12 @@ window.__rb = {
       }),
       robots: Game.robots.map(robotState),
       squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null })),
-      parts: Game.parts,
+      parts: Game.parts,                                  // total parts collected (the HUD's 🔩)
+      bag: { ...Game.bag },                               // parts collected, by kind: { armour: 2, ram: 1 }
+      takeMax: REPAIR.takeMax,
       prompt: h0 && !h0.repair ? promptRobot(h0)?.id ?? null : null,   // the downed robot the prompt is beside
-      repair: h0?.repair ? { id: h0.repair.r.id, name: h0.repair.name } : null,
-      ui: FixUI.mode,                                     // null | 'wires' | 'name'
+      repair: h0?.repair ? { id: h0.repair.r.id, kind: h0.repair.kind, name: h0.repair.name ?? null, picks: h0.repair.picks ? [...h0.repair.picks] : null } : null,
+      ui: FixUI.mode,                                     // null | 'wires' | 'name' | 'parts' | 'bag'
       bullets: Bullets.list.length,
       // each live round: speed (m/s) and how far it has flown
       shots: Bullets.list.map((b) => ({ speed: r3(b.v.length()), d: r3(b.d), x: r3(b.p.x), y: r3(b.p.y), z: r3(b.p.z) })),
