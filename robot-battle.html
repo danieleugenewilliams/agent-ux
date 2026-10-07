@@ -150,6 +150,31 @@
   #downOv .mate { position: absolute; right: -12px; bottom: -6px; font-size: 48px; display: none; }
   #downOv.beam .mate { display: block; }
   body.off #downOv { display: flex; }
+  /* ---------- WEAPONS: tap a slot to pick it; a locked one is grey with a 🔒 until a part unlocks it ---------- */
+  #hud .wpn { cursor: pointer; padding: 0; color: #fff; font-family: inherit; }
+  #hud .wpn.lock { filter: grayscale(1) brightness(.5); cursor: not-allowed; }
+  #hud .wpn .lk { position: absolute; left: -6px; top: -8px; font-size: 22px; }
+  #hud .wpn.new { animation: newWpn 0.7s ease-in-out 5; }
+  @keyframes newWpn { 0%,100% { box-shadow: 0 0 0 0 rgba(255,95,162,.9); } 50% { box-shadow: 0 0 0 14px rgba(255,95,162,0); } }
+  #hud .wpn .chg { position: absolute; inset: -9px; border-radius: 50%; pointer-events: none; --p: 0;
+    background: conic-gradient(#ff5fa2 calc(var(--p) * 1turn), transparent 0); -webkit-mask: radial-gradient(circle, transparent 37px, #000 38px); mask: radial-gradient(circle, transparent 37px, #000 38px); }
+  .tile .unl { position: absolute; left: -10px; top: -10px; width: 34px; height: 34px; border-radius: 50%; background: #14182a; border: 3px solid #ff5fa2; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+  /* ---------- QUICK FIX faults: a burnt wire is charred; 🔌 from the bag swaps it, or ✂️ tap it clean ---------- */
+  .panel .top .how { font-size: 30px; margin-left: 10px; opacity: .9; }
+  .plug.burnt { background: #2a211c !important; border-color: #000; cursor: pointer; animation: smoke 1.2s ease-in-out infinite; }
+  .plug.burnt svg { filter: grayscale(1) brightness(.45); }
+  .plug .fixb { position: absolute; right: -12px; top: -12px; min-width: 40px; height: 40px; padding: 0 4px; border-radius: 20px; background: #fff; border: 3px solid var(--ink); font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 1px; }
+  .plug .fixb i { font: 900 16px 'Asap', sans-serif; font-style: normal; color: var(--ink); }
+  .plug, .port { position: relative; }
+  .plug.cur, .port.cur { outline: 5px dashed var(--yellow); outline-offset: 5px; }
+  @keyframes smoke { 0%,100% { box-shadow: 0 5px 0 var(--ink), 0 0 6px 2px rgba(255,120,40,.35); } 50% { box-shadow: 0 5px 0 var(--ink), 0 0 16px 6px rgba(255,120,40,.6); } }
+  /* ---------- SEND HOME: the squad is full; tap who goes home 🏠 ---------- */
+  #home .panel { border-color: var(--yellow); box-shadow: 0 0 30px rgba(255,216,61,.45); }
+  #home .top .new { display: flex; align-items: center; gap: 10px; }
+  .tile.mate { background: var(--cyan); }
+  .homeTile { display: flex; flex-direction: column; align-items: center; gap: 8px; font: 800 18px 'Asap', sans-serif; }
+  #hud .mate.home { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255,216,61,.7); opacity: .75; }
+  #hud .prompt .pfix.full::after { content: '🏠'; position: absolute; left: -10px; top: -10px; font-size: 22px; }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -174,9 +199,9 @@
         <div class="key">A</div><div class="key">S</div><div class="key">D</div>
       </div><small>🦿</small></div>
       <div class="hint">🖱️<small>🎯</small></div>
-      <div class="hint"><div class="keyset">
-        <div class="key">1</div><div class="key">2</div><div class="key">3</div>
-      </div><small>🔫👊🦶</small></div>
+      <div class="hint"><div class="keyset" style="grid-template-columns: repeat(5, 40px)">
+        <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">4</div><div class="key">5</div>
+      </div><small>🔫👊🦶🧲☄️</small></div>
       <div class="hint"><div class="key wide">␣</div><small>💥</small></div>
       <div class="hint"><div class="key">R</div><small>🔧❤️</small></div>
       <div class="hint">🎮</div>
@@ -206,7 +231,7 @@
 <!-- QUICK FIX: drag each plug to the port with the same colour and shape -->
 <div id="fix" class="screen">
   <div class="panel">
-    <div class="top"><span>🔧🤖</span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
+    <div class="top"><span>🔧🤖<span class="how" id="fixHow"></span></span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
     <div class="board" id="board"><svg id="wireSvg"></svg><div class="col" id="plugs"></div><div class="col" id="ports"></div></div>
   </div>
 </div>
@@ -234,6 +259,14 @@
   <div class="panel">
     <div class="top"><span>🔧❤️</span><button class="x" id="mendX" aria-label="Close">✖</button></div>
     <div class="needs" id="mendTiles"></div>
+  </div>
+</div>
+
+<!-- SEND HOME: the squad holds 3, so fixing a 4th asks which squadmate goes home (✖ = don't fix) -->
+<div id="home" class="screen">
+  <div class="panel">
+    <div class="top"><span class="new">🏠<span id="homeNew"></span></span><button class="x" id="homeX" aria-label="Cancel">✖</button></div>
+    <div class="tiles" id="homeTiles"></div>
   </div>
 </div>
 
@@ -280,8 +313,16 @@ const WEAPON = {
   gun:   { icon: '🔫', dmg: 10, cool: 0.075, burst: 3, rest: 0.33, speed: 280, range: 95, push: 0.8 },
   punch: { icon: '👊', dmg: 22, cool: 0.55, strike: 0.16, dur: 0.5, reach: 3.4, arc: 0.85, push: 6 },
   kick:  { icon: '🦶', dmg: 34, cool: 0.9, strike: 0.32, dur: 0.85, reach: 3.2, arc: 0.7, push: 12 },
+  // The electromagnetic pulse (a starting weapon, from the left-arm pod): a crackling ball that
+  // does little damage but loads `shock` into a robot's electronics. At ROBOT.shockMax it shuts
+  // down mostly intact. Shock drains at ROBOT.shockFade a second, so it takes hits close together.
+  em:    { icon: '🧲', dmg: 4, cool: 0.5, speed: 90, range: 55, push: 0.4, shock: 40 },
+  // The rail gun (locked until a part that `unlocks: 'rail'` is taken): fire starts a `charge`,
+  // then one long straight shot that passes through every robot along it (`range` metres, or
+  // until it meets the ground, a rock or a tree), then `cool`.
+  rail:  { icon: '☄️', dmg: 60, cool: 1.6, charge: 0.8, range: 140, push: 3, locked: true },
 };
-const WEAPONS = ['gun', 'punch', 'kick'];
+const WEAPONS = ['gun', 'punch', 'kick', 'em', 'rail'];
 const AIM_ASSIST = 0.2;      // rad: the cannon locks onto a robot this close to the torso aim
 // Robots' own attacks. They aren't player weapons (no slot, no __rb.fire), but they land
 // through the same hitRobot / hurtMech paths and count in a robot's `hits` by key.
@@ -296,6 +337,20 @@ const ROBOT = {
   warnTime: 3,               // ...the last of which it blinks before rebooting
   rebootHealth: 0.5,         // fraction of health it comes back with
   alert: 10,                 // seconds a hit robot hunts its attacker, however far away
+  shockMax: 100,             // electromagnetic shock that shuts a robot down
+  shockFade: 20,             // shock drained a second
+};
+// Damage affects repair. Each robot remembers how it was beaten: the damage it took since it
+// last booted, by weapon (r.harm). When it powers down that sets its faults:
+//   wear  = sum of harm[w] * weight[w] / maxHealth  (an electromagnetic shutdown halves it: `em`)
+//   wires = 1 + round(wear * 2), from 1 to 4      (plugs to connect in the Quick Fix)
+//   burnt = 1 at wear >= burnt[0], 2 at >= burnt[1] (charred plugs: a 🔌 from the bag swaps one,
+//           or `scrub` taps strip it clean, so a fix never needs a part)
+// e.g. bullets 1.4 -> 4 wires + 1 burnt; a kick 1.6 -> 4 + 1; setup 1 -> 3 + 0 (as before faults);
+// a punch 0.6 -> 2 + 0; a pure electromagnetic shutdown 0 -> 1 wire.
+const FAULTS = {
+  weight: { em: 0, punch: 0.6, setup: 1, gun: 1.4, snipe: 1.4, kick: 1.6, stomp: 1.6, rail: 2 },
+  em: 0.5, burnt: [1.2, 1.8], scrub: 3,
 };
 // Fix it or take the parts. A downed robot within promptRange shows the choice.
 // While a player has a robot's Quick Fix open its reboot clock holds (the world
@@ -486,6 +541,24 @@ const Sfx = {
   aimWhine(k = 1) { this.tone(500, 1.0, 'sine', 0.05 * k, 1700); },
   snipe(k = 1) { this.noise(0.04, 0.35 * k, 5200, 0, 0.6, 'highpass'); this.tone(1500, 0.16, 'square', 0.1 * k, 320); this.tone(95, 0.25, 'sine', 0.3 * k, 40); },
   droneZap(k = 1) { this.noise(0.15, 0.2 * k, 4000, 0, 4); this.tone(2400, 0.12, 'square', 0.05 * k, 900); },
+  // The electromagnetic pulse: a rising buzz with crackles on it; a hit fizzes; a shutdown
+  // warbles down. The rail gun: a whine that climbs while it charges, then a huge crack and ring.
+  emPulse() {
+    this.tone(180, 0.28, 'sawtooth', 0.12, 720); this.tone(1400, 0.2, 'square', 0.04, 260);
+    [0, 0.035, 0.08, 0.13, 0.19].forEach((d) => this.noise(0.025, 0.2, 5500, d, 3, 'highpass'));
+  },
+  emHit(k = 1) { this.noise(0.18, 0.18 * k, 4200, 0, 5); this.tone(950, 0.12, 'square', 0.05 * k, 1900); this.tone(2600, 0.06, 'sine', 0.05 * k, null, 0.05); },
+  emDown(k = 1) { this.tone(1100, 0.9, 'sawtooth', 0.1 * k, 50); this.tone(1650, 0.4, 'square', 0.04 * k, 300); [0, 0.1, 0.22, 0.36].forEach((d) => this.noise(0.04, 0.22 * k, 5000, d, 3)); },
+  railCharge() { this.tone(180, WEAPON.rail.charge, 'sine', 0.12, 2400); this.tone(90, WEAPON.rail.charge, 'square', 0.03, 1200); },
+  rail() {
+    this.noise(0.07, 0.55, 3800, 0, 0.5, 'highpass'); this.tone(2600, 0.55, 'sine', 0.18, 180);
+    this.tone(70, 0.7, 'sine', 0.55, 28); this.noise(0.6, 0.3, 700, 0.02, 0.6, 'lowpass'); this.tone(1320, 0.9, 'triangle', 0.05, 1250, 0.05);
+  },
+  newWeapon() { [523, 784, 1047, 1568].forEach((f, i) => this.tone(f, 0.22, 'square', 0.07, null, i * 0.08)); this.tone(2093, 0.5, 'triangle', 0.12, null, 0.32); },
+  // a scrubbed burnt wire: a scratchy rasp
+  scrub() { this.noise(0.12, 0.2, 2800, 0, 1.2); this.noise(0.08, 0.12, 1200, 0.06, 1); },
+  // a squadmate heads home: a goodbye chirp that rises away
+  home() { [784, 659, 523].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.14, null, i * 0.11)); this.tone(400, 0.7, 'sine', 0.08, 1800, 0.35); },
   boing(k = 1, n = 0) { const f = 170 * Math.pow(1.19, Math.min(n, 6)); this.tone(f, 0.35, 'sine', 0.3 * k, f * 2.6); this.tone(f * 0.5, 0.2, 'triangle', 0.15 * k, f * 1.2); },
   scout() { this.tone(880, 0.1, 'sine', 0.12); this.tone(1320, 0.16, 'sine', 0.12, null, 0.12); },
   salvage() { this.clang(1); this.clang(0.7); this.tone(260, 0.12, 'square', 0.06, 180, 0.12); this.tone(340, 0.12, 'square', 0.06, 220, 0.26); this.noise(0.3, 0.2, 900, 0.1, 0.8); },
@@ -505,12 +578,12 @@ const Sfx = {
 const keys = new Set();
 const keysPressed = new Set();
 // up/down = throttle, left/right = turn the legs, camL/camR = swing the torso aim
-// fire = use the current weapon; wpn = pick gun / punch / kick
+// fire = use the current weapon; wpn = pick gun / punch / kick / electromagnet / rail gun (once unlocked)
 // fix / parts = answer the prompt beside a downed robot (parts again = take the picks)
 // bag = open or close the parts bag; mend = open or close the self-repair panel
 const SCHEMES = [
-  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'], fix: ['KeyF'], parts: ['KeyG'], bag: ['KeyB'], mend: ['KeyR'] },
-  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'], fix: ['Period'], parts: ['Comma'], bag: ['Slash'], mend: ['KeyP'] },
+  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'], fix: ['KeyF'], parts: ['KeyG'], bag: ['KeyB'], mend: ['KeyR'] },
+  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0', 'Minus', 'Equal'], fix: ['Period'], parts: ['Comma'], bag: ['Slash'], mend: ['KeyP'] },
 ];
 const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [], fix: [], parts: [], bag: [], mend: [] };
 const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab', 'Enter']);
@@ -557,6 +630,7 @@ function readPad(i) {
     rx: dz(p.axes[2] || 0), ry: dz(p.axes[3] || 0),
     startP: cur.start && !prev.start, aP: cur.a && !prev.a, bP: cur.b && !prev.b, xP: cur.x && !prev.x, yP: cur.y && !prev.y, backP: cur.back && !prev.back,
     dpadX: (cur.right ? 1 : 0) - (cur.left ? 1 : 0), leftP: cur.left && !prev.left, rightP: cur.right && !prev.right,
+    dpadY: (cur.down ? 1 : 0) - (cur.up ? 1 : 0), upP: cur.up && !prev.up, downP: cur.down && !prev.down,
     rt: cur.rt, ltP: cur.lt && !prev.lt, lbP: cur.lb && !prev.lb, rbP: cur.rb && !prev.rb,
   };
   padPrev[i] = cur;
@@ -887,7 +961,7 @@ function syncMechModel(m) {
   R.fore.position.z = rc * 0.55; R.arm.rotation.x = m.aimPitch + rc * 0.09;
   const fl = m.flash > 0 ? m.flash / MUZZLE.flash : 0;
   md.flashes.forEach((f, k) => MuzzleFx.show(f, k === (m.barrel ? 1 : 0) ? fl : 0));
-  if (md.muzzleLight) md.muzzleLight.intensity = fl * MUZZLE.light;
+  if (md.muzzleLight) md.muzzleLight.intensity = fl * MUZZLE.light + (m.charge ? 12 * m.charge.t / WEAPON.rail.charge : 0);   // the rail gun glows as it charges
   // Melee: cock back until the strike, snap out, then ease home.
   // Punch throws the left (rocket-pod) arm; kick swings the right leg.
   const sw = m.swing;
@@ -944,7 +1018,9 @@ class CamRig {
 // ===========================================================================
 // bag = parts collected, by kind ({ armour: 2, ram: 1 }); parts = their total (the HUD's 🔩)
 // swarms = each drone swarm by id: { id, n, wp (where it's roaming to), seen (tick it last saw a player), kit (dropped yet) }
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
+// unlocked = the weapons a player can pick (every WEAPON without `locked`, plus any a part has unlocked)
+// lastRail = the last rail-gun shot: { hits: robot ids it passed through, len, end }
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
 function setPause(on) {
   Game.paused = on;
   $('start').classList.toggle('on', on);
@@ -1016,7 +1092,7 @@ const loud = (p) => (Game.manual ? 0 : near(p));
 // ===========================================================================
 // Sparks: hot points that bloom. Glitched robots spit them, and hits throw them.
 // ===========================================================================
-const SPARK_HOT = [5, 3.4, 1.1], SPARK_ZAP = [2.2, 3.8, 6], SPARK_MEND = [1.4, 5, 2.4];
+const SPARK_HOT = [5, 3.4, 1.1], SPARK_ZAP = [2.2, 3.8, 6], SPARK_MEND = [1.4, 5, 2.4], SPARK_RAIL = [4.2, 1.3, 3.2];
 const Sparks = {
   N: 400, i: 0, list: [],
   init() {
@@ -1089,17 +1165,18 @@ const Bullets = {
       core: new THREE.MeshBasicMaterial({ color: new THREE.Color(...core), toneMapped: false }),
       sheath: new THREE.MeshBasicMaterial({ color: new THREE.Color(...sheath), toneMapped: false, transparent: true, opacity: 0.5, depthWrite: false }),
     });
-    this.looks = { gun: look([3.2, 2.7, 1.7], [1.9, 0.75, 0.12]), foe: look([3.4, 1.6, 2.0], [2.4, 0.15, 0.45]), ally: look([1.8, 3.2, 3.4], [0.2, 1.6, 2.0]) };
+    this.looks = { gun: look([3.2, 2.7, 1.7], [1.9, 0.75, 0.12]), foe: look([3.4, 1.6, 2.0], [2.4, 0.15, 0.45]), ally: look([1.8, 3.2, 3.4], [0.2, 1.6, 2.0]), em: look([2.6, 3.4, 4.2], [0.35, 1.1, 3.6]) };
     for (let k = 0; k < 48; k++) {
       const g = new THREE.Group(), c = new THREE.Mesh(geo, this.looks.gun.core), sh = new THREE.Mesh(geo, this.looks.gun.sheath);
       c.scale.set(0.045, 1, 0.045); sh.scale.set(0.15, 1, 0.15); g.add(c, sh);
       g.visible = false; scene.add(g); this.pool.push(g);
     }
   },
-  // kind: 'gun' (a player's cannon) | 'snipe' (a Sniper's rifle); dmg defaults to the kind's
+  // kind: 'gun' (a player's cannon) | 'em' (a player's electromagnetic pulse) | 'snipe' (a Sniper's rifle);
+  // dmg defaults to the kind's
   fire(from, dir, owner, kind = 'gun', dmg) {
-    const W = kind === 'gun' ? WEAPON.gun : ROBOT_HITS[kind], foe = !!owner?.type && owner.state === 'glitched';
-    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(W.speed), d: 0, owner, kind, foe, spd: W.speed, range: W.range, dmg: dmg ?? W.dmg, look: kind === 'gun' ? 'gun' : foe ? 'foe' : 'ally' });
+    const W = WEAPON[kind] || ROBOT_HITS[kind], foe = !!owner?.type && owner.state === 'glitched';
+    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(W.speed), d: 0, owner, kind, foe, spd: W.speed, range: W.range, dmg: dmg ?? W.dmg, look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
     if (this.list.length > this.pool.length) this.list.shift();
   },
   tick(dt) {
@@ -1114,6 +1191,7 @@ const Bullets = {
       const b = this.list[k];
       p0.copy(b.p); b.p.addScaledVector(b.v, dt); b.d += b.spd * dt;
       seg.subVectors(b.p, p0);
+      if (b.kind === 'em' && Game.ticks % 2 === 0) Sparks.burst(b.p.x, b.p.y, b.p.z, 2, SPARK_ZAP, 3);   // the pulse crackles as it flies
       let hit = null, best = 2, at = null;
       if (b.foe) {
         for (const m of Game.mechs) {
@@ -1133,7 +1211,11 @@ const Bullets = {
       }
       // anything else in the way: the first of the ground or a tree / rock along the segment
       const land = this.landing(p0, seg);
-      if (land) { Impacts.at(land.kind, land.p, b.v); this.list.splice(k, 1); continue; }
+      if (land) {
+        if (b.kind === 'em') { Sparks.burst(land.p.x, land.p.y + 0.3, land.p.z, 14, SPARK_ZAP, 5); Impacts.flash(land.p, 1.2); }   // a pulse fizzles out
+        else Impacts.at(land.kind, land.p, b.v);
+        this.list.splice(k, 1); continue;
+      }
       if (b.d > b.range) this.list.splice(k, 1);
     }
   },
@@ -1161,8 +1243,10 @@ const Bullets = {
       // the streak trails the head but never reaches back inside the barrel
       const len = b ? Math.min(TRACER.streak, b.d - TRACER.muzzle) : 0;
       g.visible = len > 0.2; if (!g.visible) return;
-      const L = this.looks[b.look]; g.children[0].material = L.core; g.children[1].material = L.sheath;
-      g.position.copy(b.p); g.quaternion.setFromUnitVectors(UP, dir.copy(b.v).normalize()); g.scale.set(1, len, 1);
+      const L = this.looks[b.look], em = b.kind === 'em'; g.children[0].material = L.core; g.children[1].material = L.sheath;
+      // a pulse is a short fat streak (the crackling ball is drawn over it by Pulses)
+      g.children[0].scale.set(em ? 0.14 : 0.045, 1, em ? 0.14 : 0.045); g.children[1].scale.set(em ? 0.42 : 0.15, 1, em ? 0.42 : 0.15);
+      g.position.copy(b.p); g.quaternion.setFromUnitVectors(UP, dir.copy(b.v).normalize()); g.scale.set(1, em ? Math.min(len, 3.5) : len, 1);
     });
   },
 };
@@ -1338,11 +1422,81 @@ const Impacts = {
 };
 
 // ===========================================================================
+// Pulses: the electromagnetic round's look. Each 'em' round in Bullets gets a
+// ball of forked blue-white lightning that swaps its fork pattern, spin and size
+// every frame (the crackle), over the short fat streak Bullets draws.
+// ===========================================================================
+const Pulses = {
+  N: 10, list: [], tex: [],
+  init() {
+    for (let v = 0; v < 3; v++) {
+      const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+      const gr = g.createRadialGradient(64, 64, 0, 64, 64, 60); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(160,220,255,.9)'); gr.addColorStop(0.5, 'rgba(60,140,255,.25)'); gr.addColorStop(1, 'rgba(40,90,255,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+      g.strokeStyle = 'rgba(220,245,255,.95)'; g.lineWidth = 3; g.lineJoin = 'round'; seed = 31 + v * 17;
+      for (let a = 0; a < 6; a++) {      // forks of lightning out from the middle
+        let x = 64, y = 64, ang = a / 6 * Math.PI * 2 + srange(-0.4, 0.4);
+        g.beginPath(); g.moveTo(x, y);
+        for (let s = 0; s < 5; s++) { ang += srange(-0.8, 0.8); x += Math.cos(ang) * 11; y += Math.sin(ang) * 11; g.lineTo(x, y); }
+        g.stroke();
+      }
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; this.tex.push(t);
+    }
+    for (let k = 0; k < this.N; k++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.tex[0], color: new THREE.Color(0.7, 1.4, 3.4), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+      sp.visible = false; scene.add(sp); this.list.push(sp);
+    }
+  },
+  sync() {
+    const em = Bullets.list.filter((b) => b.kind === 'em');
+    this.list.forEach((sp, k) => {
+      const b = em[k]; sp.visible = !!b && b.d > 2; if (!sp.visible) return;
+      sp.material.map = this.tex[Math.floor(Math.random() * 3)]; sp.material.rotation = Math.random() * Math.PI * 2;
+      const s = 2.4 + Math.random() * 1.0; sp.scale.set(s, s, 1); sp.position.copy(b.p);
+    });
+  },
+};
+
+// ===========================================================================
+// RailFx: a rail-gun shot's trace. A straight pink-white beam from the barrel
+// to where the shot ended, that flares wide and fades over `life` seconds.
+// ===========================================================================
+const RailFx = {
+  list: [], life: 0.45,
+  init() {
+    const geo = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true); geo.translate(0, 0.5, 0);   // a unit tube from y = 0 to 1
+    for (let k = 0; k < 3; k++) {
+      const core = new THREE.MeshBasicMaterial({ color: new THREE.Color(4, 3, 3.8), toneMapped: false, transparent: true, depthWrite: false });
+      const sheath = new THREE.MeshBasicMaterial({ color: new THREE.Color(...SPARK_RAIL), toneMapped: false, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
+      const g = new THREE.Group(), c = new THREE.Mesh(geo, core), sh = new THREE.Mesh(geo, sheath); g.add(c, sh); g.visible = false; scene.add(g);
+      this.list.push({ g, c, sh, t: 9 });
+    }
+  },
+  fire(a, b) {
+    const q = this.list.find((x) => x.t >= this.life) || this.list[0], d = new V3().subVectors(b, a), len = d.length();
+    q.t = 0; q.g.position.copy(a); q.g.quaternion.setFromUnitVectors(UP, d.normalize()); q.len = len;
+    // a crackle of sparks every few metres along the trace
+    for (let s = 3; s < len; s += 4) { const p = a.clone().addScaledVector(d, s); Sparks.burst(p.x, p.y, p.z, 1, SPARK_RAIL, 2.5); }
+  },
+  tick(dt) { for (const q of this.list) if (q.t < this.life) q.t += dt; },
+  sync() {
+    for (const q of this.list) {
+      const u = q.t / this.life; q.g.visible = u < 1; if (u >= 1) continue;
+      q.g.scale.set(1, q.len, 1);
+      q.c.scale.set(0.09 * (1 - u), 1, 0.09 * (1 - u)); q.c.material.opacity = 1 - u;
+      const w = 0.25 + u * 0.9; q.sh.scale.set(w, 1, w); q.sh.material.opacity = 0.55 * (1 - u) * (1 - u);
+    }
+  },
+  live() { return this.list.filter((q) => q.t < this.life).length; },
+};
+
+// ===========================================================================
 // Combat: one attack path for every weapon. Players reach it through `input`
 // (and __rb.fire); hits land in hitRobot / hurtMech.
 // ===========================================================================
 function startAttack(m, w) {
   const W = WEAPON[w]; if (!W || m.state === 'down') return false;   // a powered-down mech can't fire
+  if (!Game.unlocked.has(w)) return false;                          // a locked weapon can't fire
   m.cool = W.cool;
   if (w === 'gun') {
     shoot(m);
@@ -1350,6 +1504,9 @@ function startAttack(m, w) {
     m.burstN = (m.burstN || 0) + 1;
     if (m.burstN >= W.burst) { m.cool = W.rest; m.burstN = 0; }
   }
+  else if (w === 'em') emPulse(m);
+  // the rail gun charges first (combatTick fires it), and rests after
+  else if (w === 'rail') { m.charge = { t: 0 }; m.cool = W.charge + W.cool; if (!Game.manual) Sfx.railCharge(); }
   else { m.swing = { w, t: 0, struck: false }; if (!Game.manual) Sfx.swing(); }
   return true;
 }
@@ -1365,29 +1522,90 @@ function combatTick(m, dt) {
     if (!sw.struck && sw.t >= W.strike) { sw.struck = true; meleeStrike(m, sw.w); }
     if (sw.t >= W.dur) m.swing = null;
   }
-  if (m.input.attack && m.cool <= 0 && !m.swing) startAttack(m, m.input.weapon);
+  // the rail gun charging: pink sparks gather at the cannon's barrels, then it fires
+  const ch = m.charge;
+  if (ch) {
+    ch.t += dt;
+    if (Game.ticks % 3 === 0) { const g = gunPose(m), p = g.from.clone().addScaledVector(g.f, 3.4); Sparks.burst(p.x, p.y, p.z, 2, SPARK_RAIL, 1 + 3 * ch.t / WEAPON.rail.charge); }
+    if (ch.t >= WEAPON.rail.charge) { m.charge = null; railShot(m); }
+  }
+  if (m.input.attack && m.cool <= 0 && !m.swing && !m.charge) startAttack(m, m.input.weapon);
 }
-// The cannon sits on the right arm. The shot starts at the shoulder (so a
-// point-blank shot still sweeps through a robot in its face) and locks onto a
-// robot close to the torso aim: kids get to hit what they point at.
-function shoot(m) {
-  m.barrel = (m.barrel || 0) ^ 1;
+// The cannon's shoulder, facing and side vectors (side: + right arm, - left arm)
+function gunPose(m, side = 2.4) {
   const yaw = m.torsoYaw, fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
-  const side = 2.4 + (m.barrel ? 0.2 : -0.2);
   const from = new V3(m.pos.x + rx * side + fx * 0.5, m.pos.y + 4.4, m.pos.z + rz * side + fz * 0.5);
-  const cp = Math.cos(m.aimPitch), dir = new V3(fx * cp, Math.sin(m.aimPitch), fz * cp);
+  return { from, f: new V3(fx, 0, fz), rx, rz, fx, fz, yaw };
+}
+// Where a shot from `from` goes: along the torso aim, locked onto a glitched robot close to
+// it (within AIM_ASSIST and `range`): kids get to hit what they point at.
+function aimDir(m, from, range) {
+  const yaw = m.torsoYaw, cp = Math.cos(m.aimPitch), dir = new V3(-Math.sin(yaw) * cp, Math.sin(m.aimPitch), -Math.cos(yaw) * cp);
   let best = AIM_ASSIST;
   for (const r of Game.robots) {
     if (r.state !== 'glitched') continue;
     const T = ROBOT_TYPES[r.type], c = new V3(r.pos.x, r.pos.y + T.hitY, r.pos.z), dx = c.x - m.pos.x, dz = c.z - m.pos.z;
     const off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - yaw));
-    if (off < best && Math.hypot(dx, dz) < WEAPON.gun.range) { best = off; dir.subVectors(c, from).normalize(); }
+    if (off < best && Math.hypot(dx, dz) < range) { best = off; dir.subVectors(c, from).normalize(); }
   }
-  Bullets.fire(from, dir, m);
+  return dir;
+}
+// The cannon sits on the right arm. The shot starts at the shoulder (so a
+// point-blank shot still sweeps through a robot in its face).
+function shoot(m) {
+  m.barrel = (m.barrel || 0) ^ 1;
+  const { from, rx, rz, fx, fz } = gunPose(m, 2.4 + (m.barrel ? 0.2 : -0.2));
+  Bullets.fire(from, aimDir(m, from, WEAPON.gun.range), m);
   m.flash = MUZZLE.flash; m.recoil = 1;
   Impacts.eject(from, rx, rz, fx, fz);
   m.human?.rig.recoil(MUZZLE.camKick); m.human?.rig.kick(0.1);
   if (!Game.manual) Sfx.shot();
+}
+// The electromagnetic pulse leaves the left-arm pod: a crackling ball (Bullets 'em', drawn by Pulses)
+function emPulse(m) {
+  const { from } = gunPose(m, -2.4), dir = aimDir(m, from, WEAPON.em.range);
+  Bullets.fire(from, dir, m, 'em');
+  const p = from.clone().addScaledVector(dir, 2.4); Sparks.burst(p.x, p.y, p.z, 10, SPARK_ZAP, 4);
+  m.human?.rig.kick(0.12);
+  if (!Game.manual) Sfx.emPulse();
+}
+// Where a rail shot ends: marched a metre at a time (one long segment would only check the
+// ground at its far end). A rock or a tree stops it; the ground only once the line is more
+// than `skim` metres under it, so a shot down at a low robot skims the bumps of the meadow.
+function railLanding(from, dir, range, skim = 1) {
+  const p = from.clone(), step = dir.clone();
+  for (let d = 0; d < range; d++) {
+    const hit = Bullets.landing(p, step);
+    if (hit && hit.kind !== 'ground') return hit;
+    p.add(step);
+    if (p.y < groundH(p.x, p.z) - skim) return { kind: 'ground', p: p.clone() };
+  }
+  return null;
+}
+// The rail gun: one straight line from the cannon. It passes through every robot along it
+// (squadmates excepted) and stops at the ground, a rock or a tree, or at its range.
+function railShot(m) {
+  const W = WEAPON.rail, { from } = gunPose(m), dir = aimDir(m, from, W.range);
+  const land = railLanding(from, dir, W.range);
+  const end = land ? land.p : from.clone().addScaledVector(dir, W.range), len = from.distanceTo(end);
+  const hits = [], c = new V3();
+  for (const r of Game.robots) {
+    if (r.state === 'ally') continue;
+    const T = ROBOT_TYPES[r.type]; c.set(r.pos.x, r.pos.y + T.hitY, r.pos.z);
+    const t = c.clone().sub(from).dot(dir);
+    if (t < 0 || t > len) continue;
+    const at = from.clone().addScaledVector(dir, t);
+    if (at.distanceTo(c) > T.hitR) continue;
+    hits.push({ r, t, at });
+  }
+  hits.sort((a, b) => a.t - b.t);
+  for (const q of hits) hitRobot(q.r, W.dmg, 'rail', dir.x, dir.z, q.at);
+  if (land) Impacts.at(land.kind, land.p, dir);
+  RailFx.fire(from.clone().addScaledVector(dir, 3.2), end);
+  Game.lastRail = { hits: hits.map((q) => q.r.id), len: Math.round(len * 10) / 10, end: land ? land.kind : 'range' };
+  m.flash = MUZZLE.flash * 2; m.recoil = 1;
+  m.human?.rig.recoil(1); m.human?.rig.kick(0.6);
+  if (!Game.manual) Sfx.rail();
 }
 function meleeStrike(m, w) {
   const W = WEAPON[w], face = w === 'kick' ? m.legHeading : m.torsoYaw;
@@ -1403,23 +1621,44 @@ function meleeStrike(m, w) {
   if (any) m.human?.rig.kick(w === 'kick' ? 0.8 : 0.5);
 }
 // A real hit from a weapon: counts it, knocks the robot back, throws sparks, then hurts it
-// w is a WEAPON key, or a ROBOT_HITS key when a squadmate lands it ('snipe', 'stomp')
+// w is a WEAPON key, or a ROBOT_HITS key when a squadmate lands it ('snipe', 'stomp').
+// An electromagnetic hit also loads shock; enough shock shuts the robot down (shockRobot).
 function hitRobot(r, dmg, w, dx, dz, at) {
-  const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe';
+  const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe' || w === 'rail';
   r.hits[w] = (r.hits[w] || 0) + 1;
   r.push.x += dx / L * W.push; r.push.z += dz / L * W.push;
   // a round only warms the armour a little, so a burst can't wash out the glitch flicker
-  r.hitFlash = round ? Math.min(0.45, r.hitFlash + 0.2) : 1;
+  r.hitFlash = round || w === 'em' ? Math.min(0.45, r.hitFlash + 0.2) : 1;
+  const k = loud(r.pos);
+  if (w === 'em') {
+    Sparks.burst(at.x, at.y, at.z, 22, SPARK_ZAP, 7); Impacts.flash(at, 1.4);
+    if (k > 0) Sfx.emHit(k);
+    hurtRobot(r, dmg, w);
+    shockRobot(r, W.shock);
+    return;
+  }
   if (round) Impacts.at('robot', at, new V3(dx, 0, dz), r);
   else Sparks.burst(at.x, at.y, at.z, 18, SPARK_HOT, 9);
-  const k = loud(r.pos); if (k > 0) (round ? Sfx.ping(k) : Sfx.whack(k));
+  if (k > 0) (round ? Sfx.ping(k) : Sfx.whack(k));
   hurtRobot(r, dmg, w);
 }
+// r.harm: the damage it has taken since it last booted, by weapon (sets its faults when it goes down)
 function hurtRobot(r, amount, w) {
   if (r.state === 'down') return false;
+  const dealt = Math.min(Math.max(0, amount), r.health);
   r.health = Math.max(0, r.health - amount); r.lastHitBy = w;
+  r.harm[w] = (r.harm[w] || 0) + dealt;
   r.ai.alert = ROBOT.alert;                     // a hit wakes a roaming robot
   if (r.health <= 0) powerDown(r);
+  return true;
+}
+// Electromagnetic shock: loads up with each pulse and drains away (robotTick). At
+// ROBOT.shockMax a glitched robot's electronics cut out and it powers down mostly intact.
+function shockRobot(r, amount) {
+  if (r.state !== 'glitched') return false;
+  r.shock = Math.min(ROBOT.shockMax, r.shock + amount);
+  if (r.shock < ROBOT.shockMax) return false;
+  powerDown(r, 'em');
   return true;
 }
 // A glitched Sniper's round reaches a player's mech: sparks off the plating, then the hit
@@ -1468,7 +1707,7 @@ const partFor = (area) => Object.keys(PARTS).find((id) => PARTS[id].fixes === ar
 // nothing, any repair it was doing is dropped and glitched robots leave it be.
 function powerDownMech(m) {
   m.state = 'down'; m.downT = PLAYER.downTime; m.downs++;
-  m.input.throttle = m.input.turn = 0; m.input.attack = false; m.swing = null; m.burstN = 0;
+  m.input.throttle = m.input.turn = 0; m.input.attack = false; m.swing = null; m.burstN = 0; m.charge = null;
   const h = m.human;
   if (h) { cancelRepair(h); if (h.idx === 0 && FixUI.mode) FixUI.close(); }
   Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 50, SPARK_HOT, 10);
@@ -1722,7 +1961,10 @@ function spawnRobot(type, x, z) {
   Object.assign(r, {
     id: Game.nextId++, type, spec: T.spec, health: T.health, maxHealth: T.health, state: 'glitched',
     t: 0, downT: 0, downs: 0, reboots: 0, glow: 3, glowMode: 'flicker', flickT: 0, sparkT: Math.random() * 0.5, hitFlash: 0,
-    hits: { gun: 0, punch: 0, kick: 0 },
+    hits: { gun: 0, punch: 0, kick: 0, em: 0, rail: 0 },
+    // how it's being beaten: damage since it last booted by weapon, electromagnetic shock (0..ROBOT.shockMax),
+    // and once it's down, what beat it ('em' = shut down by shock, else the last hit's weapon) and its faults
+    harm: {}, shock: 0, beatenBy: null, faults: null,
     ai: { think: Math.random() * 0.05, mode: 'stalk', t: 0.6, alert: 0 },
     wires: makeWires(REPAIR.wires), wrongWires: 0, repairBy: null, name: null, leader: null,
     parts: T.parts.slice(),        // the parts still on it, offered when it's taken apart
@@ -2142,8 +2384,14 @@ function allyBouncer(r, dt) {
   allyAI(r, dt);
 }
 
-function powerDown(r) {
+// how: 'em' when electromagnetic shock shut it down (its health is left as it was); otherwise it was
+// beaten to 0. Either way how it was beaten sets the faults its Quick Fix has to deal with.
+function powerDown(r, how) {
   r.state = 'down'; r.downT = ROBOT.downTime; r.downs++; r.ai.mode = 'off'; r.ai.aimT = 0;
+  r.beatenBy = how === 'em' ? 'em' : r.lastHitBy ?? null;
+  r.faults = faultsOf(r, how === 'em');
+  r.wires = makeWires(r.faults.wires, r.faults.burnt);
+  r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
   // beaten mid-hop: it drops out of the air
   if (r.air) { r.lift = Math.max(0, r.pos.y - groundH(r.pos.x, r.pos.z)); r.air = null; }
@@ -2154,11 +2402,22 @@ function powerDown(r) {
     if (!sw) Kits.drop(r);
     else if (!sw.kit && Game.robots.every((q) => q.swarm !== r.swarm || q.downs > 0)) { sw.kit = true; Kits.drop(r); }
   }
-  Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 40, SPARK_HOT, 10);
-  const k = loud(r.pos); if (k > 0) Sfx.powerDown(k);
+  const k = loud(r.pos);
+  if (how === 'em') { Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 50, SPARK_ZAP, 9); if (k > 0) Sfx.emDown(k); }
+  else { Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 40, SPARK_HOT, 10); if (k > 0) Sfx.powerDown(k); }
+}
+// The faults a downed robot leaves, from how it was beaten (FAULTS): wires to connect and burnt plugs
+function faultsOf(r, em) {
+  let wear = 0;
+  for (const [w, d] of Object.entries(r.harm)) wear += d * (FAULTS.weight[w] ?? 1) / r.maxHealth;
+  if (em) wear *= FAULTS.em;
+  const wires = clamp(1 + Math.round(wear * 2), 1, WIRE_COLORS.length);
+  const burnt = Math.min(wires, wear >= FAULTS.burnt[1] ? 2 : wear >= FAULTS.burnt[0] ? 1 : 0);
+  return { wires, burnt, wear: Math.round(wear * 1000) / 1000, by: r.beatenBy, health: r.health };
 }
 function reboot(r) {
   r.wires.link.fill(-1);
+  r.harm = {}; r.shock = 0; r.faults = null; r.beatenBy = null;   // a fresh start: the next beating sets new faults
   r.state = 'glitched'; r.health = Math.round(r.maxHealth * ROBOT.rebootHealth); r.reboots++;
   r.ai.mode = 'recover'; r.ai.t = 1.2; r.flickT = 0;
   Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 30, SPARK_ZAP, 8);
@@ -2175,12 +2434,15 @@ function reboot(r) {
 // is open, h.repair = { r, kind: 'fix' | 'parts', ... } and the robot's clock holds.
 // ===========================================================================
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-// plugs[i] and ports[j] are indexes into WIRE_COLORS; link[i] is the port plug i is in (-1 = loose)
-function makeWires(n) {
+// plugs[i] and ports[j] are indexes into WIRE_COLORS; link[i] is the port plug i is in (-1 = loose).
+// burnt[i]: plug i is charred and won't go in until it's patched (patchWire); scrub[i]: taps left to
+// strip it clean without a part.
+function makeWires(n, burnt = 0) {
   const plugs = shuffle(WIRE_COLORS.map((_, i) => i)).slice(0, n);
   let ports = shuffle(plugs.slice());
-  for (let t = 0; t < 10 && ports.every((c, i) => c === plugs[i]); t++) ports = shuffle(ports);   // never straight across
-  return { plugs, ports, link: plugs.map(() => -1) };
+  for (let t = 0; t < 10 && n > 1 && ports.every((c, i) => c === plugs[i]); t++) ports = shuffle(ports);   // never straight across
+  const bad = new Set(shuffle(plugs.map((_, i) => i)).slice(0, burnt));
+  return { plugs, ports, link: plugs.map(() => -1), burnt: plugs.map((_, i) => bad.has(i)), scrub: plugs.map(() => FAULTS.scrub) };
 }
 function randomName() {
   const used = new Set(Game.robots.map((r) => r.name));
@@ -2214,18 +2476,46 @@ function chooseFor(h, r, choice, name, picks) {
     return { ok: true };
   }
   if (choice !== 'fix') return { ok: false, why: 'fix or parts' };
-  if (Game.squad.length >= REPAIR.squadMax) return { ok: false, why: 'squad full' };
   if (h.repair) cancelRepair(h);
   const typed = typeof name === 'string' && name.trim() !== '';
-  h.repair = { r, kind: 'fix', name: typed ? name.trim().slice(0, 12) : randomName(), askName: !typed };
+  h.repair = { r, kind: 'fix', name: typed ? name.trim().slice(0, 12) : randomName(), askName: !typed, home: null };
   r.repairBy = h; r.wires.link.fill(-1);
+  // the squad is full: first ask which squadmate goes home (kind 'home'; the robot's clock holds)
+  if (Game.squad.length >= REPAIR.squadMax) {
+    h.repair.kind = 'home'; h.repair.cur = 0;
+    if (h.idx === 0) FixUI.openHome(r);
+    return { ok: true, ask: 'home' };
+  }
   if (h.idx === 0) FixUI.openWires(r);
   return { ok: true };
+}
+// Pick the squadmate who goes home to make room, then wire the new robot up. It only goes
+// home when the fix is done (fixRobot): backing out of the Quick Fix keeps the squad as it was.
+function chooseHome(h, mate) {
+  const rp = h.repair;
+  if (!rp || rp.kind !== 'home') return { ok: false, why: 'not asking' };
+  if (!mate || !Game.squad.includes(mate) || (mate.leader && mate.leader !== h)) return { ok: false, why: 'not in squad' };
+  rp.kind = 'fix'; rp.home = mate;
+  if (!Game.manual) Sfx.click();
+  if (h.idx === 0) FixUI.openWires(rp.r);
+  return { ok: true, home: mate.id };
+}
+// A squadmate goes home: it beams away in a column of light and leaves the squad (and the
+// meadow); the squadmates left close up their places beside the leader.
+function sendHome(r) {
+  const i = Game.squad.indexOf(r); if (i < 0) return false;
+  Game.squad.splice(i, 1);
+  Game.squad.forEach((q, k) => { q.ai.slot = k; });
+  for (let y = 0; y < 10; y += 2) Sparks.burst(r.pos.x, r.pos.y + y, r.pos.z, 10, SPARK_ZAP, 3);
+  Impacts.flash(new V3(r.pos.x, r.pos.y + 3, r.pos.z), 4);
+  removeRobot(r);
+  if (!Game.manual) Sfx.home();
+  return true;
 }
 function cancelRepair(h) {
   const rp = h.repair; if (!rp) return;
   rp.r.repairBy = null; h.repair = null;
-  if (h.idx === 0 && (FixUI.mode === 'wires' || FixUI.mode === 'parts')) FixUI.close();
+  if (h.idx === 0 && (FixUI.mode === 'wires' || FixUI.mode === 'parts' || FixUI.mode === 'home')) FixUI.close();
 }
 // In the picker: tap a part to pick it, tap again to put it back. A pick past
 // the robot's take limit (takeMaxOf: 2, or 1 for a drone) is refused (buzz, the tiles shake).
@@ -2246,6 +2536,11 @@ function connectWire(h, r, plug, port) {
   if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
   if (!(plug >= 0 && plug < W.plugs.length && port >= 0 && port < W.ports.length)) return 'no such wire';
   if (W.link[plug] >= 0 || W.link.includes(port)) return 'taken';
+  if (W.burnt[plug]) {                                   // a charred plug won't go in: patch it first
+    Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 8, SPARK_HOT, 4);
+    if (!Game.manual) Sfx.buzz();
+    return 'burnt';
+  }
   if (W.plugs[plug] !== W.ports[port]) {
     r.wrongWires++;
     Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 12, SPARK_ZAP, 5);
@@ -2258,8 +2553,31 @@ function connectWire(h, r, plug, port) {
   if (W.link.every((p) => p >= 0)) fixRobot(h, r);
   return 'ok';
 }
+// A burnt plug: a 🔌 from the bag swaps in a new wire at once ('new'); with no 🔌, each tap
+// strips some char off ('scrub', FAULTS.scrub taps) until it's clean ('clean'). Either way the
+// plug then goes in like any other.
+function patchWire(h, r, plug) {
+  const W = r.wires;
+  if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
+  if (!(plug >= 0 && plug < W.plugs.length)) return 'no such wire';
+  if (!W.burnt[plug]) return 'not burnt';
+  if (Game.bag.wiring > 0) {
+    Game.bag.wiring--; if (!Game.bag.wiring) delete Game.bag.wiring;
+    W.burnt[plug] = false;
+    Sparks.burst(r.pos.x, r.pos.y + 3.2, r.pos.z, 14, SPARK_MEND, 4);
+    if (!Game.manual) Sfx.mendParts();
+    return 'new';
+  }
+  W.scrub[plug]--;
+  Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 6, SPARK_HOT, 3);
+  if (W.scrub[plug] > 0) { if (!Game.manual) Sfx.scrub(); return 'scrub'; }
+  W.burnt[plug] = false;
+  if (!Game.manual) Sfx.plug();
+  return 'clean';
+}
 function fixRobot(h, r) {
   const rp = h.repair; h.repair = null; r.repairBy = null;
+  if (rp.home) sendHome(rp.home);                        // the squad was full: the one picked goes home now
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
   r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
@@ -2293,15 +2611,27 @@ function takeParts(h, r, picks) {
   if (!picks.every((id) => r.parts.includes(id))) return { ok: false, why: 'not on this robot' };
   if (r.repairBy) cancelRepair(r.repairBy);
   for (const id of picks) Game.bag[id] = (Game.bag[id] || 0) + 1;
-  Game.robots.splice(Game.robots.indexOf(r), 1);
-  scene.remove(r.model.root);
-  // its own materials, every mesh geometry (each robot builds fresh ones) and its sprite materials;
-  // the cached mat() materials and three's shared sprite geometry stay
-  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose();
-  md.root.traverse((o) => { if (o.isMesh) o.geometry.dispose(); else if (o.isSprite) o.material.dispose(); });
+  // a part that `unlocks` a weapon (the Sniper's 🔭 scope: the rail gun) makes it selectable
+  const unlocked = picks.map((id) => PARTS[id].unlocks).filter((w) => w && WEAPON[w] && !Game.unlocked.has(w));
+  for (const w of unlocked) unlockWeapon(w);
+  removeRobot(r);
   Sparks.burst(r.pos.x, r.pos.y + 2.5, r.pos.z, 45, SPARK_HOT, 8);
   if (!Game.manual) Sfx.salvage();
-  return { ok: true, took: picks.slice(), scrapped: r.parts.filter((id) => !picks.includes(id)) };
+  return { ok: true, took: picks.slice(), scrapped: r.parts.filter((id) => !picks.includes(id)), unlocked };
+}
+function unlockWeapon(w) {
+  Game.unlocked.add(w);
+  updateHud.newWpn = w;                                  // its slot pulses on the HUD
+  if (!Game.manual) Sfx.newWeapon();
+}
+// Take a robot out of the meadow for good (taken apart, or sent home), and free what it built:
+// its own materials, every mesh geometry (each robot builds fresh ones) and its sprite materials;
+// the cached mat() materials and three's shared sprite geometry stay
+function removeRobot(r) {
+  const i = Game.robots.indexOf(r); if (i >= 0) Game.robots.splice(i, 1);
+  scene.remove(r.model.root);
+  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose();
+  md.root.traverse((o) => { if (o.isMesh) o.geometry.dispose(); else if (o.isSprite) o.material.dispose(); });
 }
 // A squadmate's brain: the same 20 Hz think and the same input fields as a
 // glitched robot, but it walks to its slot beside and behind its leader.
@@ -2376,6 +2706,11 @@ function robotTick(r, dt) {
     r.pos.y += r.lift;
   }
   robotGlow(r, dt);
+  // electromagnetic shock drains away; while it's loaded the robot crackles blue
+  if (r.shock > 0) {
+    r.shock = Math.max(0, r.shock - ROBOT.shockFade * dt);
+    if (Math.random() < r.shock / ROBOT.shockMax * 0.5) Sparks.burst(r.pos.x + (Math.random() - 0.5) * 2, r.pos.y + ROBOT_TYPES[r.type].hitY + (Math.random() - 0.5) * 2, r.pos.z + (Math.random() - 0.5) * 2, 2, SPARK_ZAP, 3);
+  }
   // sparks: a glitched robot spits them often, a downed one now and then
   r.sparkT -= dt;
   if (r.sparkT <= 0) {
@@ -2552,7 +2887,7 @@ function syncRobotModel(r, dt) {
   const f = r.health / r.maxHealth, up = r.state !== 'down';
   md.back.visible = up; md.fill.visible = up && f > 0;
   if (f > 0) { md.fill.scale.x = md.barW * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
-  const icon = mode === 'repair' ? (r.repairBy.repair?.kind === 'parts' ? '🔩' : '🔧') : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️')
+  const icon = mode === 'repair' ? ({ parts: '🔩', home: '🏠' }[r.repairBy.repair?.kind] || '🔧') : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️')
     : r.state === 'glitched' && T.hot(r) ? '❗' : r.state === 'ally' && mode === 'scout' ? '🔍' : null;
   md.icon.visible = !!icon;
   if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = md.iconY + Math.sin(r.t * 6) * 0.15; }
@@ -2604,9 +2939,19 @@ function bouncerPose(r, md, dt, mode) {
   md.top.rotation.z = damp(md.top.rotation.z, down ? 0.5 : 0, 6, dt);
 }
 
+// Next / previous unlocked weapon (wheel, pad LB / RB)
 function cycleWeapon(h, d) {
-  h.weapon = WEAPONS[(WEAPONS.indexOf(h.weapon) + d + WEAPONS.length) % WEAPONS.length];
+  const n = WEAPONS.length; let i = WEAPONS.indexOf(h.weapon);
+  for (let k = 0; k < n; k++) { i = (i + d + n) % n; if (Game.unlocked.has(WEAPONS[i])) break; }
+  h.weapon = WEAPONS[i];
   if (!Game.manual) Sfx.click();
+}
+// Pick weapon w (keys, a tap on its slot): refused, with a buzz, while it's locked
+function selectWeapon(h, w) {
+  if (!h || !WEAPON[w]) return false;
+  if (!Game.unlocked.has(w)) { if (!Game.manual) Sfx.buzz(); return false; }
+  h.weapon = w; if (!Game.manual) Sfx.click();
+  return true;
 }
 
 function gatherInput(dt) {
@@ -2617,11 +2962,15 @@ function gatherInput(dt) {
     const pad = readPad(h.idx);
     if (pad && pad.startP) setPause(!Game.paused);
     if (pad && pad.aP && Game.paused) startPlay();
-    sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) { h.weapon = WEAPONS[w]; if (!Game.manual) Sfx.click(); } });
+    sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) selectWeapon(h, WEAPONS[w]); });
     if (pad && (pad.lbP || pad.rbP)) cycleWeapon(h, pad.rbP ? 1 : -1);
     const picking = h.repair?.kind === 'parts', mending = h.idx === 0 && FixUI.mode === 'mend';
+    const wiring = h.idx === 0 && FixUI.mode === 'wires', asking = h.repair?.kind === 'home';
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
-    if (pad) { turn += pad.lx - (picking || mending ? pad.dpadX : 0); thr -= pad.ly; }   // in the picker and the mend panel the d-pad moves between parts, the stick still steers
+    // in the picker, the mend panel and the send-home panel the d-pad moves between tiles (◀ ▶), and in
+    // the Quick Fix between plugs and ports (▲ ▼); the stick still steers
+    if (pad) { turn += pad.lx - (picking || mending || asking ? pad.dpadX : 0); thr -= pad.ly - (wiring ? pad.dpadY : 0); }
+    let padB = false;   // B was used by a panel this frame (so it doesn't also open the bag)
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
     h.ci.camY = pad ? -pad.ry : 0;
     h.rig.yaw = wrapAngle(h.rig.yaw - h.ci.camX * 1.8 * dt);
@@ -2640,6 +2989,18 @@ function gatherInput(dt) {
     if (pr) {
       if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
       else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
+    } else if (asking && pad) {
+      // who goes home: d-pad ◀ ▶ moves between squadmates, A sends that one home, B backs out
+      const rp = h.repair, n = Game.squad.length;
+      if (n && (pad.leftP || pad.rightP)) rp.cur = (rp.cur + (pad.rightP ? 1 : -1) + n) % n;
+      if (pad.aP && n) chooseHome(h, Game.squad[rp.cur % n]);
+      else if (pad.bP) { padB = true; cancelRepair(h); if (h.idx === 0) FixUI.relock(); }
+      if (h.idx === 0 && FixUI.mode === 'home') FixUI.drawHome();
+    } else if (wiring && pad) {
+      // the Quick Fix: d-pad ▲ ▼ moves, A picks up a plug (or patches a burnt one) then A on a port
+      // plugs it in; B puts the plug back down, or backs out
+      if (pad.bP) { padB = true; if (FixUI.sel >= 0) { FixUI.sel = -1; FixUI.pad = 'plug'; FixUI.draw(); } else FixUI.dismiss(); }
+      else FixUI.padWires(pad);
     } else if (picking) {
       // the parts picker: d-pad ◀ ▶ moves, A picks, Y (or the 🔩 key) takes them, B backs out
       const rp = h.repair, n = rp.r.parts.length;
@@ -2659,7 +3020,7 @@ function gatherInput(dt) {
     }
     if (h.idx === 0 && FixUI.mode === 'mend') FixUI.drawMend();
     // the parts bag: 🎒 key or pad Back (or B when no panel is open)
-    if (h.idx === 0 && !picking && !mending && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
+    if (h.idx === 0 && !picking && !mending && !asking && !wiring && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && !padB && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
   }
   mouse.dx = mouse.dy = 0;
   keysPressed.clear();
@@ -2691,6 +3052,7 @@ function tick(dt) {
   for (const h of Game.humans) playerTick(h, dt);
   Sparks.tick(dt);
   Impacts.tick(dt);
+  RailFx.tick(dt);
   Game.hurtFlash = Math.max(0, Game.hurtFlash - dt * 2.5);
 }
 
@@ -2706,6 +3068,7 @@ const FixUI = {
     const board = $('board');
     board.addEventListener('pointerdown', (e) => {
       const plug = e.target.closest('.plug'), port = e.target.closest('.port');
+      if (plug && plug.classList.contains('burnt')) { e.preventDefault(); this.patch(+plug.dataset.plug); return; }   // a tap patches a burnt plug
       if (plug && !plug.classList.contains('done')) {
         e.preventDefault();
         this.drag = { plug: +plug.dataset.plug, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
@@ -2734,19 +3097,64 @@ const FixUI = {
     $('mendBtn').addEventListener('click', (e) => { e.stopPropagation(); this.toggleMend(); });
     $('mendX').addEventListener('click', () => this.dismiss());
     $('mendTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.useMend(Game.humans[0], t.dataset.part); });
+    $('homeTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) chooseHome(Game.humans[0], Game.squad.find((q) => q.id === +t.dataset.id)); });
+    $('homeX').addEventListener('click', () => this.dismiss());
+    // the weapon slots on the HUD: a tap picks one (a locked one buzzes)
+    $('weapons').addEventListener('click', (e) => { const b = e.target.closest('.wpn'); if (b) { e.stopPropagation(); selectWeapon(Game.humans[0], b.dataset.w); } });
   },
   fromPrompt(choice) { const h = Game.humans[0], r = h && promptRobot(h); if (r) chooseFor(h, r, choice); },
   icon(ci, fill, stroke) { return `<svg viewBox="0 0 40 40"><g fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round">${SHAPE_SVG[WIRE_COLORS[ci].shape]}</g></svg>`; },
-  show(id) { for (const p of ['fix', 'namer', 'picker', 'bag', 'mend']) $(p).classList.toggle('on', id === p); },
+  show(id) { for (const p of ['fix', 'namer', 'picker', 'bag', 'mend', 'home']) $(p).classList.toggle('on', id === p); },
   // a round part tile: its icon on its colour
-  tile(id, cls = '') { const P = PARTS[id]; return `<button class="tile ${cls}" data-part="${id}" aria-label="${id}" style="background:${P.hex}">${P.icon}</button>`; },
+  // a part that unlocks a weapon wears that weapon's icon (the 🔭 scope: ☄️)
+  tile(id, cls = '') { const P = PARTS[id], u = P.unlocks && WEAPON[P.unlocks] ? `<span class="unl">${WEAPON[P.unlocks].icon}</span>` : ''; return `<button class="tile ${cls}" data-part="${id}" aria-label="${id}" style="background:${P.hex}">${P.icon}${u}</button>`; },
   openWires(r) {
-    this.r = r; this.mode = 'wires'; this.sel = -1; this.drag = null;
-    const W = r.wires, C = WIRE_COLORS;
-    $('plugs').innerHTML = W.plugs.map((ci, i) => `<div class="plug" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${this.icon(ci, '#fff', '#14182a')}</div>`).join('');
-    $('ports').innerHTML = W.ports.map((ci, j) => `<div class="port" data-port="${j}" data-color="${C[ci].color}" style="border-color:${C[ci].hex};color:${C[ci].hex}">${this.icon(ci, C[ci].hex, 'none')}</div>`).join('');
-    this.show('fix'); this.draw();
+    this.mode = 'wires'; this.r = r; this.sel = -1; this.drag = null; this.pad = 'plug'; this.cur = 0;   // mode first, so freeing the mouse isn't a pause
+    // beside the 🔧🤖: what beat it (🧲 = shut down by the electromagnet, so there's little to fix)
+    $('fixHow').textContent = r.beatenBy && WEAPON[r.beatenBy] ? WEAPON[r.beatenBy].icon : '';
+    this.show('fix'); this.renderWires();
     if (document.pointerLockElement) document.exitPointerLock();
+  },
+  // the plugs and ports. A burnt plug is charred, with a badge: 🔌 (the bag has a new wire) or ✂️ and the taps left
+  renderWires() {
+    const W = this.r.wires, C = WIRE_COLORS;
+    $('plugs').innerHTML = W.plugs.map((ci, i) => {
+      const b = W.burnt[i] ? `<b class="fixb">${Game.bag.wiring > 0 ? PARTS.wiring.icon : '✂️<i>' + W.scrub[i] + '</i>'}</b>` : '';
+      return `<div class="plug${W.burnt[i] ? ' burnt' : ''}" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${this.icon(ci, '#fff', '#14182a')}${b}</div>`;
+    }).join('');
+    $('ports').innerHTML = W.ports.map((ci, j) => `<div class="port" data-port="${j}" data-color="${C[ci].color}" style="border-color:${C[ci].hex};color:${C[ci].hex}">${this.icon(ci, C[ci].hex, 'none')}</div>`).join('');
+    this.draw();
+  },
+  patch(i) {
+    const res = patchWire(Game.humans[0], this.r, i);
+    if (this.mode === 'wires') this.renderWires();
+    return res;
+  },
+  // the Quick Fix on a gamepad: ▲ ▼ moves over the plugs (or, holding one, the ports); A picks up,
+  // patches a burnt plug, or plugs in
+  padWires(pad) {
+    const W = this.r?.wires; if (!W) return;
+    const n = this.pad === 'port' ? W.ports.length : W.plugs.length;
+    if (pad.upP || pad.downP) { this.cur = (this.cur + (pad.downP ? 1 : -1) + n) % n; this.draw(); }
+    if (!pad.aP) return;
+    if (this.pad === 'port') { const i = this.sel, j = this.cur; this.sel = -1; this.pad = 'plug'; this.cur = Math.max(0, i); this.tryWire(i, j); return; }
+    const i = this.cur % W.plugs.length;
+    if (W.burnt[i]) { this.patch(i); return; }
+    if (W.link[i] >= 0) return;
+    this.sel = i; this.pad = 'port'; this.cur = 0; this.draw();
+  },
+  // squad full: every squadmate as a tile; tap the one that goes home. The new robot is shown in the top.
+  openHome(r) {
+    this.mode = 'home'; this.r = r; this.homeKey = null;   // mode first, so freeing the mouse isn't a pause
+    $('homeNew').textContent = '❓  ➕' + ROBOT_TYPES[r.type].icon;
+    this.show('home'); this.drawHome();
+    if (document.pointerLockElement) document.exitPointerLock();
+  },
+  drawHome() {
+    if (this.mode !== 'home') return;
+    const rp = Game.humans[0]?.repair, pad = padConnected(), cur = rp?.cur ?? 0;
+    const key = JSON.stringify([Game.squad.map((q) => q.id + q.name), pad && cur]); if (key === this.homeKey) return; this.homeKey = key;
+    $('homeTiles').innerHTML = Game.squad.map((q, i) => `<div class="homeTile"><button class="tile mate${pad && i === cur % Game.squad.length ? ' cur' : ''}" data-id="${q.id}" aria-label="${q.name}">${ROBOT_TYPES[q.type].icon}</button><span>${q.name}</span></div>`).join('');
   },
   openName(r) {
     this.r = r; this.mode = 'name'; this.drag = null;
@@ -2843,7 +3251,7 @@ const FixUI = {
   // nothing is taken), close the bag, or keep the name
   dismiss() {
     if (this.mode === 'name') { this.confirmName(); return; }
-    if (this.mode === 'wires' || this.mode === 'parts') cancelRepair(Game.humans[0]);
+    if (this.mode === 'wires' || this.mode === 'parts' || this.mode === 'home') cancelRepair(Game.humans[0]);
     this.close(); this.relock();
   },
   confirmName() {
@@ -2855,7 +3263,7 @@ const FixUI = {
   },
   tryWire(i, j) {
     const res = connectWire(Game.humans[0], this.r, i, j);
-    if (res === 'wrong') { const b = $('board'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
+    if (res === 'wrong' || res === 'burnt') { const b = $('board'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
     this.draw();
     return res;
   },
@@ -2880,6 +3288,9 @@ const FixUI = {
       if (j >= 0) svg += cable(this.centre(plugs[i], box), this.centre(ports[j], box), WIRE_COLORS[W.plugs[i]].hex);
     });
     [...ports].forEach((el, j) => el.classList.toggle('done', W.link.includes(j)));
+    // the gamepad's cursor, on a plug or (holding one) on a port
+    const pc = padConnected() ? (this.pad === 'port' ? ports : plugs)[this.cur] : null;
+    for (const el of [...plugs, ...ports]) el.classList.toggle('cur', el === pc);
     if (this.drag) svg += cable(this.centre(plugs[this.drag.plug], box), [this.drag.x - box.left, this.drag.y - box.top], WIRE_COLORS[W.plugs[this.drag.plug]].hex);
     $('wireSvg').innerHTML = svg;
   },
@@ -2890,7 +3301,8 @@ const SPEED_BARS = 8;
 function buildHud() {
   const el = $('speed');
   for (let i = 0; i < SPEED_BARS; i++) { const b = document.createElement('i'); b.style.height = (14 + i * 5) + 'px'; el.appendChild(b); }
-  WEAPONS.forEach((w, i) => { const d = document.createElement('div'); d.className = 'wpn'; d.dataset.w = w; d.innerHTML = `${WEAPON[w].icon}<small>${i + 1}</small>`; $('weapons').appendChild(d); });
+  // one slot per weapon, keys 1-5; a locked one wears a 🔒, the rail gun a ring that fills as it charges
+  WEAPONS.forEach((w, i) => { const d = document.createElement('button'); d.className = 'wpn'; d.dataset.w = w; d.setAttribute('aria-label', w); d.innerHTML = `${WEAPON[w].icon}<small>${i + 1}</small>${WEAPON[w].locked ? '<span class="lk">🔒</span>' : ''}${w === 'rail' ? '<span class="chg"></span>' : ''}`; $('weapons').appendChild(d); });
 }
 function updateHud() {
   const h = Game.humans[0]; if (!h) return;
@@ -2898,7 +3310,13 @@ function updateHud() {
   [...$('speed').querySelectorAll('i')].forEach((b, i) => { b.classList.toggle('on', i < on); b.classList.toggle('max', on >= SPEED_BARS); });
   const hp = m.health / m.maxHealth, fill = $('hpFill'), col = hp > 0.5 ? 'var(--green)' : hp > 0.25 ? 'var(--yellow)' : '#ff4d5e';
   fill.style.width = (hp * 100) + '%'; fill.style.background = col; fill.style.boxShadow = `0 0 10px ${col}`;
-  for (const d of $('weapons').children) d.classList.toggle('on', d.dataset.w === h.weapon);
+  for (const d of $('weapons').children) {
+    const w = d.dataset.w, open = Game.unlocked.has(w);
+    d.classList.toggle('on', w === h.weapon); d.classList.toggle('lock', !open);
+    const lk = d.querySelector('.lk'); if (lk) lk.style.display = open ? 'none' : '';
+    if (updateHud.newWpn === w) { d.classList.add('new'); updateHud.newWpn = null; }
+    const ch = d.querySelector('.chg'); if (ch) ch.style.setProperty('--p', m.charge ? clamp(m.charge.t / WEAPON.rail.charge, 0, 1).toFixed(3) : 0);
+  }
   $('hurt').style.opacity = Game.hurtFlash.toFixed(3);
   // compass is camera-up: torso is always up-ish, legs show their offset
   const camYaw = m.torsoYaw;
@@ -2907,10 +3325,11 @@ function updateHud() {
   // parts count (and the bag, if it's open) and squad name tags
   $('partsN').textContent = Game.parts;
   FixUI.drawBag();
-  const sk = Game.squad.map((r) => r.id + ':' + r.name).join('|');
+  // (the squadmate picked to go home wears a 🏠 until the new robot's fix is done)
+  const goHome = h.repair?.home, sk = Game.squad.map((r) => r.id + ':' + r.name).join('|') + '/' + (goHome?.id ?? '');
   if (sk !== updateHud.squadKey) {
     updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
-    for (const r of Game.squad) { const d = document.createElement('div'); d.className = 'mate'; const b = document.createElement('b'); b.textContent = ROBOT_TYPES[r.type].icon; d.append(b, r.name); el.append(d); }
+    for (const r of Game.squad) { const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : ''); const b = document.createElement('b'); b.textContent = r === goHome ? '🏠' : ROBOT_TYPES[r.type].icon; d.append(b, r.name); el.append(d); }
   }
   // the prompt sits beside the downed robot on screen
   const pr = !h.repair && !Game.paused && promptRobot(h), pe = $('prompt');
@@ -2924,7 +3343,7 @@ function updateHud() {
     }
   }
   pe.classList.toggle('on', shown);
-  $('pFix').classList.toggle('off', Game.squad.length >= REPAIR.squadMax);
+  $('pFix').classList.toggle('full', Game.squad.length >= REPAIR.squadMax);   // still works: it asks who goes home 🏠
   // getting hearts back: the 🔧 button pulses when the bag has a part for a damaged area,
   // each heal floats up from the bar as +N with its source's icon, and the bar flashes
   const ids = AREAS.filter((a) => hurtIn(m, a)).map(partFor).filter(Boolean), down = m.state === 'down';
@@ -2956,6 +3375,8 @@ function render(dt) {
   for (const m of Game.mechs) syncMechModel(m);
   for (const r of Game.robots) syncRobotModel(r, dt);
   Bullets.sync();
+  Pulses.sync();
+  RailFx.sync();
   Sparks.sync();
   Impacts.sync();
   Kits.sync(dt);
@@ -3018,7 +3439,14 @@ function robotState(r) {
     rebootIn: r.state === 'down' ? r3(r.downT) : null, downs: r.downs, reboots: r.reboots,
     repairing: !!r.repairBy,                          // its reboot clock holds while true
     // plugs[i] belongs in the port with the same colour; link[i] = the port it's in (-1 = loose)
-    wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link] }, wrongWires: r.wrongWires,
+    // burnt[i]: plug i is charred and needs patching first (patch()); scrub[i]: taps left to strip it clean
+    wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link], burnt: [...r.wires.burnt], scrub: [...r.wires.scrub] }, wrongWires: r.wrongWires,
+    // how it was beaten and what that left to repair (null until it's been downed; cleared when it reboots):
+    // by: 'em' (shut down by shock) or the last hit's weapon; wires and burnt as dealt; burntLeft still charred;
+    // total = wires + burnt (the faults to deal with); wear (FAULTS); health it went down with
+    faults: r.faults ? { ...r.faults, burntLeft: r.wires.burnt.filter(Boolean).length, total: r.faults.wires + r.faults.burnt } : null,
+    harm: Object.fromEntries(Object.entries(r.harm).map(([w, d]) => [w, r3(d)])),   // damage since it last booted, by weapon
+    shock: r3(r.shock),                               // electromagnetic shock, 0..ROBOT.shockMax (shuts it down at max)
     hits: { ...r.hits },                              // real weapon hits only (damage() doesn't count)
     parts: r.state === 'down' ? [...r.parts] : null,  // part ids it can be taken apart for (ids in PARTS); null unless down
     takeMax: takeMaxOf(r),                            // how many of them a player may take
@@ -3061,10 +3489,13 @@ window.__rb = {
   },
   // player i uses a weapon now ('gun' | 'punch' | 'kick'), through the same attack
   // code as the keys. Bullets fly and swings land over the next steps.
+  // 'em' fires a pulse; 'rail' starts its charge (the shot leaves WEAPON.rail.charge seconds later)
+  // and is refused while it's locked, as the keys are.
   fire(i, weapon) {
     const h = Game.humans[i]; if (!h || !WEAPON[weapon]) return null;
+    if (!Game.unlocked.has(weapon)) return { ...this.state().players[i], refused: 'locked' };
     h.weapon = weapon; const m = h.mech; m.input.weapon = weapon;
-    m.cool = 0; m.swing = null;
+    m.cool = 0; m.swing = null; m.charge = null;
     startAttack(m, weapon);
     return this.state().players[i];
   },
@@ -3109,6 +3540,26 @@ window.__rb = {
     const res = r ? chooseFor(Game.humans[0], r, choice, name, picks) : { ok: false, why: 'no robot' };
     return { ...res, robot: r && Game.robots.includes(r) ? robotState(r) : null, squad: this.state().squad, parts: Game.parts, bag: { ...Game.bag } };
   },
+  // patch a burnt plug in the open Quick Fix (as a tap on it does): 'new' (a 🔌 from the bag swapped it),
+  // 'scrub' (one tap of FAULTS.scrub done), 'clean' (stripped clean), 'not burnt', 'not fixing'
+  patch(id, plug) {
+    const r = Game.robots.find((q) => q.id === id); if (!r) return null;
+    const result = patchWire(Game.humans[0], r, plug);
+    if (FixUI.mode === 'wires' && FixUI.r === r) FixUI.renderWires();
+    return { result, robot: robotState(r), bag: { ...Game.bag }, parts: Game.parts };
+  },
+  // While the send-home panel is up (a 4th fix), pick squadmate id to go home, as a tap on its tile
+  // does: the Quick Fix opens, and it leaves once that fix is done. With no panel up, squadmate id
+  // goes home straight away.
+  sendHome(id) {
+    const h = Game.humans[0], r = Game.squad.find((q) => q.id === id);
+    let res;
+    if (h?.repair?.kind === 'home') res = chooseHome(h, r);
+    else res = r ? { ok: sendHome(r), home: id, now: true } : { ok: false, why: 'not in squad' };
+    return { ...res, squad: this.state().squad, ui: FixUI.mode, repair: this.state().repair };
+  },
+  // pick player 0's weapon as a key or a tap on its slot does (refused while it's locked)
+  weapon(w) { const h = Game.humans[0]; const ok = selectWeapon(h, w); return { ok, weapon: h?.weapon, unlocked: WEAPONS.filter((x) => Game.unlocked.has(x)) }; },
   // tap a part in the open picker (as a click would): 'on' | 'off' | 'full' | ...
   pick(id) { return { result: FixUI.pick(Game.humans[0], id), picks: Game.humans[0].repair?.picks?.slice() ?? null }; },
   // open or close the parts bag (as the 🎒 button does); returns whether it's open
@@ -3136,6 +3587,7 @@ window.__rb = {
           speed: r3(m.speed), topSpeed: MECH.topSpeed, footfalls: m.footfalls,
           health: r3(m.health), maxHealth: m.maxHealth, weapon: h.weapon, hitsTaken: m.hitsTaken,
           gun: { flash: r3(m.flash || 0), recoil: r3(m.recoil || 0), burst: m.burstN || 0, cool: r3(m.cool) },   // muzzle flash time left, arm recoil 0..1, rounds into this burst
+          railCharge: m.charge ? r3(m.charge.t / WEAPON.rail.charge) : null,   // 0..1 while the rail gun charges
           state: m.state,                                      // 'up' | 'down' (powered down at 0 hearts)
           rebootIn: m.state === 'down' ? r3(m.downT) : null, downs: m.downs, reboots: m.reboots, glow: r3(m.glow),
           input: { throttle: m.input.throttle, turn: m.input.turn, attack: m.input.attack },
@@ -3155,12 +3607,19 @@ window.__rb = {
       swarms: Object.values(Game.swarms).map((sw) => ({ id: sw.id, n: sw.n, drones: Game.robots.filter((r) => r.swarm === sw.id).map((r) => r.id), kit: sw.kit })),   // kit: its one kit has dropped
       rules: { heal: { ...HEAL }, player: { ...PLAYER } },
       prompt: h0 && !h0.repair ? promptRobot(h0)?.id ?? null : null,   // the downed robot the prompt is beside
-      repair: h0?.repair ? { id: h0.repair.r.id, kind: h0.repair.kind, name: h0.repair.name ?? null, picks: h0.repair.picks ? [...h0.repair.picks] : null } : null,
-      ui: FixUI.mode,                                     // null | 'wires' | 'name' | 'parts' | 'bag' | 'mend'
+      // kind 'home' = asking who goes home; home = the squadmate picked to go when this fix is done
+      repair: h0?.repair ? { id: h0.repair.r.id, kind: h0.repair.kind, name: h0.repair.name ?? null, picks: h0.repair.picks ? [...h0.repair.picks] : null, home: h0.repair.home?.id ?? null } : null,
+      ui: FixUI.mode,                                     // null | 'wires' | 'name' | 'parts' | 'bag' | 'mend' | 'home'
       bullets: Bullets.list.length,
       // each live round: speed (m/s) and how far it has flown
       shots: Bullets.list.map((b) => ({ speed: r3(b.v.length()), d: r3(b.d), x: r3(b.p.x), y: r3(b.p.y), z: r3(b.p.z) })),
       gunSpeed: WEAPON.gun.speed,
+      // every weapon in slot order, and the ones a player can pick now (the rail gun once a 🔭 is taken)
+      weapons: WEAPONS.slice(), unlocked: WEAPONS.filter((w) => Game.unlocked.has(w)),
+      lastRail: Game.lastRail ? { ...Game.lastRail, hits: [...Game.lastRail.hits] } : null,   // the last rail-gun shot: robots it passed through
+      squadMax: REPAIR.squadMax,
+      faultRules: { ...FAULTS, weight: { ...FAULTS.weight } },
+      pulses: Bullets.list.filter((b) => b.kind === 'em').length, railFx: RailFx.live(),
       fx: { ...Impacts.live(), sparks: Sparks.list.filter((p) => p.t < p.life).length },
     };
   },
@@ -3174,6 +3633,8 @@ Dust.init();
 Sparks.init();
 Bullets.init();
 Impacts.init();
+Pulses.init();
+RailFx.init();
 Kits.init();
 Beams.init();
 spawnPlayer(0, 0, 0, 0);
