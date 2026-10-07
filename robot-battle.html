@@ -3703,7 +3703,8 @@ const FixUI = {
     return res;
   },
   close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.show(null); $('nameIn').blur(); },
-  relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.(); },
+  // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
+  relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
   // nothing is taken), close the bag, or keep the name
   dismiss() {
