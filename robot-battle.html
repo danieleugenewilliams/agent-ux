@@ -1221,7 +1221,10 @@ function takeParts(h, r) {
   Game.parts += ROBOT_TYPES[r.type].parts;
   Game.robots.splice(Game.robots.indexOf(r), 1);
   scene.remove(r.model.root);
-  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose();   // its own materials; shared ones stay cached
+  // its own materials, every mesh geometry (each robot builds fresh ones) and its sprite materials;
+  // the cached mat() materials and three's shared sprite geometry stay
+  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose();
+  md.root.traverse((o) => { if (o.isMesh) o.geometry.dispose(); else if (o.isSprite) o.material.dispose(); });
   Sparks.burst(r.pos.x, r.pos.y + 2.5, r.pos.z, 45, SPARK_HOT, 8);
   if (!Game.manual) Sfx.salvage();
 }
