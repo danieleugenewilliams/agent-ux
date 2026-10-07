@@ -62,6 +62,43 @@
   #hud .wpn small { position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
   #hurt { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(255,40,60,0) 45%, rgba(255,40,60,.75)); }
   .key.wide { width: 110px; }
+  /* ---------- SQUAD + PARTS ---------- */
+  #hud .right { position: absolute; right: 22px; top: 22px; display: flex; gap: 10px; align-items: center; }
+  #hud .squad { display: flex; gap: 8px; }
+  #hud .parts { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 18px; background: rgba(20,24,42,.6); font-size: 30px; font-weight: 900; }
+  #hud .mate { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 18px; background: rgba(20,24,42,.6); border: 3px solid var(--cyan); box-shadow: 0 0 10px rgba(63,240,255,.5); font-size: 18px; font-weight: 800; }
+  #hud .mate b { font-size: 26px; }
+  /* ---------- PROMPT beside a downed robot: Fix or Take parts ---------- */
+  #hud .prompt { position: absolute; display: none; gap: 12px; transform: translateY(-50%); }
+  #hud .prompt.on { display: flex; }
+  #hud .prompt button { position: relative; width: 78px; height: 78px; border-radius: 50%; font-size: 40px; border: 5px solid var(--ink); cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
+  #hud .prompt .pfix { background: var(--green); }
+  #hud .prompt .pparts { background: var(--orange); }
+  #hud .prompt button.off { filter: grayscale(1) brightness(.6); cursor: not-allowed; }
+  #hud .prompt small { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  /* ---------- QUICK FIX: drag each wire to the port of the same colour ---------- */
+  .panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: auto; padding: 16px 22px 22px; border-radius: 26px; background: rgba(20,24,42,.88); border: 5px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
+  .panel .top { display: flex; justify-content: space-between; align-items: center; font-size: 40px; margin-bottom: 8px; }
+  .panel .x { width: 52px; height: 52px; border-radius: 50%; border: 4px solid var(--ink); background: #ff4d5e; color: #fff; font-size: 26px; font-weight: 900; cursor: pointer; }
+  .board { position: relative; display: flex; justify-content: space-between; width: min(520px, 86vw); gap: 120px; padding: 6px 0; touch-action: none; }
+  #wireSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  .board .col { display: flex; flex-direction: column; gap: 22px; }
+  .plug, .port { width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .plug { cursor: grab; border: 5px solid var(--ink); box-shadow: 0 5px 0 var(--ink); }
+  .plug.sel { outline: 5px solid #fff; outline-offset: 3px; }
+  .plug.done { cursor: default; }
+  .port { background: #0b0e1a; border: 7px solid; box-shadow: inset 0 0 0 4px #0b0e1a, inset 0 0 14px rgba(0,0,0,.9); }
+  .port.done { box-shadow: inset 0 0 0 4px #0b0e1a, 0 0 18px currentColor; }
+  .plug svg, .port svg { width: 44px; height: 44px; }
+  .board.bad { animation: shake .3s; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+  /* ---------- NAME the fixed robot (a random name is already filled in) ---------- */
+  #namer .row { display: flex; align-items: center; gap: 12px; }
+  #namer .big { font-size: 56px; }
+  #nameIn { width: 230px; height: 64px; border-radius: 16px; border: 4px solid var(--cyan); background: #0b0e1a; color: #fff; font: 800 30px 'Asap', sans-serif; text-align: center; }
+  #namer button { width: 64px; height: 64px; border-radius: 50%; border: 4px solid var(--ink); font-size: 32px; cursor: pointer; box-shadow: 0 5px 0 var(--ink); }
+  #nameDice { background: var(--yellow); }
+  #nameOk { background: var(--green); }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -107,6 +144,26 @@
     <div class="arm torso" id="cTorso"><b>🎯</b></div>
     <div class="hub"></div>
   </div>
+  <div class="right"><div id="squad" class="squad"></div><div class="parts"><span>🔩</span><b id="partsN">0</b></div></div>
+  <div class="prompt" id="prompt">
+    <button class="pfix" id="pFix" aria-label="Fix">🔧<small>F</small></button>
+    <button class="pparts" id="pParts" aria-label="Take parts">🔩<small>G</small></button>
+  </div>
+</div>
+
+<!-- QUICK FIX: drag each plug to the port with the same colour and shape -->
+<div id="fix" class="screen">
+  <div class="panel">
+    <div class="top"><span>🔧🤖</span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
+    <div class="board" id="board"><svg id="wireSvg"></svg><div class="col" id="plugs"></div><div class="col" id="ports"></div></div>
+  </div>
+</div>
+
+<!-- NAME: the fixed robot already has a random name; typing a new one is optional -->
+<div id="namer" class="screen">
+  <div class="panel">
+    <div class="row"><span class="big">🤖</span><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Name"><button id="nameDice" aria-label="Random name">🎲</button><button id="nameOk" aria-label="OK">✔</button></div>
+  </div>
 </div>
 
 <script type="module">
@@ -148,6 +205,27 @@ const ROBOT = {
   warnTime: 3,               // ...the last of which it blinks before rebooting
   rebootHealth: 0.5,         // fraction of health it comes back with
 };
+// Fix it or take the parts. A downed robot within promptRange shows the choice.
+// While a player has a robot's Quick Fix open its reboot clock holds (the world
+// keeps running); walking past keepRange drops the repair and the clock runs again.
+const REPAIR = { wires: 3, promptRange: 11, keepRange: 16, squadMax: 3 };
+// Wire colours: Okabe-Ito colour-blind-safe hues, each with its own shape too
+const WIRE_COLORS = [
+  { color: 'yellow', hex: '#F0E442', shape: 'triangle' },
+  { color: 'blue',   hex: '#56B4E9', shape: 'square' },
+  { color: 'red',    hex: '#D55E00', shape: 'circle' },
+  { color: 'pink',   hex: '#CC79A7', shape: 'star' },
+];
+const SHAPE_SVG = {
+  triangle: '<polygon points="20,5 35,33 5,33"/>',
+  square: '<rect x="7" y="7" width="26" height="26" rx="3"/>',
+  circle: '<circle cx="20" cy="20" r="14"/>',
+  star: '<polygon points="20,3 25,14.5 37,15.5 28,23.5 30.5,35.5 20,29 9.5,35.5 12,23.5 3,15.5 15,14.5"/>',
+};
+const ALLY = { glow: 2.6, color: '#3ff0ff' };
+// where squadmates walk, in the leader's frame: [right, behind] metres
+const SQUAD_SLOTS = [[-6, 7], [6, 7], [0, 12]];
+const ROBOT_NAMES = ['Bolt', 'Sprocket', 'Rusty', 'Zippy', 'Clank', 'Gizmo', 'Sparky', 'Dynamo', 'Piston', 'Cog', 'Nugget', 'Turbo', 'Pixel', 'Rivet', 'Widget', 'Boomer'];
 
 const V3 = THREE.Vector3;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -251,6 +329,11 @@ const Sfx = {
   zap(k = 1) { this.noise(0.06, 0.12 * k, 5200, 0, 3, 'highpass'); this.tone(1800 + Math.random() * 1600, 0.04, 'square', 0.03 * k); },
   powerDown(k = 1) { this.tone(420, 1.1, 'sawtooth', 0.12 * k, 40); this.tone(840, 0.6, 'sine', 0.06 * k, 80); this.noise(0.3, 0.2 * k, 2400); },
   reboot(k = 1) { this.tone(80, 0.9, 'sawtooth', 0.1 * k, 620); this.tone(1200, 0.08, 'square', 0.06 * k, null, 0.9); this.tone(1600, 0.08, 'square', 0.06 * k, null, 1.0); },
+  // Repairs: a plug clicks home, a wrong wire buzzes, a fixed robot sings, salvage clanks
+  plug() { this.tone(520, 0.08, 'square', 0.1, 780); this.tone(1040, 0.12, 'triangle', 0.12, null, 0.05); },
+  buzz() { this.tone(110, 0.3, 'sawtooth', 0.16, 85); this.noise(0.2, 0.14, 1800, 0, 2); },
+  fixed() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.16, null, i * 0.1)); },
+  salvage() { this.clang(1); this.clang(0.7); this.tone(260, 0.12, 'square', 0.06, 180, 0.12); this.tone(340, 0.12, 'square', 0.06, 220, 0.26); this.noise(0.3, 0.2, 900, 0.1, 0.8); },
   // A low engine hum that rises with speed
   startHum() {
     const o = this.ctx.createOscillator(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
@@ -268,13 +351,17 @@ const keys = new Set();
 const keysPressed = new Set();
 // up/down = throttle, left/right = turn the legs, camL/camR = swing the torso aim
 // fire = use the current weapon; wpn = pick gun / punch / kick
+// fix / parts = answer the prompt beside a downed robot
 const SCHEMES = [
-  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'] },
-  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'] },
+  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'], fix: ['KeyF'], parts: ['KeyG'] },
+  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'], fix: ['Period'], parts: ['Comma'] },
 ];
-const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [] };
+const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [], fix: [], parts: [] };
 const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab', 'Enter']);
 addEventListener('keydown', (e) => {
+  // typing a robot's name: the keys spell the name and don't drive the mech
+  if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
+  if (e.code === 'Escape' && FixUI.mode) { FixUI.dismiss(); return; }
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (!e.repeat) keysPressed.add(e.code);
   keys.add(e.code);
@@ -286,10 +373,11 @@ addEventListener('pointerdown', () => Sfx.unlock());
 const anyKey = (list) => list.some((k) => keys.has(k));
 
 const mouse = { dx: 0, dy: 0, locked: false, down: false };
-canvas.addEventListener('click', () => { if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked) canvas.requestPointerLock?.(); });
+canvas.addEventListener('click', () => { if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked && !FixUI.mode) canvas.requestPointerLock?.(); });
 document.addEventListener('pointerlockchange', () => {
   mouse.locked = document.pointerLockElement === canvas;
-  if (!mouse.locked && Game.state === 'play') setPause(true);
+  // a repair frees the mouse for dragging wires; that isn't a pause
+  if (!mouse.locked && Game.state === 'play' && !FixUI.mode) setPause(true);
 });
 addEventListener('mousemove', (e) => { if (mouse.locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
 addEventListener('mousedown', (e) => { if (mouse.locked && e.button === 0) mouse.down = true; });
@@ -305,12 +393,12 @@ function readPad(i) {
   const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v);
   const b = (n) => !!(p.buttons[n] && p.buttons[n].pressed);
   const prev = padPrev[i];
-  const cur = { start: b(9), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0), lb: b(4), rb: b(5), rt: b(7) || (p.buttons[7] && p.buttons[7].value > 0.4) };
+  const cur = { start: b(9), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0), x: b(2), y: b(3), lb: b(4), rb: b(5), rt: b(7) || (p.buttons[7] && p.buttons[7].value > 0.4) };
   const out = {
     lx: dz(p.axes[0] || 0) + (cur.right ? 1 : 0) - (cur.left ? 1 : 0),
     ly: dz(p.axes[1] || 0) + (cur.down ? 1 : 0) - (cur.up ? 1 : 0),
     rx: dz(p.axes[2] || 0), ry: dz(p.axes[3] || 0),
-    startP: cur.start && !prev.start, aP: cur.a && !prev.a,
+    startP: cur.start && !prev.start, aP: cur.a && !prev.a, xP: cur.x && !prev.x, yP: cur.y && !prev.y,
     rt: cur.rt, lbP: cur.lb && !prev.lb, rbP: cur.rb && !prev.rb,
   };
   padPrev[i] = cur;
@@ -663,7 +751,7 @@ class CamRig {
 // ===========================================================================
 // Game
 // ===========================================================================
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], parts: 0, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
 function setPause(on) {
   Game.paused = on;
   $('start').classList.toggle('on', on);
@@ -673,7 +761,7 @@ function setPause(on) {
 function spawnPlayer(i, x, z, heading) {
   const m = newMech(x, z, heading);
   m.model = buildMech(); scene.add(m.model.root);
-  const h = { idx: i, rig: new CamRig(i), mech: m, ci: { camX: 0, camY: 0 }, weapon: 'gun' };
+  const h = { idx: i, rig: new CamRig(i), mech: m, ci: { camX: 0, camY: 0 }, weapon: 'gun', repair: null };
   h.rig.yaw = heading; m.human = h;
   m.onFootfall = (mm) => {
     const k = 0.4 + 0.6 * Math.min(1, Math.abs(mm.speed) / MECH.topSpeed);
@@ -790,6 +878,7 @@ const Bullets = {
       seg.subVectors(b.p, p0);
       let hit = null, best = 2, at = null;
       for (const r of Game.robots) {
+        if (r.state === 'ally') continue;              // shots pass squadmates
         const T = ROBOT_TYPES[r.type];
         c.set(r.pos.x, r.pos.y + T.hitY, r.pos.z);
         const t = clamp(c.clone().sub(p0).dot(seg) / seg.lengthSq(), 0, 1);
@@ -845,7 +934,7 @@ function shoot(m) {
   const cp = Math.cos(m.aimPitch), dir = new V3(fx * cp, Math.sin(m.aimPitch), fz * cp);
   let best = AIM_ASSIST;
   for (const r of Game.robots) {
-    if (r.state === 'down') continue;
+    if (r.state !== 'glitched') continue;
     const T = ROBOT_TYPES[r.type], c = new V3(r.pos.x, r.pos.y + T.hitY, r.pos.z), dx = c.x - m.pos.x, dz = c.z - m.pos.z;
     const off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - yaw));
     if (off < best && Math.hypot(dx, dz) < WEAPON.gun.range) { best = off; dir.subVectors(c, from).normalize(); }
@@ -859,6 +948,7 @@ function meleeStrike(m, w) {
   const W = WEAPON[w], face = w === 'kick' ? m.legHeading : m.torsoYaw;
   let any = false;
   for (const r of Game.robots) {
+    if (r.state === 'ally') continue;
     const T = ROBOT_TYPES[r.type], dx = r.pos.x - m.pos.x, dz = r.pos.z - m.pos.z, d = Math.hypot(dx, dz) || 1;
     if (d > MECH.radius + r.spec.radius + W.reach) continue;
     if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
@@ -950,6 +1040,7 @@ const ROBOT_TYPES = {
     paint: { armour: '#8a5cff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
     build: buildCharger,
     ai: chargerAI,
+    parts: 3,                  // what taking it apart is worth
   },
 };
 
@@ -962,6 +1053,7 @@ function spawnRobot(type, x, z) {
     t: 0, downT: 0, downs: 0, reboots: 0, glow: 3, glowMode: 'flicker', flickT: 0, sparkT: Math.random() * 0.5, hitFlash: 0,
     hits: { gun: 0, punch: 0, kick: 0 },
     ai: { think: Math.random() * 0.05, mode: 'stalk', t: 0.6 },
+    wires: makeWires(REPAIR.wires), wrongWires: 0, repairBy: null, name: null, leader: null,
   });
   r.model = T.build(T.paint); scene.add(r.model.root);
   Game.robots.push(r);
@@ -977,6 +1069,17 @@ function nearestPlayer(r) {
 // The Charger's brain. It thinks at 20 Hz and only writes input fields:
 // stalk (close in, or back off for a run-up) -> windup (stop, paw, glare)
 // -> charge (boost straight at you) -> recover (shake it off) -> stalk.
+// Bend a heading error round trees and rocks in the next 10 m (closer than `dist`)
+// (and round any extra `bodies`, e.g. a squadmate's leader: { x, z, r })
+function avoid(r, err, dist, bodies = []) {
+  const h = r.legHeading, fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
+  for (const o of bodies.length ? obstacles.concat(bodies) : obstacles) {
+    const ox = o.x - r.pos.x, oz = o.z - r.pos.z, along = ox * fx + oz * fz, lat = ox * rx + oz * rz;
+    if (along > 0 && along < 10 && along < dist && Math.abs(lat) < o.r + r.spec.radius + 1) err += lat > 0 ? 0.9 : -0.9;
+  }
+  return err;
+}
+
 function chargerAI(r, dt) {
   const ai = r.ai, inp = r.input, S = r.spec, tgt = nearestPlayer(r);
   inp.boost = false;
@@ -986,13 +1089,7 @@ function chargerAI(r, dt) {
   let err = wrapAngle(want - r.legHeading);
   ai.t -= dt;
   // steer round trees and rocks ahead (not during a charge: it commits)
-  if (ai.mode !== 'charge') {
-    const h = r.legHeading, fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
-    for (const o of obstacles) {
-      const ox = o.x - r.pos.x, oz = o.z - r.pos.z, along = ox * fx + oz * fz, lat = ox * rx + oz * rz;
-      if (along > 0 && along < 10 && along < dist && Math.abs(lat) < o.r + S.radius + 1) err += lat > 0 ? 0.9 : -0.9;
-    }
-  }
+  if (ai.mode !== 'charge') err = avoid(r, err, dist);
   if (ai.mode === 'stalk') {
     inp.throttle = dist < 12 ? -0.7 : Math.abs(err) < 1 ? 1 : 0.3;
     if (ai.t <= 0 && dist > 10 && dist < 28 && Math.abs(err) < 0.2) { ai.mode = 'windup'; ai.t = 0.75; const k = loud(r.pos); if (k > 0) Sfx.snort(k); }
@@ -1018,10 +1115,141 @@ function powerDown(r) {
   const k = loud(r.pos); if (k > 0) Sfx.powerDown(k);
 }
 function reboot(r) {
+  r.wires.link.fill(-1);
   r.state = 'glitched'; r.health = Math.round(r.maxHealth * ROBOT.rebootHealth); r.reboots++;
   r.ai.mode = 'recover'; r.ai.t = 1.2; r.flickT = 0;
   Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 30, SPARK_ZAP, 8);
   const k = loud(r.pos); if (k > 0) Sfx.reboot(k);
+}
+
+// ===========================================================================
+// Fix it or take the parts. A downed robot nearby shows a prompt: 🔧 opens
+// the Quick Fix (drag each wire to the port of the same colour and shape),
+// 🔩 takes it apart. A fixed robot gets a name, glows steady and joins the
+// squad. Players, the prompt's buttons and __rb.choose / __rb.wire all go
+// through chooseFor / connectWire.
+// ===========================================================================
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+// plugs[i] and ports[j] are indexes into WIRE_COLORS; link[i] is the port plug i is in (-1 = loose)
+function makeWires(n) {
+  const plugs = shuffle(WIRE_COLORS.map((_, i) => i)).slice(0, n);
+  let ports = shuffle(plugs.slice());
+  for (let t = 0; t < 10 && ports.every((c, i) => c === plugs[i]); t++) ports = shuffle(ports);   // never straight across
+  return { plugs, ports, link: plugs.map(() => -1) };
+}
+function randomName() {
+  const used = new Set(Game.robots.map((r) => r.name));
+  const free = ROBOT_NAMES.filter((n) => !used.has(n));
+  return (free.length ? free : ROBOT_NAMES)[Math.floor(Math.random() * (free.length || ROBOT_NAMES.length))];
+}
+const flatDist = (a, b) => Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
+// The downed robot player h is close enough to deal with (nearest first)
+function promptRobot(h) {
+  let best = null, bd = REPAIR.promptRange;
+  for (const r of Game.robots) { if (r.state !== 'down' || r.repairBy) continue; const d = flatDist(r, h.mech); if (d < bd) { bd = d; best = r; } }
+  return best;
+}
+// choice: 'fix' opens the Quick Fix, 'parts' takes the robot apart.
+// name: what to call it once fixed; leave it out and a random one is filled in
+// (and the player is offered the chance to type their own).
+function chooseFor(h, r, choice, name) {
+  if (!h || !r) return { ok: false, why: 'no robot' };
+  if (r.state !== 'down') return { ok: false, why: 'not down' };
+  if (flatDist(r, h.mech) > REPAIR.promptRange) return { ok: false, why: 'too far' };
+  if (r.repairBy && r.repairBy !== h) return { ok: false, why: 'busy' };
+  if (choice === 'parts') { takeParts(h, r); return { ok: true }; }
+  if (choice !== 'fix') return { ok: false, why: 'fix or parts' };
+  if (Game.squad.length >= REPAIR.squadMax) return { ok: false, why: 'squad full' };
+  if (h.repair && h.repair.r !== r) cancelRepair(h);
+  const typed = typeof name === 'string' && name.trim() !== '';
+  h.repair = { r, name: typed ? name.trim().slice(0, 12) : randomName(), askName: !typed };
+  r.repairBy = h; r.wires.link.fill(-1);
+  if (h.idx === 0) FixUI.openWires(r);
+  return { ok: true };
+}
+function cancelRepair(h) {
+  const rp = h.repair; if (!rp) return;
+  rp.r.repairBy = null; h.repair = null;
+  if (h.idx === 0 && FixUI.mode === 'wires') FixUI.close();
+}
+// One wire: plug index -> port index. A wire in the wrong colour buzzes, sparks
+// and springs back out; the robot stays down. The last right wire fixes it.
+function connectWire(h, r, plug, port) {
+  const W = r.wires;
+  if (!h.repair || h.repair.r !== r) return 'not fixing';
+  if (!(plug >= 0 && plug < W.plugs.length && port >= 0 && port < W.ports.length)) return 'no such wire';
+  if (W.link[plug] >= 0 || W.link.includes(port)) return 'taken';
+  if (W.plugs[plug] !== W.ports[port]) {
+    r.wrongWires++;
+    Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 12, SPARK_ZAP, 5);
+    if (!Game.manual) Sfx.buzz();
+    return 'wrong';
+  }
+  W.link[plug] = port;
+  Sparks.burst(r.pos.x, r.pos.y + 3.2, r.pos.z, 6, SPARK_ZAP, 3);
+  if (!Game.manual) Sfx.plug();
+  if (W.link.every((p) => p >= 0)) fixRobot(h, r);
+  return 'ok';
+}
+function fixRobot(h, r) {
+  const rp = h.repair; h.repair = null; r.repairBy = null;
+  r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
+  r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
+  r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
+  r.glowMode = 'steady'; r.glow = ALLY.glow; r.model.glow.emissive.set(ALLY.color);
+  setRobotName(r, rp.name);
+  Game.squad.push(r);
+  Sparks.burst(r.pos.x, r.pos.y + 3.5, r.pos.z, 50, SPARK_ZAP, 9);
+  if (!Game.manual) Sfx.fixed();
+  if (h.idx === 0) { if (rp.askName) FixUI.openName(r); else FixUI.close(); }
+}
+function setRobotName(r, name) {
+  r.name = name;
+  const md = r.model;
+  if (!md.label) {
+    md.label = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true }));
+    md.label.scale.set(5, 1.25, 1); md.label.position.y = 6.2; md.label.renderOrder = 7; md.root.add(md.label);
+  }
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d');
+  g.font = '900 72px "Titan One", "Asap", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#14182a'; g.strokeText(name, 256, 66);
+  g.fillStyle = ALLY.color; g.fillText(name, 256, 66);
+  md.label.material.map?.dispose(); md.label.material.map = new THREE.CanvasTexture(c); md.label.material.map.colorSpace = THREE.SRGBColorSpace; md.label.material.needsUpdate = true;
+}
+function takeParts(h, r) {
+  if (r.repairBy) cancelRepair(r.repairBy);
+  Game.parts += ROBOT_TYPES[r.type].parts;
+  Game.robots.splice(Game.robots.indexOf(r), 1);
+  scene.remove(r.model.root);
+  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose();   // its own materials; shared ones stay cached
+  Sparks.burst(r.pos.x, r.pos.y + 2.5, r.pos.z, 45, SPARK_HOT, 8);
+  if (!Game.manual) Sfx.salvage();
+}
+// A squadmate's brain: the same 20 Hz think and the same input fields as a
+// glitched robot, but it walks to its slot beside and behind its leader.
+function allyAI(r, dt) {
+  const inp = r.input, lead = r.leader?.mech || Game.humans[0]?.mech;
+  inp.boost = false; inp.attack = false;
+  if (!lead) { inp.throttle = inp.turn = 0; return; }
+  const [sx, sb] = SQUAD_SLOTS[r.ai.slot % SQUAD_SLOTS.length], h = lead.legHeading;
+  const fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
+  const tx = lead.pos.x + rx * sx - fx * sb, tz = lead.pos.z + rz * sx - fz * sb;
+  const dx = tx - r.pos.x, dz = tz - r.pos.z, dist = Math.hypot(dx, dz);
+  let err;
+  if (dist < 1.5) { inp.throttle = 0; err = wrapAngle(h - r.legHeading); r.ai.mode = 'idle'; }   // in its slot: face the way the leader faces
+  else {
+    // walk round the leader and the other squadmates, not through them
+    const bodies = [{ x: lead.pos.x, z: lead.pos.z, r: MECH.radius + 1.5 }, ...Game.squad.filter((q) => q !== r).map((q) => ({ x: q.pos.x, z: q.pos.z, r: q.spec.radius + 0.5 }))];
+    err = avoid(r, wrapAngle(Math.atan2(-dx, -dz) - r.legHeading), dist, bodies);
+    inp.throttle = Math.abs(err) > 1.3 ? 0.2 : clamp(dist / 6, 0.25, 1);
+    inp.boost = dist > 14 && Math.abs(err) < 0.4;                        // sprint to catch up
+    // nose to nose with the leader: back off instead of shoving the mech
+    const lx = lead.pos.x - r.pos.x, lz = lead.pos.z - r.pos.z, ld = Math.hypot(lx, lz) || 1;
+    if (ld < MECH.radius + r.spec.radius + 2.5 && (-lx * Math.sin(r.legHeading) - lz * Math.cos(r.legHeading)) / ld > 0.3) { inp.throttle = -0.6; inp.boost = false; }
+    r.ai.mode = 'follow';
+  }
+  inp.turn = clamp(-err * 2.5, -1, 1);
+  inp.aimYaw = r.legHeading;
 }
 
 // Glow is gameplay, so it's simulated (and testable), not just drawn.
@@ -1036,7 +1264,8 @@ function robotGlow(r, dt) {
       r.flickT = hot ? 0.03 + Math.random() * 0.05 : 0.04 + Math.random() * 0.14;
       r.glow = u < 0.3 ? 0.04 : u < 0.42 ? 0.6 : hot ? 6 + Math.random() * 2 : 2.8 + Math.random() * 2.4;
     }
-  } else if (r.downT > ROBOT.warnTime) { r.glowMode = 'off'; r.glow = 0.03; }
+  } else if (r.state === 'ally') { r.glowMode = 'steady'; r.glow = ALLY.glow; }
+  else if (r.downT > ROBOT.warnTime || r.repairBy) { r.glowMode = 'off'; r.glow = 0.03; }
   else { r.glowMode = 'blink'; const hz = 1.5 + (ROBOT.warnTime - r.downT) * 1.5; r.glow = Math.sin(r.t * hz * Math.PI * 2) > 0.3 ? 3.5 : 0.03; }
 }
 
@@ -1044,7 +1273,7 @@ function robotTick(r, dt) {
   r.t += dt;
   if (r.state === 'down') {
     r.input.throttle = r.input.turn = 0; r.input.boost = false;
-    r.downT -= dt;
+    if (!r.repairBy) r.downT -= dt;          // the clock holds while someone is fixing it
     if (r.downT <= 0) reboot(r);
   }
   mechTick(r, dt);
@@ -1100,9 +1329,9 @@ function syncRobotModel(r, dt) {
   md.root.rotation.y = r.legHeading;
   const k = clamp(Math.abs(r.speed) / S.topSpeed, 0, 1);
   for (const L of md.legs) L.hip.rotation.x = Math.sin(r.phase + L.ph) * 0.55 * k;
-  const mode = r.state === 'down' ? 'down' : r.ai.mode;
+  const mode = r.state === 'down' ? (r.repairBy ? 'repair' : 'down') : r.ai.mode;
   if (mode === 'windup') md.legs[0].hip.rotation.x = Math.sin(r.t * 16) * 0.6;   // paws the ground
-  const pose = mode === 'windup' ? [-0.35, 0.12, 0] : mode === 'charge' ? [-0.15, 0.1, 0] : mode === 'down' ? [-0.9, 0.18, 0.32] : [0, 0, 0];
+  const pose = mode === 'windup' ? [-0.35, 0.12, 0] : mode === 'charge' ? [-0.15, 0.1, 0] : mode === 'down' || mode === 'repair' ? [-0.9, 0.18, 0.32] : [0, 0, 0];
   md.body.position.y = damp(md.body.position.y, pose[0], 8, dt);
   md.body.rotation.x = damp(md.body.rotation.x, pose[1], 8, dt);
   md.body.rotation.z = damp(md.body.rotation.z, pose[2], 4, dt);
@@ -1111,7 +1340,7 @@ function syncRobotModel(r, dt) {
   const f = r.health / r.maxHealth, up = r.state !== 'down';
   md.back.visible = up; md.fill.visible = up && f > 0;
   if (f > 0) { md.fill.scale.x = 3.0 * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
-  const icon = mode === 'windup' || mode === 'charge' ? '❗' : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️') : null;
+  const icon = mode === 'windup' || mode === 'charge' ? '❗' : mode === 'repair' ? '🔧' : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️') : null;
   md.icon.visible = !!icon;
   if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = 6.4 + Math.sin(r.t * 6) * 0.15; }
 }
@@ -1144,6 +1373,12 @@ function gatherInput(dt) {
     m.input.throttle = clamp(thr, -1, 1); m.input.turn = clamp(turn, -1, 1);
     m.input.attack = k('fire') || (solo && mouse.locked && mouse.down) || !!(pad && pad.rt);
     m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch;
+    // the prompt beside a downed robot: 🔧 fix or 🔩 take parts
+    const pr = !h.repair && promptRobot(h);
+    if (pr) {
+      if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
+      else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
+    }
   }
   mouse.dx = mouse.dy = 0;
   keysPressed.clear();
@@ -1153,11 +1388,14 @@ function tick(dt) {
   if (Game.state !== 'play' || Game.paused) return;
   Game.ticks++;
   Meadow.time.value += dt;
-  // Robots think at 20 Hz (Family Knockout's bot loop), writing their input
+  // Robots think at 20 Hz (Family Knockout's bot loop), writing their input.
+  // Glitched ones run their type's brain; squadmates run allyAI.
   for (const r of Game.robots) {
-    if (r.state !== 'glitched') continue;
-    r.ai.think -= dt; if (r.ai.think <= 0) { r.ai.think = 0.05; ROBOT_TYPES[r.type].ai(r, 0.05); }
+    if (r.state === 'down') continue;
+    r.ai.think -= dt; if (r.ai.think <= 0) { r.ai.think = 0.05; (r.state === 'ally' ? allyAI : ROBOT_TYPES[r.type].ai)(r, 0.05); }
   }
+  // a repair holds only while the player stays by the robot
+  for (const h of Game.humans) { const rp = h.repair; if (rp && (rp.r.state !== 'down' || flatDist(rp.r, h.mech) > REPAIR.keepRange)) cancelRepair(h); }
   for (const m of Game.mechs) { mechTick(m, dt); combatTick(m, dt); }
   for (const r of Game.robots) robotTick(r, dt);
   Bullets.tick(dt);
@@ -1166,6 +1404,101 @@ function tick(dt) {
   Sparks.tick(dt);
   Game.hurtFlash = Math.max(0, Game.hurtFlash - dt * 2.5);
 }
+
+// ===========================================================================
+// Quick Fix + naming panels (player 0). Drag a plug onto the port with the
+// same colour and shape, or tap a plug then tap its port. The world keeps
+// running behind the panel; only the mouse is freed from pointer lock.
+// ===========================================================================
+const FixUI = {
+  mode: null, r: null, sel: -1, drag: null,
+  init() {
+    const board = $('board');
+    board.addEventListener('pointerdown', (e) => {
+      const plug = e.target.closest('.plug'), port = e.target.closest('.port');
+      if (plug && !plug.classList.contains('done')) {
+        e.preventDefault();
+        this.drag = { plug: +plug.dataset.plug, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
+        board.setPointerCapture(e.pointerId); this.draw();
+      } else if (port && this.sel >= 0) { const i = this.sel; this.sel = -1; this.tryWire(i, +port.dataset.port); }
+    });
+    board.addEventListener('pointermove', (e) => { if (this.drag) { this.drag.x = e.clientX; this.drag.y = e.clientY; this.draw(); } });
+    board.addEventListener('pointerup', (e) => {
+      const d = this.drag; if (!d) return; this.drag = null;
+      const j = this.portAt(e.clientX, e.clientY);
+      if (j >= 0) { this.sel = -1; this.tryWire(d.plug, j); }
+      else if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 10) { this.sel = this.sel === d.plug ? -1 : d.plug; this.draw(); }   // a tap picks the plug up
+      else this.draw();
+    });
+    board.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
+    $('fixX').addEventListener('click', () => this.dismiss());
+    $('nameOk').addEventListener('click', () => this.confirmName());
+    $('nameDice').addEventListener('click', () => { if (this.r) { setRobotName(this.r, randomName()); $('nameIn').value = this.r.name; } if (!Game.manual) Sfx.click(); });
+    $('pFix').addEventListener('click', (e) => { e.stopPropagation(); this.fromPrompt('fix'); });
+    $('pParts').addEventListener('click', (e) => { e.stopPropagation(); this.fromPrompt('parts'); });
+  },
+  fromPrompt(choice) { const h = Game.humans[0], r = h && promptRobot(h); if (r) chooseFor(h, r, choice); },
+  icon(ci, fill, stroke) { return `<svg viewBox="0 0 40 40"><g fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round">${SHAPE_SVG[WIRE_COLORS[ci].shape]}</g></svg>`; },
+  show(id) { $('fix').classList.toggle('on', id === 'fix'); $('namer').classList.toggle('on', id === 'namer'); },
+  openWires(r) {
+    this.r = r; this.mode = 'wires'; this.sel = -1; this.drag = null;
+    const W = r.wires, C = WIRE_COLORS;
+    $('plugs').innerHTML = W.plugs.map((ci, i) => `<div class="plug" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${this.icon(ci, '#fff', '#14182a')}</div>`).join('');
+    $('ports').innerHTML = W.ports.map((ci, j) => `<div class="port" data-port="${j}" data-color="${C[ci].color}" style="border-color:${C[ci].hex};color:${C[ci].hex}">${this.icon(ci, C[ci].hex, 'none')}</div>`).join('');
+    this.show('fix'); this.draw();
+    if (document.pointerLockElement) document.exitPointerLock();
+  },
+  openName(r) {
+    this.r = r; this.mode = 'name'; this.drag = null;
+    $('nameIn').value = r.name;      // a random name is already there: ✔ keeps it
+    this.show('namer');
+  },
+  close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.show(null); $('nameIn').blur(); },
+  relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.(); },
+  // ✖ / Escape: leave the wiring (the robot's clock runs again), or keep the name
+  dismiss() {
+    if (this.mode === 'name') { this.confirmName(); return; }
+    if (this.mode === 'wires') cancelRepair(Game.humans[0]);
+    this.close(); this.relock();
+  },
+  confirmName() {
+    if (this.mode !== 'name') return;
+    const v = $('nameIn').value.trim().slice(0, 12);
+    if (v && this.r && v !== this.r.name) setRobotName(this.r, v);
+    if (!Game.manual) Sfx.click();
+    this.close(); this.relock();
+  },
+  tryWire(i, j) {
+    const res = connectWire(Game.humans[0], this.r, i, j);
+    if (res === 'wrong') { const b = $('board'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
+    this.draw();
+    return res;
+  },
+  centre(el, box) { const q = el.getBoundingClientRect(); return [q.left + q.width / 2 - box.left, q.top + q.height / 2 - box.top]; },
+  portAt(x, y) {
+    let best = -1, bd = 60;   // generous: a drop near the port counts
+    $('ports').querySelectorAll('.port').forEach((el) => { const q = el.getBoundingClientRect(), d = Math.hypot(x - (q.left + q.width / 2), y - (q.top + q.height / 2)); if (d < bd) { bd = d; best = +el.dataset.port; } });
+    return best;
+  },
+  // wires already in, and the one being dragged, as fat cable curves
+  draw() {
+    if (this.mode !== 'wires' || !this.r) return;
+    const W = this.r.wires, box = $('board').getBoundingClientRect();
+    const plugs = $('plugs').children, ports = $('ports').children;
+    const cable = (a, b, hex) => {
+      const dx = Math.max(40, (b[0] - a[0]) * 0.45), d = `M${a[0]},${a[1]} C${a[0] + dx},${a[1]} ${b[0] - dx},${b[1]} ${b[0]},${b[1]}`;
+      return `<path d="${d}" stroke="#14182a" stroke-width="18" fill="none" stroke-linecap="round"/><path d="${d}" stroke="${hex}" stroke-width="10" fill="none" stroke-linecap="round"/>`;
+    };
+    let svg = '';
+    W.link.forEach((j, i) => {
+      plugs[i].classList.toggle('done', j >= 0); plugs[i].classList.toggle('sel', i === this.sel);
+      if (j >= 0) svg += cable(this.centre(plugs[i], box), this.centre(ports[j], box), WIRE_COLORS[W.plugs[i]].hex);
+    });
+    [...ports].forEach((el, j) => el.classList.toggle('done', W.link.includes(j)));
+    if (this.drag) svg += cable(this.centre(plugs[this.drag.plug], box), [this.drag.x - box.left, this.drag.y - box.top], WIRE_COLORS[W.plugs[this.drag.plug]].hex);
+    $('wireSvg').innerHTML = svg;
+  },
+};
 
 // HUD: speed bars and legs-vs-torso compass
 const SPEED_BARS = 8;
@@ -1186,6 +1519,26 @@ function updateHud() {
   const camYaw = m.torsoYaw;
   $('cLegs').style.transform = `rotate(${-(m.legHeading - camYaw)}rad)`;
   $('cTorso').style.transform = `rotate(${-(m.torsoYaw - camYaw)}rad)`;
+  // parts count and squad name tags
+  $('partsN').textContent = Game.parts;
+  const sk = Game.squad.map((r) => r.id + ':' + r.name).join('|');
+  if (sk !== updateHud.squadKey) {
+    updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
+    for (const r of Game.squad) { const d = document.createElement('div'); d.className = 'mate'; const b = document.createElement('b'); b.textContent = '🤖'; d.append(b, r.name); el.append(d); }
+  }
+  // the prompt sits beside the downed robot on screen
+  const pr = !h.repair && !Game.paused && promptRobot(h), pe = $('prompt');
+  let shown = false;
+  if (pr) {
+    const v = new V3(pr.pos.x, pr.pos.y + 3, pr.pos.z).project(h.rig.cam);
+    if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) {
+      shown = true;
+      pe.style.left = clamp((v.x * 0.5 + 0.5) * innerWidth + 70, 10, innerWidth - 190) + 'px';
+      pe.style.top = clamp((-v.y * 0.5 + 0.5) * innerHeight, 60, innerHeight - 60) + 'px';
+    }
+  }
+  pe.classList.toggle('on', shown);
+  $('pFix').classList.toggle('off', Game.squad.length >= REPAIR.squadMax);
 }
 
 function render(dt) {
@@ -1235,6 +1588,22 @@ $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
 // the game with __rb.manual(true), __rb.step(n) and __rb.render().
 // ===========================================================================
 const r3 = (v) => Math.round(v * 1000) / 1000;
+function robotState(r) {
+  const p0 = Game.humans[0]?.mech, wc = (ci) => ({ color: WIRE_COLORS[ci].color, shape: WIRE_COLORS[ci].shape });
+  return {
+    id: r.id, type: r.type, name: r.name, x: r3(r.pos.x), z: r3(r.pos.z),
+    health: r.health, maxHealth: r.maxHealth,
+    state: r.state,                                   // 'glitched' | 'down' | 'ally'
+    mode: r.ai.mode,                                  // stalk | windup | charge | recover | off | follow | idle
+    glow: { mode: r.glowMode, level: r3(r.glow) },    // flicker (glitched) | off | blink (about to reboot) | steady (ally)
+    rebootIn: r.state === 'down' ? r3(r.downT) : null, downs: r.downs, reboots: r.reboots,
+    repairing: !!r.repairBy,                          // its reboot clock holds while true
+    // plugs[i] belongs in the port with the same colour; link[i] = the port it's in (-1 = loose)
+    wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link] }, wrongWires: r.wrongWires,
+    hits: { ...r.hits },                              // real weapon hits only (damage() doesn't count)
+    speed: r3(r.speed), dist: p0 ? r3(flatDist(r, p0)) : null,
+  };
+}
 window.__rb = {
   Game, THREE, renderer, composer, MECH,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
@@ -1273,8 +1642,25 @@ window.__rb = {
     hurtRobot(r, amount, weapon);
     return this.state().robots.find((q) => q.id === id);
   },
+  // deal with a downed robot as player 0 (who must be within REPAIR.promptRange):
+  // 'fix' opens its Quick Fix (name is optional; a random one is used if left out),
+  // 'parts' takes it apart. Same path as the prompt's keys and buttons.
+  choose(id, choice, name) {
+    const r = Game.robots.find((q) => q.id === id);
+    const res = r ? chooseFor(Game.humans[0], r, choice, name) : { ok: false, why: 'no robot' };
+    return { ...res, robot: r && Game.robots.includes(r) ? robotState(r) : null, squad: this.state().squad, parts: Game.parts };
+  },
+  // plug wires in: pairs = [[plug, port], ...] (indexes into state().robots[i].wires).
+  // Each goes through the same connectWire as a drag: right colour stays in, wrong
+  // colour springs out. The last right wire fixes the robot.
+  wire(id, pairs = []) {
+    const r = Game.robots.find((q) => q.id === id); if (!r) return null;
+    const results = pairs.map(([a, b]) => connectWire(Game.humans[0], r, a, b));
+    FixUI.draw();
+    return { results, robot: robotState(r), squad: this.state().squad, parts: Game.parts };
+  },
   state() {
-    const p0 = Game.humans[0]?.mech;
+    const p0 = Game.humans[0]?.mech, h0 = Game.humans[0];
     return {
       state: Game.state, paused: Game.paused, ticks: Game.ticks, hz: SIM_HZ,
       players: Game.humans.map((h) => {
@@ -1288,16 +1674,12 @@ window.__rb = {
           health: m.health, maxHealth: m.maxHealth, weapon: h.weapon, hitsTaken: m.hitsTaken,
         };
       }),
-      robots: Game.robots.map((r) => ({
-        id: r.id, type: r.type, x: r3(r.pos.x), z: r3(r.pos.z),
-        health: r.health, maxHealth: r.maxHealth,
-        state: r.state,                                   // 'glitched' | 'down'
-        mode: r.ai.mode,                                  // stalk | windup | charge | recover | off
-        glow: { mode: r.glowMode, level: r3(r.glow) },    // flicker (glitched) | off | blink (about to reboot)
-        rebootIn: r.state === 'down' ? r3(r.downT) : null, downs: r.downs, reboots: r.reboots,
-        hits: { ...r.hits },                              // real weapon hits only (damage() doesn't count)
-        speed: r3(r.speed), dist: p0 ? r3(Math.hypot(r.pos.x - p0.pos.x, r.pos.z - p0.pos.z)) : null,
-      })),
+      robots: Game.robots.map(robotState),
+      squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null })),
+      parts: Game.parts,
+      prompt: h0 && !h0.repair ? promptRobot(h0)?.id ?? null : null,   // the downed robot the prompt is beside
+      repair: h0?.repair ? { id: h0.repair.r.id, name: h0.repair.name } : null,
+      ui: FixUI.mode,                                     // null | 'wires' | 'name'
       bullets: Bullets.list.length,
     };
   },
@@ -1312,6 +1694,7 @@ Sparks.init();
 Bullets.init();
 spawnPlayer(0, 0, 0, 0);
 buildHud();
+FixUI.init();
 onResize();
 Game.state = 'play';
 setPause(true);           // waits behind the ▶ button; hooks can still step
