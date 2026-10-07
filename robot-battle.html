@@ -52,6 +52,16 @@
   #hud .compass .hub { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px; border-radius: 50%; background: #fff; border: 3px solid var(--ink); }
   #hud .reticle { position: absolute; left: 50%; top: 42%; width: 34px; height: 34px; margin: -17px; border: 3px solid var(--cyan); border-radius: 50%; box-shadow: 0 0 10px var(--cyan); opacity: .85; }
   #hud .reticle::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; background: var(--cyan); border-radius: 50%; }
+  #hud .health { position: absolute; left: 22px; top: 22px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 18px; background: rgba(20,24,42,.6); }
+  #hud .health .ico { font-size: 30px; }
+  #hud .health .bar { width: 220px; height: 22px; border-radius: 11px; background: rgba(255,255,255,.18); overflow: hidden; }
+  #hud .health .bar b { display: block; height: 100%; width: 100%; border-radius: 11px; background: var(--green); box-shadow: 0 0 10px var(--green); transition: width .15s; }
+  #hud .weapons { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; gap: 12px; }
+  #hud .wpn { position: relative; width: 66px; height: 66px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; background: rgba(20,24,42,.6); border: 4px solid rgba(255,255,255,.25); }
+  #hud .wpn.on { border-color: var(--orange); background: rgba(255,138,31,.35); box-shadow: 0 0 16px var(--orange); transform: scale(1.12); }
+  #hud .wpn small { position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  #hurt { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(255,40,60,0) 45%, rgba(255,40,60,.75)); }
+  .key.wide { width: 110px; }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -76,14 +86,21 @@
         <div class="key">A</div><div class="key">S</div><div class="key">D</div>
       </div><small>🦿</small></div>
       <div class="hint">🖱️<small>🎯</small></div>
+      <div class="hint"><div class="keyset">
+        <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+      </div><small>🔫👊🦶</small></div>
+      <div class="hint"><div class="key wide">␣</div><small>💥</small></div>
       <div class="hint">🎮</div>
     </div>
   </div>
 </div>
 
-<!-- HUD: speed bars (boot icon) and a compass showing legs vs torso -->
+<!-- HUD: health, weapons, speed bars (boot icon) and a compass showing legs vs torso -->
+<div id="hurt"></div>
 <div id="hud" class="screen on">
   <div class="reticle"></div>
+  <div class="health"><span class="ico">❤️</span><div class="bar"><b id="hpFill"></b></div></div>
+  <div class="weapons" id="weapons"></div>
   <div class="speed" id="speed"><span class="ico">🦿</span></div>
   <div class="compass">
     <div class="arm legs" id="cLegs"><b>🦶</b></div>
@@ -116,6 +133,21 @@ const MECH = {
   radius: 2.3,
 };
 const WORLD_R = 115;
+const MECH_HEALTH = 100;
+// Weapons. The cannon fires bullets; punch and kick are melee swings that land
+// at `strike` seconds in. Punch follows the torso, kick follows the legs.
+const WEAPON = {
+  gun:   { icon: '🔫', dmg: 10, cool: 0.16, speed: 85, range: 95, push: 0.8 },
+  punch: { icon: '👊', dmg: 22, cool: 0.55, strike: 0.16, dur: 0.5, reach: 3.4, arc: 0.85, push: 6 },
+  kick:  { icon: '🦶', dmg: 34, cool: 0.9, strike: 0.32, dur: 0.85, reach: 3.2, arc: 0.7, push: 12 },
+};
+const WEAPONS = ['gun', 'punch', 'kick'];
+const AIM_ASSIST = 0.2;      // rad: the cannon locks onto a robot this close to the torso aim
+const ROBOT = {
+  downTime: 12,              // seconds a beaten robot stays powered down
+  warnTime: 3,               // ...the last of which it blinks before rebooting
+  rebootHealth: 0.5,         // fraction of health it comes back with
+};
 
 const V3 = THREE.Vector3;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -209,6 +241,16 @@ const Sfx = {
   },
   servo() { this.tone(180, 0.12, 'sawtooth', 0.025, 240); },
   click() { this.tone(660, 0.06, 'triangle', 0.15, 990); },
+  // Combat. `k` is a 0..1 loudness for sounds out in the meadow.
+  shot() { this.tone(900, 0.09, 'square', 0.07, 260); this.noise(0.07, 0.12, 2600, 0, 1.2); },
+  swing() { this.noise(0.18, 0.1, 900, 0, 0.6); },
+  clang(k = 1) { this.tone(520, 0.25, 'triangle', 0.2 * k, 470); this.tone(1310, 0.18, 'triangle', 0.08 * k, 1180); this.noise(0.12, 0.18 * k, 3200, 0, 1.5); },
+  whack(k = 1) { this.tone(95, 0.3, 'sine', 0.5 * k, 45); this.clang(0.8 * k); },
+  ram() { this.tone(60, 0.6, 'sawtooth', 0.4, 30); this.noise(0.5, 0.45, 500, 0, 0.6, 'lowpass'); this.clang(1); this.tone(220, 0.3, 'square', 0.08, 90, 0.05); },
+  snort(k = 1) { this.noise(0.35, 0.18 * k, 700, 0, 0.8); this.tone(140, 0.4, 'sawtooth', 0.06 * k, 300); },
+  zap(k = 1) { this.noise(0.06, 0.12 * k, 5200, 0, 3, 'highpass'); this.tone(1800 + Math.random() * 1600, 0.04, 'square', 0.03 * k); },
+  powerDown(k = 1) { this.tone(420, 1.1, 'sawtooth', 0.12 * k, 40); this.tone(840, 0.6, 'sine', 0.06 * k, 80); this.noise(0.3, 0.2 * k, 2400); },
+  reboot(k = 1) { this.tone(80, 0.9, 'sawtooth', 0.1 * k, 620); this.tone(1200, 0.08, 'square', 0.06 * k, null, 0.9); this.tone(1600, 0.08, 'square', 0.06 * k, null, 1.0); },
   // A low engine hum that rises with speed
   startHum() {
     const o = this.ctx.createOscillator(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
@@ -225,12 +267,13 @@ const Sfx = {
 const keys = new Set();
 const keysPressed = new Set();
 // up/down = throttle, left/right = turn the legs, camL/camR = swing the torso aim
+// fire = use the current weapon; wpn = pick gun / punch / kick
 const SCHEMES = [
-  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'] },
-  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'] },
+  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'] },
+  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'] },
 ];
-const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [] };
-const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab']);
+const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [] };
+const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab', 'Enter']);
 addEventListener('keydown', (e) => {
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (!e.repeat) keysPressed.add(e.code);
@@ -242,13 +285,17 @@ addEventListener('blur', () => keys.clear());
 addEventListener('pointerdown', () => Sfx.unlock());
 const anyKey = (list) => list.some((k) => keys.has(k));
 
-const mouse = { dx: 0, dy: 0, locked: false };
+const mouse = { dx: 0, dy: 0, locked: false, down: false };
 canvas.addEventListener('click', () => { if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked) canvas.requestPointerLock?.(); });
 document.addEventListener('pointerlockchange', () => {
   mouse.locked = document.pointerLockElement === canvas;
   if (!mouse.locked && Game.state === 'play') setPause(true);
 });
 addEventListener('mousemove', (e) => { if (mouse.locked) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
+addEventListener('mousedown', (e) => { if (mouse.locked && e.button === 0) mouse.down = true; });
+addEventListener('mouseup', (e) => { if (e.button === 0) mouse.down = false; });
+// the wheel flicks through the weapons too
+addEventListener('wheel', (e) => { if (mouse.locked && Game.humans[0]) cycleWeapon(Game.humans[0], e.deltaY > 0 ? 1 : -1); }, { passive: true });
 
 const padPrev = [{}, {}, {}, {}];
 function readPad(i) {
@@ -258,12 +305,13 @@ function readPad(i) {
   const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v);
   const b = (n) => !!(p.buttons[n] && p.buttons[n].pressed);
   const prev = padPrev[i];
-  const cur = { start: b(9), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0) };
+  const cur = { start: b(9), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0), lb: b(4), rb: b(5), rt: b(7) || (p.buttons[7] && p.buttons[7].value > 0.4) };
   const out = {
     lx: dz(p.axes[0] || 0) + (cur.right ? 1 : 0) - (cur.left ? 1 : 0),
     ly: dz(p.axes[1] || 0) + (cur.down ? 1 : 0) - (cur.up ? 1 : 0),
     rx: dz(p.axes[2] || 0), ry: dz(p.axes[3] || 0),
     startP: cur.start && !prev.start, aP: cur.a && !prev.a,
+    rt: cur.rt, lbP: cur.lb && !prev.lb, rbP: cur.rb && !prev.rb,
   };
   padPrev[i] = cur;
   return out;
@@ -492,9 +540,13 @@ function buildMech(paint = PAINT) {
   return { root, body, pelvis, torso, legs, arms };
 }
 
-// Simulation state for one mech. Players and (later) robots write `input`.
+// Simulation state for one mech. Players and robots write the same `input`
+// fields; a robot also carries a `spec` that stands in for MECH.
 function newMech(x, z, heading) {
   return {
+    health: MECH_HEALTH, maxHealth: MECH_HEALTH, hitsTaken: 0,
+    push: new V3(),           // knockback velocity, fades out
+    cool: 0, swing: null,     // weapon cooldown and the melee swing in progress
     pos: new V3(x, groundH(x, z), z),
     legHeading: heading,      // where the legs face and walk
     torsoYaw: heading,        // where the torso faces (world yaw)
@@ -502,30 +554,34 @@ function newMech(x, z, heading) {
     speed: 0,                 // signed, along legHeading
     turnVel: 0,
     phase: 0, footfalls: 0, lastFall: 0, fallFoot: 0,
-    input: { throttle: 0, turn: 0, aimYaw: heading, aimPitch: 0 },
+    input: { throttle: 0, turn: 0, aimYaw: heading, aimPitch: 0, weapon: 'gun', attack: false, boost: false },
     model: null,
   };
 }
 
 function mechTick(m, dt) {
-  const inp = m.input;
+  const inp = m.input, S = m.spec || MECH;
   // Throttle: ease toward the target speed. Heavy: slow to gain, quicker to shed.
-  const target = inp.throttle >= 0 ? inp.throttle * MECH.topSpeed : inp.throttle * MECH.backSpeed;
+  // A robot with a boostSpeed (the Charger) can surge past its top speed.
+  const boost = inp.boost && S.boostSpeed;
+  const target = inp.throttle >= 0 ? inp.throttle * (boost ? S.boostSpeed : S.topSpeed) : inp.throttle * S.backSpeed;
   const speeding = Math.abs(target) > Math.abs(m.speed) && target * m.speed >= 0;
-  m.speed = approach(m.speed, target, (speeding ? MECH.accel : MECH.brake) * dt);
-  m.speed = clamp(m.speed, -MECH.backSpeed, MECH.topSpeed);
+  m.speed = approach(m.speed, target, (speeding ? (boost ? S.boostAccel : S.accel) : S.brake) * dt);
+  m.speed = clamp(m.speed, -S.backSpeed, S.boostSpeed || S.topSpeed);
   // Legs turn slowly, a little slower at speed
-  const turnRate = MECH.legTurn * (1 - 0.3 * Math.abs(m.speed) / MECH.topSpeed);
+  const turnRate = S.legTurn * Math.max(0.2, 1 - 0.3 * Math.abs(m.speed) / S.topSpeed);
   m.turnVel = approach(m.turnVel, -inp.turn * turnRate, turnRate * 3 * dt);
   m.legHeading = wrapAngle(m.legHeading + m.turnVel * dt);
   // Torso swings toward the aim on its own turret ring
-  m.torsoYaw = turnToward(m.torsoYaw, inp.aimYaw, MECH.torsoTurn * dt);
+  m.torsoYaw = turnToward(m.torsoYaw, inp.aimYaw, S.torsoTurn * dt);
   m.aimPitch = approach(m.aimPitch, clamp(inp.aimPitch, -0.35, 0.5), 1.5 * dt);
   // Walk
   const fx = -Math.sin(m.legHeading), fz = -Math.cos(m.legHeading);
   m.pos.x += fx * m.speed * dt; m.pos.z += fz * m.speed * dt;
+  // Knockback from rams and kicks slides the mech and fades out
+  m.pos.x += m.push.x * dt; m.pos.z += m.push.z * dt; m.push.multiplyScalar(Math.exp(-3.5 * dt));
   for (const o of obstacles) {
-    const dx = m.pos.x - o.x, dz = m.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + MECH.radius;
+    const dx = m.pos.x - o.x, dz = m.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + S.radius;
     if (d < min && d > 1e-6) { m.pos.x = o.x + dx / d * min; m.pos.z = o.z + dz / d * min; }
   }
   const r = Math.hypot(m.pos.x, m.pos.z);
@@ -533,7 +589,7 @@ function mechTick(m, dt) {
   m.pos.y = groundH(m.pos.x, m.pos.z);
   // Gait: a footfall every stride, at the front of each leg's swing
   const prevPhase = m.phase;
-  m.phase += (m.speed * dt / MECH.stride) * Math.PI;
+  m.phase += (m.speed * dt / S.stride) * Math.PI;
   if (Math.abs(m.speed) < 0.05 && Math.abs(m.turnVel) > 0.05) m.phase += Math.abs(m.turnVel) * dt * 1.6;  // shuffle when turning on the spot
   const fallIdx = (ph) => Math.floor((ph - Math.PI / 2) / Math.PI);
   if (fallIdx(m.phase) !== fallIdx(prevPhase)) { m.footfalls++; m.lastFall = 0; m.fallFoot = fallIdx(m.phase) & 1; m.onFootfall?.(m); }
@@ -557,7 +613,23 @@ function syncMechModel(m) {
   md.body.rotation.z = Math.sin(m.phase) * 0.025 * k;           // weight shifts side to side
   md.body.rotation.x = -m.speed / MECH.topSpeed * 0.04;          // lean into the walk
   md.torso.rotation.y = wrapAngle(m.torsoYaw - m.legHeading);
-  for (const A of md.arms) A.arm.rotation.x = m.aimPitch;   // arms pitch with the aim
+  for (const A of md.arms) { A.arm.rotation.x = m.aimPitch; A.fore.position.z = 0; }   // arms pitch with the aim
+  // Melee: cock back until the strike, snap out, then ease home.
+  // Punch throws the left (rocket-pod) arm; kick swings the right leg.
+  const sw = m.swing;
+  if (sw) {
+    const W = WEAPON[sw.w];
+    const e = sw.t < W.strike ? -0.35 * (sw.t / W.strike) : 1 - Math.pow(clamp((sw.t - W.strike) / (W.dur - W.strike), 0, 1), 2);
+    if (sw.w === 'punch') {
+      const A = md.arms.find((a) => a.s < 0);
+      A.arm.rotation.x = m.aimPitch + e * 1.45; A.fore.position.z = -Math.max(0, e) * 0.9;
+      md.torso.rotation.y += e * 0.18;
+    } else {
+      const L = md.legs.find((l) => l.s > 0);
+      L.hip.rotation.x = e * 1.1; L.knee.rotation.x = -(0.25 + (1 - Math.max(0, e)) * 0.7); L.ankle.rotation.x = -(L.hip.rotation.x + L.knee.rotation.x) * 0.5;
+      md.body.rotation.x += Math.max(0, e) * 0.07;
+    }
+  }
 }
 
 // ===========================================================================
@@ -591,7 +663,7 @@ class CamRig {
 // ===========================================================================
 // Game
 // ===========================================================================
-const Game = { state: 'loading', humans: [], mechs: [], manual: false, paused: false, acc: 0, ticks: 0 };
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0 };
 function setPause(on) {
   Game.paused = on;
   $('start').classList.toggle('on', on);
@@ -601,8 +673,8 @@ function setPause(on) {
 function spawnPlayer(i, x, z, heading) {
   const m = newMech(x, z, heading);
   m.model = buildMech(); scene.add(m.model.root);
-  const h = { idx: i, rig: new CamRig(i), mech: m, ci: { camX: 0, camY: 0 } };
-  h.rig.yaw = heading;
+  const h = { idx: i, rig: new CamRig(i), mech: m, ci: { camX: 0, camY: 0 }, weapon: 'gun' };
+  h.rig.yaw = heading; m.human = h;
   m.onFootfall = (mm) => {
     const k = 0.4 + 0.6 * Math.min(1, Math.abs(mm.speed) / MECH.topSpeed);
     h.rig.kick(0.35 + 0.45 * k);
@@ -650,6 +722,405 @@ const Dust = {
   },
 };
 
+// How loud something at `p` should be for player 0 (0 = out of earshot)
+function near(p) { const h = Game.humans[0]; if (!h) return 0; return clamp(1 - Math.hypot(p.x - h.mech.pos.x, p.z - h.mech.pos.z) / 60, 0, 1); }
+const loud = (p) => (Game.manual ? 0 : near(p));
+
+// ===========================================================================
+// Sparks: hot points that bloom. Glitched robots spit them, and hits throw them.
+// ===========================================================================
+const SPARK_HOT = [5, 3.4, 1.1], SPARK_ZAP = [2.2, 3.8, 6];
+const Sparks = {
+  N: 400, i: 0, list: [],
+  init() {
+    const geo = new THREE.BufferGeometry();
+    this.pos = new Float32Array(this.N * 3); this.col = new Float32Array(this.N * 3);
+    geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.col, 3));
+    const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d');
+    const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+    this.points = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.5, map: new THREE.CanvasTexture(c), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    this.points.frustumCulled = false; scene.add(this.points);
+    for (let k = 0; k < this.N; k++) this.list.push({ x: 0, y: -999, z: 0, vx: 0, vy: 0, vz: 0, t: 1, life: 1, c: SPARK_HOT });
+  },
+  burst(x, y, z, n, c = SPARK_HOT, speed = 6) {
+    for (let k = 0; k < n; k++) {
+      const p = this.list[this.i = (this.i + 1) % this.N];
+      const a = Math.random() * Math.PI * 2, u = 0.15 + Math.random() * 0.85;
+      p.x = x; p.y = y; p.z = z; p.c = c;
+      p.vx = Math.cos(a) * speed * u; p.vz = Math.sin(a) * speed * u; p.vy = speed * (0.3 + Math.random() * 0.9);
+      p.t = 0; p.life = 0.25 + Math.random() * 0.45;
+    }
+  },
+  tick(dt) {
+    for (const p of this.list) {
+      if (p.t >= p.life) continue;
+      p.t += dt; p.vy -= 18 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+      const gy = groundH(p.x, p.z); if (p.y < gy) { p.y = gy; p.vy *= -0.35; p.vx *= 0.5; p.vz *= 0.5; }
+    }
+  },
+  sync() {
+    this.list.forEach((p, k) => {
+      const f = p.t < p.life ? 1 - p.t / p.life : 0;
+      this.pos[k * 3] = p.x; this.pos[k * 3 + 1] = f > 0 ? p.y : -999; this.pos[k * 3 + 2] = p.z;
+      this.col[k * 3] = p.c[0] * f; this.col[k * 3 + 1] = p.c[1] * f; this.col[k * 3 + 2] = p.c[2] * f;
+    });
+    const g = this.points.geometry; g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true;
+  },
+};
+
+// ===========================================================================
+// Bullets: glowing slugs from the right-arm cannon. Each tick a bullet sweeps
+// the segment it travelled, so a fast slug can't skip through a robot.
+// ===========================================================================
+const UP = new V3(0, 1, 0);
+const Bullets = {
+  list: [], pool: [],
+  init() {
+    const geo = new THREE.CapsuleGeometry(0.13, 1.5, 4, 8), m = glowMat('#7ff8ff', 4);
+    for (let k = 0; k < 48; k++) { const b = new THREE.Mesh(geo, m); b.visible = false; scene.add(b); this.pool.push(b); }
+  },
+  fire(from, dir, owner) { this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(WEAPON.gun.speed), d: 0, owner }); if (this.list.length > this.pool.length) this.list.shift(); },
+  tick(dt) {
+    const W = WEAPON.gun, p0 = new V3(), seg = new V3(), c = new V3(), q = new V3();
+    for (let k = this.list.length - 1; k >= 0; k--) {
+      const b = this.list[k];
+      p0.copy(b.p); b.p.addScaledVector(b.v, dt); b.d += W.speed * dt;
+      seg.subVectors(b.p, p0);
+      let hit = null, best = 2, at = null;
+      for (const r of Game.robots) {
+        const T = ROBOT_TYPES[r.type];
+        c.set(r.pos.x, r.pos.y + T.hitY, r.pos.z);
+        const t = clamp(c.clone().sub(p0).dot(seg) / seg.lengthSq(), 0, 1);
+        q.copy(p0).addScaledVector(seg, t);
+        if (q.distanceTo(c) < T.hitR && t < best) { best = t; hit = r; at = q.clone(); }
+      }
+      if (hit) { hitRobot(hit, W.dmg, 'gun', b.v.x, b.v.z, at); this.list.splice(k, 1); continue; }
+      const gy = groundH(b.p.x, b.p.z);
+      const tree = b.p.y < gy + 5 && obstacles.find((o) => Math.hypot(b.p.x - o.x, b.p.z - o.z) < o.r);
+      if (b.p.y < gy || tree || b.d > W.range) {
+        if (b.d <= W.range) Sparks.burst(b.p.x, Math.max(b.p.y, gy + 0.1), b.p.z, 3, SPARK_HOT, 3);
+        this.list.splice(k, 1);
+      }
+    }
+  },
+  sync() {
+    this.pool.forEach((mesh, k) => {
+      const b = this.list[k]; mesh.visible = !!b; if (!b) return;
+      mesh.position.copy(b.p); mesh.quaternion.setFromUnitVectors(UP, b.v.clone().normalize());
+    });
+  },
+};
+
+// ===========================================================================
+// Combat: one attack path for every weapon. Players reach it through `input`
+// (and __rb.fire); hits land in hitRobot / hurtMech.
+// ===========================================================================
+function startAttack(m, w) {
+  const W = WEAPON[w]; if (!W) return false;
+  m.cool = W.cool;
+  if (w === 'gun') shoot(m);
+  else { m.swing = { w, t: 0, struck: false }; if (!Game.manual) Sfx.swing(); }
+  return true;
+}
+function combatTick(m, dt) {
+  m.cool = Math.max(0, m.cool - dt);
+  const sw = m.swing;
+  if (sw) {
+    const W = WEAPON[sw.w]; sw.t += dt;
+    if (!sw.struck && sw.t >= W.strike) { sw.struck = true; meleeStrike(m, sw.w); }
+    if (sw.t >= W.dur) m.swing = null;
+  }
+  if (m.input.attack && m.cool <= 0 && !m.swing) startAttack(m, m.input.weapon);
+}
+// The cannon sits on the right arm. The shot starts at the shoulder (so a
+// point-blank shot still sweeps through a robot in its face) and locks onto a
+// robot close to the torso aim: kids get to hit what they point at.
+function shoot(m) {
+  m.barrel = (m.barrel || 0) ^ 1;
+  const yaw = m.torsoYaw, fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  const side = 2.4 + (m.barrel ? 0.2 : -0.2);
+  const from = new V3(m.pos.x + rx * side + fx * 0.5, m.pos.y + 4.4, m.pos.z + rz * side + fz * 0.5);
+  const cp = Math.cos(m.aimPitch), dir = new V3(fx * cp, Math.sin(m.aimPitch), fz * cp);
+  let best = AIM_ASSIST;
+  for (const r of Game.robots) {
+    if (r.state === 'down') continue;
+    const T = ROBOT_TYPES[r.type], c = new V3(r.pos.x, r.pos.y + T.hitY, r.pos.z), dx = c.x - m.pos.x, dz = c.z - m.pos.z;
+    const off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - yaw));
+    if (off < best && Math.hypot(dx, dz) < WEAPON.gun.range) { best = off; dir.subVectors(c, from).normalize(); }
+  }
+  Bullets.fire(from, dir, m);
+  Sparks.burst(from.x + fx * 2.7, from.y, from.z + fz * 2.7, 2, SPARK_ZAP, 2);
+  m.human?.rig.kick(0.06);
+  if (!Game.manual) Sfx.shot();
+}
+function meleeStrike(m, w) {
+  const W = WEAPON[w], face = w === 'kick' ? m.legHeading : m.torsoYaw;
+  let any = false;
+  for (const r of Game.robots) {
+    const T = ROBOT_TYPES[r.type], dx = r.pos.x - m.pos.x, dz = r.pos.z - m.pos.z, d = Math.hypot(dx, dz) || 1;
+    if (d > MECH.radius + r.spec.radius + W.reach) continue;
+    if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
+    const at = new V3(r.pos.x - dx / d * r.spec.radius, r.pos.y + T.hitY * (w === 'kick' ? 0.6 : 1.1), r.pos.z - dz / d * r.spec.radius);
+    hitRobot(r, W.dmg, w, dx, dz, at); any = true;
+  }
+  if (any) m.human?.rig.kick(w === 'kick' ? 0.8 : 0.5);
+}
+// A real hit from a weapon: counts it, knocks the robot back, throws sparks, then hurts it
+function hitRobot(r, dmg, w, dx, dz, at) {
+  const W = WEAPON[w], L = Math.hypot(dx, dz) || 1;
+  r.hits[w]++;
+  r.push.x += dx / L * W.push; r.push.z += dz / L * W.push;
+  r.hitFlash = 1;
+  Sparks.burst(at.x, at.y, at.z, w === 'gun' ? 6 : 18, SPARK_HOT, w === 'gun' ? 5 : 9);
+  const k = loud(r.pos); if (k > 0) (w === 'gun' ? Sfx.clang(0.5 * k) : Sfx.whack(k));
+  hurtRobot(r, dmg, w);
+}
+function hurtRobot(r, amount, w) {
+  if (r.state === 'down') return false;
+  r.health = Math.max(0, r.health - amount); r.lastHitBy = w;
+  if (r.health <= 0) powerDown(r);
+  return true;
+}
+function hurtMech(m, amount) {
+  m.health = Math.max(0, m.health - amount); m.hitsTaken++;
+  if (m.human) { Game.hurtFlash = 1; m.human.rig.kick(1.2); }
+}
+
+// ===========================================================================
+// Glitched robots. Each one is a mech-shaped sim (newMech + a `spec`) driven
+// by an ai() that writes the same input fields a player does. A glitched
+// robot's glow flickers and it spits sparks; a beaten one powers down, then
+// reboots if nobody deals with it.
+// ===========================================================================
+function iconTex(emoji) {
+  iconTex.cache = iconTex.cache || new Map();
+  if (!iconTex.cache.has(emoji)) {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    g.font = '100px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(emoji, 64, 72);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; iconTex.cache.set(emoji, t);
+  }
+  return iconTex.cache.get(emoji);
+}
+
+// The Charger: a low, four-legged battering ram with one wide visor eye.
+function buildCharger(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
+  // its own materials: the glow flickers and the armour flashes per robot
+  const armour = new THREE.MeshStandardMaterial({ color: paint.armour, roughness: 0.5, metalness: 0.3, emissive: '#ffffff', emissiveIntensity: 0 });
+  const glow = new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: paint.glow, emissiveIntensity: 3, roughness: 0.3 });
+  const own = (geo, m) => { const x = new THREE.Mesh(geo, m); x.castShadow = true; x.receiveShadow = true; return x; };
+  const hull = own(new RoundedBoxGeometry(3.0, 1.7, 4.0, 3, 0.45), armour); hull.position.set(0, 2.35, 0.2); hull.rotation.x = -0.08; body.add(hull);
+  const spine = rbox(1.2, 0.5, 3.4, 0.2, paint.frame, metal); spine.position.set(0, 3.3, 0.45); body.add(spine);
+  // the ram: a steel bumper with two blunt prongs
+  const ram = rbox(3.6, 1.5, 0.8, 0.3, paint.ram, steel); ram.position.set(0, 1.95, -2.15); body.add(ram);
+  for (const s of [-1, 1]) { const prong = cyl(0.06, 0.4, 1.3, paint.ram, steel, 10); prong.rotation.x = -Math.PI / 2; prong.position.set(s * 1.15, 2.2, -3.0); body.add(prong); }
+  for (const s of [-1, 1]) { const stripe = rbox(0.5, 0.18, 0.84, 0.06, paint.stripe); stripe.position.set(s * 0.9, 2.45, -2.15); body.add(stripe); }
+  // head and visor eye
+  const head = rbox(1.8, 1.0, 1.2, 0.3, paint.frame, metal); head.position.set(0, 3.05, -1.55); body.add(head);
+  const eye = own(new RoundedBoxGeometry(1.4, 0.34, 0.2, 2, 0.08), glow); eye.position.set(0, 3.1, -2.17); body.add(eye);
+  // glowing vents down the flanks and a core on the back
+  for (const s of [-1, 1]) for (let k = 0; k < 3; k++) { const v = own(new THREE.BoxGeometry(0.08, 0.22, 0.6), glow); v.position.set(s * 1.52, 2.5, -0.6 + k * 0.85); body.add(v); }
+  const core = own(new THREE.SphereGeometry(0.36, 14, 10), glow); core.position.set(0, 3.6, 1.45); body.add(core);
+  const cage = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.06, 6, 18), mat(paint.dark, metal)); cage.position.copy(core.position); cage.rotation.x = Math.PI / 2; body.add(cage);
+  // four stubby piston legs, diagonal pairs in step
+  const legs = [];
+  for (const [lx, lz, ph] of [[-1.3, -1.2, 0], [1.3, -1.2, Math.PI], [-1.3, 1.5, Math.PI], [1.3, 1.5, 0]]) {
+    const hip = new THREE.Group(); hip.position.set(lx, 1.9, lz); body.add(hip);
+    hip.add(ball(0.45, paint.dark, metal));
+    const leg = cyl(0.32, 0.42, 1.5, paint.frame, metal, 12); leg.position.y = -0.8; hip.add(leg);
+    const hoof = cyl(0.55, 0.62, 0.35, paint.dark, metal, 12); hoof.position.y = -1.65; hip.add(hoof);
+    legs.push({ hip, ph });
+  }
+  // health bar and a status icon, both billboards
+  const sm = (o) => new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, ...o });
+  const back = new THREE.Sprite(sm({ color: '#14182a', opacity: 0.75 })); back.scale.set(3.2, 0.42, 1); back.position.y = 5.1; back.renderOrder = 5; root.add(back);
+  const fill = new THREE.Sprite(sm({ color: '#3ee07a' })); fill.scale.set(3.0, 0.26, 1); fill.position.y = 5.1; fill.renderOrder = 6; root.add(fill);
+  const icon = new THREE.Sprite(sm({ map: iconTex('❗') })); icon.scale.set(1.7, 1.7, 1); icon.position.y = 6.4; icon.visible = false; root.add(icon);
+  return { root, body, legs, glow, armour, back, fill, icon };
+}
+
+const ROBOT_TYPES = {
+  charger: {
+    health: 100, hitY: 2.2, hitR: 2.5,
+    spec: { topSpeed: 6.5, backSpeed: 5, accel: 4.5, brake: 8, boostSpeed: 17, boostAccel: 18, legTurn: 2.4, torsoTurn: 4, stride: 1.6, radius: 2.0 },
+    paint: { armour: '#8a5cff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
+    build: buildCharger,
+    ai: chargerAI,
+  },
+};
+
+function spawnRobot(type, x, z) {
+  const T = ROBOT_TYPES[type]; if (!T) return null;
+  const p = Game.humans[0]?.mech, heading = p ? Math.atan2(-(p.pos.x - x), -(p.pos.z - z)) : 0;
+  const r = newMech(x, z, heading);
+  Object.assign(r, {
+    id: Game.nextId++, type, spec: T.spec, health: T.health, maxHealth: T.health, state: 'glitched',
+    t: 0, downT: 0, downs: 0, reboots: 0, glow: 3, glowMode: 'flicker', flickT: 0, sparkT: Math.random() * 0.5, hitFlash: 0,
+    hits: { gun: 0, punch: 0, kick: 0 },
+    ai: { think: Math.random() * 0.05, mode: 'stalk', t: 0.6 },
+  });
+  r.model = T.build(T.paint); scene.add(r.model.root);
+  Game.robots.push(r);
+  return r;
+}
+
+function nearestPlayer(r) {
+  let best = null, bd = Infinity;
+  for (const h of Game.humans) { const d = Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z); if (d < bd) { bd = d; best = h.mech; } }
+  return best;
+}
+
+// The Charger's brain. It thinks at 20 Hz and only writes input fields:
+// stalk (close in, or back off for a run-up) -> windup (stop, paw, glare)
+// -> charge (boost straight at you) -> recover (shake it off) -> stalk.
+function chargerAI(r, dt) {
+  const ai = r.ai, inp = r.input, S = r.spec, tgt = nearestPlayer(r);
+  inp.boost = false;
+  if (!tgt) { inp.throttle = inp.turn = 0; return; }
+  const dx = tgt.pos.x - r.pos.x, dz = tgt.pos.z - r.pos.z, dist = Math.hypot(dx, dz);
+  const want = Math.atan2(-dx, -dz);
+  let err = wrapAngle(want - r.legHeading);
+  ai.t -= dt;
+  // steer round trees and rocks ahead (not during a charge: it commits)
+  if (ai.mode !== 'charge') {
+    const h = r.legHeading, fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
+    for (const o of obstacles) {
+      const ox = o.x - r.pos.x, oz = o.z - r.pos.z, along = ox * fx + oz * fz, lat = ox * rx + oz * rz;
+      if (along > 0 && along < 10 && along < dist && Math.abs(lat) < o.r + S.radius + 1) err += lat > 0 ? 0.9 : -0.9;
+    }
+  }
+  if (ai.mode === 'stalk') {
+    inp.throttle = dist < 12 ? -0.7 : Math.abs(err) < 1 ? 1 : 0.3;
+    if (ai.t <= 0 && dist > 10 && dist < 28 && Math.abs(err) < 0.2) { ai.mode = 'windup'; ai.t = 0.75; const k = loud(r.pos); if (k > 0) Sfx.snort(k); }
+  } else if (ai.mode === 'windup') {
+    inp.throttle = 0;
+    if (ai.t <= 0) { ai.mode = 'charge'; ai.t = 2.2; }
+  } else if (ai.mode === 'charge') {
+    inp.throttle = 1; inp.boost = true;
+    err = clamp(err, -0.3, 0.3);                       // it barely homes once it's going
+    if (ai.t <= 0) { ai.mode = 'recover'; ai.t = 1.2; }
+  } else if (ai.mode === 'recover') {
+    inp.throttle = 0;
+    if (ai.t <= 0) { ai.mode = 'stalk'; ai.t = 0.8; }
+  }
+  inp.turn = clamp(-err * 2.5, -1, 1);                 // positive turn swings the heading down
+  inp.aimYaw = r.legHeading;
+}
+
+function powerDown(r) {
+  r.state = 'down'; r.downT = ROBOT.downTime; r.downs++; r.ai.mode = 'off';
+  r.input.throttle = r.input.turn = 0; r.input.boost = false;
+  Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 40, SPARK_HOT, 10);
+  const k = loud(r.pos); if (k > 0) Sfx.powerDown(k);
+}
+function reboot(r) {
+  r.state = 'glitched'; r.health = Math.round(r.maxHealth * ROBOT.rebootHealth); r.reboots++;
+  r.ai.mode = 'recover'; r.ai.t = 1.2; r.flickT = 0;
+  Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 30, SPARK_ZAP, 8);
+  const k = loud(r.pos); if (k > 0) Sfx.reboot(k);
+}
+
+// Glow is gameplay, so it's simulated (and testable), not just drawn.
+// Glitched: jumps between near-dark and far past the bloom threshold, faster
+// when winding up or charging. Down: dark, then blinks as the reboot nears.
+function robotGlow(r, dt) {
+  if (r.state === 'glitched') {
+    r.glowMode = 'flicker';
+    r.flickT -= dt;
+    if (r.flickT <= 0) {
+      const hot = r.ai.mode === 'windup' || r.ai.mode === 'charge', u = Math.random();
+      r.flickT = hot ? 0.03 + Math.random() * 0.05 : 0.04 + Math.random() * 0.14;
+      r.glow = u < 0.3 ? 0.04 : u < 0.42 ? 0.6 : hot ? 6 + Math.random() * 2 : 2.8 + Math.random() * 2.4;
+    }
+  } else if (r.downT > ROBOT.warnTime) { r.glowMode = 'off'; r.glow = 0.03; }
+  else { r.glowMode = 'blink'; const hz = 1.5 + (ROBOT.warnTime - r.downT) * 1.5; r.glow = Math.sin(r.t * hz * Math.PI * 2) > 0.3 ? 3.5 : 0.03; }
+}
+
+function robotTick(r, dt) {
+  r.t += dt;
+  if (r.state === 'down') {
+    r.input.throttle = r.input.turn = 0; r.input.boost = false;
+    r.downT -= dt;
+    if (r.downT <= 0) reboot(r);
+  }
+  mechTick(r, dt);
+  robotGlow(r, dt);
+  // sparks: a glitched robot spits them often, a downed one now and then
+  r.sparkT -= dt;
+  if (r.sparkT <= 0) {
+    const g = r.state === 'glitched', h = r.legHeading;
+    r.sparkT = g ? 0.2 + Math.random() * 0.7 : 0.8 + Math.random() * 1.6;
+    const lx = (Math.random() - 0.5) * 3, lz = (Math.random() - 0.5) * 4, y = r.pos.y + 2 + Math.random() * 1.6;
+    Sparks.burst(r.pos.x + lx * Math.cos(h) + lz * Math.sin(h), y, r.pos.z - lx * Math.sin(h) + lz * Math.cos(h), g ? 4 + Math.floor(Math.random() * 6) : 2, g && Math.random() < 0.5 ? SPARK_ZAP : SPARK_HOT, g ? 6 : 3);
+    const k = loud(r.pos); if (g && k > 0) Sfx.zap(k);
+  }
+  r.hitFlash = Math.max(0, r.hitFlash - dt * 6);
+}
+
+// A charging robot that reaches a mech rams it. Checked before the bodies are
+// pushed apart, with a reach past that separation distance.
+function rams() {
+  for (const r of Game.robots) {
+    if (r.state !== 'glitched' || r.ai.mode !== 'charge' || r.speed < 5) continue;
+    for (const h of Game.humans) {
+      const m = h.mech, dx = m.pos.x - r.pos.x, dz = m.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
+      if (d > MECH.radius + r.spec.radius + 0.6) continue;
+      const k = clamp(r.speed / r.spec.boostSpeed, 0, 1);
+      hurtMech(m, Math.round(10 + 10 * k));
+      m.push.x += dx / d * 7 * k; m.push.z += dz / d * 7 * k;
+      r.push.x -= dx / d * 8; r.push.z -= dz / d * 8; r.speed = 0;     // it bounces off
+      r.ai.mode = 'recover'; r.ai.t = 1.6;
+      Sparks.burst(r.pos.x + dx / d * 2.5, r.pos.y + 2.2, r.pos.z + dz / d * 2.5, 30, SPARK_HOT, 9);
+      if (!Game.manual) Sfx.ram();
+      break;
+    }
+  }
+}
+// Keep bodies apart: a light robot gives way to a heavy mech
+function separate() {
+  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.map((r) => [r, r.spec.radius, 0.8])];
+  for (let a = 0; a < bodies.length; a++) for (let b = a + 1; b < bodies.length; b++) {
+    const [A, ra, wa] = bodies[a], [B, rb, wb] = bodies[b];
+    const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz) || 1e-3, min = ra + rb;
+    if (d >= min) continue;
+    const o = min - d, sa = wa / (wa + wb), sb = wb / (wa + wb);
+    A.pos.x -= dx / d * o * sa; A.pos.z -= dz / d * o * sa; B.pos.x += dx / d * o * sb; B.pos.z += dz / d * o * sb;
+    A.pos.y = groundH(A.pos.x, A.pos.z); B.pos.y = groundH(B.pos.x, B.pos.z);
+  }
+}
+
+function syncRobotModel(r, dt) {
+  const md = r.model, S = r.spec;
+  const jit = r.state === 'glitched' && r.glow > 5 ? 0.08 : 0;   // it jolts when the glitch spikes
+  md.root.position.set(r.pos.x + (Math.random() - 0.5) * jit, r.pos.y, r.pos.z + (Math.random() - 0.5) * jit);
+  md.root.rotation.y = r.legHeading;
+  const k = clamp(Math.abs(r.speed) / S.topSpeed, 0, 1);
+  for (const L of md.legs) L.hip.rotation.x = Math.sin(r.phase + L.ph) * 0.55 * k;
+  const mode = r.state === 'down' ? 'down' : r.ai.mode;
+  if (mode === 'windup') md.legs[0].hip.rotation.x = Math.sin(r.t * 16) * 0.6;   // paws the ground
+  const pose = mode === 'windup' ? [-0.35, 0.12, 0] : mode === 'charge' ? [-0.15, 0.1, 0] : mode === 'down' ? [-0.9, 0.18, 0.32] : [0, 0, 0];
+  md.body.position.y = damp(md.body.position.y, pose[0], 8, dt);
+  md.body.rotation.x = damp(md.body.rotation.x, pose[1], 8, dt);
+  md.body.rotation.z = damp(md.body.rotation.z, pose[2], 4, dt);
+  md.glow.emissiveIntensity = r.glow;
+  md.armour.emissiveIntensity = r.hitFlash * 0.8;
+  const f = r.health / r.maxHealth, up = r.state !== 'down';
+  md.back.visible = up; md.fill.visible = up && f > 0;
+  if (f > 0) { md.fill.scale.x = 3.0 * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
+  const icon = mode === 'windup' || mode === 'charge' ? '❗' : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️') : null;
+  md.icon.visible = !!icon;
+  if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = 6.4 + Math.sin(r.t * 6) * 0.15; }
+}
+
+function cycleWeapon(h, d) {
+  h.weapon = WEAPONS[(WEAPONS.indexOf(h.weapon) + d + WEAPONS.length) % WEAPONS.length];
+  if (!Game.manual) Sfx.click();
+}
+
 function gatherInput(dt) {
   const solo = Game.humans.length === 1;
   for (const h of Game.humans) {
@@ -658,6 +1129,8 @@ function gatherInput(dt) {
     const pad = readPad(h.idx);
     if (pad && pad.startP) setPause(!Game.paused);
     if (pad && pad.aP && Game.paused) startPlay();
+    sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) { h.weapon = WEAPONS[w]; if (!Game.manual) Sfx.click(); } });
+    if (pad && (pad.lbP || pad.rbP)) cycleWeapon(h, pad.rbP ? 1 : -1);
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
     if (pad) { turn += pad.lx; thr -= pad.ly; }
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
@@ -666,8 +1139,10 @@ function gatherInput(dt) {
     h.rig.pitch = clamp(h.rig.pitch + h.ci.camY * 1.0 * dt, -0.35, 0.5);
     if (solo && mouse.locked) { h.rig.yaw = wrapAngle(h.rig.yaw - mouse.dx * 0.0025); h.rig.pitch = clamp(h.rig.pitch - mouse.dy * 0.002, -0.35, 0.5); }
     const m = h.mech; if (!m) continue;
-    if (Game.paused) { m.input.throttle = m.input.turn = 0; continue; }
+    m.input.weapon = h.weapon;
+    if (Game.paused) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
     m.input.throttle = clamp(thr, -1, 1); m.input.turn = clamp(turn, -1, 1);
+    m.input.attack = k('fire') || (solo && mouse.locked && mouse.down) || !!(pad && pad.rt);
     m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch;
   }
   mouse.dx = mouse.dy = 0;
@@ -678,7 +1153,18 @@ function tick(dt) {
   if (Game.state !== 'play' || Game.paused) return;
   Game.ticks++;
   Meadow.time.value += dt;
-  for (const m of Game.mechs) mechTick(m, dt);
+  // Robots think at 20 Hz (Family Knockout's bot loop), writing their input
+  for (const r of Game.robots) {
+    if (r.state !== 'glitched') continue;
+    r.ai.think -= dt; if (r.ai.think <= 0) { r.ai.think = 0.05; ROBOT_TYPES[r.type].ai(r, 0.05); }
+  }
+  for (const m of Game.mechs) { mechTick(m, dt); combatTick(m, dt); }
+  for (const r of Game.robots) robotTick(r, dt);
+  Bullets.tick(dt);
+  rams();
+  separate();
+  Sparks.tick(dt);
+  Game.hurtFlash = Math.max(0, Game.hurtFlash - dt * 2.5);
 }
 
 // HUD: speed bars and legs-vs-torso compass
@@ -686,11 +1172,16 @@ const SPEED_BARS = 8;
 function buildHud() {
   const el = $('speed');
   for (let i = 0; i < SPEED_BARS; i++) { const b = document.createElement('i'); b.style.height = (14 + i * 5) + 'px'; el.appendChild(b); }
+  WEAPONS.forEach((w, i) => { const d = document.createElement('div'); d.className = 'wpn'; d.dataset.w = w; d.innerHTML = `${WEAPON[w].icon}<small>${i + 1}</small>`; $('weapons').appendChild(d); });
 }
 function updateHud() {
   const h = Game.humans[0]; if (!h) return;
   const m = h.mech, f = Math.abs(m.speed) / MECH.topSpeed, on = Math.round(f * SPEED_BARS);
   [...$('speed').querySelectorAll('i')].forEach((b, i) => { b.classList.toggle('on', i < on); b.classList.toggle('max', on >= SPEED_BARS); });
+  const hp = m.health / m.maxHealth, fill = $('hpFill'), col = hp > 0.5 ? 'var(--green)' : hp > 0.25 ? 'var(--yellow)' : '#ff4d5e';
+  fill.style.width = (hp * 100) + '%'; fill.style.background = col; fill.style.boxShadow = `0 0 10px ${col}`;
+  for (const d of $('weapons').children) d.classList.toggle('on', d.dataset.w === h.weapon);
+  $('hurt').style.opacity = Game.hurtFlash.toFixed(3);
   // compass is camera-up: torso is always up-ish, legs show their offset
   const camYaw = m.torsoYaw;
   $('cLegs').style.transform = `rotate(${-(m.legHeading - camYaw)}rad)`;
@@ -700,6 +1191,9 @@ function updateHud() {
 function render(dt) {
   const W = innerWidth, H = innerHeight;
   for (const m of Game.mechs) syncMechModel(m);
+  for (const r of Game.robots) syncRobotModel(r, dt);
+  Bullets.sync();
+  Sparks.sync();
   Dust.update(dt);
   const h = Game.humans[0]; if (!h) return;
   h.rig.update(dt, h.mech);
@@ -729,6 +1223,9 @@ function frame(now) {
 function startPlay() {
   Sfx.unlock(); Sfx.click();
   setPause(false);
+  // the first press of play sends a Charger out of the trees ahead
+  const p = Game.humans[0]?.mech;
+  if (p && !Game.robots.length && !Game.manual) spawnRobot('charger', p.pos.x - Math.sin(p.legHeading) * 45, p.pos.z - Math.cos(p.legHeading) * 45);
   if (Game.humans.length === 1) canvas.requestPointerLock?.();
 }
 $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
@@ -753,7 +1250,31 @@ window.__rb = {
     const m = h.mech; m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch; m.torsoYaw = h.rig.yaw; m.aimPitch = h.rig.pitch;
     return this.state().players[i];
   },
+  // drop a robot into the meadow: spawn('charger', x, z)
+  spawn(type, x, z) { const r = spawnRobot(type, x, z); return r ? this.state().robots.find((q) => q.id === r.id) : null; },
+  // player i uses a weapon now ('gun' | 'punch' | 'kick'), through the same attack
+  // code as the keys. Bullets fly and swings land over the next steps.
+  fire(i, weapon) {
+    const h = Game.humans[i]; if (!h || !WEAPON[weapon]) return null;
+    h.weapon = weapon; const m = h.mech; m.input.weapon = weapon;
+    m.cool = 0; m.swing = null;
+    startAttack(m, weapon);
+    return this.state().players[i];
+  },
+  // move player i (setup)
+  teleport(i, x, z) {
+    const h = Game.humans[i]; if (!h) return null;
+    const m = h.mech; m.pos.set(x, groundH(x, z), z); m.speed = 0; m.turnVel = 0; m.push.set(0, 0, 0); h.rig.snap = true;
+    return this.state().players[i];
+  },
+  // setup only: hurt a robot without a weapon hit (doesn't count as a hit)
+  damage(id, amount, weapon = 'setup') {
+    const r = Game.robots.find((q) => q.id === id); if (!r) return null;
+    hurtRobot(r, amount, weapon);
+    return this.state().robots.find((q) => q.id === id);
+  },
   state() {
+    const p0 = Game.humans[0]?.mech;
     return {
       state: Game.state, paused: Game.paused, ticks: Game.ticks, hz: SIM_HZ,
       players: Game.humans.map((h) => {
@@ -764,8 +1285,20 @@ window.__rb = {
           torsoAim: { yaw: r3(m.torsoYaw), pitch: r3(m.aimPitch) },
           torsoOffset: r3(wrapAngle(m.torsoYaw - m.legHeading)), // torso relative to legs
           speed: r3(m.speed), topSpeed: MECH.topSpeed, footfalls: m.footfalls,
+          health: m.health, maxHealth: m.maxHealth, weapon: h.weapon, hitsTaken: m.hitsTaken,
         };
       }),
+      robots: Game.robots.map((r) => ({
+        id: r.id, type: r.type, x: r3(r.pos.x), z: r3(r.pos.z),
+        health: r.health, maxHealth: r.maxHealth,
+        state: r.state,                                   // 'glitched' | 'down'
+        mode: r.ai.mode,                                  // stalk | windup | charge | recover | off
+        glow: { mode: r.glowMode, level: r3(r.glow) },    // flicker (glitched) | off | blink (about to reboot)
+        rebootIn: r.state === 'down' ? r3(r.downT) : null, downs: r.downs, reboots: r.reboots,
+        hits: { ...r.hits },                              // real weapon hits only (damage() doesn't count)
+        speed: r3(r.speed), dist: p0 ? r3(Math.hypot(r.pos.x - p0.pos.x, r.pos.z - p0.pos.z)) : null,
+      })),
+      bullets: Bullets.list.length,
     };
   },
 };
@@ -775,6 +1308,8 @@ window.__rb = {
 // ===========================================================================
 Meadow.build();
 Dust.init();
+Sparks.init();
+Bullets.init();
 spawnPlayer(0, 0, 0, 0);
 buildHud();
 onResize();
