@@ -121,6 +121,35 @@
   .tile .n { position: absolute; right: -12px; bottom: -8px; min-width: 38px; height: 32px; padding: 0 6px; border-radius: 16px; background: #fff; border: 3px solid var(--ink); color: var(--ink); font: 900 20px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; }
   .bagtotal { font-size: 30px; font-weight: 900; margin-left: 14px; }
   .empty { font-size: 64px; opacity: .35; text-align: center; padding: 10px 40px; }
+  /* ---------- MEND: getting hearts back ---------- */
+  #hud .health .mendb { position: relative; width: 50px; height: 50px; border-radius: 50%; border: 4px solid var(--ink); background: var(--green); font-size: 24px; cursor: pointer; box-shadow: 0 4px 0 var(--ink); padding: 0; }
+  #hud .health .mendb small { position: absolute; right: -7px; bottom: -7px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  #hud .health .mendb.off { filter: grayscale(1) brightness(.6); }
+  #hud .health .mendb.ready { animation: pulse 0.9s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 4px 0 var(--ink), 0 0 0 0 rgba(62,224,122,.9); } 50% { box-shadow: 0 4px 0 var(--ink), 0 0 0 9px rgba(62,224,122,0); } }
+  #hud .health .bar { transition: box-shadow .2s; }
+  #hud .health.heal .bar { box-shadow: 0 0 0 3px #fff, 0 0 22px var(--green); }
+  #hud .health .pop { position: absolute; left: 70px; top: 6px; font: 900 30px 'Asap', sans-serif; color: var(--green); white-space: nowrap; pointer-events: none;
+    text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink); animation: rise 1.3s ease-out forwards; }
+  @keyframes rise { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-56px); opacity: 0; } }
+  #mend .panel { border-color: var(--green); box-shadow: 0 0 30px rgba(62,224,122,.45); }
+  .needs { display: flex; justify-content: center; gap: 26px; }
+  .need { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .need .area { font-size: 40px; line-height: 1; }
+  .need .dmg { width: 88px; height: 14px; border-radius: 7px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .need .dmg b { display: block; height: 100%; border-radius: 7px; background: #ff4d5e; box-shadow: 0 0 8px #ff4d5e; }
+  .needs.bad { animation: shake .3s; }
+  .tile .n.zero { background: #ff4d5e; color: #fff; }
+  /* ---------- POWERED DOWN: the world goes grey, a ring fills to the reboot ---------- */
+  #c { transition: filter .4s; }
+  body.off #c { filter: grayscale(.85) brightness(.5); }
+  #downOv { position: fixed; left: 50%; top: 40%; width: 180px; height: 180px; margin: -90px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 84px; pointer-events: none;
+    --p: 0; background: conic-gradient(var(--cyan) calc(var(--p) * 1turn), rgba(20,24,42,.75) 0); box-shadow: 0 0 30px rgba(63,240,255,.5); }
+  #downOv::before { content: ''; position: absolute; inset: 14px; border-radius: 50%; background: rgba(20,24,42,.92); }
+  #downOv span { position: relative; }
+  #downOv .mate { position: absolute; right: -12px; bottom: -6px; font-size: 48px; display: none; }
+  #downOv.beam .mate { display: block; }
+  body.off #downOv { display: flex; }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -149,6 +178,7 @@
         <div class="key">1</div><div class="key">2</div><div class="key">3</div>
       </div><small>🔫👊🦶</small></div>
       <div class="hint"><div class="key wide">␣</div><small>💥</small></div>
+      <div class="hint"><div class="key">R</div><small>🔧❤️</small></div>
       <div class="hint">🎮</div>
     </div>
   </div>
@@ -158,7 +188,7 @@
 <div id="hurt"></div>
 <div id="hud" class="screen on">
   <div class="reticle"></div>
-  <div class="health"><span class="ico">❤️</span><div class="bar"><b id="hpFill"></b></div></div>
+  <div class="health" id="health"><span class="ico">❤️</span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech">🔧<small>R</small></button></div>
   <div class="weapons" id="weapons"></div>
   <div class="speed" id="speed"><span class="ico">🦿</span></div>
   <div class="compass">
@@ -198,6 +228,17 @@
     <div class="tiles" id="bagTiles"></div>
   </div>
 </div>
+
+<!-- MEND: fix your own mech. Each damaged area shows the part that fixes it and how many the bag has; tap one to use it -->
+<div id="mend" class="screen">
+  <div class="panel">
+    <div class="top"><span>🔧❤️</span><button class="x" id="mendX" aria-label="Close">✖</button></div>
+    <div class="needs" id="mendTiles"></div>
+  </div>
+</div>
+
+<!-- POWERED DOWN: 💤 in a ring that fills until the mech reboots; 🤖 when a squadmate is mending it -->
+<div id="downOv"><span id="downIco">💤</span><span class="mate">🤖</span></div>
 
 <!-- NAME: the fixed robot already has a random name; typing a new one is optional -->
 <div id="namer" class="screen">
@@ -263,6 +304,22 @@ const PARTS = {
   wiring:  { icon: '🔌', hex: '#56B4E9', fixes: 'wiring' },
   ram:     { icon: '🐏', hex: '#c9ced8', fixes: null },        // the Charger's ram
 };
+// Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
+// always maxHealth minus the damage in every area, so every heal mends areas too.
+//  - parts: fast. One part mends up to `part` health in the area its `fixes` names.
+//  - ally: slower. A squadmate within allyRange mends allyRate health a second while
+//    no glitched robot is within safeRange (a powered-down mech is mended regardless).
+//  - kit: fastest. Walking onto a kit mends `kit` health at once; it's used up.
+//    `kits` lie tucked beside trees; a robot drops one the first time it's beaten.
+const AREAS = ['hull', 'legs', 'power', 'wiring'];
+const AREA_ICON = { hull: '🤖', legs: '🦿', power: '⚡', wiring: '〰️' };
+const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 } };   // where each kind of hit lands
+const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 50, kitReach: 3.5, kits: 6 };
+const HEAL_ICON = { parts: '🔧', ally: '🤖', kit: '🧰', reboot: '🔌' };
+// At 0 hearts the mech powers down like a robot: dark, no moving, aiming or firing,
+// and glitched robots leave it alone. It reboots after downTime with rebootHealth,
+// or sooner once a squadmate has mended it up to wakeHealth. No game over.
+const PLAYER = { downTime: 8, warnTime: 3, rebootHealth: 0.4, wakeHealth: 0.25 };
 // Wire colours: Okabe-Ito colour-blind-safe hues, each with its own shape too
 const WIRE_COLORS = [
   { color: 'yellow', hex: '#F0E442', shape: 'triangle' },
@@ -406,6 +463,10 @@ const Sfx = {
   plug() { this.tone(520, 0.08, 'square', 0.1, 780); this.tone(1040, 0.12, 'triangle', 0.12, null, 0.05); },
   buzz() { this.tone(110, 0.3, 'sawtooth', 0.16, 85); this.noise(0.2, 0.14, 1800, 0, 2); },
   fixed() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.16, null, i * 0.1)); },
+  // Getting hearts back: each source has its own sound
+  mendParts() { [0, 0.07, 0.14].forEach((d) => this.noise(0.04, 0.2, 2600, d, 2)); this.tone(392, 0.14, 'square', 0.07, 523, 0.2); this.tone(784, 0.3, 'triangle', 0.16, 1047, 0.28); },
+  mendAlly() { this.tone(660, 0.22, 'sine', 0.07, 990); this.tone(1320, 0.16, 'sine', 0.035, 1760, 0.08); },
+  kit() { [659, 880, 1109, 1319, 1760].forEach((f, i) => this.tone(f, 0.18, 'sine', 0.15, null, i * 0.055)); this.noise(0.25, 0.06, 7000, 0.2, 2, 'highpass'); },
   salvage() { this.clang(1); this.clang(0.7); this.tone(260, 0.12, 'square', 0.06, 180, 0.12); this.tone(340, 0.12, 'square', 0.06, 220, 0.26); this.noise(0.3, 0.2, 900, 0.1, 0.8); },
   // A low engine hum that rises with speed
   startHum() {
@@ -425,12 +486,12 @@ const keysPressed = new Set();
 // up/down = throttle, left/right = turn the legs, camL/camR = swing the torso aim
 // fire = use the current weapon; wpn = pick gun / punch / kick
 // fix / parts = answer the prompt beside a downed robot (parts again = take the picks)
-// bag = open or close the parts bag
+// bag = open or close the parts bag; mend = open or close the self-repair panel
 const SCHEMES = [
-  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'], fix: ['KeyF'], parts: ['KeyG'], bag: ['KeyB'] },
-  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'], fix: ['Period'], parts: ['Comma'], bag: ['Slash'] },
+  { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], camL: ['KeyQ'], camR: ['KeyE'], fire: ['Space'], wpn: ['Digit1', 'Digit2', 'Digit3'], fix: ['KeyF'], parts: ['KeyG'], bag: ['KeyB'], mend: ['KeyR'] },
+  { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: ['Semicolon'], camR: ['Quote'], fire: ['ShiftRight'], wpn: ['Digit8', 'Digit9', 'Digit0'], fix: ['Period'], parts: ['Comma'], bag: ['Slash'], mend: ['KeyP'] },
 ];
-const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [], fix: [], parts: [], bag: [] };
+const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [], fix: [], parts: [], bag: [], mend: [] };
 const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab', 'Enter']);
 addEventListener('keydown', (e) => {
   // typing a robot's name: the keys spell the name and don't drive the mech
@@ -468,14 +529,14 @@ function readPad(i) {
   const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v);
   const b = (n) => !!(p.buttons[n] && p.buttons[n].pressed);
   const prev = padPrev[i];
-  const cur = { start: b(9), back: b(8), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0), b: b(1), x: b(2), y: b(3), lb: b(4), rb: b(5), rt: b(7) || (p.buttons[7] && p.buttons[7].value > 0.4) };
+  const cur = { start: b(9), back: b(8), up: b(12), down: b(13), left: b(14), right: b(15), a: b(0), b: b(1), x: b(2), y: b(3), lb: b(4), rb: b(5), lt: b(6) || (p.buttons[6] && p.buttons[6].value > 0.4), rt: b(7) || (p.buttons[7] && p.buttons[7].value > 0.4) };
   const out = {
     lx: dz(p.axes[0] || 0) + (cur.right ? 1 : 0) - (cur.left ? 1 : 0),
     ly: dz(p.axes[1] || 0) + (cur.down ? 1 : 0) - (cur.up ? 1 : 0),
     rx: dz(p.axes[2] || 0), ry: dz(p.axes[3] || 0),
     startP: cur.start && !prev.start, aP: cur.a && !prev.a, bP: cur.b && !prev.b, xP: cur.x && !prev.x, yP: cur.y && !prev.y, backP: cur.back && !prev.back,
     dpadX: (cur.right ? 1 : 0) - (cur.left ? 1 : 0), leftP: cur.left && !prev.left, rightP: cur.right && !prev.right,
-    rt: cur.rt, lbP: cur.lb && !prev.lb, rbP: cur.rb && !prev.rb,
+    rt: cur.rt, ltP: cur.lt && !prev.lt, lbP: cur.lb && !prev.lb, rbP: cur.rb && !prev.rb,
   };
   padPrev[i] = cur;
   return out;
@@ -704,7 +765,14 @@ function buildMech(paint = PAINT) {
     arms.push({ s, shoulder, arm, fore });
   }
   root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
-  return { root, body, pelvis, torso, legs, arms, flashes, muzzleLight };
+  // Its own copy of every glowing material, so powering down darkens this mech only
+  // (the glowMat() cache is shared). lights[i].k is the glow when it's running.
+  const lights = [];
+  root.traverse((o) => {
+    if (!o.isMesh || !o.material.emissive || !(o.material.emissiveIntensity > 0)) return;
+    o.material = o.material.clone(); lights.push({ mat: o.material, k: o.material.emissiveIntensity });
+  });
+  return { root, body, pelvis, torso, legs, arms, flashes, muzzleLight, lights };
 }
 
 // Simulation state for one mech. Players and robots write the same `input`
@@ -712,6 +780,9 @@ function buildMech(paint = PAINT) {
 function newMech(x, z, heading) {
   return {
     health: MECH_HEALTH, maxHealth: MECH_HEALTH, hitsTaken: 0,
+    state: 'up', downT: 0, downs: 0, reboots: 0,   // a player's mech: 'up' | 'down' (robots set their own state)
+    damage: { hull: 0, legs: 0, power: 0, wiring: 0 },   // health missing, by area (AREAS)
+    glow: 1, slump: 0,        // lights 0..1 (dark when down, blinking before a reboot); slump 0..1 as it sags
     push: new V3(),           // knockback velocity, fades out
     cool: 0, swing: null,     // weapon cooldown and the melee swing in progress
     pos: new V3(x, groundH(x, z), z),
@@ -781,6 +852,15 @@ function syncMechModel(m) {
   md.body.rotation.x = -m.speed / MECH.topSpeed * 0.04;          // lean into the walk
   md.torso.rotation.y = wrapAngle(m.torsoYaw - m.legHeading);
   for (const A of md.arms) { A.arm.rotation.x = m.aimPitch; A.fore.position.z = 0; }   // arms pitch with the aim
+  // Powered down: the lights go out, the body sags, the torso tips forward and the arms hang
+  for (const L of md.lights) L.mat.emissiveIntensity = L.k * m.glow;
+  const sl = m.slump;
+  md.body.position.y -= sl * 1.1; md.torso.rotation.x = -0.22 * sl;   // (the arms hang at the end, after recoil and swings)
+  if (md.icon) {
+    const icon = m.state === 'down' ? (m.downT > PLAYER.warnTime ? '💤' : '⚠️') : null;
+    md.icon.visible = !!icon;
+    if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = 10.2 + Math.sin(Game.ticks / 10) * 0.2; }
+  }
   // The cannon arm kicks back and up on each round; the flash sits on the barrel that fired
   const R = md.arms.find((a) => a.s > 0), rc = m.recoil || 0;
   R.fore.position.z = rc * 0.55; R.arm.rotation.x = m.aimPitch + rc * 0.09;
@@ -803,6 +883,7 @@ function syncMechModel(m) {
       md.body.rotation.x += Math.max(0, e) * 0.07;
     }
   }
+  if (sl > 0) for (const A of md.arms) A.arm.rotation.x -= 0.7 * sl;
 }
 
 // ===========================================================================
@@ -851,7 +932,13 @@ function setPause(on) {
 function spawnPlayer(i, x, z, heading) {
   const m = newMech(x, z, heading);
   m.model = buildMech(); scene.add(m.model.root);
-  const h = { idx: i, rig: new CamRig(i), mech: m, ci: { camX: 0, camY: 0 }, weapon: 'gun', repair: null };
+  // a 💤 over the mech while it's powered down (⚠️ just before it reboots), like a robot's
+  const icon = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, map: iconTex('💤') }));
+  icon.scale.set(2.4, 2.4, 1); icon.visible = false; icon.renderOrder = 7; m.model.root.add(icon); m.model.icon = icon;
+  // heals: health mended this tick, by source; healPop: mended but not yet shown on the HUD;
+  // beam: the squadmate mending this mech right now
+  const h = { idx: i, rig: new CamRig(i), mech: m, ci: { camX: 0, camY: 0 }, weapon: 'gun', repair: null,
+    heals: { parts: 0, ally: 0, kit: 0, reboot: 0 }, healPop: { parts: 0, ally: 0, kit: 0, reboot: 0 }, beam: null, beamSnd: 0 };
   h.rig.yaw = heading; m.human = h;
   m.onFootfall = (mm) => {
     const k = 0.4 + 0.6 * Math.min(1, Math.abs(mm.speed) / MECH.topSpeed);
@@ -907,7 +994,7 @@ const loud = (p) => (Game.manual ? 0 : near(p));
 // ===========================================================================
 // Sparks: hot points that bloom. Glitched robots spit them, and hits throw them.
 // ===========================================================================
-const SPARK_HOT = [5, 3.4, 1.1], SPARK_ZAP = [2.2, 3.8, 6];
+const SPARK_HOT = [5, 3.4, 1.1], SPARK_ZAP = [2.2, 3.8, 6], SPARK_MEND = [1.4, 5, 2.4];
 const Sparks = {
   N: 400, i: 0, list: [],
   init() {
@@ -1207,7 +1294,7 @@ const Impacts = {
 // (and __rb.fire); hits land in hitRobot / hurtMech.
 // ===========================================================================
 function startAttack(m, w) {
-  const W = WEAPON[w]; if (!W) return false;
+  const W = WEAPON[w]; if (!W || m.state === 'down') return false;   // a powered-down mech can't fire
   m.cool = W.cool;
   if (w === 'gun') {
     shoot(m);
@@ -1285,9 +1372,78 @@ function hurtRobot(r, amount, w) {
   if (r.health <= 0) powerDown(r);
   return true;
 }
-function hurtMech(m, amount) {
-  m.health = Math.max(0, m.health - amount); m.hitsTaken++;
+// A player's mech takes a hit. `how` (a HIT_AREAS key) shares the damage out over
+// the areas it lands in: a plain hit hurts the hull, a ram the hull and the legs.
+// A powered-down mech takes no more. At 0 it powers down.
+function hurtMech(m, amount, how = 'hit') {
+  if (m.state === 'down') return 0;
+  const dealt = Math.min(amount, m.health), split = Object.entries(HIT_AREAS[how] || HIT_AREAS.hit);
+  let left = dealt;
+  split.forEach(([a, w], i) => { const d = i === split.length - 1 ? left : Math.min(left, Math.round(dealt * w)); m.damage[a] += d; left -= d; });
+  m.health = Math.max(0, m.health - dealt); m.hitsTaken++;
   if (m.human) { Game.hurtFlash = 1; m.human.rig.kick(1.2); }
+  if (m.health <= 0) powerDownMech(m);
+  return dealt;
+}
+// Mend up to `amount` health from source `src` ('parts' | 'ally' | 'kit' | 'reboot').
+// With an `area` only that area is mended; without one every damaged area is mended
+// in proportion to its damage. Health never goes above max. Returns what it mended.
+function healMech(m, amount, src, area) {
+  let gave = Math.min(amount, m.maxHealth - m.health);
+  if (area) gave = Math.min(gave, m.damage[area]);
+  if (!(gave > 0)) return 0;
+  if (area) m.damage[area] = Math.max(0, m.damage[area] - gave);
+  else {
+    const tot = AREAS.reduce((t, a) => t + m.damage[a], 0);
+    if (tot > 0) for (const a of AREAS) m.damage[a] = Math.max(0, m.damage[a] - gave * m.damage[a] / tot);
+  }
+  m.health = Math.min(m.maxHealth, m.health + gave);
+  const h = m.human; if (h) { h.heals[src] += gave; h.healPop[src] += gave; }
+  return gave;
+}
+// The areas with damage worth a part (a sliver left by a squadmate's mending isn't)
+const hurtIn = (m, a) => m.damage[a] >= 0.5;
+const partFor = (area) => Object.keys(PARTS).find((id) => PARTS[id].fixes === area);
+// 0 hearts: the mech powers down like a robot. Its lights go out, its controls do
+// nothing, any repair it was doing is dropped and glitched robots leave it be.
+function powerDownMech(m) {
+  m.state = 'down'; m.downT = PLAYER.downTime; m.downs++;
+  m.input.throttle = m.input.turn = 0; m.input.attack = false; m.swing = null; m.burstN = 0;
+  const h = m.human;
+  if (h) { cancelRepair(h); if (h.idx === 0 && FixUI.mode) FixUI.close(); }
+  Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 50, SPARK_HOT, 10);
+  if (!Game.manual) Sfx.powerDown(1);
+}
+function rebootMech(m) {
+  m.state = 'up'; m.reboots++; m.downT = 0;
+  healMech(m, Math.round(m.maxHealth * PLAYER.rebootHealth) - m.health, 'reboot');
+  if (m.human) m.human.rig.yaw = m.torsoYaw;    // the aim picks up where the torso is
+  Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 40, SPARK_ZAP, 9);
+  if (!Game.manual) Sfx.reboot(1);
+}
+// Self-repair: spend parts from the bag on the player's own mech. Each part mends up
+// to HEAL.part in the area its `fixes` names. Every check runs before anything
+// changes, so a refusal leaves health and the bag as they were.
+function repairSelf(h, picks) {
+  const m = h?.mech; if (!m) return { ok: false, why: 'no player' };
+  if (m.state === 'down') return { ok: false, why: 'powered down' };
+  if (!Array.isArray(picks) || !picks.length) return { ok: false, why: 'pick a part' };
+  const need = { ...m.damage }, left = { ...Game.bag }, mend = {};
+  for (const id of picks) {
+    const P = PARTS[id];
+    if (!P) return { ok: false, why: 'no such part', part: id };
+    if (!(left[id] > 0)) return { ok: false, why: 'not in bag', part: id };
+    if (!P.fixes) return { ok: false, why: 'fixes nothing', part: id };
+    if (!(need[P.fixes] >= 0.5)) return { ok: false, why: 'not damaged', part: id, area: P.fixes };
+    const amt = Math.min(HEAL.part, need[P.fixes]);
+    need[P.fixes] -= amt; left[id]--; mend[P.fixes] = (mend[P.fixes] || 0) + amt;
+  }
+  for (const id of picks) { Game.bag[id]--; if (!Game.bag[id]) delete Game.bag[id]; }
+  let mended = 0;
+  for (const [a, amt] of Object.entries(mend)) mended += healMech(m, amt, 'parts', a);
+  Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 30, SPARK_MEND, 7);
+  if (!Game.manual) Sfx.mendParts();
+  return { ok: true, used: picks.slice(), mended: Math.round(mended * 1000) / 1000 };
 }
 
 // ===========================================================================
@@ -1375,7 +1531,10 @@ function spawnRobot(type, x, z) {
 
 function nearestPlayer(r) {
   let best = null, bd = Infinity;
-  for (const h of Game.humans) { const d = Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z); if (d < bd) { bd = d; best = h.mech; } }
+  for (const h of Game.humans) {
+    if (h.mech.state === 'down') continue;      // a powered-down mech isn't a target
+    const d = Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z); if (d < bd) { bd = d; best = h.mech; }
+  }
   return best;
 }
 
@@ -1424,6 +1583,7 @@ function chargerAI(r, dt) {
 function powerDown(r) {
   r.state = 'down'; r.downT = ROBOT.downTime; r.downs++; r.ai.mode = 'off';
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
+  if (r.downs === 1) Kits.drop(r);              // the first time it's beaten it drops a repair kit
   Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 40, SPARK_HOT, 10);
   const k = loud(r.pos); if (k > 0) Sfx.powerDown(k);
 }
@@ -1461,6 +1621,7 @@ const flatDist = (a, b) => Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
 // The downed robot player h is close enough to deal with (nearest first)
 function promptRobot(h) {
   let best = null, bd = REPAIR.promptRange;
+  if (h.mech.state === 'down') return null;
   for (const r of Game.robots) { if (r.state !== 'down' || r.repairBy) continue; const d = flatDist(r, h.mech); if (d < bd) { bd = d; best = r; } }
   return best;
 }
@@ -1470,6 +1631,7 @@ function promptRobot(h) {
 // picks: with 'parts', a list of part ids takes those straight away (no picker).
 function chooseFor(h, r, choice, name, picks) {
   if (!h || !r) return { ok: false, why: 'no robot' };
+  if (h.mech.state === 'down') return { ok: false, why: 'powered down' };
   if (r.state !== 'down') return { ok: false, why: 'not down' };
   if (flatDist(r, h.mech) > REPAIR.promptRange) return { ok: false, why: 'too far' };
   if (r.repairBy && r.repairBy !== h) return { ok: false, why: 'busy' };
@@ -1643,9 +1805,9 @@ function rams() {
     if (r.state !== 'glitched' || r.ai.mode !== 'charge' || r.speed < 5) continue;
     for (const h of Game.humans) {
       const m = h.mech, dx = m.pos.x - r.pos.x, dz = m.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
-      if (d > MECH.radius + r.spec.radius + 0.6) continue;
+      if (m.state === 'down' || d > MECH.radius + r.spec.radius + 0.6) continue;
       const k = clamp(r.speed / r.spec.boostSpeed, 0, 1);
-      hurtMech(m, Math.round(10 + 10 * k));
+      hurtMech(m, Math.round(10 + 10 * k), 'ram');
       m.push.x += dx / d * 7 * k; m.push.z += dz / d * 7 * k;
       r.push.x -= dx / d * 8; r.push.z -= dz / d * 8; r.speed = 0;     // it bounces off
       r.ai.mode = 'recover'; r.ai.t = 1.6;
@@ -1666,6 +1828,114 @@ function separate() {
     A.pos.x -= dx / d * o * sa; A.pos.z -= dz / d * o * sa; B.pos.x += dx / d * o * sb; B.pos.z += dz / d * o * sb;
     A.pos.y = groundH(A.pos.x, A.pos.z); B.pos.y = groundH(B.pos.x, B.pos.z);
   }
+}
+
+// ===========================================================================
+// Repair kits 🧰: red toolboxes with a white cross, tucked beside trees round the
+// meadow (seeded, so they're in the same places every visit), plus one dropped by
+// each robot the first time it's beaten. Walking onto one mends HEAL.kit at once
+// and uses it up. A mech already at full health leaves it where it is.
+// ===========================================================================
+const Kits = {
+  list: [], nextId: 1,
+  init() {
+    const box = new RoundedBoxGeometry(1.5, 0.95, 1.0, 3, 0.16), bar = new THREE.BoxGeometry(0.18, 0.5, 0.06), handle = new THREE.TorusGeometry(0.32, 0.07, 6, 16, Math.PI);
+    const ring = new THREE.TorusGeometry(1.25, 0.07, 6, 32);
+    this.geo = { box, bar, handle, ring };
+    seed = 515;
+    const trees = obstacles.filter((o) => o.kind === 'tree' && Math.hypot(o.x, o.z) > 30 && Math.hypot(o.x, o.z) < 100);
+    for (let t = 0; t < 200 && this.list.length < HEAL.kits; t++) {
+      const o = trees[Math.floor(srand() * trees.length)], a = srange(0, Math.PI * 2), d = o.r + 2.6;
+      const x = o.x + Math.cos(a) * d, z = o.z + Math.sin(a) * d;
+      if (obstacles.some((q) => q !== o && Math.hypot(q.x - x, q.z - z) < q.r + 2)) continue;
+      if (this.list.some((k) => Math.hypot(k.x - x, k.z - z) < 40)) continue;
+      this.add(x, z, 'meadow');
+    }
+  },
+  add(x, z, from) {
+    const g = new THREE.Group(), G = this.geo;
+    const crate = new THREE.Mesh(G.box, mat('#e8323f', { roughness: 0.45, metalness: 0.2 })); crate.position.y = 0.6; crate.castShadow = true; g.add(crate);
+    const white = mat('#ffffff', { roughness: 0.4 });
+    for (const sz of [-1, 1]) for (const rz of [0, Math.PI / 2]) { const b = new THREE.Mesh(G.bar, white); b.position.set(0, 0.6, sz * 0.51); b.rotation.z = rz; g.add(b); }
+    const hd = new THREE.Mesh(G.handle, mat('#2d3446', { metalness: 0.6, roughness: 0.4 })); hd.position.y = 1.07; g.add(hd);
+    const rg = new THREE.Mesh(G.ring, glowMat('#3ee07a', 2.2)); rg.rotation.x = Math.PI / 2; rg.position.y = 0.12; g.add(rg);
+    g.position.set(x, groundH(x, z), z); g.scale.setScalar(1.4); scene.add(g);
+    const k = { id: this.nextId++, x, z, from, g, t: Math.random() * 6 };
+    this.list.push(k);
+    return k;
+  },
+  // a beaten robot drops its kit beside it, on its right
+  drop(r) { const h = r.legHeading; return this.add(r.pos.x + Math.cos(h) * 4, r.pos.z - Math.sin(h) * 4, 'robot'); },
+  // player h walks onto a kit: mend it and use the kit up. Returns what it mended
+  // (0 = nothing here, or nothing to mend, and the kit stays).
+  check(h) {
+    const m = h.mech; if (m.state === 'down' || m.health >= m.maxHealth) return 0;
+    const k = this.list.find((q) => Math.hypot(q.x - m.pos.x, q.z - m.pos.z) < HEAL.kitReach); if (!k) return 0;
+    const got = healMech(m, HEAL.kit, 'kit');
+    this.list.splice(this.list.indexOf(k), 1); scene.remove(k.g);
+    Sparks.burst(k.x, groundH(k.x, k.z) + 1.2, k.z, 40, SPARK_MEND, 8);
+    if (!Game.manual) Sfx.kit();
+    return got;
+  },
+  sync(dt) { for (const k of this.list) { k.t += dt; k.g.children[0].position.y = 0.6 + Math.sin(k.t * 2.4) * 0.12; k.g.rotation.y = k.t * 0.7; } },
+};
+
+// ===========================================================================
+// A squadmate mends its leader: a steady cyan beam from its core to the mech,
+// with green sparks where it lands. Slow, and only while no glitched robot is
+// within HEAL.safeRange (a powered-down mech is mended regardless).
+// ===========================================================================
+function allyMend(h, dt) {
+  const m = h.mech; h.beam = null;
+  if (m.health >= m.maxHealth) return;
+  if (m.state !== 'down' && Game.robots.some((r) => r.state === 'glitched' && flatDist(r, m) < HEAL.safeRange)) return;
+  let best = null, bd = HEAL.allyRange;
+  for (const r of Game.squad) { if (r.state !== 'ally' || (r.leader && r.leader !== h)) continue; const d = flatDist(r, m); if (d < bd) { bd = d; best = r; } }
+  if (!best) return;
+  h.beam = best;
+  healMech(m, HEAL.allyRate * dt, 'ally');
+  h.beamSnd -= dt;
+  if (h.beamSnd <= 0) {
+    h.beamSnd = 0.7;
+    Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 8, SPARK_MEND, 4);
+    if (!Game.manual) Sfx.mendAlly();
+  }
+}
+const Beams = {
+  list: [],
+  init() {
+    const geo = new THREE.CylinderGeometry(1, 1, 1, 8, 1, true); geo.translate(0, 0.5, 0);   // a unit tube from y = 0 to 1
+    const core = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 3.4, 3.4), toneMapped: false });
+    const sheath = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 1.8, 1.4), toneMapped: false, transparent: true, opacity: 0.45, depthWrite: false });
+    this.mk = () => { const g = new THREE.Group(), c = new THREE.Mesh(geo, core), s = new THREE.Mesh(geo, sheath); c.scale.set(0.07, 1, 0.07); g.add(c, s); g.visible = false; scene.add(g); return { g, s }; };
+  },
+  sync() {
+    const a = new V3(), b = new V3(), d = new V3();
+    Game.humans.forEach((h, i) => {
+      const B = this.list[i] || (this.list[i] = this.mk()), r = h.beam;
+      B.g.visible = !!r; if (!r) return;
+      const m = h.mech;
+      a.set(r.pos.x, r.pos.y + 3.6, r.pos.z); b.set(m.pos.x, m.pos.y + 5 - m.slump, m.pos.z);
+      d.subVectors(b, a); const len = d.length();
+      B.g.position.copy(a); B.g.quaternion.setFromUnitVectors(UP, d.normalize()); B.g.scale.set(1, len, 1);
+      const w = 0.2 + 0.07 * Math.sin(Game.ticks * 0.6); B.s.scale.set(w, 1, w);
+    });
+  },
+};
+// Each tick for a player's mech: the reboot clock while it's down (or an early
+// wake once a squadmate has mended it far enough), its lights, a squadmate's
+// mending and any kit it walks onto.
+function playerTick(h, dt) {
+  const m = h.mech;
+  if (m.state === 'down') {
+    m.downT -= dt;
+    if (m.downT <= 0 || m.health >= m.maxHealth * PLAYER.wakeHealth) rebootMech(m);
+  }
+  if (m.state === 'down') m.glow = m.downT > PLAYER.warnTime ? 0.03 : Math.sin(Game.ticks * DT * (1.5 + (PLAYER.warnTime - m.downT) * 1.5) * Math.PI * 2) > 0.3 ? 1 : 0.03;
+  else m.glow = 1;
+  m.slump = approach(m.slump, m.state === 'down' ? 1 : 0, dt * 1.6);
+  allyMend(h, dt);
+  Kits.check(h);
 }
 
 function syncRobotModel(r, dt) {
@@ -1706,9 +1976,9 @@ function gatherInput(dt) {
     if (pad && pad.aP && Game.paused) startPlay();
     sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) { h.weapon = WEAPONS[w]; if (!Game.manual) Sfx.click(); } });
     if (pad && (pad.lbP || pad.rbP)) cycleWeapon(h, pad.rbP ? 1 : -1);
-    const picking = h.repair?.kind === 'parts';
+    const picking = h.repair?.kind === 'parts', mending = h.idx === 0 && FixUI.mode === 'mend';
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
-    if (pad) { turn += pad.lx - (picking ? pad.dpadX : 0); thr -= pad.ly; }   // in the picker the d-pad moves between parts, the stick still steers
+    if (pad) { turn += pad.lx - (picking || mending ? pad.dpadX : 0); thr -= pad.ly; }   // in the picker and the mend panel the d-pad moves between parts, the stick still steers
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
     h.ci.camY = pad ? -pad.ry : 0;
     h.rig.yaw = wrapAngle(h.rig.yaw - h.ci.camX * 1.8 * dt);
@@ -1717,6 +1987,8 @@ function gatherInput(dt) {
     const m = h.mech; if (!m) continue;
     m.input.weapon = h.weapon;
     if (Game.paused) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
+    // powered down: nothing moves, aims or fires until it reboots
+    if (m.state === 'down') { m.input.throttle = m.input.turn = 0; m.input.attack = false; m.input.aimYaw = h.rig.yaw = m.torsoYaw; m.input.aimPitch = m.aimPitch; continue; }
     m.input.throttle = clamp(thr, -1, 1); m.input.turn = clamp(turn, -1, 1);
     m.input.attack = k('fire') || (solo && mouse.locked && mouse.down) || !!(pad && pad.rt);
     m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch;
@@ -1734,8 +2006,17 @@ function gatherInput(dt) {
       else if (pad && pad.bP) { cancelRepair(h); if (h.idx === 0) FixUI.relock(); }
       if (h.idx === 0) FixUI.drawPicker();
     }
+    // fix my mech: 🔧 key or pad LT opens and closes it; in it, d-pad ◀ ▶ moves, A uses a part, B backs out
+    if (h.idx === 0 && !picking && (sc.mend.some((c) => keysPressed.has(c)) || (pad && pad.ltP))) FixUI.toggleMend();
+    else if (mending && pad) {
+      const n = FixUI.mendIds().length;
+      if (n && (pad.leftP || pad.rightP)) FixUI.mendCur = (FixUI.mendCur + (pad.rightP ? 1 : -1) + n) % n;
+      if (pad.aP && n) FixUI.useMend(h, FixUI.mendIds()[FixUI.mendCur % n]);
+      if (pad.bP) FixUI.dismiss();
+    }
+    if (h.idx === 0 && FixUI.mode === 'mend') FixUI.drawMend();
     // the parts bag: 🎒 key or pad Back (or B when no panel is open)
-    if (h.idx === 0 && !picking && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
+    if (h.idx === 0 && !picking && !mending && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
   }
   mouse.dx = mouse.dy = 0;
   keysPressed.clear();
@@ -1753,11 +2034,17 @@ function tick(dt) {
   }
   // a repair holds only while the player stays by the robot
   for (const h of Game.humans) { const rp = h.repair; if (rp && (rp.r.state !== 'down' || flatDist(rp.r, h.mech) > REPAIR.keepRange)) cancelRepair(h); }
-  for (const m of Game.mechs) { mechTick(m, dt); combatTick(m, dt); }
+  for (const h of Game.humans) for (const s in h.heals) h.heals[s] = 0;     // heals are counted per tick
+  for (const m of Game.mechs) {
+    // a powered-down mech's controls do nothing, whatever is held
+    if (m.state === 'down') { m.input.throttle = m.input.turn = 0; m.input.attack = false; m.input.boost = false; m.input.aimYaw = m.torsoYaw; m.input.aimPitch = m.aimPitch; }
+    mechTick(m, dt); combatTick(m, dt);
+  }
   for (const r of Game.robots) robotTick(r, dt);
   Bullets.tick(dt);
   rams();
   separate();
+  for (const h of Game.humans) playerTick(h, dt);
   Sparks.tick(dt);
   Impacts.tick(dt);
   Game.hurtFlash = Math.max(0, Game.hurtFlash - dt * 2.5);
@@ -1800,10 +2087,13 @@ const FixUI = {
     $('pickX').addEventListener('click', () => this.dismiss());
     $('bagBtn').addEventListener('click', (e) => { e.stopPropagation(); this.toggleBag(); });
     $('bagX').addEventListener('click', () => this.dismiss());
+    $('mendBtn').addEventListener('click', (e) => { e.stopPropagation(); this.toggleMend(); });
+    $('mendX').addEventListener('click', () => this.dismiss());
+    $('mendTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.useMend(Game.humans[0], t.dataset.part); });
   },
   fromPrompt(choice) { const h = Game.humans[0], r = h && promptRobot(h); if (r) chooseFor(h, r, choice); },
   icon(ci, fill, stroke) { return `<svg viewBox="0 0 40 40"><g fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round">${SHAPE_SVG[WIRE_COLORS[ci].shape]}</g></svg>`; },
-  show(id) { for (const p of ['fix', 'namer', 'picker', 'bag']) $(p).classList.toggle('on', id === p); },
+  show(id) { for (const p of ['fix', 'namer', 'picker', 'bag', 'mend']) $(p).classList.toggle('on', id === p); },
   // a round part tile: its icon on its colour
   tile(id, cls = '') { const P = PARTS[id]; return `<button class="tile ${cls}" data-part="${id}" aria-label="${id}" style="background:${P.hex}">${P.icon}</button>`; },
   openWires(r) {
@@ -1869,6 +2159,39 @@ const FixUI = {
     const have = Object.keys(PARTS).filter((id) => Game.bag[id] > 0);
     $('bagTiles').innerHTML = have.length ? have.map((id) => this.tile(id, 'have').replace('</button>', `<b class="n">×${Game.bag[id]}</b></button>`)).join('') : '<div class="empty">🎒</div>';
     $('bagN').textContent = Game.parts;
+  },
+  // fix my mech: open it when no other panel is up (and the mech is running), close it if it's open
+  toggleMend() {
+    const m = Game.humans[0]?.mech;
+    if (this.mode === 'mend') { this.close(); this.relock(); }
+    else if (!this.mode && m && m.state !== 'down') {
+      this.mode = 'mend'; this.mendKey = null; this.mendCur = 0;   // mode first, so freeing the mouse isn't a pause
+      this.show('mend'); this.drawMend();
+      if (document.pointerLockElement) document.exitPointerLock();
+    }
+    if (!Game.manual) Sfx.click();
+    return this.mode === 'mend';
+  },
+  // the part ids the mend panel offers: one per damaged area, the part that fixes it
+  mendIds() { const m = Game.humans[0]?.mech; return m ? AREAS.filter((a) => hurtIn(m, a) && partFor(a)).map(partFor) : []; },
+  // each damaged area: its icon, how hurt it is, and the part that fixes it with how many the bag has
+  drawMend() {
+    if (this.mode !== 'mend') return;
+    const m = Game.humans[0].mech, pad = padConnected(), ids = this.mendIds();
+    const key = JSON.stringify([AREAS.map((a) => Math.round(m.damage[a])), Game.bag, pad && this.mendCur]); if (key === this.mendKey) return; this.mendKey = key;
+    if (!ids.length) { $('mendTiles').innerHTML = '<div class="empty">❤️✔</div>'; return; }
+    $('mendTiles').innerHTML = ids.map((id, i) => {
+      const a = PARTS[id].fixes, n = Game.bag[id] || 0, f = clamp(m.damage[a] / m.maxHealth, 0, 1);
+      return `<div class="need" data-area="${a}"><span class="area">${AREA_ICON[a]}</span><div class="dmg"><b style="width:${(f * 100).toFixed(1)}%"></b></div>`
+        + this.tile(id, (n ? '' : 'dim') + (pad && i === this.mendCur % ids.length ? ' cur' : '')).replace('</button>', `<b class="n${n ? '' : ' zero'}">×${n}</b></button>`) + '</div>';
+    }).join('');
+  },
+  // tap a part in the mend panel: use one on its area, or buzz and shake if the bag hasn't got it
+  useMend(h, id) {
+    const res = repairSelf(h, [id]);
+    if (!res.ok) { if (!Game.manual) Sfx.buzz(); const b = $('mendTiles'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
+    this.drawMend();
+    return res;
   },
   close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.show(null); $('nameIn').blur(); },
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.(); },
@@ -1958,6 +2281,30 @@ function updateHud() {
   }
   pe.classList.toggle('on', shown);
   $('pFix').classList.toggle('off', Game.squad.length >= REPAIR.squadMax);
+  // getting hearts back: the 🔧 button pulses when the bag has a part for a damaged area,
+  // each heal floats up from the bar as +N with its source's icon, and the bar flashes
+  const ids = AREAS.filter((a) => hurtIn(m, a)).map(partFor).filter(Boolean), down = m.state === 'down';
+  $('mendBtn').classList.toggle('off', down || !ids.length);
+  $('mendBtn').classList.toggle('ready', !down && ids.some((id) => Game.bag[id] > 0));
+  const hb = $('health'), now = performance.now();
+  for (const src in h.healPop) {
+    const v = h.healPop[src];
+    if (v < (src === 'ally' ? 5 : 1) && !(v > 0 && m.health >= m.maxHealth)) continue;   // a squadmate's trickle shows every 5
+    h.healPop[src] = 0; if (Math.round(v) < 1) continue;
+    const pop = document.createElement('span'); pop.className = 'pop'; pop.textContent = `+${Math.round(v)} ${HEAL_ICON[src]}`;
+    pop.addEventListener('animationend', () => pop.remove());
+    hb.append(pop); updateHud.healAt = now;
+    while (hb.querySelectorAll('.pop').length > 6) hb.querySelector('.pop').remove();   // no pile-up if animations never run
+  }
+  hb.classList.toggle('heal', now - (updateHud.healAt || -1e9) < 450 || !!h.beam);
+  // powered down: the world greys out and a ring fills until the reboot (🤖 when a squadmate is mending it)
+  document.body.classList.toggle('off', down);
+  if (down) {
+    const ov = $('downOv');
+    ov.style.setProperty('--p', clamp(1 - Math.min(m.downT / PLAYER.downTime, 1 - m.health / (m.maxHealth * PLAYER.wakeHealth)), 0, 1).toFixed(3));
+    $('downIco').textContent = m.downT > PLAYER.warnTime ? '💤' : '⚠️';
+    ov.classList.toggle('beam', !!h.beam);
+  }
 }
 
 function render(dt) {
@@ -1967,6 +2314,8 @@ function render(dt) {
   Bullets.sync();
   Sparks.sync();
   Impacts.sync();
+  Kits.sync(dt);
+  Beams.sync();
   Dust.update(dt);
   const h = Game.humans[0]; if (!h) return;
   h.rig.update(dt, h.mech);
@@ -2026,7 +2375,7 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH,
+  Game, THREE, renderer, composer, MECH, Sfx,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
   render(dt = 1 / 60) { render(dt); return true; },
@@ -2036,6 +2385,7 @@ window.__rb = {
   // snaps the torso there; mouse and stick aim swing it at MECH.torsoTurn.
   aim(i, yaw, pitch = 0) {
     const h = Game.humans[i]; if (!h) return null;
+    if (h.mech.state === 'down') return { ...this.state().players[i], refused: 'powered down' };   // a powered-down mech can't aim
     h.rig.yaw = wrapAngle(yaw); h.rig.pitch = clamp(pitch, -0.35, 0.5);
     const m = h.mech; m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch; m.torsoYaw = h.rig.yaw; m.aimPitch = h.rig.pitch;
     return this.state().players[i];
@@ -2052,11 +2402,30 @@ window.__rb = {
     return this.state().players[i];
   },
   // move player i (setup)
+  // (a running mech that lands on a repair kit picks it up straight away, as walking onto it would)
   teleport(i, x, z) {
     const h = Game.humans[i]; if (!h) return null;
     const m = h.mech; m.pos.set(x, groundH(x, z), z); m.speed = 0; m.turnVel = 0; m.push.set(0, 0, 0); h.rig.snap = true;
+    const kit = Kits.check(h);
+    return { ...this.state().players[i], kit: r3(kit) };
+  },
+  // setup only: hurt player i without a robot (how: 'hit' lands on the hull, 'ram' on hull and legs)
+  hurt(i, amount, how = 'hit') {
+    const h = Game.humans[i]; if (!h) return null;
+    hurtMech(h.mech, amount, how);
     return this.state().players[i];
   },
+  // self-repair: player i spends parts from the bag on its own mech, picks = part ids,
+  // e.g. ['armour'] (🛡️ mends the hull) or ['armour', 'motor']. The same path as tapping a
+  // part in the 🔧 panel. Refused (nothing spent, nothing mended) when a part isn't in the
+  // bag, fixes nothing, or its area isn't damaged, or the mech is powered down.
+  repair(i, picks) {
+    const h = Game.humans[i]; if (!h) return null;
+    const res = repairSelf(h, picks);
+    return { ...res, player: this.state().players[i], bag: { ...Game.bag }, parts: Game.parts };
+  },
+  // open or close the 🔧 mend panel (as its button does); returns whether it's open
+  mend() { return FixUI.toggleMend(); },
   // setup only: hurt a robot without a weapon hit (doesn't count as a hit)
   damage(id, amount, weapon = 'setup') {
     const r = Game.robots.find((q) => q.id === id); if (!r) return null;
@@ -2098,8 +2467,16 @@ window.__rb = {
           torsoAim: { yaw: r3(m.torsoYaw), pitch: r3(m.aimPitch) },
           torsoOffset: r3(wrapAngle(m.torsoYaw - m.legHeading)), // torso relative to legs
           speed: r3(m.speed), topSpeed: MECH.topSpeed, footfalls: m.footfalls,
-          health: m.health, maxHealth: m.maxHealth, weapon: h.weapon, hitsTaken: m.hitsTaken,
+          health: r3(m.health), maxHealth: m.maxHealth, weapon: h.weapon, hitsTaken: m.hitsTaken,
           gun: { flash: r3(m.flash || 0), recoil: r3(m.recoil || 0), burst: m.burstN || 0, cool: r3(m.cool) },   // muzzle flash time left, arm recoil 0..1, rounds into this burst
+          state: m.state,                                      // 'up' | 'down' (powered down at 0 hearts)
+          rebootIn: m.state === 'down' ? r3(m.downT) : null, downs: m.downs, reboots: m.reboots, glow: r3(m.glow),
+          input: { throttle: m.input.throttle, turn: m.input.turn, attack: m.input.attack },
+          damage: Object.fromEntries(AREAS.map((a) => [a, r3(m.damage[a])])),   // health missing, by area
+          // what the 🔧 panel offers: each damaged area, the part that fixes it, and how many the bag has
+          needs: AREAS.filter((a) => hurtIn(m, a)).map((a) => ({ area: a, part: partFor(a) ?? null, have: Game.bag[partFor(a)] || 0 })),
+          heal: Object.fromEntries(Object.entries(h.heals).map(([s, v]) => [s, r3(v)])),   // health mended this tick, by source
+          beam: h.beam ? h.beam.id : null,                     // the squadmate mending this mech now
         };
       }),
       robots: Game.robots.map(robotState),
@@ -2107,9 +2484,11 @@ window.__rb = {
       parts: Game.parts,                                  // total parts collected (the HUD's 🔩)
       bag: { ...Game.bag },                               // parts collected, by kind: { armour: 2, ram: 1 }
       takeMax: REPAIR.takeMax,
+      kits: Kits.list.map((k) => ({ id: k.id, x: r3(k.x), z: r3(k.z), from: k.from })),   // repair kits lying in the meadow ('meadow' | 'robot')
+      rules: { heal: { ...HEAL }, player: { ...PLAYER } },
       prompt: h0 && !h0.repair ? promptRobot(h0)?.id ?? null : null,   // the downed robot the prompt is beside
       repair: h0?.repair ? { id: h0.repair.r.id, kind: h0.repair.kind, name: h0.repair.name ?? null, picks: h0.repair.picks ? [...h0.repair.picks] : null } : null,
-      ui: FixUI.mode,                                     // null | 'wires' | 'name' | 'parts' | 'bag'
+      ui: FixUI.mode,                                     // null | 'wires' | 'name' | 'parts' | 'bag' | 'mend'
       bullets: Bullets.list.length,
       // each live round: speed (m/s) and how far it has flown
       shots: Bullets.list.map((b) => ({ speed: r3(b.v.length()), d: r3(b.d), x: r3(b.p.x), y: r3(b.p.y), z: r3(b.p.z) })),
@@ -2127,6 +2506,8 @@ Dust.init();
 Sparks.init();
 Bullets.init();
 Impacts.init();
+Kits.init();
+Beams.init();
 spawnPlayer(0, 0, 0, 0);
 buildHud();
 FixUI.init();
