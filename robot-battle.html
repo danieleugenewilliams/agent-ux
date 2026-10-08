@@ -334,6 +334,15 @@
   #grid.on, #parent.on { pointer-events: auto; background: rgba(10,12,24,.55); }
   #grid .panel { border-color: var(--yellow); box-shadow: 0 0 30px rgba(255,216,61,.45); max-height: calc(100vh - 12px); overflow-y: auto; }
   #grid .top .gt { display: flex; align-items: center; gap: 10px; font: 900 30px 'Asap', sans-serif; }
+  /* a phone held sideways: stacked, the cells would shrink to ~14 px; the grid takes the panel's full height on
+     the left, and the title, the fact picked and the legend go in a column beside it */
+  @media (max-height: 460px) and (min-width: 600px) {
+    #grid .panel { display: grid; grid-template-columns: auto 250px; grid-template-rows: auto auto 1fr; column-gap: 18px; align-items: start; padding: 10px 16px 12px; }
+    #grid .fgrid { --cs: min(44px, calc((100vh - 72px) / 10), calc((100vw - 360px) / 10)); grid-row: 1 / 4; grid-column: 1; align-self: center; }
+    #grid .top, #grid .ginfo, #grid .legend { grid-column: 2; }
+    #grid .ginfo { margin-top: 0; }
+    #grid .legend { flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 4px; }
+  }
   .kface { width: 46px; height: 46px; border-radius: 50%; background: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: inset 0 0 0 4px var(--c, #fff); }
   /* the ⭐ badge (HUD, bottom left above the speed bars; a tap or T opens the grid) and its twin on the pause screen */
   #hud .mastery { position: absolute; left: 22px; bottom: 112px; display: none; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 18px; background: rgba(20,24,42,.6);
