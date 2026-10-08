@@ -3238,6 +3238,7 @@ function setFacts(r) {
   const order = picked.slice().sort((x, y) => STAGE_RANK[y.stage] - STAGE_RANK[x.stage] || y.answer - x.answer);
   const burnt = W.plugs.map((_, i) => i).filter((i) => W.burnt[i]), rest = W.plugs.map((_, i) => i).filter((i) => !W.burnt[i]);
   W.facts = []; [...burnt, ...rest].forEach((i, k) => { W.facts[i] = order[k]; });
+  W.missed = false;                                      // a miss on these facts (kept across tries: see fastRepair)
   // which way round a fact is shown (7 × 8 or 8 × 7) is random, so both get practised
   W.facts.forEach((f) => { f.flip = Math.random() < 0.5; });
 }
@@ -3247,34 +3248,37 @@ const portAnswer = (W, j) => (W.facts ? W.facts[W.plugs.indexOf(W.ports[j])].ans
 const portHidden = (W, j) => !!W.facts && W.burnt[W.plugs.indexOf(W.ports[j])];
 const factText = (f) => (f.flip ? `${f.b} × ${f.a}` : `${f.a} × ${f.b}`);
 // a new try at the board (the Quick Fix opening): the clock starts, and the answers so far are cleared
+// (a miss isn't: W.missed stays, so leaving after a miss and coming back can't earn a fast repair)
 function startBoard(r) {
   const W = r.wires;
   W.t0 = W.last = Facts.now(); W.pick = null; W.log = []; W.show = null;
 }
 // a plug picked up (drag, tap, pad A, or a burnt plug tapped to type it): its answer is timed from now
 function pickUp(r) { if (r?.wires) r.wires.pick = Facts.now(); }
-// Record an answer on the board: plug i's fact, answered `value`. Timed from board open for the first
-// answer, then from the plug's pickup (or the last answer, from a hook); ms overrides it (tests).
+// Record an answer on the board: plug i's fact, answered `value`. Timed from the plug's pickup (with no
+// pickup, from a hook: from the last answer, or board open for the first); ms overrides it (tests).
 // Through Facts.answer, so it lands in the child's record and that day's practice time.
 function recordAnswer(r, i, value, ms) {
   const W = r.wires, now = Facts.now(), f = W.facts[i];
-  const from = W.log.length ? (W.pick ?? W.last) : W.t0;
+  const from = W.pick ?? (W.log.length ? W.last : W.t0);
   const t = ms ?? Math.max(0, now - from);
   W.pick = null; W.last = now;
   const res = Facts.answer(f, value, t);
   W.log.push({ plug: i, key: f.key, value, right: res.right, fast: res.fast, ms: Math.round(t) });
   if (res.right && res.fast) Sparks.burst(r.pos.x, r.pos.y + 3.4, r.pos.z, MATHFIX.sparks, SPARK_GLINT, 7);   // fast: extra gold sparks
   if (!res.right) {                                       // a miss: the plug shows its right answer for a moment
+    W.missed = true;
     const until = performance.now() + MATHFIX.show;
     W.show = { plug: i, until };
     setTimeout(() => { if (W.show?.until === until) { W.show = null; if (FixUI.mode === 'wires' && FixUI.r === r) FixUI.renderWires(); } }, MATHFIX.show + 20);
   }
   return res;
 }
-// was this repair fast: every fact answered right first time (a 🔌 swap answers none), under FACT.fast on average
+// was this repair fast: every fact answered right first time, on this try or an earlier one (a 🔌 swap
+// answers none), under FACT.fast on average
 function fastRepair(W) {
   const L = W.log || [];
-  if (!W.facts || !L.length || L.some((e) => !e.right)) return false;
+  if (!W.facts || W.missed || !L.length || L.some((e) => !e.right)) return false;
   return L.reduce((s, e) => s + e.ms, 0) / L.length < FACT.fast;
 }
 function randomName() {
