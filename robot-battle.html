@@ -3204,11 +3204,8 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.fl
 // facts[i] (math wiring only, set when the Quick Fix opens): plug i's fact; null in colour wiring.
 function makeWires(n, burnt = 0) {
   const plugs = shuffle(WIRE_COLORS.map((_, i) => i)).slice(0, n);
-  // no plug straight across from its own port (with 2 or more): reshuffle, and if that keeps failing, rotate by one
-  const across = (p) => p.some((c, i) => c === plugs[i]);
   let ports = shuffle(plugs.slice());
-  for (let t = 0; t < 30 && n > 1 && across(ports); t++) ports = shuffle(ports);
-  if (n > 1 && across(ports)) ports = plugs.slice(1).concat(plugs[0]);
+  for (let t = 0; t < 10 && n > 1 && ports.every((c, i) => c === plugs[i]); t++) ports = shuffle(ports);   // never straight across
   const bad = new Set(shuffle(plugs.map((_, i) => i)).slice(0, burnt));
   return { plugs, ports, link: plugs.map(() => -1), burnt: plugs.map((_, i) => bad.has(i)), scrub: plugs.map(() => FAULTS.scrub), facts: null };
 }
@@ -3221,7 +3218,12 @@ const STAGE_RANK = { new: 0, learning: 1, known: 2, mastered: 3 };
 // burnt plug gets the most familiar of them (it's typed, not matched, so it's recall: M3's rule that New
 // facts stay matching), the bigger product breaking a tie
 function setFacts(r) {
-  const W = r.wires, picked = [];
+  const W = r.wires, picked = [], n = W.plugs.length;
+  // no plug straight across from its own port (with 2 or more), so where a port sits says nothing:
+  // reshuffle, and if that keeps failing, rotate by one
+  const across = (p) => p.some((c, i) => c === W.plugs[i]);
+  for (let t = 0; t < 30 && n > 1 && across(W.ports); t++) W.ports = shuffle(W.ports.slice());
+  if (n > 1 && across(W.ports)) W.ports = W.plugs.slice(1).concat(W.plugs[0]);
   for (let i = 0; i < W.plugs.length; i++) {
     const taken = new Set(picked.map((f) => f.answer));
     const clash = [];
