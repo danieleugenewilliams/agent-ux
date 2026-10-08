@@ -246,7 +246,7 @@
   #nextB:active { transform: translateY(5px); box-shadow: 0 3px 0 var(--ink); }
   @keyframes nextPulse { 0%,100% { box-shadow: 0 8px 0 var(--ink), 0 0 18px rgba(255,138,31,.5); } 50% { box-shadow: 0 8px 0 var(--ink), 0 0 42px rgba(255,138,31,.95); } }
   #nextB small { position: absolute; right: -8px; bottom: -8px; width: 28px; height: 28px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 17px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
-  #clear .confetti i { position: fixed; top: -24px; width: 11px; height: 17px; border-radius: 3px; animation: confetti 3s linear forwards; }
+  #clear .confetti i, #cheer .confetti i { position: fixed; top: -24px; width: 11px; height: 17px; border-radius: 3px; animation: confetti 3s linear forwards; }
   @keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(900deg); opacity: .8; } }
   @media (max-width: 760px) { #clear .banner { top: 168px; padding: 8px 14px 12px; } #clear .head, #clear .head .rb-title, #clear .stars { font-size: 30px; } #clear .n { font-size: 22px; padding: 4px 8px; } #nextB { width: 74px; height: 74px; font-size: 34px; } }
   /* ---------- MATH WIRING: each plug is a fact (7 × 8) in its wire's colour; each port only an answer (56), no colour or shape,
@@ -309,6 +309,112 @@
   #clear .stars i.bonus { display: none; filter: drop-shadow(0 0 12px rgba(255,194,26,1)); }
   #clear .stars i.bonus.on { display: inline; }
   #hud .mate.gold { background: rgba(120,90,10,.7); }
+  /* ---------- PROGRESS (M4): the fact grid, the ⭐ badge, the table cheer and the parent view ----------
+     A fact cell's stage is its colour AND its shape, so colour is never the only signal:
+     New ○ dashed and empty · Learning ◐ striped orange · Known ● solid blue · Mastered ★ glowing gold */
+  .fgrid { --cs: min(44px, calc((100vw - 110px) / 10), calc((100vh - 250px) / 10)); display: grid; grid-template-columns: repeat(10, var(--cs)); gap: 3px; justify-content: center; }
+  .fgrid .hd { display: flex; align-items: center; justify-content: center; font: 900 calc(var(--cs) * .5) 'Asap', sans-serif; font-style: normal; color: rgba(255,255,255,.7); }
+  .fgrid .hd.corner { color: var(--cyan); }
+  .fgrid .hd.done { color: var(--yellow); text-shadow: 0 0 8px var(--yellow); }
+  .cell { width: var(--cs, 40px); height: var(--cs, 40px); padding: 0; border-radius: 22%; border: 3px solid var(--ink); display: flex; align-items: center; justify-content: center;
+    font: 900 calc(var(--cs, 40px) * .55)/1 'Asap', sans-serif; font-style: normal; color: var(--ink); cursor: pointer; touch-action: manipulation; }
+  .cell.s-new { background: rgba(255,255,255,.06); border: 2px dashed #8a93ad; color: #8a93ad; }
+  .cell.s-learning { background: repeating-linear-gradient(45deg, #ff8a1f 0 4px, #ffb468 4px 8px); }
+  .cell.s-known { background: #3fb4ff; }
+  .cell.s-mastered { background: #ffd83d; box-shadow: 0 0 10px rgba(255,216,61,.8); }
+  .cell.sel { outline: 4px solid #fff; outline-offset: 1px; position: relative; z-index: 1; }
+  .cell.twin { outline: 3px dashed #fff; outline-offset: 1px; }
+  .cell.cur { outline: 4px dashed var(--yellow); outline-offset: 1px; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin-top: 12px; }
+  .legend .lg { display: flex; align-items: center; gap: 6px; font: 800 17px 'Asap', sans-serif; --cs: 28px; }
+  .legend .lg b { min-width: 26px; padding: 0 6px; border-radius: 12px; background: rgba(255,255,255,.14); text-align: center; }
+  .ginfo { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; margin-top: 10px; font: 900 26px 'Asap', sans-serif; --cs: 36px; text-align: center; }
+  .ginfo .dim { opacity: .45; }
+  .ginfo small { font-size: 15px; font-weight: 700; opacity: .8; }
+  #grid.on, #parent.on { pointer-events: auto; background: rgba(10,12,24,.55); }
+  #grid .panel { border-color: var(--yellow); box-shadow: 0 0 30px rgba(255,216,61,.45); max-height: calc(100vh - 12px); overflow-y: auto; }
+  #grid .top .gt { display: flex; align-items: center; gap: 10px; font: 900 30px 'Asap', sans-serif; }
+  /* a phone held sideways: stacked, the cells would shrink to ~14 px; the grid takes the panel's full height on
+     the left, and the title, the fact picked and the legend go in a column beside it */
+  @media (max-height: 460px) and (min-width: 600px) {
+    #grid .panel { display: grid; grid-template-columns: auto 250px; grid-template-rows: auto auto 1fr; column-gap: 18px; align-items: start; padding: 10px 16px 12px; }
+    #grid .fgrid { --cs: min(44px, calc((100vh - 72px) / 10), calc((100vw - 360px) / 10)); grid-row: 1 / 4; grid-column: 1; align-self: center; }
+    #grid .top, #grid .ginfo, #grid .legend { grid-column: 2; }
+    #grid .ginfo { margin-top: 0; }
+    #grid .legend { flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 4px; }
+  }
+  .kface { width: 46px; height: 46px; border-radius: 50%; background: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: inset 0 0 0 4px var(--c, #fff); }
+  /* the ⭐ badge (HUD, bottom left above the speed bars; a tap or T opens the grid) and its twin on the pause screen */
+  #hud .mastery { position: absolute; left: 22px; bottom: 112px; display: none; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 18px; background: rgba(20,24,42,.6);
+    border: 3px solid var(--yellow); color: #fff; font: 900 24px 'Asap', sans-serif; cursor: pointer; }
+  #hud .mastery.on, #start .gridb.on { display: flex; }
+  #hud .mastery small { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  #start .gridb { position: relative; display: none; align-items: center; gap: 8px; height: 76px; padding: 0 20px; border-radius: 38px; border: 5px solid var(--ink); background: var(--yellow); color: var(--ink);
+    font: 900 28px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
+  /* a phone: the pause row (pilot, ⭐, ▶) shrinks to fit; ▶ stays the biggest target */
+  @media (max-width: 560px) {
+    #start .resume { gap: 12px; }
+    #start .resume .who img { width: 64px; height: 64px; border-width: 4px; }
+    #start .resume .who { font-size: 17px; }
+    #start .gridb { height: 60px; padding: 0 14px; font-size: 22px; gap: 5px; }
+    #start #go { width: 112px; height: 112px; font-size: 50px; }
+  }
+  #start .gridb small { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  /* the parent button: hold it ~2 s (the ring fills) so the boys don't wander in */
+  #parentB { display: none; position: fixed; left: 16px; bottom: 16px; width: 62px; height: 62px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); background: rgba(20,24,42,.8); font-size: 28px; cursor: pointer;
+    touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  #parentB.on { display: block; }
+  #parentB svg { position: absolute; inset: -8px; width: calc(100% + 16px); height: calc(100% + 16px); transform: rotate(-90deg); pointer-events: none; }
+  #parentB circle { fill: none; stroke: #c06bff; stroke-width: 5; stroke-dasharray: 220; stroke-dashoffset: 220; stroke-linecap: round; }
+  #parentB.holding circle { stroke-dashoffset: 0; transition: stroke-dashoffset 2s linear; }
+  #parentB .lk { position: absolute; right: -6px; top: -6px; font-size: 16px; pointer-events: none; }
+  /* the table cheer: a whole table Mastered */
+  #cheer .banner { position: absolute; left: 50%; top: 24px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 22px 16px; border-radius: 26px;
+    background: rgba(20,24,42,.88); border: 5px solid var(--yellow); box-shadow: 0 0 40px rgba(255,216,61,.7); animation: clearIn .5s cubic-bezier(.2,1.5,.4,1); white-space: nowrap; }
+  #cheer .head { display: flex; align-items: center; gap: 12px; font-size: 44px; line-height: 1.1; }
+  #cheer .head .rb-title { font-size: 50px; color: var(--yellow); }
+  #cheer .row { display: flex; gap: 5px; --cs: 34px; }
+  #cheer .row .cell { animation: cheerPop .5s ease-out backwards; }
+  @keyframes cheerPop { from { transform: scale(0); } 70% { transform: scale(1.3); } to { transform: scale(1); } }
+  #cheer .row .cell b { font-size: 12px; }
+  @media (max-width: 560px) { #cheer .row { --cs: 26px; gap: 3px; } #cheer .head { font-size: 32px; } #cheer .head .rb-title { font-size: 38px; } }
+  /* the parent view: words are fine here; readable at phone width (it stacks and scrolls) */
+  #parent .panel { width: min(800px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; padding: 12px 16px 16px; border-color: #c06bff; box-shadow: 0 0 30px rgba(192,107,255,.45); font: 700 16px 'Asap', sans-serif; }
+  #parent .panel.locked { overflow: hidden; }
+  #parent .top { gap: 10px; font-size: 32px; }
+  .ptabs { display: flex; gap: 10px; flex: 1; justify-content: center; }
+  .ptab { opacity: .55; height: 50px; font-size: 19px; }
+  .ptab.on { opacity: 1; }
+  .ptab .face { width: 34px; height: 34px; font-size: 20px; }
+  .psum { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 4px 0 10px; font-size: 17px; }
+  .psum b { color: var(--yellow); }
+  .pcols { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 22px; }
+  .pgrid { flex: 0 1 360px; min-width: 0; }
+  .pgrid .fgrid { --cs: min(32px, calc((100vw - 80px) / 10)); }
+  .pgrid .ginfo { font-size: 17px; min-height: 40px; --cs: 26px; }
+  .pgrid .legend .lg { font-size: 14px; --cs: 22px; }
+  .pstats { flex: 1 1 300px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+  .pstats h3 { margin: 0 0 4px; font: 900 16px 'Asap', sans-serif; color: var(--cyan); letter-spacing: .3px; }
+  .pslow { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; counter-reset: s; }
+  .pslow li { display: flex; align-items: center; gap: 6px; counter-increment: s; font-size: 16px; --cs: 20px; }
+  .pslow li::before { content: counter(s); width: 20px; text-align: right; opacity: .5; font-size: 13px; }
+  .pslow li .t { margin-left: auto; color: var(--yellow); font-weight: 900; }
+  .pslow .none { grid-column: 1 / -1; opacity: .6; }
+  .pchart svg { width: 100%; height: auto; display: block; }
+  .pchart .bar { fill: var(--orange); } .pchart .bar.today { fill: var(--cyan); }
+  .pchart text { fill: #fff; font: 800 10px 'Asap', sans-serif; text-anchor: middle; }
+  .pchart text.dim { fill: rgba(255,255,255,.55); }
+  .pact { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pbtn { position: relative; min-height: 50px; padding: 6px 16px; line-height: 1.15; border-radius: 25px; border: 4px solid var(--ink); font: 900 17px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
+  .pbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+  .pbtn.step { background: var(--cyan); color: var(--ink); }
+  .pbtn.reset { background: #ff4d5e; color: #fff; }
+  .pbtn.keep { background: #fff; color: var(--ink); }
+  .pbtn.off { filter: grayscale(1) brightness(.6); cursor: not-allowed; }
+  .pconfirm { display: none; position: absolute; inset: 0; z-index: 2; border-radius: 20px; background: rgba(20,24,42,.97); flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px; text-align: center; font-size: 19px; }
+  .pconfirm.on { display: flex; }
+  .pconfirm .big { font-size: 56px; }
+  @media (max-width: 560px) { #parent .top { font-size: 26px; } .ptab { font-size: 16px; padding: 0 10px 0 6px; } .pslow { grid-template-columns: 1fr; } }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -334,7 +440,7 @@
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
-    <div class="resume"><div class="who" id="who"></div><button id="go" aria-label="Play">▶</button></div>
+    <div class="resume"><div class="who" id="who"></div><button class="gridb" id="gridB" aria-label="My facts">⭐<b id="gridN"></b><small>T</small></button><button id="go" aria-label="Play">▶</button></div>
     <div class="keys">
       <div class="hint"><div class="keyset">
         <div class="key e"></div><div class="key">W</div><div class="key e"></div>
@@ -359,6 +465,7 @@
   <div class="health" id="health"><div class="who" id="pilotHud"><img class="face" id="pilotFace" alt=""><span id="pilotName"></span></div><span class="ico">❤️</span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech">🔧<small>R</small></button></div>
   <div class="weapons" id="weapons"></div>
   <div class="speed" id="speed"><span class="ico">🦿</span></div>
+  <button class="mastery" id="masteryB" aria-label="My facts: mastered of the goal">⭐<b id="masteryN"></b><small>T</small></button>
   <div class="wave" id="waveHud" aria-label="Wave"><span>🌊</span><b id="waveN">0</b></div>
   <div class="compass">
     <div class="arm legs" id="cLegs"><b>🦶</b></div>
@@ -371,6 +478,10 @@
     <button class="pparts" id="pParts" aria-label="Take parts">🔩<small>G</small></button>
   </div>
 </div>
+
+<!-- PARENTS: hold ~2 s to open the parent view (a tap does nothing, so the boys don't wander in). Only on the title / pause
+     screen; it sits after the HUD so the HUD (weapons, speed bars) can't cover it on a phone -->
+<button id="parentB" aria-label="Parents: hold to open"><svg viewBox="0 0 78 78"><circle cx="39" cy="39" r="35"/></svg>👪<span class="lk">🔒</span></button>
 
 <!-- QUICK FIX: drag each plug to the port with the same colour and shape -->
 <div id="clear" class="screen">
@@ -431,6 +542,28 @@
 <div id="namer" class="screen">
   <div class="panel">
     <div class="row"><span class="big">🤖</span><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Name"><button id="nameDice" aria-label="Random name">🎲</button><button id="nameOk" aria-label="OK">✔</button></div>
+  </div>
+</div>
+
+<!-- MY FACTS: the child's 9×9 grid, a cell per fact (7 × 8 and 8 × 7 light up together); tap one for its typical time -->
+<div id="grid" class="screen">
+  <div class="panel">
+    <div class="top"><span class="gt"><b class="kface" id="gridFace"></b>⭐ <b id="gridCount"></b></span><button class="x" id="gridX" aria-label="Close">✖</button></div>
+    <div class="fgrid" id="gridCells"></div>
+    <div class="ginfo" id="gridInfo"></div>
+    <div class="legend" id="gridLegend"></div>
+  </div>
+</div>
+
+<!-- TABLE CHEER: a whole table (all of ×7) Mastered, once per table per child -->
+<div id="cheer" class="screen"><div class="banner" id="cheerBanner"></div><div class="confetti" id="cheerConfetti"></div></div>
+
+<!-- PARENT VIEW: per child, the grid, the 10 slowest facts, minutes a day, open the next step, reset (behind a confirm) -->
+<div id="parent" class="screen">
+  <div class="panel" id="parentPanel">
+    <div class="top"><span>👪</span><div class="ptabs" id="pTabs"></div><button class="x" id="parentX" aria-label="Close">✖</button></div>
+    <div id="pBody"></div>
+    <div class="pconfirm" id="pConfirm"></div>
   </div>
 </div>
 
@@ -697,7 +830,8 @@ function stepFacts(st) {
 // The tracker for whoever is playing. rec is that child's record, saved under robotbattle.facts.<id>:
 //   { v, child, ladder, step (steps 1..step are open), opened: [{ step, at, by: 'start'|'auto'|'parent' }],
 //     wiring: 'math'|'colour', inPlay: [keys of the New facts being taught, at most FACT.newMax],
-//     facts: { key: entry }, practice: { 'YYYY-MM-DD': ms answering }, last: the last key picked, created }
+//     facts: { key: entry }, practice: { 'YYYY-MM-DD': ms answering }, last: the last key picked, created,
+//     cheered: { table: when its cheer played } (M4: each table's cheer plays once) }
 // An entry (made on a fact's first answer, or when it comes into play):
 //   { op, a, b, s: stage, streak: right in a row, n: answers, right, ms: [recent times], hist: [1 right / 0 wrong],
 //     days: [day numbers with a right answer under 3 s], missDay: the day of its last miss (or too-slow
@@ -705,19 +839,19 @@ function stepFacts(st) {
 //     box: index into FACT.reviewDays; miss: due is a miss coming back; last: when it was last answered }
 // Times are the tracker's clock: now() = Date.now() + offset, which __rb.clock(ms) moves for tests.
 const Facts = {
-  child: null, rec: null, offset: 0, rand: Math.random,
+  child: null, rec: null, offset: 0, rand: Math.random, onCheer: null,
   now() { return Date.now() + this.offset; },
   // a day number: local calendar days, so "different days" means different dates on the family's clock
   day(t = this.now()) { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); },
   date(t = this.now()) { const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; },
-  blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now }; },
+  blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now, cheered: {} }; },
   valid(r, C) { return !!r && r.v === 1 && r.child === C.id && LADDERS[r.ladder] && Number.isInteger(r.step) && r.step >= 1 && r.step <= LADDERS[r.ladder].length && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
   // pick who's playing: their saved record (a fresh one if there's none, or it can't be read); Guest's is never saved
   load(c) {
     const C = childOf(c); if (!C) return null;
     let r = C.guest ? null : store.get('facts.' + C.id, null);
     if (!this.valid(r, C)) r = this.blank(C);
-    r.practice ||= {}; r.opened ||= [];
+    r.practice ||= {}; r.opened ||= []; r.cheered ||= {};
     this.child = C; this.rec = r;
     this.advance(); this.save();
     return r;
@@ -746,6 +880,72 @@ const Facts = {
   // open the next step while the current one is done
   advance() {
     while (this.rec.step < this.steps.length && this.stepDone(this.rec.step)) { this.rec.step++; this.rec.opened.push({ step: this.rec.step, at: this.now(), by: 'auto' }); }
+  },
+  // ---- M4: the grid, the parent view, the ⭐ badge and the table cheer. These read any child's record, not
+  // only whoever is playing, and reading never writes.
+  // child c's record without loading it: the live one if c is playing, else the saved one (a blank one if
+  // there's none, or for Guest). Nothing is saved, and who's playing doesn't change.
+  peek(c) {
+    const C = childOf(c); if (!C) return null;
+    if (C === this.child && this.rec) return this.rec;
+    const r = C.guest ? null : store.get('facts.' + C.id, null);
+    const out = this.valid(r, C) ? r : this.blank(C);
+    out.practice ||= {}; out.opened ||= []; out.cheered ||= {};
+    return out;
+  },
+  // run fn with child c as the tracker's child (on the live record if c is playing; otherwise on their saved
+  // record, which fn's own save() writes back), then put whoever is playing back
+  as(c, fn) {
+    const C = childOf(c); if (!C) return { ok: false, why: 'no such child' };
+    if (C === this.child && this.rec) return fn();
+    const keep = [this.child, this.rec], r = this.peek(C);
+    this.child = C; this.rec = r;
+    try { return fn(); } finally { [this.child, this.rec] = keep; }
+  },
+  // every fact on a record's ladder, by key (the goal: 45, every fact with factors 1–9)
+  goal(rec = this.rec) { const out = new Set(); (LADDERS[rec?.ladder] || []).forEach((st) => stepFacts(st).forEach((f) => out.add(f.key))); return out; },
+  // facts Mastered out of the goal, for child c (whoever is playing if c is left out). The ⭐ badge, the
+  // parent view and the garage (#31) read this. Never writes; null for nobody.
+  mastery(c) {
+    const C = c == null ? this.child : childOf(c), rec = C && this.peek(C); if (!rec) return null;
+    const g = this.goal(rec); let m = 0;
+    g.forEach((k) => { if (rec.facts[k]?.s === 'mastered') m++; });
+    return { child: C.id, mastered: m, goal: g.size };
+  },
+  // a fact's typical time (ms): the median of its last FACT.keepTimes answer times, counting only the right
+  // answers among them when there is at least one (a quick wrong guess isn't "fast"); null if never answered
+  typical(e) {
+    if (!e || !e.ms?.length) return null;
+    const h = e.hist.slice(-e.ms.length), right = e.ms.filter((_, i) => h[i] === 1);
+    const t = (right.length ? right : e.ms).slice().sort((x, y) => x - y), n = t.length;
+    return Math.round(n % 2 ? t[(n - 1) / 2] : (t[n / 2 - 1] + t[n / 2]) / 2);
+  },
+  // the 9×9 grid of stages: rows[a-1][b-1] is a × b's stage (b × a is the same fact, so the grid is symmetric)
+  grid(rec = this.rec) {
+    const O = OPS['×'], rows = [];
+    for (let a = O.lo; a <= O.hi; a++) { const row = []; for (let b = O.lo; b <= O.hi; b++) row.push(rec.facts[makeFact('×', a, b).key]?.s ?? 'new'); rows.push(row); }
+    return rows;
+  },
+  // every fact of table t (t × 1 … t × 9) is Mastered
+  tableDone(rec, t) { const O = OPS['×']; for (let n = O.lo; n <= O.hi; n++) if (rec.facts[makeFact('×', t, n).key]?.s !== 'mastered') return false; return true; },
+  // the n slowest facts answered so far, slowest first, by typical time (a tie: the less often right first)
+  slowest(rec = this.rec, n = 10) {
+    return Object.entries(rec.facts).filter(([, e]) => e.n > 0).map(([key, e]) => ({ key, a: e.a, b: e.b, s: e.s, ms: this.typical(e), n: e.n, right: e.right }))
+      .sort((x, y) => y.ms - x.ms || x.right / x.n - y.right / y.n).slice(0, n);
+  },
+  // time answering on each of the last n days, oldest first, ending today (the tracker's clock): { date, ms, wd }
+  days(rec = this.rec, n = 14) {
+    const out = [], d0 = new Date(this.now()); d0.setHours(12, 0, 0, 0);
+    for (let i = n - 1; i >= 0; i--) { const d = new Date(d0); d.setDate(d0.getDate() - i); const k = this.date(d.getTime()); out.push({ date: k, ms: rec.practice?.[k] || 0, wd: d.getDay() }); }
+    return out;
+  },
+  // a parent resets child c: their record starts again from blank (the Quick Fix setting is kept: it's a
+  // setting, not progress). Only that child's record is touched; Guest has none.
+  reset(c) {
+    const C = childOf(c); if (!C || C.guest) return { ok: false, why: C ? 'guest keeps nothing' : 'no such child' };
+    const r = this.blank(C); r.wiring = this.peek(C).wiring;
+    if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else store.set('facts.' + C.id, r);
+    return { ok: true, child: C.id };
   },
   // a parent opens steps early, up to step n (M4's "open next step" button); never closes one
   openStep(n) {
@@ -820,8 +1020,13 @@ const Facts = {
       ip.push(f.key);
       while (ip.length > FACT.newMax) { const j = ip.findLastIndex((k) => k !== f.key && !this.rec.facts[k]?.miss); ip.splice(j >= 0 ? j : 0, 1); }
     }
+    // the table cheer (M4): this answer's tables (7 × 8: ×7 and ×8) that are now all Mastered and haven't
+    // cheered yet. Recorded in the record, so each table cheers once per child.
+    const cheer = [], ch = (this.rec.cheered ||= {});
+    for (const t of new Set([f.a, f.b])) if (!(t in ch) && this.tableDone(this.rec, t)) { ch[t] = now; cheer.push(t); }
     this.advance(); this.save();
-    return { ok: true, op: f.op, a: f.a, b: f.b, key: f.key, value, answer: f.answer, right, fast, ms, from, to: e.s, due: e.due, step: this.rec.step };
+    if (cheer.length) this.onCheer?.(cheer, this.child);
+    return { ok: true, op: f.op, a: f.a, b: f.b, key: f.key, value, answer: f.answer, right, fast, ms, from, to: e.s, due: e.due, step: this.rec.step, cheer };
   },
   // The next fact to ask. opts.exclude: facts already on the board (keys or { op, a, b }); opts.ops: only
   // these ops (what the asking UI can show). A missed fact whose couple of minutes are up comes first;
@@ -841,10 +1046,13 @@ const Facts = {
     // 1. a miss coming back
     const back = keys.filter((k) => F[k]?.miss && F[k].due <= now).sort((x, y) => F[x].due - F[y].due);
     if (back.length) return out(back[0], 'miss');
-    // 2. top up the New facts in play, from the earliest open step first
+    // 2. top up the New facts in play: from a step a parent opened early first (the newest such step), so
+    // "open next step" brings its facts in straight away; then from the earliest open step
     R.inPlay = R.inPlay.filter((k) => open.has(k) && this.stage(k) === 'new');
     if (R.inPlay.length < FACT.newMax) {
-      for (const st of this.steps.slice(0, R.step)) {
+      const early = R.opened.filter((o) => o.by === 'parent' && o.step <= R.step).map((o) => o.step).reverse();
+      const order = [...new Set([...early, ...this.steps.slice(0, R.step).map((_, i) => i + 1)])];
+      for (const st of order.map((i) => this.steps[i - 1])) {
         const fresh = stepFacts(st).map((f) => f.key).filter((k) => this.stage(k) === 'new' && !R.inPlay.includes(k) && !(F[k]?.n > 0) && (!ops || ops.has(open.get(k).op)));
         while (R.inPlay.length < FACT.newMax && fresh.length) R.inPlay.push(fresh.splice(Math.floor(this.rand() * fresh.length), 1)[0]);
         if (R.inPlay.length >= FACT.newMax) break;
@@ -1039,6 +1247,8 @@ const Sfx = {
   find() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.13, null, i * 0.06)); this.noise(0.2, 0.06, 7500, 0.18, 2, 'highpass'); },
   // The meadow cleared: a rising fanfare and a sparkle; a new wave: a low horn from the edge of the meadow
   cleared() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.22, 'square', 0.07, null, i * 0.11)); [1047, 1319, 1568].forEach((f) => this.tone(f, 0.9, 'triangle', 0.1, null, 0.46)); this.noise(0.6, 0.08, 7500, 0.46, 2, 'highpass'); },
+  // a whole table Mastered: a bigger, brighter fanfare than the clear screen's, with a sparkle run
+  table() { [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.15, null, i * 0.09)); [1047, 1319, 1568, 2093].forEach((f) => this.tone(f, 1.2, 'sine', 0.08, null, 0.5)); [0.5, 0.62, 0.74, 0.86].forEach((d) => this.noise(0.08, 0.07, 8000, d, 2, 'highpass')); },
   waveIn() { this.tone(110, 0.9, 'sawtooth', 0.12, 165); this.tone(165, 0.9, 'sawtooth', 0.08, 220, 0.5); this.noise(0.8, 0.12, 400, 0, 0.7, 'lowpass'); },
   salvage() { this.clang(1); this.clang(0.7); this.tone(260, 0.12, 'square', 0.06, 180, 0.12); this.tone(340, 0.12, 'square', 0.06, 220, 0.26); this.noise(0.3, 0.2, 900, 0.1, 0.8); },
   // A low engine hum that rises with speed
@@ -1069,6 +1279,8 @@ const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowR
 addEventListener('keydown', (e) => {
   // typing a robot's name: the keys spell the name and don't drive the mech
   if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
+  // the fact grid or the parent view is open: keys go to it (Esc closes, arrows move over the grid), not the game
+  if (Progress.mode) { if (Progress.key(e) !== 'native') e.preventDefault(); return; }
   // the keypad is open: digits, Backspace, Enter and Escape go to it, not the mech (Digit1–5 pick weapons, Enter fires)
   if (FixUI.entry) {
     const d = /^(Digit|Numpad)([0-9])$/.exec(e.code);
@@ -1723,10 +1935,12 @@ const Title = {
     const kb = $('kidB');
     if (C && kb.dataset.k !== C.id) { kb.dataset.k = C.id; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">◀</span><b class="face">${C.icon}</b><span>${C.name}</span>`; }
     [...$('wireB').children].forEach((i) => i.classList.toggle('on', i.dataset.w === wiringMode()));
+    Progress.drawBadge();
+    $('parentB').classList.toggle('on', this.on);   // the parent button: title / pause screen only
   },
   // keys and pad on the title (not in manual mode: checks use __rb.player / __rb.start)
   input(pad) {
-    if (Game.manual || !this.on) return;
+    if (Game.manual || !this.on || Progress.mode) return;
     const kp = (...c) => c.some((k) => keysPressed.has(k));
     const d = (kp('ArrowRight', 'KeyD') || pad?.rightP ? 1 : 0) - (kp('ArrowLeft', 'KeyA') || pad?.leftP ? 1 : 0);
     if (!Game.pilot && !Game.child) {
@@ -1738,7 +1952,8 @@ const Title = {
       if (kp('Escape', 'Backspace') || pad?.bP) { pickChild(null); Sfx.click(); return; }
       if (d) { this.cur = (this.cur + d + n) % n; this.draw(); Sfx.click(); }
       if (kp('Enter', 'Space') || pad?.aP) startGame(PILOTS[this.cur].id);
-    } else if (kp('Enter') || pad?.aP) startPlay();
+    } else if (kp('KeyT') || pad?.yP) Progress.openGrid('pause');      // ⭐ my facts
+    else if (kp('Enter') || pad?.aP) startPlay();
   },
 };
 // Who's playing: load child `c`'s record (an id, a name or an index into CHILDREN) and go on to the
@@ -3934,6 +4149,8 @@ function gatherInput(dt) {
     const sc = SCHEMES[h.idx];
     const k = (n) => anyKey(sc[n]) || (solo && anyKey(SOLO_EXTRA[n]));
     const pad = readPad(h.idx);
+    // the fact grid or the parent view is open: player 0's pad works it, and the mech stands still
+    if (h.idx === 0 && Progress.mode) { Progress.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // Start pauses and carries on; on the title it picks the highlighted child, then the highlighted pilot.
     // The title's own keys and pad (◀ ▶, A, B) go to Title.input, and while it's up (outside manual mode)
     // the mech isn't driven.
@@ -3960,6 +4177,8 @@ function gatherInput(dt) {
     const m = h.mech; if (!m) continue;
     m.input.weapon = h.weapon;
     if (Game.paused || titleUp) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
+    // ⭐ my facts: T opens the grid (and pauses) when no panel is up
+    if (h.idx === 0 && keysPressed.has('KeyT') && !FixUI.mode && Progress.openGrid('hud')) continue;
     // the clear screen's ▶: Enter (which isn't also a shot) or pad A (not while the 🔧 panel, which uses A, is open)
     if (h.idx === 0 && Waves.showing && (keysPressed.has('Enter') || (pad && pad.aP && FixUI.mode !== 'mend'))) { keys.delete('Enter'); nextWave(); }
     // powered down: nothing moves, aims or fires until it reboots
@@ -4369,6 +4588,258 @@ const FixUI = {
   },
 };
 
+// ===========================================================================
+// Progress (M4): the child's fact grid, the ⭐ badge, the table cheer and the
+// parent view. All of it reads the tracker (Facts); the parent view's two buttons
+// go through Facts.openStep and Facts.reset. The world is paused while the grid is
+// open: opened from the HUD (the ⭐ badge, or T) it pauses, and ✖ / Esc / pad B
+// goes straight back to the game; opened from the pause screen (its ⭐ button, T,
+// or pad Y) it goes back to the pause screen. The parent view opens only from the
+// title / pause screen, behind a ~2 s hold.
+// ===========================================================================
+// each stage's look: a colour AND a shape (○ ◐ ● ★), plus a pattern in the CSS (dashed, striped, solid, glowing)
+const STAGE_LOOK = { new: { icon: '○', name: 'New' }, learning: { icon: '◐', name: 'Learning' }, known: { icon: '●', name: 'Known' }, mastered: { icon: '★', name: 'Mastered' } };
+// hold: how long the parent button is held to open the view (ms); slowest / days: what the parent view lists;
+// cheer: how long the table cheer stays up (ms)
+const PARENT = { hold: 2000, slowest: 10, days: 14, cheer: 5000 };
+const TABLES = Array.from({ length: OPS['×'].hi - OPS['×'].lo + 1 }, (_, i) => OPS['×'].lo + i);
+const secs = (ms) => (ms == null ? '—' : (ms / 1000).toFixed(1) + ' s');
+const mins = (ms) => { const m = ms / 60000; return m === 0 ? '0' : m < 10 ? m.toFixed(1) : String(Math.round(m)); };
+const stepName = (st) => (st.kind === 'check' ? 'quick check, 1–9' : st.kind === 'steady' ? 'slow facts until steady, 1–9' : st.tables.map((t) => '×' + t).join(' '));
+// confetti over the screen (the clear screen and the table cheer)
+function confetti(box, n = 60) {
+  box.textContent = '';
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('i');
+    c.style.left = (Math.random() * 100).toFixed(1) + 'vw'; c.style.background = GLOW_COLORS[i % GLOW_COLORS.length];
+    c.style.animationDuration = (2.2 + Math.random() * 2).toFixed(2) + 's'; c.style.animationDelay = (Math.random() * 0.8).toFixed(2) + 's';
+    box.append(c);
+  }
+}
+// the grid as cells: a header row and column of factors (a table all Mastered glows gold), then a cell per
+// a × b with its stage's class, glyph and data-s. o.sel = [a, b] picked (b × a is marked as its twin);
+// o.cur = [a, b] the keyboard / gamepad cursor
+function gridHTML(rec, o = {}) {
+  const rows = Facts.grid(rec), done = new Set(TABLES.filter((t) => Facts.tableDone(rec, t)));
+  const is = (p, a, b) => !!p && p[0] === a && p[1] === b;
+  let h = '<i class="hd corner">×</i>' + TABLES.map((b) => `<i class="hd${done.has(b) ? ' done' : ''}">${b}</i>`).join('');
+  rows.forEach((row, i) => {
+    const a = TABLES[i];
+    h += `<i class="hd${done.has(a) ? ' done' : ''}">${a}</i>` + row.map((s, j) => {
+      const b = TABLES[j], cls = (is(o.sel, a, b) ? ' sel' : is(o.sel, b, a) ? ' twin' : '') + (is(o.cur, a, b) ? ' cur' : '');
+      return `<button class="cell s-${s}${cls}" data-a="${a}" data-b="${b}" data-s="${s}" aria-label="${a} × ${b}: ${STAGE_LOOK[s].name}">${STAGE_LOOK[s].icon}</button>`;
+    }).join('');
+  });
+  return h;
+}
+// the legend: each stage's cell, its name and how many of the goal's facts are at it
+function legendHTML(rec) {
+  const cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
+  Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
+  return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${STAGE_LOOK[s].icon}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('');
+}
+const Progress = {
+  mode: null, from: null, sel: null, cur: null, tab: null, psel: null, confirm: false, holdT: null, cheering: null, cheerT: null, badgeKey: null,
+  init() {
+    $('masteryB').addEventListener('click', (e) => { e.stopPropagation(); this.openGrid('hud'); });
+    $('gridB').addEventListener('click', (e) => { e.stopPropagation(); this.openGrid('pause'); });
+    $('gridX').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
+    $('gridCells').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) { e.stopPropagation(); this.tapCell(+c.dataset.a, +c.dataset.b); } });
+    // the backdrop: a click outside a panel does nothing (it never reaches the pause screen underneath)
+    for (const id of ['grid', 'parent']) $(id).addEventListener('click', (e) => e.stopPropagation());
+    // the parent button: held for PARENT.hold it opens the view; letting go, sliding off or a cancel stops it
+    const pb = $('parentB');
+    pb.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.holdStart(); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) pb.addEventListener(ev, () => this.holdStop());
+    pb.addEventListener('contextmenu', (e) => e.preventDefault());
+    pb.addEventListener('click', (e) => e.stopPropagation());
+    // the keyboard: hold Enter or Space on the focused button (kept away from the title's own Enter)
+    pb.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); e.stopPropagation(); if (!e.repeat) this.holdStart(); } });
+    pb.addEventListener('keyup', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.stopPropagation(); this.holdStop(); } });
+    pb.addEventListener('blur', () => this.holdStop());
+    $('parentX').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
+    $('pTabs').addEventListener('click', (e) => { const b = e.target.closest('.ptab'); if (b) this.act('tab', b.dataset.k); });
+    $('pBody').addEventListener('click', (e) => {
+      const c = e.target.closest('.cell'); if (c && c.dataset.a) { this.psel = [+c.dataset.a, +c.dataset.b]; this.drawParent(); return; }
+      const b = e.target.closest('[data-act]'); if (b) this.act(b.dataset.act, this.tab);
+    });
+    $('pConfirm').addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (b) this.act(b.dataset.act, this.tab); });
+    Facts.onCheer = (tables, C) => this.cheer(tables, C);
+  },
+  // ---- the child's grid
+  canGrid() { return !!Game.child && !Game.child.guest && !!Facts.rec; },
+  // open the grid from 'hud' (pauses the game; closing carries on) or 'pause' (the pause screen is up)
+  openGrid(from = Title.on ? 'pause' : 'hud') {
+    if (this.mode || !this.canGrid()) return false;
+    if (from === 'hud') { if (FixUI.mode || Title.on) return false; setPause(true); }
+    else if (!Title.on || !Game.pilot) return false;
+    this.mode = 'grid'; this.from = from; this.sel = null; this.cur = null;
+    $('grid').classList.add('on'); this.drawGrid();
+    if (!Game.manual) Sfx.click();
+    return true;
+  },
+  drawGrid() {
+    if (this.mode !== 'grid') return;
+    const rec = Facts.rec, C = Game.child, ms = Facts.mastery();
+    const face = $('gridFace'); face.textContent = C.icon; face.style.setProperty('--c', C.hex);
+    $('gridCount').textContent = `${ms.mastered}/${ms.goal}`;
+    $('gridCells').innerHTML = gridHTML(rec, { sel: this.sel, cur: this.cur });
+    $('gridLegend').innerHTML = legendHTML(rec);
+    // the fact picked and its typical time. No answer: the grid can be opened mid-repair, and it mustn't be a
+    // times table to copy a typed plug's answer from (the parent view shows answers)
+    const p = this.sel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? Facts.stage(f.key) : null;
+    $('gridInfo').innerHTML = !p ? '<span class="dim">👆 ⏱</span>'
+      : `<i class="cell s-${s}">${STAGE_LOOK[s].icon}</i><span>${p[0]} × ${p[1]}</span><span>⏱ ${secs(Facts.typical(e))}</span>`;
+  },
+  // tap a cell (as a click on it does): pick that fact
+  tapCell(a, b) {
+    const f = makeFact('×', a, b);
+    if (this.mode !== 'grid' || !f) return null;
+    this.sel = [a, b]; this.drawGrid(); if (!Game.manual) Sfx.click();
+    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: $('gridInfo').textContent };
+  },
+  // the keyboard's arrows / the d-pad move a cursor over the cells, picking each fact as it lands
+  move(dx, dy) {
+    const [a, b] = this.cur || this.sel || [1, 1], n = TABLES.length;
+    this.cur = this.sel = [((a - 1 + dy + n) % n) + 1, ((b - 1 + dx + n) % n) + 1];
+    this.drawGrid();
+  },
+  // close whichever is open. The grid opened from the HUD goes straight back to the game.
+  close() {
+    const m = this.mode, from = this.from; if (!m) return false;
+    this.holdStop();
+    this.mode = this.from = null; this.confirm = false; this.psel = null;
+    $('grid').classList.remove('on'); $('parent').classList.remove('on'); $('pConfirm').classList.remove('on'); $('parentPanel').classList.remove('locked');
+    if (m === 'grid' && from === 'hud') startPlay(); else Title.draw();
+    if (!Game.manual) Sfx.click();
+    return true;
+  },
+  // a key while one is open goes to it and nowhere else (Enter isn't the pause screen's ▶, arrows don't
+  // drive). Returns 'native' for the keys the browser should still handle: Tab, and Enter / Space on a
+  // focused parent-view button (so it clicks)
+  key(e) {
+    if (e.code === 'Tab' || (this.mode === 'parent' && e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
+    if (e.code === 'Escape') { if (this.confirm) this.act('cancel', this.tab); else this.close(); return 'used'; }
+    if (this.mode === 'grid') {
+      if (e.code === 'KeyT') { if (!e.repeat) this.close(); return 'used'; }
+      const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1], KeyA: [-1, 0], KeyD: [1, 0], KeyW: [0, -1], KeyS: [0, 1] }[e.code];
+      if (d) this.move(...d);
+    }
+    return 'used';
+  },
+  // the gamepad while one is open: the d-pad moves over the grid; B (or Y, or Start) closes; in the reset
+  // confirm B keeps the child
+  pad(pad) {
+    if (!pad) return;
+    if (this.mode === 'grid' && (pad.upP || pad.downP || pad.leftP || pad.rightP)) this.move((pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0));
+    if (pad.bP || pad.startP || (this.mode === 'grid' && pad.yP)) { if (this.confirm) this.act('cancel', this.tab); else this.close(); }
+  },
+  // the ⭐ badge on the HUD and its twin on the pause screen: mastered out of the goal (nothing for Guest)
+  drawBadge() {
+    const ms = this.canGrid() ? Facts.mastery() : null, txt = ms ? `${ms.mastered}/${ms.goal}` : '';
+    if (txt === this.badgeKey) return; this.badgeKey = txt;
+    $('masteryB').classList.toggle('on', !!ms); $('masteryN').textContent = txt;
+    $('gridB').classList.toggle('on', !!ms); $('gridN').textContent = txt;
+  },
+  // ---- the table cheer: tables (e.g. [7]) just all Mastered for child C. A banner with the table's nine
+  // facts popping in as gold stars, confetti, sparks round the mech and a fanfare. It stays up PARENT.cheer ms
+  // and doesn't block play.
+  cheer(tables, C) {
+    const prev = this.cheering && this.cheering.child === C?.id ? this.cheering.tables : [];
+    const all = [...new Set([...prev, ...tables])];
+    this.cheering = { tables: all, child: C?.id ?? null, at: Facts.now() };
+    $('cheerBanner').innerHTML = `<div class="head"><span>🏆</span><span class="rb-title">${all.map((t) => '×' + t).join(' ')}</span><span>🎉</span></div>`
+      + all.map(() => `<div class="row">${TABLES.map((n, i) => `<i class="cell s-mastered" style="animation-delay:${(0.25 + i * 0.09).toFixed(2)}s">★</i>`).join('')}</div>`).join('');
+    const el = $('cheer'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    confetti($('cheerConfetti'), 80);
+    const m = Game.humans[0]?.mech;
+    if (m) for (let i = 0; i < 4; i++) Sparks.burst(m.pos.x + Math.cos(i * 1.6) * 4, m.pos.y + 10 + i, m.pos.z + Math.sin(i * 1.6) * 4, 30, SPARK_GLINT, 9);
+    if (!Game.manual) { Sfx.unlock(); Sfx.table(); }
+    clearTimeout(this.cheerT);
+    this.cheerT = setTimeout(() => { this.cheering = null; $('cheer').classList.remove('on'); }, PARENT.cheer);
+    this.drawBadge(); if (this.mode === 'grid') this.drawGrid();
+  },
+  // ---- the parent view
+  holdStart() {
+    if (this.mode || this.holdT || !Title.on) return false;
+    $('parentB').classList.add('holding');
+    this.holdT = setTimeout(() => { this.holdT = null; $('parentB').classList.remove('holding'); this.openParent(); }, PARENT.hold);
+    return true;
+  },
+  holdStop() { if (this.holdT) { clearTimeout(this.holdT); this.holdT = null; } $('parentB').classList.remove('holding'); },
+  kids() { return CHILDREN.filter((C) => !C.guest); },
+  // open the parent view on whoever is playing (or the first child); outside the title / pause screen it pauses first
+  openParent(c) {
+    if (this.mode === 'grid') this.close();
+    if (this.mode) return false;
+    if (!Title.on) setPause(true);
+    const C = childOf(c), K = C && !C.guest ? C : Game.child && !Game.child.guest ? Game.child : this.kids()[0];
+    this.mode = 'parent'; this.tab = K.id; this.psel = null; this.confirm = false;
+    $('parent').classList.add('on'); $('parentPanel').scrollTop = 0; this.drawParent();
+    if (!Game.manual) Sfx.click();
+    return true;
+  },
+  // what the parent view shows for child c, straight from the record (nothing is written)
+  data(c) {
+    const C = childOf(c), rec = Facts.peek(C), steps = LADDERS[rec.ladder], days = Facts.days(rec, PARENT.days), td = days[days.length - 1];
+    return {
+      id: C.id, name: C.name, mastery: Facts.mastery(C), step: rec.step, steps: steps.length, stepName: stepName(steps[rec.step - 1]),
+      next: rec.step < steps.length ? { step: rec.step + 1, name: stepName(steps[rec.step]) } : null,
+      slowest: Facts.slowest(rec, PARENT.slowest).map((q) => ({ fact: `${q.a} × ${q.b}`, key: q.key, stage: q.s, ms: q.ms, n: q.n, right: q.right })),
+      days: days.map((d) => ({ date: d.date, ms: Math.round(d.ms), min: +(d.ms / 60000).toFixed(2) })),
+      todayMs: Math.round(td.ms), today: +(td.ms / 60000).toFixed(2),
+      grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number),
+    };
+  },
+  // minutes a day for the last two weeks as a small bar chart (hand-drawn SVG); today's bar is blue, marked ●
+  chartSVG(days) {
+    const W = 280, H = 114, top = 16, base = 96, bw = 14, step = W / days.length, max = Math.max(5 * 60e3, ...days.map((d) => d.ms));
+    const WD = 'SMTWTFS';
+    let g = `<line x1="0" y1="${base + 0.5}" x2="${W}" y2="${base + 0.5}" stroke="rgba(255,255,255,.35)"/>`;
+    days.forEach((d, i) => {
+      const x = i * step + (step - bw) / 2, h = d.ms ? Math.max(2, (d.ms / max) * (base - top)) : 0, today = i === days.length - 1;
+      g += `<rect class="bar${today ? ' today' : ''}" x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" data-date="${d.date}" data-ms="${Math.round(d.ms)}"><title>${d.date}: ${mins(d.ms)} min</title></rect>`;
+      if (d.ms) g += `<text x="${(x + bw / 2).toFixed(1)}" y="${(base - h - 4).toFixed(1)}">${mins(d.ms)}</text>`;
+      g += `<text class="${today ? '' : 'dim'}" x="${(x + bw / 2).toFixed(1)}" y="${base + 13}">${today ? '●' : WD[d.wd]}</text>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Minutes practised a day, last ${days.length} days">${g}</svg>`;
+  },
+  drawParent() {
+    if (this.mode !== 'parent') return;
+    const D = this.data(this.tab), rec = Facts.peek(this.tab);
+    $('pTabs').innerHTML = this.kids().map((C) => `<button class="chip ptab${C.id === this.tab ? ' on' : ''}" data-k="${C.id}" style="--c:${C.hex}"><b class="face">${C.icon}</b><span>${C.name}</span></button>`).join('');
+    const p = this.psel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? rec.facts[f.key]?.s ?? 'new' : null;
+    const info = !p ? '<span class="dim">Tap a fact for its time</span>'
+      : `<i class="cell s-${s}">${STAGE_LOOK[s].icon}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`;
+    const slow = D.slowest.length ? D.slowest.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${STAGE_LOOK[q.stage].icon}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
+    $('pBody').innerHTML = `<div class="psum"><span>⭐ Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span><span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span></div>`
+      + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div></div>`
+      + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
+      + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
+      + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">⏭ Open step ${D.next.step}: ${D.next.name}</button>` : '<button class="pbtn step off" data-act="step" disabled>✔ Every step is open</button>'}`
+      + `<button class="pbtn reset" data-act="reset">🗑️ Reset ${D.name}</button></div></div></div>`;
+    const cf = $('pConfirm'); cf.classList.toggle('on', this.confirm); $('parentPanel').classList.toggle('locked', this.confirm);
+    if (this.confirm) cf.innerHTML = `<span class="big">🗑️${childOf(this.tab).icon}</span><span>Reset <b>${D.name}</b>? Every fact goes back to New (⭐ ${D.mastery.mastered}/${D.mastery.goal}, step ${D.step}), with the minutes and the cheers. This can't be undone.</span>`
+      + `<div class="pact"><button class="pbtn keep" data-act="cancel">✖ Keep</button><button class="pbtn reset" data-act="confirm">🗑️ Reset ${D.name}</button></div>`;
+  },
+  // the parent view's buttons (and __rb.parentDo): 'tab' (show child c), 'step' (open their next step),
+  // 'reset' (ask), 'confirm' (reset them, once asked), 'cancel' (don't)
+  act(what, c) {
+    if (this.mode !== 'parent') return { ok: false, why: 'parent view closed' };
+    const C = childOf(c ?? this.tab); if (!C || C.guest) return { ok: false, why: 'no such child' };
+    let res = { ok: true };
+    if (what === 'tab') { this.tab = C.id; this.psel = null; this.confirm = false; }
+    else if (what === 'step') res = Facts.as(C, () => (Facts.rec.step < Facts.steps.length ? Facts.openStep(Facts.rec.step + 1) : { ok: false, why: 'every step is open' }));
+    else if (what === 'reset') { this.tab = C.id; this.confirm = true; $('parentPanel').scrollTop = 0; }
+    else if (what === 'cancel') this.confirm = false;
+    else if (what === 'confirm') { if (!this.confirm || C.id !== this.tab) return { ok: false, why: 'not asked' }; res = Facts.reset(C); this.confirm = false; this.psel = null; }
+    else return { ok: false, why: 'no such button' };
+    if (!Game.manual) Sfx.click();
+    this.drawParent(); this.drawBadge(); Title.draw();
+    return res;
+  },
+};
+
 // HUD: speed bars and legs-vs-torso compass
 const SPEED_BARS = 8;
 function buildHud() {
@@ -4412,6 +4883,7 @@ function updateHud() {
   }
   updateHud.partPop = null;
   FixUI.drawBag();
+  Progress.drawBadge();  // ⭐ mastered / goal (nothing for Guest)
   Waves.draw();          // the 🌊 wave number, and the clear screen
   // each squadmate's tag is edged in its glow colour, to match it in the meadow
   // (the squadmate picked to go home wears a 🏠 until the new robot's fix is done)
@@ -4602,13 +5074,7 @@ const Waves = {
   // confetti over the screen, fireworks of sparks round the mech, a fanfare; and the mouse is let go,
   // so the ▶ can be clicked (that isn't a pause: the world keeps running)
   celebrate() {
-    const box = $('confetti'); box.textContent = '';
-    for (let i = 0; i < 60; i++) {
-      const c = document.createElement('i');
-      c.style.left = (Math.random() * 100).toFixed(1) + 'vw'; c.style.background = GLOW_COLORS[i % GLOW_COLORS.length];
-      c.style.animationDuration = (2.2 + Math.random() * 2).toFixed(2) + 's'; c.style.animationDelay = (Math.random() * 0.8).toFixed(2) + 's';
-      box.append(c);
-    }
+    confetti($('confetti'), 60);
     const m = Game.humans[0]?.mech;
     if (m) [SPARK_HOT, SPARK_ZAP, SPARK_MEND, SPARK_GLINT, SPARK_RAIL].forEach((c, i) => Sparks.burst(m.pos.x + Math.cos(i * 1.3) * 5, m.pos.y + 9 + i, m.pos.z + Math.sin(i * 1.3) * 5, 30, c, 9));
     if (!Game.manual) { Sfx.cleared(); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -4690,7 +5156,7 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // pick player 0's pilot (an id or a name from PILOTS, any case, or an index) and start, as a tap on
   // their tile does: the title goes, and (outside manual mode) the robots come out. Again mid-game it
@@ -4715,6 +5181,36 @@ window.__rb = {
   openStep(n) { const res = Facts.openStep(n); return { ...res, facts: Facts.summary() }; },
   // move the tracker's clock by ms (to cross days); clock() just reads it. Not saved: a reload is back to now.
   clock(ms = 0) { Facts.offset += Number(ms) || 0; return { offset: Facts.offset, now: Facts.now(), day: Facts.day(), date: Facts.date() }; },
+  // ---- progress (M4) ----
+  // child's 9×9 grid (whoever is playing if left out): rows[a-1][b-1] = a × b's stage, the counts over the 45,
+  // mastery, tables all Mastered and the ones that have cheered; dom = the stages the open grid's cells show
+  // for that child (the child's grid, or the parent view on that child's tab), read back from data-s
+  grid(child) {
+    const C = child == null ? Game.child : childOf(child); if (!C) return null;
+    const rec = Facts.peek(C), cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
+    Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
+    const box = Progress.mode === 'grid' && C === Game.child ? $('gridCells') : Progress.mode === 'parent' && Progress.tab === C.id ? $('pBody').querySelector('.fgrid') : null;
+    let dom = null;
+    if (box) { dom = TABLES.map(() => []); box.querySelectorAll('.cell').forEach((el) => { dom[+el.dataset.a - 1][+el.dataset.b - 1] = el.dataset.s; }); }
+    return { child: C.id, rows: Facts.grid(rec), counts: cnt, mastery: Facts.mastery(C), tables: TABLES.filter((t) => Facts.tableDone(rec, t)), cheered: Object.keys(rec.cheered || {}).map(Number), ui: Progress.mode, dom };
+  },
+  // open (true) or close (false) the child's grid, as the ⭐ badge (playing) or the pause screen's ⭐ does
+  showGrid(on = true) { const ok = on ? Progress.openGrid() : Progress.close(); return { ok, ui: Progress.mode, from: Progress.from, paused: Game.paused, title: this.state().title }; },
+  // tap cell a × b in the open grid: the fact and its typical time
+  tapCell(a, b) { return Progress.tapCell(a, b); },
+  // mastered facts out of the goal for a child (whoever is playing if left out): { child, mastered, goal }.
+  // The garage (#31) reads Facts.mastery, the same accessor.
+  mastered(child) { return Facts.mastery(child); },
+  // open (true, optionally on a child's tab) or close (false) the parent view, skipping the hold (a hook);
+  // returns what it shows for each child
+  parent(open, child) {
+    if (open === true) Progress.openParent(child); else if (open === false && Progress.mode === 'parent') Progress.close();
+    return { open: Progress.mode === 'parent', tab: Progress.tab, confirm: Progress.confirm, children: Progress.kids().map((C) => Progress.data(C)) };
+  },
+  // press a button in the open parent view: 'tab' | 'step' | 'reset' | 'confirm' | 'cancel', on child (the tab shown if left out)
+  parentDo(what, child) { const res = Progress.act(what, child); return { ...res, view: this.parent() }; },
+  // the table cheer: what's showing now, and the tables that have cheered for whoever is playing
+  cheer() { return { showing: Progress.cheering ? { ...Progress.cheering, tables: [...Progress.cheering.tables] } : null, on: $('cheer').classList.contains('on'), cheered: Facts.rec ? { ...(Facts.rec.cheered || {}) } : null }; },
   // the Quick Fix setting for whoever is playing: 'math' or 'colour'
   wiring(mode) { return mode == null ? { wiring: wiringMode() } : setWiring(mode); },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
@@ -4922,6 +5418,10 @@ window.__rb = {
       children: CHILDREN.map((C) => C.name),
       wiring: wiringMode(), math: wiringMode() === 'math',
       factStep: Facts.rec ? Facts.rec.step : null,
+      // M4: the open overlay (null | 'grid' | 'parent'), where the grid was opened from ('hud' | 'pause'), the ⭐ badge's
+      // text (null when it's hidden: Guest), the parent view's tab and confirm, the parent button being held, the cheer up now
+      progress: { ui: Progress.mode, from: Progress.from, badge: $('masteryB').classList.contains('on') ? $('masteryN').textContent : null,
+        tab: Progress.mode === 'parent' ? Progress.tab : null, confirm: Progress.confirm, holding: !!Progress.holdT, cheer: Progress.cheering ? [...Progress.cheering.tables] : null },
       pilots: PILOTS.map((P) => P.name),
       // hidden parts in the meadow: found = in the bag now (gone from the meadow); spotted = a squadmate drone marked it (by = its id)
       hidden: Hidden.list.map((q) => ({ id: q.id, part: q.part, x: r3(q.x), z: r3(q.z), found: q.found, spotted: q.spotted, by: q.by })),
@@ -4955,6 +5455,7 @@ Beams.init();
 spawnPlayer(0, 0, 0, 0);
 buildHud();
 FixUI.init();
+Progress.init();
 onResize();
 Title.build();
 // the portraits' initials use the web font: draw them again once it has loaded
