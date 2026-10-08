@@ -643,7 +643,7 @@ const Facts = {
   day(t = this.now()) { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); },
   date(t = this.now()) { const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; },
   blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now }; },
-  valid(r, C) { return !!r && r.v === 1 && r.child === C.id && LADDERS[r.ladder] && Number.isInteger(r.step) && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
+  valid(r, C) { return !!r && r.v === 1 && r.child === C.id && LADDERS[r.ladder] && Number.isInteger(r.step) && r.step >= 1 && r.step <= LADDERS[r.ladder].length && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
   // pick who's playing: their saved record (a fresh one if there's none, or it can't be read); Guest's is never saved
   load(c) {
     const C = childOf(c); if (!C) return null;
