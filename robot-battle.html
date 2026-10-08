@@ -299,6 +299,12 @@
   }
   @media (max-height: 860px) { .entry .pad button { height: 70px; } }
   @media (max-height: 640px) { .entry { gap: 8px; } .entry .pad button { height: 62px; font-size: 34px; } .entry .val { height: 64px; } }
+  /* a phone on its side (~360–430 px tall): the fact sits beside the keys, which shrink, so ✔ stays on screen */
+  @media (max-height: 460px) and (min-width: 600px) {
+    #fix.typing .entry { flex-direction: row; gap: 22px; }
+    .entry .pad { grid-template-columns: repeat(3, 76px); gap: 6px; }
+    .entry .pad button { height: 50px; font-size: 30px; border-radius: 16px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
+  }
   /* a fast repair: the bonus star on the clear screen (only there when it was earned) */
   #clear .stars i.bonus { display: none; filter: drop-shadow(0 0 12px rgba(255,194,26,1)); }
   #clear .stars i.bonus.on { display: inline; }
