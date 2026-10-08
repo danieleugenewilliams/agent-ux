@@ -249,6 +249,47 @@
   #clear .confetti i { position: fixed; top: -24px; width: 11px; height: 17px; border-radius: 3px; animation: confetti 3s linear forwards; }
   @keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(900deg); opacity: .8; } }
   @media (max-width: 760px) { #clear .banner { top: 168px; padding: 8px 14px 12px; } #clear .head, #clear .head .rb-title, #clear .stars { font-size: 30px; } #clear .n { font-size: 22px; padding: 4px 8px; } #nextB { width: 74px; height: 74px; font-size: 34px; } }
+  /* ---------- MATH WIRING: each plug is a fact (7 × 8) in its wire's colour; each port only an answer (56), no colour or shape,
+     so the math is the only way to match; a wired port lights in its cable's colour, gold if it was answered fast ---------- */
+  .board.math { width: min(560px, calc(100vw - 84px)); gap: 40px; }
+  .board.math .plug { width: 168px; height: 76px; border-radius: 38px; gap: 6px; padding: 0 12px; justify-content: flex-start; }
+  .board.math .plug svg { width: 30px; height: 30px; flex: none; }
+  .board.math .port { width: 112px; height: 76px; border-radius: 22px; border-color: rgba(255,255,255,.4); color: #fff; }
+  .board.math .port.done { border-color: var(--wc); box-shadow: inset 0 0 0 4px #0b0e1a, 0 0 18px var(--wc); }
+  .board.math .port.fast { border-color: var(--yellow); box-shadow: inset 0 0 0 4px #0b0e1a, 0 0 26px 4px var(--yellow); }
+  .fact, .ans { font: 900 34px 'Asap', sans-serif; white-space: nowrap; color: #fff; pointer-events: none;
+    text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink), 2px 2px 0 var(--ink), -2px -2px 0 var(--ink); }
+  .ans { font-size: 40px; }
+  .ans.hide { opacity: .5; }
+  .plug .reveal { position: absolute; left: 50%; top: -30px; transform: translateX(-50%); padding: 0 12px; border-radius: 16px; background: var(--yellow); border: 3px solid var(--ink); font: 900 30px 'Asap', sans-serif; color: var(--ink); white-space: nowrap; animation: clearIn .25s; pointer-events: none; }
+  .board.math .plug.burnt .fact { opacity: .75; }
+  /* the burnt plug's number entry: the fact, the digits typed, and a pad of big keys (keyboard digits work too) */
+  #fix.typing .board { display: none; }
+  .entry { display: none; flex-direction: column; align-items: center; gap: 14px; }
+  #fix.typing .entry { display: flex; }
+  .entry .q { display: flex; align-items: center; gap: 14px; }
+  .entry .q .fact { font-size: 50px; }
+  .entry .val { min-width: 120px; height: 76px; padding: 0 14px; border-radius: 18px; border: 5px solid var(--cyan); background: #0b0e1a; display: flex; align-items: center; justify-content: center; font: 900 50px 'Asap', sans-serif; color: #fff; }
+  .entry .val.bad { border-color: #ff4d5e; background: #3a1018; animation: shake .3s; }
+  .entry .val.good { border-color: var(--green); }
+  .entry .pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; }
+  .entry .pad button { height: 64px; border-radius: 18px; border: 4px solid var(--ink); background: #fff; color: var(--ink); font: 900 32px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 5px 0 var(--ink); touch-action: manipulation; }
+  .entry .pad button:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .entry .pad .ok { background: var(--green); color: #fff; }
+  .entry .pad .del { background: var(--yellow); }
+  .entry .pad .cur { outline: 5px dashed var(--yellow); outline-offset: 3px; }
+  @media (max-width: 560px) {
+    .board.math { gap: 14px; }
+    .board.math .plug { width: 138px; padding: 0 8px; }
+    .board.math .plug svg { width: 22px; height: 22px; }
+    .board.math .port { width: 86px; }
+    .fact { font-size: 27px; } .ans { font-size: 32px; }
+    .entry .q .fact, .entry .val { font-size: 40px; }
+  }
+  /* a fast repair: the bonus star on the clear screen (only there when it was earned) */
+  #clear .stars i.bonus { display: none; filter: drop-shadow(0 0 12px rgba(255,194,26,1)); }
+  #clear .stars i.bonus.on { display: inline; }
+  #hud .mate.gold { background: rgba(120,90,10,.7); }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -316,7 +357,7 @@
 <div id="clear" class="screen">
   <div class="banner">
     <div class="head"><span>🏆</span><span class="rb-title">CLEARED!</span></div>
-    <div class="stars" id="clearStars"><i>⭐</i><i>⭐</i><i>⭐</i></div>
+    <div class="stars" id="clearStars"><i>⭐</i><i>⭐</i><i>⭐</i><i class="bonus" id="clearBonus" aria-label="Fast repair">🌟</i></div>
     <div class="row"><span class="n" aria-label="Fixed">🔧<b id="clearFixed">0</b></span><span class="n" aria-label="Taken apart">🔩<b id="clearTaken">0</b></span><span class="n" aria-label="Hidden parts found">🔍<b id="clearFound">0</b></span><button id="nextB" aria-label="Next wave">▶<small>↵</small></button></div>
   </div>
   <div class="confetti" id="confetti"></div>
@@ -325,6 +366,8 @@
   <div class="panel">
     <div class="top"><span>🔧🤖<span class="how" id="fixHow"></span></span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
     <div class="board" id="board"><svg id="wireSvg"></svg><div class="col" id="plugs"></div><div class="col" id="ports"></div></div>
+    <!-- MATH WIRING: a burnt plug's fact, typed in (on-screen keys or the keyboard's digits, ✔ / Enter) -->
+    <div class="entry" id="entry"><div class="q"><span class="fact" id="entQ"></span><span class="fact">=</span><b class="val" id="entV"></b></div><div class="pad" id="entKeys"></div></div>
   </div>
 </div>
 
@@ -496,6 +539,12 @@ const SHAPE_SVG = {
 };
 // a squadmate's steady glow level (in its own colour); color: the fallback for its name label
 const ALLY = { glow: 2.6, color: '#3ff0ff' };
+// Math wiring (the child's Quick Fix setting): each plug is a fact the tracker picks, each port an answer.
+// A right answer quicker than FACT.fast (3 s) throws `sparks` extra gold sparks. A repair whose every fact
+// was right first time, under FACT.fast on average, is a fast repair: the robot comes back gold (its glow
+// becomes `gold`, held at `glow`) with `health` × its health, and the wave's clear screen gets a 🌟.
+// show: how long (ms) a plug shows its right answer after a wrong wire or a wrong typed answer.
+const MATHFIX = { show: 1500, gold: '#ffc21a', glow: 3.4, health: 1.25, sparks: 26 };
 // where squadmates walk, in the leader's frame: [right, behind] metres
 const SQUAD_SLOTS = [[-6, 7], [6, 7], [0, 12]];
 const ROBOT_NAMES = ['Bolt', 'Sprocket', 'Rusty', 'Zippy', 'Clank', 'Gizmo', 'Sparky', 'Dynamo', 'Piston', 'Cog', 'Nugget', 'Turbo', 'Pixel', 'Rivet', 'Widget', 'Boomer'];
@@ -1001,6 +1050,12 @@ const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowR
 addEventListener('keydown', (e) => {
   // typing a robot's name: the keys spell the name and don't drive the mech
   if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
+  // typing a burnt plug's fact: digits, Backspace, Enter and Escape go to the entry, not the mech (Digit1–5 pick weapons)
+  if (FixUI.entry) {
+    const d = /^(Digit|Numpad)([0-9])$/.exec(e.code);
+    const k = d ? d[2] : e.code === 'Backspace' ? '⌫' : e.code === 'Enter' || e.code === 'NumpadEnter' ? '✔' : null;
+    if (k || e.code === 'Escape') { e.preventDefault(); if (!e.repeat) { if (k) FixUI.key(k); else FixUI.closeEntry(); } return; }
+  }
   if (e.code === 'Escape' && FixUI.mode) { FixUI.dismiss(); return; }
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (!e.repeat) keysPressed.add(e.code);
@@ -1611,7 +1666,7 @@ class CamRig {
 // wave = the wave in the meadow (0 until the first one comes out); cleared = no glitched or powered-down
 // robot is left in it; waveStats = this wave's robots fixed and taken apart, and where its counts began
 const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null,
-  wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0 } };
+  wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0, fast: 0 } };
 // The start screen is the title (pick a pilot) until a pilot is picked, then the pause screen (▶)
 function setPause(on) {
   Game.paused = on;
@@ -3146,12 +3201,79 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.fl
 // plugs[i] and ports[j] are indexes into WIRE_COLORS; link[i] is the port plug i is in (-1 = loose).
 // burnt[i]: plug i is charred and won't go in until it's patched (patchWire); scrub[i]: taps left to
 // strip it clean without a part.
+// facts[i] (math wiring only, set when the Quick Fix opens): plug i's fact; null in colour wiring.
 function makeWires(n, burnt = 0) {
   const plugs = shuffle(WIRE_COLORS.map((_, i) => i)).slice(0, n);
+  // no plug straight across from its own port (with 2 or more): reshuffle, and if that keeps failing, rotate by one
+  const across = (p) => p.some((c, i) => c === plugs[i]);
   let ports = shuffle(plugs.slice());
-  for (let t = 0; t < 10 && n > 1 && ports.every((c, i) => c === plugs[i]); t++) ports = shuffle(ports);   // never straight across
+  for (let t = 0; t < 30 && n > 1 && across(ports); t++) ports = shuffle(ports);
+  if (n > 1 && across(ports)) ports = plugs.slice(1).concat(plugs[0]);
   const bad = new Set(shuffle(plugs.map((_, i) => i)).slice(0, burnt));
-  return { plugs, ports, link: plugs.map(() => -1), burnt: plugs.map((_, i) => bad.has(i)), scrub: plugs.map(() => FAULTS.scrub) };
+  return { plugs, ports, link: plugs.map(() => -1), burnt: plugs.map((_, i) => bad.has(i)), scrub: plugs.map(() => FAULTS.scrub), facts: null };
+}
+// ---- Math wiring. The plugs keep their colours (each wire's cable), and plug i belongs in the port whose
+// colour matches, as in colour wiring; but the ports show only answers (the answer of the plug that
+// belongs there), so the facts are the only way to tell. No two answers on a board are the same.
+const isMath = () => wiringMode() === 'math';
+const STAGE_RANK = { new: 0, learning: 1, known: 2, mastered: 3 };
+// the tracker picks one fact per plug, each one's answer different from every other on the board; a
+// burnt plug gets the most familiar of them (it's typed, not matched, so it's recall: M3's rule that New
+// facts stay matching), the bigger product breaking a tie
+function setFacts(r) {
+  const W = r.wires, picked = [];
+  for (let i = 0; i < W.plugs.length; i++) {
+    const taken = new Set(picked.map((f) => f.answer));
+    const clash = [];
+    for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (taken.has(a * b)) clash.push(makeFact('×', a, b).key);
+    let f = Facts.next({ exclude: clash, ops: ['×'] });
+    if (!f || taken.has(f.answer)) {                     // nothing left on the child's open steps: any 1–9 fact with a new answer
+      const free = []; for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (!taken.has(a * b)) free.push(makeFact('×', a, b));
+      const g = free[Math.floor(Math.random() * free.length)]; f = { ...g, stage: Facts.rec ? Facts.stage(g.key) : 'new', why: 'board' };
+    }
+    picked.push({ op: f.op, a: f.a, b: f.b, key: f.key, answer: f.answer, stage: f.stage });
+  }
+  const order = picked.slice().sort((x, y) => STAGE_RANK[y.stage] - STAGE_RANK[x.stage] || y.answer - x.answer);
+  const burnt = W.plugs.map((_, i) => i).filter((i) => W.burnt[i]), rest = W.plugs.map((_, i) => i).filter((i) => !W.burnt[i]);
+  W.facts = []; [...burnt, ...rest].forEach((i, k) => { W.facts[i] = order[k]; });
+  // which way round a fact is shown (7 × 8 or 8 × 7) is random, so both get practised
+  W.facts.forEach((f) => { f.flip = Math.random() < 0.5; });
+}
+// the answer port j shows: the answer of the plug that belongs in it (null in colour wiring); a burnt
+// plug's port shows ❓ until that plug is fixed, so it can't be found by elimination and copied
+const portAnswer = (W, j) => (W.facts ? W.facts[W.plugs.indexOf(W.ports[j])].answer : null);
+const portHidden = (W, j) => !!W.facts && W.burnt[W.plugs.indexOf(W.ports[j])];
+const factText = (f) => (f.flip ? `${f.b} × ${f.a}` : `${f.a} × ${f.b}`);
+// a new try at the board (the Quick Fix opening): the clock starts, and the answers so far are cleared
+function startBoard(r) {
+  const W = r.wires;
+  W.t0 = W.last = Facts.now(); W.pick = null; W.log = []; W.show = null;
+}
+// a plug picked up (drag, tap, pad A, or a burnt plug tapped to type it): its answer is timed from now
+function pickUp(r) { if (r?.wires) r.wires.pick = Facts.now(); }
+// Record an answer on the board: plug i's fact, answered `value`. Timed from board open for the first
+// answer, then from the plug's pickup (or the last answer, from a hook); ms overrides it (tests).
+// Through Facts.answer, so it lands in the child's record and that day's practice time.
+function recordAnswer(r, i, value, ms) {
+  const W = r.wires, now = Facts.now(), f = W.facts[i];
+  const from = W.log.length ? (W.pick ?? W.last) : W.t0;
+  const t = ms ?? Math.max(0, now - from);
+  W.pick = null; W.last = now;
+  const res = Facts.answer(f, value, t);
+  W.log.push({ plug: i, key: f.key, value, right: res.right, fast: res.fast, ms: Math.round(t) });
+  if (res.right && res.fast) Sparks.burst(r.pos.x, r.pos.y + 3.4, r.pos.z, MATHFIX.sparks, SPARK_GLINT, 7);   // fast: extra gold sparks
+  if (!res.right) {                                       // a miss: the plug shows its right answer for a moment
+    const until = performance.now() + MATHFIX.show;
+    W.show = { plug: i, until };
+    setTimeout(() => { if (W.show?.until === until) { W.show = null; if (FixUI.mode === 'wires' && FixUI.r === r) FixUI.renderWires(); } }, MATHFIX.show + 20);
+  }
+  return res;
+}
+// was this repair fast: every fact answered right first time (a 🔌 swap answers none), under FACT.fast on average
+function fastRepair(W) {
+  const L = W.log || [];
+  if (!W.facts || !L.length || L.some((e) => !e.right)) return false;
+  return L.reduce((s, e) => s + e.ms, 0) / L.length < FACT.fast;
 }
 function randomName() {
   const used = new Set(Game.robots.map((r) => r.name));
@@ -3189,6 +3311,10 @@ function chooseFor(h, r, choice, name, picks) {
   const typed = typeof name === 'string' && name.trim() !== '';
   h.repair = { r, kind: 'fix', name: typed ? name.trim().slice(0, 12) : randomName(), askName: !typed, home: null };
   r.repairBy = h; r.wires.link.fill(-1);
+  // math wiring: the tracker picks the board's facts the first time it's opened (leaving and coming back
+  // keeps them); colour wiring has none
+  if (isMath()) { if (!r.wires.facts) setFacts(r); } else r.wires.facts = null;
+  startBoard(r);
   // the squad is full: first ask which squadmate goes home (kind 'home'; the robot's clock holds)
   if (Game.squad.length >= REPAIR.squadMax) {
     h.repair.kind = 'home'; h.repair.cur = 0;
@@ -3205,6 +3331,7 @@ function chooseHome(h, mate) {
   if (!rp || rp.kind !== 'home') return { ok: false, why: 'not asking' };
   if (!mate || !Game.squad.includes(mate) || (mate.leader && mate.leader !== h)) return { ok: false, why: 'not in squad' };
   rp.kind = 'fix'; rp.home = mate;
+  startBoard(rp.r);                                      // the board opens now: its clock starts here
   if (!Game.manual) Sfx.click();
   if (h.idx === 0) FixUI.openWires(rp.r);
   return { ok: true, home: mate.id };
@@ -3240,7 +3367,10 @@ function pickPart(h, id) {
 }
 // One wire: plug index -> port index. A wire in the wrong colour buzzes, sparks
 // and springs back out; the robot stays down. The last right wire fixes it.
-function connectWire(h, r, plug, port) {
+// Math wiring: dropping plug i on port j answers plug i's fact with port j's answer, recorded with its
+// time (recordAnswer; ms overrides the time, for tests). A wrong one is a miss: the plug shows its
+// right answer for a moment. A burnt plug's port shows ❓, and can't be answered by a wire.
+function connectWire(h, r, plug, port, ms) {
   const W = r.wires;
   if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
   if (!(plug >= 0 && plug < W.plugs.length && port >= 0 && port < W.ports.length)) return 'no such wire';
@@ -3250,6 +3380,8 @@ function connectWire(h, r, plug, port) {
     if (!Game.manual) Sfx.buzz();
     return 'burnt';
   }
+  if (W.facts && portHidden(W, port)) { if (!Game.manual) Sfx.buzz(); return 'hidden'; }
+  if (W.facts) recordAnswer(r, plug, portAnswer(W, port), ms);
   if (W.plugs[plug] !== W.ports[port]) {
     r.wrongWires++;
     Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 12, SPARK_ZAP, 5);
@@ -3264,12 +3396,14 @@ function connectWire(h, r, plug, port) {
 }
 // A burnt plug: a 🔌 from the bag swaps in a new wire at once ('new'); with no 🔌, each tap
 // strips some char off ('scrub', FAULTS.scrub taps) until it's clean ('clean'). Either way the
-// plug then goes in like any other.
+// plug then goes in like any other. Math wiring has no scrubbing: with no 🔌 the plug's fact is
+// typed in instead ('type': typeAnswer), and a right answer snaps it into its port.
 function patchWire(h, r, plug) {
   const W = r.wires;
   if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
   if (!(plug >= 0 && plug < W.plugs.length)) return 'no such wire';
   if (!W.burnt[plug]) return 'not burnt';
+  if (W.facts && !(Game.bag.wiring > 0)) return 'type';
   if (Game.bag.wiring > 0) {
     Game.bag.wiring--; if (!Game.bag.wiring) delete Game.bag.wiring;
     W.burnt[plug] = false;
@@ -3284,13 +3418,40 @@ function patchWire(h, r, plug) {
   if (!Game.manual) Sfx.plug();
   return 'clean';
 }
+// Math wiring, a burnt plug: type its fact. Right: the char is gone and the wire snaps into its port
+// ('ok'; the last one fixes the robot). Wrong: a miss, the plug shows its right answer and stays burnt
+// ('wrong'). Recorded like a wire (recordAnswer), timed from when the plug was tapped.
+function typeAnswer(h, r, plug, value, ms) {
+  const W = r.wires;
+  if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
+  if (!W.facts) return 'not math';
+  if (!(plug >= 0 && plug < W.plugs.length)) return 'no such wire';
+  if (!W.burnt[plug]) return 'not burnt';
+  if (value === '' || value == null) return 'empty';
+  const res = recordAnswer(r, plug, Number(value), ms);
+  if (!res.right) {
+    r.wrongWires++;
+    Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 12, SPARK_ZAP, 5);
+    if (!Game.manual) Sfx.buzz();
+    return 'wrong';
+  }
+  W.burnt[plug] = false;
+  W.link[plug] = W.ports.indexOf(W.plugs[plug]);
+  Sparks.burst(r.pos.x, r.pos.y + 3.2, r.pos.z, 14, SPARK_MEND, 4);
+  if (!Game.manual) Sfx.plug();
+  if (W.link.every((p) => p >= 0)) fixRobot(h, r);
+  return 'ok';
+}
 function fixRobot(h, r) {
   const rp = h.repair; h.repair = null; r.repairBy = null;
   if (rp.home) sendHome(rp.home);                        // the squad was full: the one picked goes home now
+  // a fast math repair: it comes back gold, with more health, and the wave's clear screen gets a 🌟
+  r.gold = fastRepair(r.wires);
+  if (r.gold) { r.maxHealth = Math.round(r.maxHealth * MATHFIX.health); setGlowColor(r, MATHFIX.gold); Game.waveStats.fast++; }
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
   r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
-  r.glowMode = 'steady'; r.glow = ALLY.glow;      // its own colour, held steady (the glitch flicker is gone)
+  r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow;   // its own colour (or gold), held steady (the glitch flicker is gone)
   setRobotName(r, rp.name);
   Game.squad.push(r);
   Sparks.burst(r.pos.x, r.pos.y + 3.5, r.pos.z, 50, SPARK_ZAP, 9);
@@ -3379,7 +3540,7 @@ function robotGlow(r, dt) {
     const T = ROBOT_TYPES[r.type];
     r.glowMode = 'flicker';
     (T.flicker || glitchFlicker)(r, dt, T.hot(r));
-  } else if (r.state === 'ally') { r.glowMode = 'steady'; r.glow = ALLY.glow; }
+  } else if (r.state === 'ally') { r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow; }
   else if (r.downT > ROBOT.warnTime || r.repairBy) { r.glowMode = 'off'; r.glow = 0.03; }
   else { r.glowMode = 'blink'; const hz = 1.5 + (ROBOT.warnTime - r.downT) * 1.5; r.glow = Math.sin(r.t * hz * Math.PI * 2) > 0.3 ? 3.5 : 0.03; }
 }
@@ -3428,7 +3589,7 @@ function robotTick(r, dt) {
     const g = r.state === 'glitched', h = r.legHeading, [bw, bd, by, br] = T.sparkBox, sn = T.sparkN ?? 1;
     r.sparkT = g ? 0.2 + Math.random() * 0.7 : 0.8 + Math.random() * 1.6;
     const lx = (Math.random() - 0.5) * bw, lz = (Math.random() - 0.5) * bd, y = r.pos.y + by + Math.random() * br;
-    Sparks.burst(r.pos.x + lx * Math.cos(h) + lz * Math.sin(h), y, r.pos.z - lx * Math.sin(h) + lz * Math.cos(h), Math.max(1, Math.round((g ? 4 + Math.floor(Math.random() * 6) : 2) * sn)), g && Math.random() < 0.5 ? SPARK_ZAP : SPARK_HOT, g ? 6 : 3);
+    Sparks.burst(r.pos.x + lx * Math.cos(h) + lz * Math.sin(h), y, r.pos.z - lx * Math.sin(h) + lz * Math.cos(h), Math.max(1, Math.round((g ? 4 + Math.floor(Math.random() * 6) : r.gold ? 5 : 2) * sn)), r.gold ? SPARK_GLINT : g && Math.random() < 0.5 ? SPARK_ZAP : SPARK_HOT, g ? 6 : 3);
     const k = loud(r.pos); if (g && k > 0) Sfx.zap(k);
   }
   r.hitFlash = Math.max(0, r.hitFlash - dt * 6);
@@ -3756,7 +3917,7 @@ function gatherInput(dt) {
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
     // in the picker, the mend panel and the send-home panel the d-pad moves between tiles (◀ ▶), and in
     // the Quick Fix between plugs and ports (▲ ▼); the stick still steers
-    if (pad) { turn += pad.lx - (picking || mending || asking ? pad.dpadX : 0); thr -= pad.ly - (wiring ? pad.dpadY : 0); }
+    if (pad) { turn += pad.lx - (picking || mending || asking || (wiring && FixUI.entry) ? pad.dpadX : 0); thr -= pad.ly - (wiring ? pad.dpadY : 0); }
     let padB = false;   // B was used by a panel this frame (so it doesn't also open the bag)
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
     h.ci.camY = pad ? -pad.ry : 0;
@@ -3788,7 +3949,8 @@ function gatherInput(dt) {
     } else if (wiring && pad) {
       // the Quick Fix: d-pad ▲ ▼ moves, A picks up a plug (or patches a burnt one) then A on a port
       // plugs it in; B puts the plug back down, or backs out
-      if (pad.bP) { padB = true; if (FixUI.sel >= 0) { FixUI.sel = -1; FixUI.pad = 'plug'; FixUI.draw(); } else FixUI.dismiss(); }
+      if (FixUI.entry) { padB = pad.bP; FixUI.padEntry(pad); }
+      else if (pad.bP) { padB = true; if (FixUI.sel >= 0) { FixUI.sel = -1; FixUI.pad = 'plug'; FixUI.draw(); } else FixUI.dismiss(); }
       else FixUI.padWires(pad);
     } else if (picking) {
       // the parts picker: d-pad ◀ ▶ moves, A picks, Y (or the 🔩 key) takes them, B backs out
@@ -3854,6 +4016,7 @@ function tick(dt) {
 // In the picker, tap up to two parts and ✔. The world keeps running behind every
 // panel; only the mouse is freed from pointer lock.
 // ===========================================================================
+const ENTRY_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✔'];
 const FixUI = {
   mode: null, r: null, sel: -1, drag: null,
   init() {
@@ -3864,6 +4027,7 @@ const FixUI = {
       if (plug && !plug.classList.contains('done')) {
         e.preventDefault();
         this.drag = { plug: +plug.dataset.plug, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
+        pickUp(this.r);                                  // math wiring: the answer is timed from here
         board.setPointerCapture(e.pointerId); this.draw();
       } else if (port && this.sel >= 0) { const i = this.sel; this.sel = -1; this.tryWire(i, +port.dataset.port); }
     });
@@ -3877,6 +4041,9 @@ const FixUI = {
     });
     board.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
     $('fixX').addEventListener('click', () => this.dismiss());
+    // the burnt plug's number entry: 1–9, ⌫ 0 ✔ (the keyboard's digits, Backspace and Enter work too)
+    $('entKeys').innerHTML = ENTRY_KEYS.map((k) => `<button data-k="${k}" class="${k === '✔' ? 'ok' : k === '⌫' ? 'del' : ''}" aria-label="${k === '⌫' ? 'Delete' : k === '✔' ? 'OK' : k}">${k}</button>`).join('');
+    $('entKeys').addEventListener('pointerdown', (e) => { const b = e.target.closest('button'); if (b) { e.preventDefault(); this.key(b.dataset.k); } });
     $('nameOk').addEventListener('click', () => this.confirmName());
     $('nameDice').addEventListener('click', () => { if (this.r) { setRobotName(this.r, randomName()); $('nameIn').value = this.r.name; } if (!Game.manual) Sfx.click(); });
     $('pFix').addEventListener('click', (e) => { e.stopPropagation(); this.fromPrompt('fix'); });
@@ -3908,19 +4075,78 @@ const FixUI = {
     if (document.pointerLockElement) document.exitPointerLock();
   },
   // the plugs and ports. A burnt plug is charred, with a badge: 🔌 (the bag has a new wire) or ✂️ and the taps left
+  // Math wiring: each plug shows its fact beside a small colour shape (its cable), and each port only its
+  // answer (no colour, no shape) until its wire is in; a burnt plug's port shows ❓ and the plug's badge is
+  // 🔌 (the bag has one) or 🔢 (type it). A plug that was just answered wrong shows its right answer.
   renderWires() {
-    const W = this.r.wires, C = WIRE_COLORS;
+    const W = this.r.wires, C = WIRE_COLORS, M = !!W.facts, show = W.show && W.show.until > performance.now() ? W.show.plug : -1;
+    $('board').classList.toggle('math', M);
     $('plugs').innerHTML = W.plugs.map((ci, i) => {
-      const b = W.burnt[i] ? `<b class="fixb">${Game.bag.wiring > 0 ? PARTS.wiring.icon : '✂️<i>' + W.scrub[i] + '</i>'}</b>` : '';
-      return `<div class="plug${W.burnt[i] ? ' burnt' : ''}" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${this.icon(ci, '#fff', '#14182a')}${b}</div>`;
+      const b = W.burnt[i] ? `<b class="fixb">${Game.bag.wiring > 0 ? PARTS.wiring.icon : M ? '🔢' : '✂️<i>' + W.scrub[i] + '</i>'}</b>` : '';
+      const face = M ? this.icon(ci, '#fff', '#14182a') + `<span class="fact">${factText(W.facts[i])}</span>` : this.icon(ci, '#fff', '#14182a');
+      const rv = M && i === show ? `<span class="reveal">= ${W.facts[i].answer}</span>` : '';
+      return `<div class="plug${W.burnt[i] ? ' burnt' : ''}" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${face}${b}${rv}</div>`;
     }).join('');
-    $('ports').innerHTML = W.ports.map((ci, j) => `<div class="port" data-port="${j}" data-color="${C[ci].color}" style="border-color:${C[ci].hex};color:${C[ci].hex}">${this.icon(ci, C[ci].hex, 'none')}</div>`).join('');
+    $('ports').innerHTML = W.ports.map((ci, j) => (M
+      ? `<div class="port" data-port="${j}" style="--wc:${C[ci].hex}">${portHidden(W, j) ? '<span class="ans hide">❓</span>' : `<span class="ans">${portAnswer(W, j)}</span>`}</div>`
+      : `<div class="port" data-port="${j}" data-color="${C[ci].color}" style="border-color:${C[ci].hex};color:${C[ci].hex}">${this.icon(ci, C[ci].hex, 'none')}</div>`)).join('');
     this.draw();
   },
   patch(i) {
     const res = patchWire(Game.humans[0], this.r, i);
+    if (res === 'type') { this.openEntry(i); return res; }   // math wiring, no 🔌: type the plug's fact
     if (this.mode === 'wires') this.renderWires();
     return res;
+  },
+  // ---- the burnt plug's number entry (math wiring). entry = { plug, value, cur (the pad's key), lock (a
+  // wrong answer showing) } while it's open. M3 brings the full keypad and the gamepad dial; this is the minimum.
+  entry: null,
+  openEntry(i) {
+    const W = this.r?.wires; if (!W?.facts || this.mode !== 'wires') return false;
+    pickUp(this.r);                                      // timed from the tap
+    this.entry = { plug: i, value: '', cur: 0, lock: false };
+    $('fix').classList.add('typing'); $('entQ').textContent = factText(W.facts[i]);
+    this.drawEntry();
+    return true;
+  },
+  closeEntry() { this.entry = null; $('fix').classList.remove('typing'); if (this.mode === 'wires') this.renderWires(); },
+  drawEntry(mark) {
+    const E = this.entry; if (!E) return;
+    const v = $('entV'); v.textContent = E.value || '\u00a0';
+    v.classList.toggle('bad', mark === 'bad'); v.classList.toggle('good', mark === 'good');
+    const pad = padConnected();
+    [...$('entKeys').children].forEach((b, k) => b.classList.toggle('cur', pad && k === E.cur));
+  },
+  // a key: a digit (two at most: 81 is the biggest answer), ⌫, or ✔ (answers it)
+  key(k) {
+    const E = this.entry; if (!E || E.lock) return null;
+    k = String(k);
+    if (/^[0-9]$/.test(k)) { if (E.value.length < 2) E.value += k; if (!Game.manual) Sfx.click(); this.drawEntry(); return E.value; }
+    if (k === '⌫') { E.value = E.value.slice(0, -1); this.drawEntry(); return E.value; }
+    if (k !== '✔') return null;
+    if (!E.value) { if (!Game.manual) Sfx.buzz(); return 'empty'; }
+    return this.submit();
+  },
+  submit(ms) {
+    const E = this.entry, r = this.r; if (!E || !r) return null;
+    const res = typeAnswer(Game.humans[0], r, E.plug, E.value, ms);
+    if (res === 'wrong') {
+      // the right answer shows in the box for a moment, then the board comes back (the plug is still burnt)
+      E.lock = true; E.value = String(r.wires.facts[E.plug].answer); this.drawEntry('bad');
+      const e0 = E; setTimeout(() => { if (this.entry === e0) this.closeEntry(); }, MATHFIX.show);
+    } else if (res === 'ok') { if (this.mode === 'wires') this.closeEntry(); else { this.entry = null; $('fix').classList.remove('typing'); } }
+    return res;
+  },
+  // the pad in the entry: the d-pad moves over the keys (3 across), A presses one, B goes back to the board
+  padEntry(pad) {
+    const E = this.entry; if (!E) return;
+    if (pad.bP) { this.closeEntry(); return; }
+    const n = ENTRY_KEYS.length, c = E.cur;
+    if (pad.leftP) E.cur = (c + n - 1) % n;
+    if (pad.rightP) E.cur = (c + 1) % n;
+    if (pad.upP) E.cur = (c + n - 3) % n;
+    if (pad.downP) E.cur = (c + 3) % n;
+    if (pad.aP) this.key(ENTRY_KEYS[E.cur]); else this.drawEntry();
   },
   // the Quick Fix on a gamepad: ▲ ▼ moves over the plugs (or, holding one, the ports); A picks up,
   // patches a burnt plug, or plugs in
@@ -3933,7 +4159,7 @@ const FixUI = {
     const i = this.cur % W.plugs.length;
     if (W.burnt[i]) { this.patch(i); return; }
     if (W.link[i] >= 0) return;
-    this.sel = i; this.pad = 'port'; this.cur = 0; this.draw();
+    this.sel = i; this.pad = 'port'; this.cur = 0; pickUp(this.r); this.draw();
   },
   // squad full: every squadmate as a tile; tap the one that goes home. The new robot is shown in the top.
   openHome(r) {
@@ -4037,13 +4263,14 @@ const FixUI = {
     this.drawMend();
     return res;
   },
-  close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.show(null); $('nameIn').blur(); },
+  close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; $('fix').classList.remove('typing'); this.show(null); $('nameIn').blur(); },
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
   // nothing is taken), close the bag, or keep the name
   dismiss() {
     if (this.mode === 'name') { this.confirmName(); return; }
+    if (this.entry) { this.closeEntry(); return; }       // ✖ / Escape while typing: back to the board
     if (this.mode === 'wires' || this.mode === 'parts' || this.mode === 'home') cancelRepair(Game.humans[0]);
     this.close(); this.relock();
   },
@@ -4056,8 +4283,8 @@ const FixUI = {
   },
   tryWire(i, j) {
     const res = connectWire(Game.humans[0], this.r, i, j);
-    if (res === 'wrong' || res === 'burnt') { const b = $('board'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
-    this.draw();
+    if (res === 'wrong' || res === 'burnt' || res === 'hidden') { const b = $('board'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
+    if (res === 'wrong' && this.r?.wires.facts) this.renderWires(); else this.draw();   // math: the plug shows its right answer
     return res;
   },
   centre(el, box) { const q = el.getBoundingClientRect(); return [q.left + q.width / 2 - box.left, q.top + q.height / 2 - box.top]; },
@@ -4080,7 +4307,8 @@ const FixUI = {
       plugs[i].classList.toggle('done', j >= 0); plugs[i].classList.toggle('sel', i === this.sel);
       if (j >= 0) svg += cable(this.centre(plugs[i], box), this.centre(ports[j], box), WIRE_COLORS[W.plugs[i]].hex);
     });
-    [...ports].forEach((el, j) => el.classList.toggle('done', W.link.includes(j)));
+    const fastPlug = new Set((W.log || []).filter((e) => e.right && e.fast).map((e) => e.plug));
+    [...ports].forEach((el, j) => { const i = W.link.indexOf(j); el.classList.toggle('done', i >= 0); el.classList.toggle('fast', i >= 0 && !!W.facts && fastPlug.has(i)); });
     // the gamepad's cursor, on a plug or (holding one) on a port
     const pc = padConnected() ? (this.pad === 'port' ? ports : plugs)[this.cur] : null;
     for (const el of [...plugs, ...ports]) el.classList.toggle('cur', el === pc);
@@ -4139,9 +4367,9 @@ function updateHud() {
   if (sk !== updateHud.squadKey) {
     updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
     for (const r of Game.squad) {
-      const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : '');
+      const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : '') + (r.gold ? ' gold' : '');
       if (r !== goHome) { d.style.borderColor = r.glowColor; d.style.boxShadow = `0 0 10px ${r.glowColor}`; }
-      const b = document.createElement('b'); b.textContent = r === goHome ? '🏠' : ROBOT_TYPES[r.type].icon; d.append(b, r.name); el.append(d);
+      const b = document.createElement('b'); b.textContent = r === goHome ? '🏠' : ROBOT_TYPES[r.type].icon; d.append(b, r.name + (r.gold && r !== goHome ? ' 🌟' : '')); el.append(d);
     }
   }
   // the prompt sits beside the downed robot on screen
@@ -4252,7 +4480,7 @@ const Waves = {
     const p = Game.humans[0]?.mech; if (!p) return [];
     const before = new Set(Game.robots);
     Game.wave = n; Game.cleared = false;
-    Object.assign(Game.waveStats, { fixed: 0, taken: 0, found0: Hidden.list.filter((q) => q.found).length, downs0: p.downs, robots: 0 });
+    Object.assign(Game.waveStats, { fixed: 0, taken: 0, found0: Hidden.list.filter((q) => q.found).length, downs0: p.downs, robots: 0, fast: 0 });
     if (n === 1) {
       // as it always was: a Charger out of the trees ahead; a Sniper, a drone swarm and a Bouncer
       // already roaming the meadow further out
@@ -4300,7 +4528,9 @@ const Waves = {
     const S = Game.waveStats, m = Game.humans[0]?.mech, found = Hidden.list.filter((q) => q.found).length;
     const downs = m ? m.downs - S.downs0 : 0;
     return { fixed: S.fixed, taken: S.taken, found: found - S.found0, robots: S.robots, left: Game.robots.filter((r) => r.state !== 'ally').length, downs,
-      stars: Game.cleared ? 1 + (S.fixed > 0 ? 1 : 0) + (downs === 0 ? 1 : 0) : 0 };
+      stars: Game.cleared ? 1 + (S.fixed > 0 ? 1 : 0) + (downs === 0 ? 1 : 0) : 0,
+      // fast = fast math repairs this wave (gold robots); bonus = the 🌟 they earn, on top of the 3 stars
+      fast: S.fast, bonus: Game.cleared && S.fast > 0 ? 1 : 0 };
   },
   // up over the meadow once it's cleared, but not over the title / pause screen or a panel that needs
   // the middle of the screen (naming, wiring, picking parts, who goes home); the bag and 🔧 can be open
@@ -4311,7 +4541,7 @@ const Waves = {
     if (on) {
       const s = this.stats();
       $('clearFixed').textContent = s.fixed; $('clearTaken').textContent = s.taken; $('clearFound').textContent = s.found;
-      [...$('clearStars').children].forEach((st, i) => st.classList.toggle('off', i >= s.stars));
+      [...$('clearStars').children].forEach((st, i) => { if (st.classList.contains('bonus')) st.classList.toggle('on', !!s.bonus); else st.classList.toggle('off', i >= s.stars); });
       if (this.party !== Game.wave) { this.party = Game.wave; this.celebrate(); }
     }
     const wv = $('waveHud'); wv.classList.toggle('on', Game.wave > 0); $('waveN').textContent = Game.wave;
@@ -4369,7 +4599,18 @@ function robotState(r) {
     repairing: !!r.repairBy,                          // its reboot clock holds while true
     // plugs[i] belongs in the port with the same colour; link[i] = the port it's in (-1 = loose)
     // burnt[i]: plug i is charred and needs patching first (patch()); scrub[i]: taps left to strip it clean
-    wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link], burnt: [...r.wires.burnt], scrub: [...r.wires.scrub] }, wrongWires: r.wrongWires,
+    // math wiring (set when its Quick Fix opens; colour wiring leaves them null): math = it's a math board;
+    // facts[i] = plug i's fact { a, b, key, answer, stage, text as shown }; answers[j] = what port j shows
+    // (null while it's a burnt plug's ❓); show = the plug showing its right answer after a miss (-1 = none);
+    // log = this try's answers { plug, key, value, right, fast, ms }; fast = it's a fast repair so far
+    wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link], burnt: [...r.wires.burnt], scrub: [...r.wires.scrub],
+      math: !!r.wires.facts,
+      facts: r.wires.facts ? r.wires.facts.map((f) => ({ a: f.a, b: f.b, key: f.key, answer: f.answer, stage: f.stage, text: factText(f) })) : null,
+      answers: r.wires.facts ? r.wires.ports.map((_, j) => (portHidden(r.wires, j) ? null : portAnswer(r.wires, j))) : null,
+      show: r.wires.show && r.wires.show.until > performance.now() ? r.wires.show.plug : -1,
+      log: (r.wires.log || []).map((e) => ({ ...e })), fast: fastRepair(r.wires) },
+    wrongWires: r.wrongWires,
+    gold: !!r.gold,                                   // fixed by a fast math repair: gold glow, more health
     // how it was beaten and what that left to repair (null until it's been downed; cleared when it reboots):
     // by: 'em' (shut down by shock) or the last hit's weapon; wires and burnt as dealt; burntLeft still charred;
     // total = wires + burnt (the faults to deal with); wear (FAULTS); health it went down with
@@ -4500,7 +4741,7 @@ window.__rb = {
   patch(id, plug) {
     const r = Game.robots.find((q) => q.id === id); if (!r) return null;
     const result = patchWire(Game.humans[0], r, plug);
-    if (FixUI.mode === 'wires' && FixUI.r === r) FixUI.renderWires();
+    if (FixUI.mode === 'wires' && FixUI.r === r) { if (result === 'type') FixUI.openEntry(plug); else FixUI.renderWires(); }
     return { result, robot: robotState(r), bag: { ...Game.bag }, parts: Game.parts };
   },
   // While the send-home panel is up (a 4th fix), pick squadmate id to go home, as a tap on its tile
@@ -4525,11 +4766,26 @@ window.__rb = {
   // plug wires in: pairs = [[plug, port], ...] (indexes into state().robots[i].wires).
   // Each goes through the same connectWire as a drag: right colour stays in, wrong
   // colour springs out. The last right wire fixes the robot.
-  wire(id, pairs = []) {
+  // Math wiring: each pair answers plug a's fact with port b's answer (recorded, as a drag is), timed as a
+  // drag would be unless ms is given (then every pair took ms). 'hidden' = port b is a burnt plug's ❓.
+  wire(id, pairs = [], ms) {
     const r = Game.robots.find((q) => q.id === id); if (!r) return null;
-    const results = pairs.map(([a, b]) => connectWire(Game.humans[0], r, a, b));
-    FixUI.draw();
+    const results = pairs.map(([a, b]) => connectWire(Game.humans[0], r, a, b, ms));
+    if (FixUI.mode === 'wires' && FixUI.r === r) FixUI.renderWires(); else FixUI.draw();
     return { results, robot: robotState(r), squad: this.state().squad, parts: Game.parts, bag: { ...Game.bag } };
+  },
+  // Math wiring: type value for burnt plug `plug`, as tapping it and keying the digits then ✔ does
+  // (through the open entry when the Quick Fix is up). 'ok' = right (it snaps into its port), 'wrong' = a
+  // miss (it stays burnt and its right answer shows), 'not burnt', 'not math', 'not fixing'. ms as for wire().
+  type(id, plug, value, ms) {
+    const r = Game.robots.find((q) => q.id === id); if (!r) return null;
+    let result;
+    if (FixUI.mode === 'wires' && FixUI.r === r && r.wires.facts && r.wires.burnt[plug]) {
+      if (FixUI.entry?.plug !== plug) FixUI.openEntry(plug);
+      FixUI.entry.value = String(value ?? ''); FixUI.entry.lock = false;
+      result = FixUI.submit(ms);
+    } else result = typeAnswer(Game.humans[0], r, plug, value, ms);
+    return { result, robot: Game.robots.includes(r) ? robotState(r) : null, entry: this.state().entry, squad: this.state().squad };
   },
   state() {
     const p0 = Game.humans[0]?.mech, h0 = Game.humans[0];
@@ -4569,6 +4825,8 @@ window.__rb = {
       // kind 'home' = asking who goes home; home = the squadmate picked to go when this fix is done
       repair: h0?.repair ? { id: h0.repair.r.id, kind: h0.repair.kind, name: h0.repair.name ?? null, picks: h0.repair.picks ? [...h0.repair.picks] : null, home: h0.repair.home?.id ?? null } : null,
       ui: FixUI.mode,                                     // null | 'wires' | 'name' | 'parts' | 'bag' | 'mend' | 'home'
+      // math wiring: the burnt plug's number entry while it's open (plug, the digits typed, lock = a miss showing)
+      entry: FixUI.entry ? { plug: FixUI.entry.plug, value: FixUI.entry.value, lock: FixUI.entry.lock } : null,
       bullets: Bullets.list.length,
       // each live round: speed (m/s) and how far it has flown
       shots: Bullets.list.map((b) => ({ speed: r3(b.v.length()), d: r3(b.d), x: r3(b.p.x), y: r3(b.p.y), z: r3(b.p.z) })),
