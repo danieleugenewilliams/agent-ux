@@ -263,7 +263,10 @@
   .ans.hide { opacity: .5; }
   .plug .reveal { position: absolute; left: 50%; top: -30px; transform: translateX(-50%); padding: 0 12px; border-radius: 16px; background: var(--yellow); border: 3px solid var(--ink); font: 900 30px 'Asap', sans-serif; color: var(--ink); white-space: nowrap; animation: clearIn .25s; pointer-events: none; }
   .board.math .plug.burnt .fact { opacity: .75; }
-  /* the burnt plug's number entry: the fact, the digits typed, and a pad of big keys (keyboard digits work too) */
+  /* a typed plug (a familiar fact: recall it): a 🔢 badge and a dashed white rim; a tap opens the keypad. Its port shows ❓ */
+  .board.math .plug.typed { cursor: pointer; border-style: dashed; border-color: #fff; box-shadow: 0 5px 0 var(--ink), 0 0 0 3px var(--ink); }
+  /* the keypad for a typed plug: the fact, the answer box, and big keys sized for small fingers (the
+     keyboard's digits and a gamepad's number dial work too) */
   #fix.typing .board { display: none; }
   .entry { display: none; flex-direction: column; align-items: center; gap: 14px; }
   #fix.typing .entry { display: flex; }
@@ -272,12 +275,19 @@
   .entry .val { min-width: 120px; height: 76px; padding: 0 14px; border-radius: 18px; border: 5px solid var(--cyan); background: #0b0e1a; display: flex; align-items: center; justify-content: center; font: 900 50px 'Asap', sans-serif; color: #fff; }
   .entry .val.bad { border-color: #ff4d5e; background: #3a1018; animation: shake .3s; }
   .entry .val.good { border-color: var(--green); }
-  .entry .pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; }
-  .entry .pad button { height: 64px; border-radius: 18px; border: 4px solid var(--ink); background: #fff; color: var(--ink); font: 900 32px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 5px 0 var(--ink); touch-action: manipulation; }
-  .entry .pad button:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
-  .entry .pad .ok { background: var(--green); color: #fff; }
+  .entry .pad { display: grid; grid-template-columns: repeat(3, 100px); gap: 12px; }
+  .entry .pad button { height: 82px; border-radius: 22px; border: 5px solid var(--ink); background: #fff; color: var(--ink); font: 900 44px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 6px 0 var(--ink); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .entry .pad button:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
+  .entry .pad .ok { width: auto; border-radius: 22px; background: var(--green); color: #fff; }
   .entry .pad .del { background: var(--yellow); }
-  .entry .pad .cur { outline: 5px dashed var(--yellow); outline-offset: 3px; }
+  /* the gamepad's number dial: two digits (tens, ones); the one ▲ ▼ turns is ringed, with arrows */
+  .entry .val.dial { gap: 8px; padding: 0 10px; margin: 14px 0; }
+  .entry .val .dg { position: relative; font-style: normal; width: 48px; text-align: center; border-radius: 10px; }
+  .entry .val .dg.lead { opacity: .35; }
+  .entry .val .dg.cur { background: rgba(255,194,26,.25); outline: 4px solid var(--yellow); opacity: 1; }
+  .entry .val .dg.cur::before, .entry .val .dg.cur::after { position: absolute; left: 50%; transform: translateX(-50%); font-size: 20px; color: var(--yellow); line-height: 1; }
+  .entry .val .dg.cur::before { content: '▲'; top: -34px; }
+  .entry .val .dg.cur::after { content: '▼'; bottom: -34px; }
   @media (max-width: 560px) {
     .board.math { gap: 14px; }
     .board.math .plug { width: 138px; padding: 0 8px; }
@@ -285,6 +295,15 @@
     .board.math .port { width: 86px; }
     .fact { font-size: 27px; } .ans { font-size: 32px; }
     .entry .q .fact, .entry .val { font-size: 40px; }
+    .entry .pad { grid-template-columns: repeat(3, 84px); gap: 10px; }
+  }
+  @media (max-height: 860px) { .entry .pad button { height: 70px; } }
+  @media (max-height: 640px) { .entry { gap: 8px; } .entry .pad button { height: 62px; font-size: 34px; } .entry .val { height: 64px; } }
+  /* a phone on its side (~360–430 px tall): the fact sits beside the keys, which shrink, so ✔ stays on screen */
+  @media (max-height: 460px) and (min-width: 600px) {
+    #fix.typing .entry { flex-direction: row; gap: 22px; }
+    .entry .pad { grid-template-columns: repeat(3, 76px); gap: 6px; }
+    .entry .pad button { height: 50px; font-size: 30px; border-radius: 16px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
   }
   /* a fast repair: the bonus star on the clear screen (only there when it was earned) */
   #clear .stars i.bonus { display: none; filter: drop-shadow(0 0 12px rgba(255,194,26,1)); }
@@ -366,7 +385,7 @@
   <div class="panel">
     <div class="top"><span>🔧🤖<span class="how" id="fixHow"></span></span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
     <div class="board" id="board"><svg id="wireSvg"></svg><div class="col" id="plugs"></div><div class="col" id="ports"></div></div>
-    <!-- MATH WIRING: a burnt plug's fact, typed in (on-screen keys or the keyboard's digits, ✔ / Enter) -->
+    <!-- MATH WIRING: the keypad for a typed plug (🔢): on-screen keys, the keyboard's digits (✔ / Enter), or a gamepad's number dial -->
     <div class="entry" id="entry"><div class="q"><span class="fact" id="entQ"></span><span class="fact">=</span><b class="val" id="entV"></b></div><div class="pad" id="entKeys"></div></div>
   </div>
 </div>
@@ -1050,7 +1069,7 @@ const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowR
 addEventListener('keydown', (e) => {
   // typing a robot's name: the keys spell the name and don't drive the mech
   if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
-  // typing a burnt plug's fact: digits, Backspace, Enter and Escape go to the entry, not the mech (Digit1–5 pick weapons)
+  // the keypad is open: digits, Backspace, Enter and Escape go to it, not the mech (Digit1–5 pick weapons, Enter fires)
   if (FixUI.entry) {
     const d = /^(Digit|Numpad)([0-9])$/.exec(e.code);
     const k = d ? d[2] : e.code === 'Backspace' ? '⌫' : e.code === 'Enter' || e.code === 'NumpadEnter' ? '✔' : null;
@@ -3202,12 +3221,13 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.fl
 // burnt[i]: plug i is charred and won't go in until it's patched (patchWire); scrub[i]: taps left to
 // strip it clean without a part.
 // facts[i] (math wiring only, set when the Quick Fix opens): plug i's fact; null in colour wiring.
+// typed[i] (math wiring only): plug i's fact is answered by typing it (setFacts), not by matching.
 function makeWires(n, burnt = 0) {
   const plugs = shuffle(WIRE_COLORS.map((_, i) => i)).slice(0, n);
   let ports = shuffle(plugs.slice());
   for (let t = 0; t < 10 && n > 1 && ports.every((c, i) => c === plugs[i]); t++) ports = shuffle(ports);   // never straight across
   const bad = new Set(shuffle(plugs.map((_, i) => i)).slice(0, burnt));
-  return { plugs, ports, link: plugs.map(() => -1), burnt: plugs.map((_, i) => bad.has(i)), scrub: plugs.map(() => FAULTS.scrub), facts: null };
+  return { plugs, ports, link: plugs.map(() => -1), burnt: plugs.map((_, i) => bad.has(i)), scrub: plugs.map(() => FAULTS.scrub), facts: null, typed: plugs.map(() => false) };
 }
 // ---- Math wiring. The plugs keep their colours (each wire's cable), and plug i belongs in the port whose
 // colour matches, as in colour wiring; but the ports show only answers (the answer of the plug that
@@ -3215,8 +3235,10 @@ function makeWires(n, burnt = 0) {
 const isMath = () => wiringMode() === 'math';
 const STAGE_RANK = { new: 0, learning: 1, known: 2, mastered: 3 };
 // the tracker picks one fact per plug, each one's answer different from every other on the board; a
-// burnt plug gets the most familiar of them (it's typed, not matched, so it's recall: M3's rule that New
-// facts stay matching), the bigger product breaking a tie
+// burnt plug gets the most familiar of them, the bigger product breaking a tie.
+// Matched vs typed (M3): a New fact is matched, plug to port (its answer is on the board to learn from);
+// a Learning, Known or Mastered fact is typed (recall), and so is a burnt plug's. Which is which is
+// decided here, once per board: a miss that drops a fact to New doesn't turn its plug into a matched one.
 function setFacts(r) {
   const W = r.wires, picked = [], n = W.plugs.length;
   // no plug straight across from its own port (with 2 or more), so where a port sits says nothing:
@@ -3238,31 +3260,33 @@ function setFacts(r) {
   const order = picked.slice().sort((x, y) => STAGE_RANK[y.stage] - STAGE_RANK[x.stage] || y.answer - x.answer);
   const burnt = W.plugs.map((_, i) => i).filter((i) => W.burnt[i]), rest = W.plugs.map((_, i) => i).filter((i) => !W.burnt[i]);
   W.facts = []; [...burnt, ...rest].forEach((i, k) => { W.facts[i] = order[k]; });
+  W.typed = W.facts.map((f) => f.stage !== 'new');
   W.missed = false;                                      // a miss on these facts (kept across tries: see fastRepair)
   // which way round a fact is shown (7 × 8 or 8 × 7) is random, so both get practised
   W.facts.forEach((f) => { f.flip = Math.random() < 0.5; });
 }
-// the answer port j shows: the answer of the plug that belongs in it (null in colour wiring); a burnt
-// plug's port shows ❓ until that plug is fixed, so it can't be found by elimination and copied
+// plug i is answered by typing (math wiring): its fact is typed (W.typed), or it's burnt, and it isn't in yet
+const typedPlug = (W, i) => !!W.facts && W.link[i] < 0 && (W.burnt[i] || !!W.typed?.[i]);
+// the answer port j shows: the answer of the plug that belongs in it (null in colour wiring); a typed
+// plug's port shows ❓ until it's answered, so a typed answer can't be found by elimination and copied
 const portAnswer = (W, j) => (W.facts ? W.facts[W.plugs.indexOf(W.ports[j])].answer : null);
-const portHidden = (W, j) => !!W.facts && W.burnt[W.plugs.indexOf(W.ports[j])];
+const portHidden = (W, j) => typedPlug(W, W.plugs.indexOf(W.ports[j]));
 const factText = (f) => (f.flip ? `${f.b} × ${f.a}` : `${f.a} × ${f.b}`);
 // a new try at the board (the Quick Fix opening): the clock starts, and the answers so far are cleared
 // (a miss isn't: W.missed stays, so leaving after a miss and coming back can't earn a fast repair)
 function startBoard(r) {
   const W = r.wires;
-  W.t0 = W.last = Facts.now(); W.pick = null; W.log = []; W.show = null;
+  W.t0 = W.last = Facts.now(); W.log = []; W.show = null;
 }
-// a plug picked up (drag, tap, pad A, or a burnt plug tapped to type it): its answer is timed from now
-function pickUp(r) { if (r?.wires) r.wires.pick = Facts.now(); }
-// Record an answer on the board: plug i's fact, answered `value`. Timed from the plug's pickup (with no
-// pickup, from a hook: from the last answer, or board open for the first); ms overrides it (tests).
+// Record an answer on the board: plug i's fact, answered `value`. Thinking time counts: an answer is
+// timed from when the board was last free to be answered (W.last: the board opening, or the board's
+// previous answer, right or wrong, whichever is later) to the drop or ✔, however long the plug was
+// held; so studying the board for 10 s and dragging in 0.5 s is 10.5 s. ms overrides it (tests).
 // Through Facts.answer, so it lands in the child's record and that day's practice time.
 function recordAnswer(r, i, value, ms) {
   const W = r.wires, now = Facts.now(), f = W.facts[i];
-  const from = W.pick ?? (W.log.length ? W.last : W.t0);
-  const t = ms ?? Math.max(0, now - from);
-  W.pick = null; W.last = now;
+  const t = ms ?? Math.max(0, now - W.last);
+  W.last = now;
   const res = Facts.answer(f, value, t);
   W.log.push({ plug: i, key: f.key, value, right: res.right, fast: res.fast, ms: Math.round(t) });
   if (res.right && res.fast) Sparks.burst(r.pos.x, r.pos.y + 3.4, r.pos.z, MATHFIX.sparks, SPARK_GLINT, 7);   // fast: extra gold sparks
@@ -3375,7 +3399,7 @@ function pickPart(h, id) {
 // and springs back out; the robot stays down. The last right wire fixes it.
 // Math wiring: dropping plug i on port j answers plug i's fact with port j's answer, recorded with its
 // time (recordAnswer; ms overrides the time, for tests). A wrong one is a miss: the plug shows its
-// right answer for a moment. A burnt plug's port shows ❓, and can't be answered by a wire.
+// right answer for a moment. A typed plug (or a burnt one) and its port (❓) can't be answered by a wire.
 function connectWire(h, r, plug, port, ms) {
   const W = r.wires;
   if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
@@ -3386,6 +3410,7 @@ function connectWire(h, r, plug, port, ms) {
     if (!Game.manual) Sfx.buzz();
     return 'burnt';
   }
+  if (typedPlug(W, plug)) { if (!Game.manual) Sfx.buzz(); return 'typed'; }   // tap it and type the answer
   if (W.facts && portHidden(W, port)) { if (!Game.manual) Sfx.buzz(); return 'hidden'; }
   if (W.facts) recordAnswer(r, plug, portAnswer(W, port), ms);
   if (W.plugs[plug] !== W.ports[port]) {
@@ -3424,15 +3449,17 @@ function patchWire(h, r, plug) {
   if (!Game.manual) Sfx.plug();
   return 'clean';
 }
-// Math wiring, a burnt plug: type its fact. Right: the char is gone and the wire snaps into its port
-// ('ok'; the last one fixes the robot). Wrong: a miss, the plug shows its right answer and stays burnt
-// ('wrong'). Recorded like a wire (recordAnswer), timed from when the plug was tapped.
+// Math wiring, a typed plug (a Learning / Known / Mastered fact, or a burnt plug): type its fact. Right:
+// any char is gone and the wire snaps into its port ('ok'; the last one fixes the robot). Wrong: a miss
+// (as a wrong wire is: recorded, re-queued by the tracker), the plug shows its right answer for a moment
+// and stays loose ('wrong'). Recorded like a wire (recordAnswer), timed the same way.
 function typeAnswer(h, r, plug, value, ms) {
   const W = r.wires;
   if (!h.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
   if (!W.facts) return 'not math';
   if (!(plug >= 0 && plug < W.plugs.length)) return 'no such wire';
-  if (!W.burnt[plug]) return 'not burnt';
+  if (W.link[plug] >= 0) return 'taken';
+  if (!typedPlug(W, plug)) return 'not typed';
   if (value === '' || value == null) return 'empty';
   const res = recordAnswer(r, plug, Number(value), ms);
   if (!res.right) {
@@ -4030,10 +4057,10 @@ const FixUI = {
     board.addEventListener('pointerdown', (e) => {
       const plug = e.target.closest('.plug'), port = e.target.closest('.port');
       if (plug && plug.classList.contains('burnt')) { e.preventDefault(); this.patch(+plug.dataset.plug); return; }   // a tap patches a burnt plug
+      if (plug && plug.classList.contains('typed')) { e.preventDefault(); this.sel = -1; this.openEntry(+plug.dataset.plug); return; }   // a tap opens the keypad
       if (plug && !plug.classList.contains('done')) {
         e.preventDefault();
         this.drag = { plug: +plug.dataset.plug, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
-        pickUp(this.r);                                  // math wiring: the answer is timed from here
         board.setPointerCapture(e.pointerId); this.draw();
       } else if (port && this.sel >= 0) { const i = this.sel; this.sel = -1; this.tryWire(i, +port.dataset.port); }
     });
@@ -4047,7 +4074,7 @@ const FixUI = {
     });
     board.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
     $('fixX').addEventListener('click', () => this.dismiss());
-    // the burnt plug's number entry: 1–9, ⌫ 0 ✔ (the keyboard's digits, Backspace and Enter work too)
+    // the keypad for a typed plug: 1–9, ⌫ 0 ✔ (the keyboard's digits, Backspace and Enter work too)
     $('entKeys').innerHTML = ENTRY_KEYS.map((k) => `<button data-k="${k}" class="${k === '✔' ? 'ok' : k === '⌫' ? 'del' : ''}" aria-label="${k === '⌫' ? 'Delete' : k === '✔' ? 'OK' : k}">${k}</button>`).join('');
     $('entKeys').addEventListener('pointerdown', (e) => { const b = e.target.closest('button'); if (b) { e.preventDefault(); this.key(b.dataset.k); } });
     $('nameOk').addEventListener('click', () => this.confirmName());
@@ -4082,16 +4109,18 @@ const FixUI = {
   },
   // the plugs and ports. A burnt plug is charred, with a badge: 🔌 (the bag has a new wire) or ✂️ and the taps left
   // Math wiring: each plug shows its fact beside a small colour shape (its cable), and each port only its
-  // answer (no colour, no shape) until its wire is in; a burnt plug's port shows ❓ and the plug's badge is
-  // 🔌 (the bag has one) or 🔢 (type it). A plug that was just answered wrong shows its right answer.
+  // answer (no colour, no shape) until its wire is in. A typed plug (a familiar fact, or a burnt plug with
+  // no 🔌 in the bag) wears a 🔢 badge and a dashed white rim, and its port shows ❓ until it's answered:
+  // tap it and type. A burnt plug with a 🔌 in the bag wears the 🔌. A plug just answered wrong shows its right answer.
   renderWires() {
     const W = this.r.wires, C = WIRE_COLORS, M = !!W.facts, show = W.show && W.show.until > performance.now() ? W.show.plug : -1;
     $('board').classList.toggle('math', M);
     $('plugs').innerHTML = W.plugs.map((ci, i) => {
-      const b = W.burnt[i] ? `<b class="fixb">${Game.bag.wiring > 0 ? PARTS.wiring.icon : M ? '🔢' : '✂️<i>' + W.scrub[i] + '</i>'}</b>` : '';
+      const typed = typedPlug(W, i) && !W.burnt[i];
+      const b = W.burnt[i] ? `<b class="fixb">${Game.bag.wiring > 0 ? PARTS.wiring.icon : M ? '🔢' : '✂️<i>' + W.scrub[i] + '</i>'}</b>` : typed ? '<b class="fixb">🔢</b>' : '';
       const face = M ? this.icon(ci, '#fff', '#14182a') + `<span class="fact">${factText(W.facts[i])}</span>` : this.icon(ci, '#fff', '#14182a');
       const rv = M && i === show ? `<span class="reveal">= ${W.facts[i].answer}</span>` : '';
-      return `<div class="plug${W.burnt[i] ? ' burnt' : ''}" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${face}${b}${rv}</div>`;
+      return `<div class="plug${W.burnt[i] ? ' burnt' : typed ? ' typed' : ''}" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${face}${b}${rv}</div>`;
     }).join('');
     $('ports').innerHTML = W.ports.map((ci, j) => (M
       ? `<div class="port" data-port="${j}" style="--wc:${C[ci].hex}">${portHidden(W, j) ? '<span class="ans hide">❓</span>' : `<span class="ans">${portAnswer(W, j)}</span>`}</div>`
@@ -4104,58 +4133,74 @@ const FixUI = {
     if (this.mode === 'wires') this.renderWires();
     return res;
   },
-  // ---- the burnt plug's number entry (math wiring). entry = { plug, value, cur (the pad's key), lock (a
-  // wrong answer showing) } while it's open. M3 brings the full keypad and the gamepad dial; this is the minimum.
+  // ---- the keypad for a typed plug (math wiring): a Learning / Known / Mastered fact, or a burnt plug.
+  // entry = { plug, value (the digits, at most 2: 81 is the biggest answer), pos (the gamepad dial's digit:
+  // 0 = tens, 1 = ones), lock (a wrong answer showing) } while it's open. Three ways in, one value:
+  // the on-screen keys (tap / click), the keyboard (digits, Backspace, Enter, Escape) and the gamepad
+  // dial (▲ ▼ turns the digit under the cursor, ◀ ▶ moves between the two digits, A = ✔, B = back).
   entry: null,
   openEntry(i) {
-    const W = this.r?.wires; if (!W?.facts || this.mode !== 'wires') return false;
-    pickUp(this.r);                                      // timed from the tap
-    this.entry = { plug: i, value: '', cur: 0, lock: false };
+    const W = this.r?.wires; if (!W?.facts || this.mode !== 'wires' || !typedPlug(W, i)) return false;
+    this.entry = { plug: i, value: '', pos: 0, lock: false };
     $('fix').classList.add('typing'); $('entQ').textContent = factText(W.facts[i]);
     this.drawEntry();
     return true;
   },
   closeEntry() { this.entry = null; $('fix').classList.remove('typing'); if (this.mode === 'wires') this.renderWires(); },
+  // the two digits the dial shows ('7' is tens 0, ones 7)
+  dialDigits(v) { return v.padStart(2, '0').split('').map(Number); },
+  // the answer box: the digits typed; with a gamepad, the dial's two digits, the one it's on marked ▲ ▼
   drawEntry(mark) {
     const E = this.entry; if (!E) return;
-    const v = $('entV'); v.textContent = E.value || '\u00a0';
+    const v = $('entV'), dial = padConnected() && !E.lock;
+    v.classList.toggle('dial', dial);
+    if (dial) v.innerHTML = this.dialDigits(E.value).map((d, k) => `<i class="dg${k === E.pos ? ' cur' : ''}${k === 0 && !d ? ' lead' : ''}">${d}</i>`).join('');
+    else v.textContent = E.value || ' ';
     v.classList.toggle('bad', mark === 'bad'); v.classList.toggle('good', mark === 'good');
-    const pad = padConnected();
-    [...$('entKeys').children].forEach((b, k) => b.classList.toggle('cur', pad && k === E.cur));
   },
-  // a key: a digit (two at most: 81 is the biggest answer), ⌫, or ✔ (answers it)
+  // a key: a digit (two at most; a leading 0 is ignored), ⌫, or ✔ (answers it)
   key(k) {
     const E = this.entry; if (!E || E.lock) return null;
     k = String(k);
-    if (/^[0-9]$/.test(k)) { if (E.value.length < 2) E.value += k; if (!Game.manual) Sfx.click(); this.drawEntry(); return E.value; }
+    if (/^[0-9]$/.test(k)) { if (E.value.length < 2 && !(k === '0' && !E.value)) E.value += k; if (!Game.manual) Sfx.click(); this.drawEntry(); return E.value; }
     if (k === '⌫') { E.value = E.value.slice(0, -1); this.drawEntry(); return E.value; }
     if (k !== '✔') return null;
     if (!E.value) { if (!Game.manual) Sfx.buzz(); return 'empty'; }
     return this.submit();
   },
+  // the dial: turn the digit at pos by d (wrapping 9 -> 0), or move pos by m. A leading 0 drops out of
+  // the value (tens 0, ones 7 is '7'; both 0 is nothing typed yet).
+  dial(d = 0, m = 0) {
+    const E = this.entry; if (!E || E.lock) return null;
+    if (m) E.pos = clamp(E.pos + m, 0, 1);
+    if (d) {
+      const g = this.dialDigits(E.value); g[E.pos] = (g[E.pos] + d + 10) % 10;
+      E.value = String(g[0] * 10 + g[1]); if (E.value === '0') E.value = '';
+      if (!Game.manual) Sfx.click();
+    }
+    this.drawEntry();
+    return { value: E.value, pos: E.pos };
+  },
   submit(ms) {
     const E = this.entry, r = this.r; if (!E || !r) return null;
     const res = typeAnswer(Game.humans[0], r, E.plug, E.value, ms);
     if (res === 'wrong') {
-      // the right answer shows in the box for a moment, then the board comes back (the plug is still burnt)
+      // as a wrong wire: the right answer shows in the box (and on the plug) for MATHFIX.show, then the
+      // board comes back with the plug still loose; the tracker has the miss and brings the fact back
       E.lock = true; E.value = String(r.wires.facts[E.plug].answer); this.drawEntry('bad');
       const e0 = E; setTimeout(() => { if (this.entry === e0) this.closeEntry(); }, MATHFIX.show);
     } else if (res === 'ok') { if (this.mode === 'wires') this.closeEntry(); else { this.entry = null; $('fix').classList.remove('typing'); } }
     return res;
   },
-  // the pad in the entry: the d-pad moves over the keys (3 across), A presses one, B goes back to the board
+  // the gamepad in the keypad: the number dial. B goes back to the board.
   padEntry(pad) {
     const E = this.entry; if (!E) return;
     if (pad.bP) { this.closeEntry(); return; }
-    const n = ENTRY_KEYS.length, c = E.cur;
-    if (pad.leftP) E.cur = (c + n - 1) % n;
-    if (pad.rightP) E.cur = (c + 1) % n;
-    if (pad.upP) E.cur = (c + n - 3) % n;
-    if (pad.downP) E.cur = (c + 3) % n;
-    if (pad.aP) this.key(ENTRY_KEYS[E.cur]); else this.drawEntry();
+    if (pad.aP) { this.key('✔'); return; }
+    if (pad.upP || pad.downP || pad.leftP || pad.rightP) this.dial((pad.upP ? 1 : 0) - (pad.downP ? 1 : 0), (pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0));
   },
   // the Quick Fix on a gamepad: ▲ ▼ moves over the plugs (or, holding one, the ports); A picks up,
-  // patches a burnt plug, or plugs in
+  // patches a burnt plug, opens the keypad on a typed one, or plugs in
   padWires(pad) {
     const W = this.r?.wires; if (!W) return;
     const n = this.pad === 'port' ? W.ports.length : W.plugs.length;
@@ -4165,7 +4210,8 @@ const FixUI = {
     const i = this.cur % W.plugs.length;
     if (W.burnt[i]) { this.patch(i); return; }
     if (W.link[i] >= 0) return;
-    this.sel = i; this.pad = 'port'; this.cur = 0; pickUp(this.r); this.draw();
+    if (typedPlug(W, i)) { this.openEntry(i); return; }
+    this.sel = i; this.pad = 'port'; this.cur = 0; this.draw();
   },
   // squad full: every squadmate as a tile; tap the one that goes home. The new robot is shown in the top.
   openHome(r) {
@@ -4607,10 +4653,12 @@ function robotState(r) {
     // burnt[i]: plug i is charred and needs patching first (patch()); scrub[i]: taps left to strip it clean
     // math wiring (set when its Quick Fix opens; colour wiring leaves them null): math = it's a math board;
     // facts[i] = plug i's fact { a, b, key, answer, stage, text as shown }; answers[j] = what port j shows
-    // (null while it's a burnt plug's ❓); show = the plug showing its right answer after a miss (-1 = none);
+    // (null while it's a typed plug's ❓); show = the plug showing its right answer after a miss (-1 = none);
     // log = this try's answers { plug, key, value, right, fast, ms }; fast = it's a fast repair so far
     wires: { plugs: r.wires.plugs.map(wc), ports: r.wires.ports.map(wc), link: [...r.wires.link], burnt: [...r.wires.burnt], scrub: [...r.wires.scrub],
       math: !!r.wires.facts,
+      // typed[i]: plug i is answered by typing (🔢: a Learning / Known / Mastered fact, or burnt) and isn't in yet
+      typed: r.wires.plugs.map((_, i) => typedPlug(r.wires, i)),
       facts: r.wires.facts ? r.wires.facts.map((f) => ({ a: f.a, b: f.b, key: f.key, answer: f.answer, stage: f.stage, text: factText(f) })) : null,
       answers: r.wires.facts ? r.wires.ports.map((_, j) => (portHidden(r.wires, j) ? null : portAnswer(r.wires, j))) : null,
       show: r.wires.show && r.wires.show.until > performance.now() ? r.wires.show.plug : -1,
@@ -4773,25 +4821,45 @@ window.__rb = {
   // Each goes through the same connectWire as a drag: right colour stays in, wrong
   // colour springs out. The last right wire fixes the robot.
   // Math wiring: each pair answers plug a's fact with port b's answer (recorded, as a drag is), timed as a
-  // drag would be unless ms is given (then every pair took ms). 'hidden' = port b is a burnt plug's ❓.
+  // drag would be unless ms is given (then every pair took ms). 'typed' = plug a is typed (🔢: tap it and type
+  // its answer); 'hidden' = port b is a typed plug's ❓.
   wire(id, pairs = [], ms) {
     const r = Game.robots.find((q) => q.id === id); if (!r) return null;
     const results = pairs.map(([a, b]) => connectWire(Game.humans[0], r, a, b, ms));
     if (FixUI.mode === 'wires' && FixUI.r === r) FixUI.renderWires(); else FixUI.draw();
     return { results, robot: robotState(r), squad: this.state().squad, parts: Game.parts, bag: { ...Game.bag } };
   },
-  // Math wiring: type value for burnt plug `plug`, as tapping it and keying the digits then ✔ does
-  // (through the open entry when the Quick Fix is up). 'ok' = right (it snaps into its port), 'wrong' = a
-  // miss (it stays burnt and its right answer shows), 'not burnt', 'not math', 'not fixing'. ms as for wire().
+  // Math wiring: type value for typed plug `plug` (state().robots[i].wires.typed, or a burnt one), as tapping
+  // it and keying the digits then ✔ does (through the open keypad when the Quick Fix is up). 'ok' = right (it
+  // snaps into its port), 'wrong' = a miss (it stays loose and its right answer shows), 'not typed', 'taken',
+  // 'not math', 'not fixing'. ms as for wire().
   type(id, plug, value, ms) {
     const r = Game.robots.find((q) => q.id === id); if (!r) return null;
     let result;
-    if (FixUI.mode === 'wires' && FixUI.r === r && r.wires.facts && r.wires.burnt[plug]) {
+    if (FixUI.mode === 'wires' && FixUI.r === r && typedPlug(r.wires, plug)) {
       if (FixUI.entry?.plug !== plug) FixUI.openEntry(plug);
       FixUI.entry.value = String(value ?? ''); FixUI.entry.lock = false;
       result = FixUI.submit(ms);
     } else result = typeAnswer(Game.humans[0], r, plug, value, ms);
     return { result, robot: Game.robots.includes(r) ? robotState(r) : null, entry: this.state().entry, squad: this.state().squad };
+  },
+  // tap plug `plug` in the open Quick Fix, as a click on it does: a burnt one is patched ('new' | 'scrub' |
+  // 'clean' | 'type'), a typed one opens the keypad ('keypad'), any other is picked up ('sel')
+  tap(plug) {
+    const W = FixUI.mode === 'wires' && FixUI.r?.wires; if (!W) return { result: 'not fixing' };
+    if (!(plug >= 0 && plug < W.plugs.length)) return { result: 'no such wire' };
+    let result;
+    if (W.burnt[plug]) result = FixUI.patch(plug);
+    else if (typedPlug(W, plug)) result = FixUI.openEntry(plug) ? 'keypad' : 'refused';
+    else if (W.link[plug] >= 0) result = 'taken';
+    else { FixUI.sel = plug; FixUI.draw(); result = 'sel'; }
+    return { result, entry: this.state().entry };
+  },
+  // press a key on the open keypad, as a tap on it does: '0'–'9', '⌫' or '✔'. Returns what key() did (the
+  // value so far, 'empty', or ✔'s 'ok' / 'wrong') and the keypad and robot after it.
+  key(k) {
+    const r = FixUI.r, result = FixUI.key(k);
+    return { result, entry: this.state().entry, robot: r && Game.robots.includes(r) ? robotState(r) : null };
   },
   state() {
     const p0 = Game.humans[0]?.mech, h0 = Game.humans[0];
@@ -4831,8 +4899,9 @@ window.__rb = {
       // kind 'home' = asking who goes home; home = the squadmate picked to go when this fix is done
       repair: h0?.repair ? { id: h0.repair.r.id, kind: h0.repair.kind, name: h0.repair.name ?? null, picks: h0.repair.picks ? [...h0.repair.picks] : null, home: h0.repair.home?.id ?? null } : null,
       ui: FixUI.mode,                                     // null | 'wires' | 'name' | 'parts' | 'bag' | 'mend' | 'home'
-      // math wiring: the burnt plug's number entry while it's open (plug, the digits typed, lock = a miss showing)
-      entry: FixUI.entry ? { plug: FixUI.entry.plug, value: FixUI.entry.value, lock: FixUI.entry.lock } : null,
+      // math wiring: a typed plug's keypad while it's open (plug, the digits typed, lock = a miss showing,
+      // pos = the gamepad dial's digit: 0 tens, 1 ones; dial = the dial is drawn, a gamepad being connected)
+      entry: FixUI.entry ? { plug: FixUI.entry.plug, value: FixUI.entry.value, lock: FixUI.entry.lock, pos: FixUI.entry.pos, dial: $('entV').classList.contains('dial') } : null,
       bullets: Bullets.list.length,
       // each live round: speed (m/s) and how far it has flown
       shots: Bullets.list.map((b) => ({ speed: r3(b.v.length()), d: r3(b.d), x: r3(b.p.x), y: r3(b.p.y), z: r3(b.p.z) })),
