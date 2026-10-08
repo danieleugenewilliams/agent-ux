@@ -190,6 +190,26 @@
   .pilot:hover, .pilot.cur { transform: scale(1.07); box-shadow: 0 7px 0 var(--ink), inset 0 0 0 4px var(--c), 0 0 0 5px var(--c), 0 0 30px var(--c); }
   .pilot:active { transform: translateY(5px) scale(1.03); box-shadow: 0 2px 0 var(--ink), inset 0 0 0 4px var(--c); }
   @media (max-width: 700px) { .pilot { width: 104px; font-size: 17px; } .pilot img { width: 80px; height: 80px; } #start .logo { font-size: 44px; } #start .keys { display: none; } }
+  /* ---------- WHO'S PLAYING: a big tile per child before the pilot pick; then a chip (◀ back) and the wiring setting ---------- */
+  #start .ask { display: none; margin-top: 22px; font: 900 30px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
+  #start .kids { display: none; margin: 18px auto 0; flex-wrap: wrap; justify-content: center; gap: 22px; width: min(1000px, 94vw); }
+  #start.who .ask { display: block; }
+  #start.who .kids { display: flex; }
+  #start.who .pilots, #start.who .kidbar { display: none; }
+  .pilot.kid { width: 200px; padding: 14px 8px 14px; font-size: 30px; }
+  .pilot.kid .face { width: 150px; height: 150px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 84px; background: var(--ink); box-shadow: inset 0 0 0 6px var(--c), 0 0 22px var(--c); pointer-events: none; }
+  #start .kidbar { display: flex; margin-top: 18px; align-items: center; justify-content: center; gap: 14px; }
+  .chip { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px 0 8px; border-radius: 28px; border: 4px solid var(--ink); background: rgba(20,24,42,.78); color: var(--c, #fff); cursor: pointer;
+    box-shadow: 0 5px 0 var(--ink), inset 0 0 0 3px var(--c, #fff); font: 900 22px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
+  .chip .face { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .chip:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink), inset 0 0 0 3px var(--c, #fff); }
+  #kidB .back { font-size: 20px; }
+  #start:not(.title) #kidB { cursor: default; pointer-events: none; }
+  #start:not(.title) #kidB .back { display: none; }
+  #wireB { --c: var(--yellow); padding: 0 16px; font-size: 26px; }
+  #wireB i { font-style: normal; opacity: .35; }
+  #wireB i.on { opacity: 1; }
+  @media (max-width: 700px) { .pilot.kid { width: 128px; font-size: 22px; } .pilot.kid .face { width: 96px; height: 96px; font-size: 54px; } #start .ask { font-size: 24px; } }
   /* ---------- HUD: the pilot's helmet portrait beside the hearts; parts found in the grass ---------- */
   #hud .health .who { display: none; flex-direction: column; align-items: center; gap: 1px; font: 900 15px 'Asap', sans-serif; color: var(--c, #fff); text-shadow: 1px 1px 0 var(--ink); }
   #hud .health .who.on { display: flex; }
@@ -243,9 +263,14 @@
 <div id="loading">🤖</div>
 
 <!-- START: the title screen (tap a pilot to play) and the pause screen (▶ carries on); then the mouse aims (pointer lock) -->
-<div id="start" class="screen on title">
+<div id="start" class="screen on title who">
   <div class="wrap">
     <div class="logo rb-title">ROBOT <span>BATTLE</span></div>
+    <!-- WHO'S PLAYING: one big tile per child (their progress is theirs, whoever they pilot); a tap goes on to the pilots -->
+    <div class="ask">🎮 Who's playing?</div>
+    <div class="kids" id="kids"></div>
+    <!-- who's playing (◀ picks again, on the title) and the Quick Fix setting: 🔢 math wiring or 🌈 colour wiring -->
+    <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><button class="chip" id="wireB" aria-label="Math or colour wiring"><i data-w="math">🔢</i><i data-w="colour">🌈</i></button></div>
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
@@ -531,6 +556,275 @@ const store = {
 let seed = 1337;
 const srand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const srange = (a, b) => a + (b - a) * srand();
+
+// ===========================================================================
+// Math: who's playing, and the fact tracker. Nothing here touches three.js or
+// the DOM: Facts is plain data and rules, so it can be tested on its own and the
+// wiring (M2), typed recall (M3) and the progress grid (M4) all read it.
+//
+// A fact is { op, a, b }, an unordered pair: 7×8 and 8×7 are one fact, stored smaller
+// factor first, keyed op + a + ',' + b ('×7,8'). Only '×' exists (factors 1–9, 45 facts);
+// the op is in the key so another operation could be added to OPS later without
+// re-keying anyone's record.
+// ===========================================================================
+// The children. Progress belongs to the child, not the pilot, and is saved per child;
+// Guest saves nothing. icon and hex are placeholders the family can swap here. wiring:
+// each child's default Quick Fix setting ('math' or 'colour'), which they can change.
+const CHILDREN = [
+  { id: 'orion',  name: 'Orion',  hex: '#3fb4ff', icon: '🏹', ladder: 'orion',  wiring: 'math' },
+  { id: 'apollo', name: 'Apollo', hex: '#ff8a1f', icon: '☀️', ladder: 'apollo', wiring: 'math' },
+  { id: 'guest',  name: 'Guest',  hex: '#c9d2e3', icon: '🙂', ladder: 'apollo', wiring: 'colour', guest: true },
+];
+const childOf = (c) => (CHILDREN.includes(c) ? c : Number.isInteger(c) ? CHILDREN[c] : CHILDREN.find((q) => q.id === String(c).toLowerCase() || q.name.toLowerCase() === String(c).toLowerCase())) || null;
+// fast: an answer under this (ms) counts toward Known and Mastered; slow: a Mastered fact answered
+// slower than this drops to Known. reviewDays: the spacing of Known / Mastered reviews. missBack: a
+// missed fact comes back this soon (ms). newMax: New facts in play at once. familiar: the share of picks
+// that are Learning / Known / Mastered facts. open: the share of a step's facts that must be Known (or
+// Mastered) before the next step opens. keepTimes / keepHist: answer times / right-wrong kept per fact.
+// practiceCap: the most one answer adds to the day's practice time (a walk away isn't practice).
+const FACT = { fast: 3000, slow: 6000, reviewDays: [1, 3, 7, 14], missBack: 2 * 60e3, newMax: 3, familiar: 0.75, open: 0.8, keepTimes: 10, keepHist: 20, practiceCap: 30e3 };
+const DAY_MS = 864e5;
+const STAGES = ['new', 'learning', 'known', 'mastered'];
+// The ladders: plain data, in order. A step is { op, tables, range, kind }: every fact pairing one of
+// `tables` with each number in `range` ([lo, hi]); no tables = every pair within range.
+// kind 'check': a quick sort of facts the child may already know (a right first answer under 3 s goes
+// straight to Known); the step is done once every fact in it has been answered. kind 'steady': the same
+// facts again, the slow ones mixed in, until every one is Known. Any other step is done when FACT.open
+// of its facts are Known (or Mastered).
+// Once the last step is done the child is in maintenance: spaced reviews, plus whatever isn't Known yet.
+const LADDERS = {
+  apollo: [
+    { op: '×', tables: [1, 2], range: [1, 9] },
+    { op: '×', tables: [5], range: [1, 9] },
+    { op: '×', tables: [3, 4], range: [1, 9] },
+    { op: '×', tables: [9], range: [1, 9] },
+    { op: '×', tables: [6], range: [1, 9] },
+    { op: '×', tables: [7, 8], range: [1, 9] },
+  ],
+  orion: [
+    { op: '×', range: [1, 9], kind: 'check' },
+    { op: '×', range: [1, 9], kind: 'steady' },
+  ],
+};
+// The operations (multiplication only), and the spellings answer() / nextFact() accept for them
+const OPS = { '×': { calc: (a, b) => a * b, lo: 1, hi: 9 } };
+const OP_ALIAS = { x: '×', X: '×', '*': '×', '×': '×' };
+// a fact from (op, a, b), or null if it isn't one (factors 1–9)
+function makeFact(op, a, b) {
+  op = OP_ALIAS[op]; a = Number(a); b = Number(b);
+  const O = OPS[op];
+  if (!O || !Number.isInteger(a) || !Number.isInteger(b) || a < O.lo || b < O.lo || a > O.hi || b > O.hi) return null;
+  if (a > b) [a, b] = [b, a];
+  return { op, a, b, key: op + a + ',' + b, answer: O.calc(a, b) };
+}
+// a fact from a key ('×7,8'), an object ({ op, a, b }; op defaults to '×') or nothing
+const factOf = (f) => (f == null ? null : typeof f === 'string' ? makeFact(f[0], ...f.slice(1).split(',')) : makeFact(f.op ?? '×', f.a, f.b));
+// every fact in a ladder step, in order, once each
+function stepFacts(st) {
+  const [lo, hi] = st.range, out = new Map(), nums = [];
+  for (let m = lo; m <= hi; m++) nums.push(m);
+  for (const n of st.tables ?? nums) for (const m of nums) { const f = makeFact(st.op, n, m); if (f && !out.has(f.key)) out.set(f.key, f); }
+  return [...out.values()];
+}
+// The tracker for whoever is playing. rec is that child's record, saved under robotbattle.facts.<id>:
+//   { v, child, ladder, step (steps 1..step are open), opened: [{ step, at, by: 'start'|'auto'|'parent' }],
+//     wiring: 'math'|'colour', inPlay: [keys of the New facts being taught, at most FACT.newMax],
+//     facts: { key: entry }, practice: { 'YYYY-MM-DD': ms answering }, last: the last key picked, created }
+// An entry (made on a fact's first answer, or when it comes into play):
+//   { op, a, b, s: stage, streak: right in a row, n: answers, right, ms: [recent times], hist: [1 right / 0 wrong],
+//     days: [day numbers with a right answer under 3 s], missDay: the day of its last miss (or too-slow
+//     answer), which doesn't count again; due: next review / miss return (epoch ms, 0 = none);
+//     box: index into FACT.reviewDays; miss: due is a miss coming back; last: when it was last answered }
+// Times are the tracker's clock: now() = Date.now() + offset, which __rb.clock(ms) moves for tests.
+const Facts = {
+  child: null, rec: null, offset: 0, rand: Math.random,
+  now() { return Date.now() + this.offset; },
+  // a day number: local calendar days, so "different days" means different dates on the family's clock
+  day(t = this.now()) { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); },
+  date(t = this.now()) { const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; },
+  blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now }; },
+  valid(r, C) { return !!r && r.v === 1 && r.child === C.id && LADDERS[r.ladder] && Number.isInteger(r.step) && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
+  // pick who's playing: their saved record (a fresh one if there's none, or it can't be read); Guest's is never saved
+  load(c) {
+    const C = childOf(c); if (!C) return null;
+    let r = C.guest ? null : store.get('facts.' + C.id, null);
+    if (!this.valid(r, C)) r = this.blank(C);
+    r.practice ||= {}; r.opened ||= [];
+    this.child = C; this.rec = r;
+    this.advance(); this.save();
+    return r;
+  },
+  save() { if (this.rec && this.child && !this.child.guest) store.set('facts.' + this.child.id, this.rec); },
+  get steps() { return this.rec ? LADDERS[this.rec.ladder] : []; },
+  get curStep() { return this.steps[this.rec.step - 1]; },
+  // the last step is open and done: spaced reviews from here on
+  get maintaining() { return !!this.rec && this.rec.step === this.steps.length && this.stepDone(this.rec.step); },
+  // every open fact by key, in ladder order
+  open() {
+    const out = new Map();
+    this.steps.slice(0, this.rec.step).forEach((st) => stepFacts(st).forEach((f) => { if (!out.has(f.key)) out.set(f.key, f); }));
+    return out;
+  },
+  stage(key) { return this.rec.facts[key]?.s ?? 'new'; },
+  entry(f) {
+    return (this.rec.facts[f.key] ||= { op: f.op, a: f.a, b: f.b, s: 'new', streak: 0, n: 0, right: 0, ms: [], hist: [], days: [], missDay: null, due: 0, box: 0, miss: false, last: 0 });
+  },
+  // a step is done: a check once every fact in it is answered; steady once all are Known; otherwise once FACT.open of them are Known or Mastered
+  stepDone(i) {
+    const st = this.steps[i - 1], fs = stepFacts(st);
+    if (st.kind === 'check') return fs.every((f) => (this.rec.facts[f.key]?.n || 0) > 0);
+    return fs.filter((f) => ['known', 'mastered'].includes(this.stage(f.key))).length >= (st.kind === 'steady' ? 1 : FACT.open) * fs.length;
+  },
+  // open the next step while the current one is done
+  advance() {
+    while (this.rec.step < this.steps.length && this.stepDone(this.rec.step)) { this.rec.step++; this.rec.opened.push({ step: this.rec.step, at: this.now(), by: 'auto' }); }
+  },
+  // a parent opens steps early, up to step n (M4's "open next step" button); never closes one
+  openStep(n) {
+    if (!this.rec) return { ok: false, why: 'nobody playing' };
+    n = Math.round(Number(n));
+    if (!(n >= 1 && n <= this.steps.length)) return { ok: false, why: 'no such step', steps: this.steps.length };
+    while (this.rec.step < n) { this.rec.step++; this.rec.opened.push({ step: this.rec.step, at: this.now(), by: 'parent' }); }
+    this.save();
+    return { ok: true, step: this.rec.step };
+  },
+  setWiring(mode) {
+    if (!this.rec || !['math', 'colour'].includes(mode)) return false;
+    this.rec.wiring = mode; this.save(); return true;
+  },
+  // move a fact down a stage (a miss, or a Mastered fact answered too slowly): it keeps the fast days that
+  // stage starts with (Learning 1, Known 2), and today no longer counts, so it climbs back on a later day
+  demote(e, today) {
+    const i = STAGES.indexOf(e.s);
+    if (i > 0) e.s = STAGES[i - 1];
+    const keep = { new: 0, learning: 1, known: 2 }[e.s];
+    const before = e.days.filter((d) => d < today);
+    e.days = keep ? before.slice(-keep) : [];
+    e.missDay = today;
+    if (e.s === 'known') e.box = 0;
+  },
+  // record an answer: value given for fact f in ms milliseconds
+  answer(f, value, ms) {
+    if (!this.rec) return { ok: false, why: 'nobody playing' };
+    f = factOf(f); if (!f) return { ok: false, why: 'not a fact' };
+    ms = Math.max(0, Number(ms) || 0);
+    const now = this.now(), today = this.day(now), e = this.entry(f), from = e.s;
+    const right = value !== '' && value != null && Number(value) === f.answer, fast = right && ms < FACT.fast;
+    // Orion's quick check: the first answer to a fact in a 'check' step sorts it at once
+    const check = e.n === 0 && this.curStep.kind === 'check' && stepFacts(this.curStep).some((q) => q.key === f.key);
+    e.n++; e.last = now;
+    e.ms.push(Math.round(ms)); if (e.ms.length > FACT.keepTimes) e.ms.shift();
+    e.hist.push(right ? 1 : 0); if (e.hist.length > FACT.keepHist) e.hist.shift();
+    const dk = this.date(now); this.rec.practice[dk] = (this.rec.practice[dk] || 0) + Math.min(ms, FACT.practiceCap);
+    const review = (step) => { e.box = clamp(e.box + step, 0, FACT.reviewDays.length - 1); e.due = now + FACT.reviewDays[e.box] * DAY_MS; };
+    if (right) {
+      e.right++; e.streak++;
+      const wasMiss = e.miss; e.miss = false;
+      const reviewDue = !wasMiss && e.due > 0 && e.due <= now;
+      if (fast && (e.missDay == null || today > e.missDay) && !e.days.includes(today)) e.days.push(today);
+      if (check) {
+        if (fast) { e.s = 'known'; e.box = 0; e.due = now + FACT.reviewDays[0] * DAY_MS; } else e.s = 'learning';
+      } else if (e.s === 'mastered' && ms > FACT.slow) {
+        this.demote(e, today); review(0);
+      } else {
+        // climb as far as the answers so far allow (2 right in a row; fast on 2 days; fast on a 3rd day)
+        for (;;) {
+          if (e.s === 'new' && e.streak >= 2) e.s = 'learning';
+          else if (e.s === 'learning' && e.days.length >= 2) { e.s = 'known'; e.box = 0; e.due = now + FACT.reviewDays[0] * DAY_MS; }
+          else if (e.s === 'known' && e.days.length >= 3) { e.s = 'mastered'; review(1); }
+          else break;
+        }
+        if (e.s === from) {
+          if ((e.s === 'known' || e.s === 'mastered') && (reviewDue || wasMiss)) review(reviewDue ? 1 : 0);
+          else if (e.s === 'new' || e.s === 'learning') e.due = 0;
+        }
+      }
+    } else {
+      e.streak = 0;
+      this.demote(e, today);
+      e.miss = true; e.due = now + FACT.missBack;   // it comes back in a couple of minutes
+    }
+    // the New facts in play: a fact that moved up leaves; one that dropped to New joins (it's being taught),
+    // and if that's one too many the newest that hasn't been missed steps back out
+    const ip = this.rec.inPlay;
+    if (e.s !== 'new') { const i = ip.indexOf(f.key); if (i >= 0) ip.splice(i, 1); }
+    else if (!ip.includes(f.key)) {
+      ip.push(f.key);
+      while (ip.length > FACT.newMax) { const j = ip.findLastIndex((k) => k !== f.key && !this.rec.facts[k]?.miss); ip.splice(j >= 0 ? j : 0, 1); }
+    }
+    this.advance(); this.save();
+    return { ok: true, op: f.op, a: f.a, b: f.b, key: f.key, value, answer: f.answer, right, fast, ms, from, to: e.s, due: e.due, step: this.rec.step };
+  },
+  // The next fact to ask. opts.exclude: facts already on the board (keys or { op, a, b }); opts.ops: only
+  // these ops (what the asking UI can show). A missed fact whose couple of minutes are up comes first;
+  // then about 3 in 4 are familiar (Learning, Known, Mastered; due reviews first, then weighted toward
+  // the shakier stages), the rest New, from at most FACT.newMax in play. During a check step familiar
+  // facts are asked only when a review is due, so a child isn't drilled on what he just showed he knows.
+  next(opts = {}) {
+    if (!this.rec) return null;
+    const now = this.now(), open = this.open(), R = this.rec, F = R.facts;
+    const ex = new Set((opts.exclude || []).map((x) => factOf(x)?.key));
+    const ops = opts.ops ? new Set([].concat(opts.ops).map((o) => OP_ALIAS[o])) : null;
+    const ok = (k) => !ex.has(k) && (!ops || ops.has(open.get(k).op));
+    const waiting = (k) => F[k]?.miss && F[k].due > now;
+    const keys = [...open.keys()].filter(ok);
+    const out = (k, why) => { R.last = k; this.save(); const f = open.get(k); return { op: f.op, a: f.a, b: f.b, key: k, answer: f.answer, stage: this.stage(k), why }; };
+    const pickR = (list) => { const l = list.length > 1 ? list.filter((k) => k !== R.last) : list; return l[Math.floor(this.rand() * l.length)]; };
+    // 1. a miss coming back
+    const back = keys.filter((k) => F[k]?.miss && F[k].due <= now).sort((x, y) => F[x].due - F[y].due);
+    if (back.length) return out(back[0], 'miss');
+    // 2. top up the New facts in play, from the earliest open step first
+    R.inPlay = R.inPlay.filter((k) => open.has(k) && this.stage(k) === 'new');
+    if (R.inPlay.length < FACT.newMax) {
+      for (const st of this.steps.slice(0, R.step)) {
+        const fresh = stepFacts(st).map((f) => f.key).filter((k) => this.stage(k) === 'new' && !R.inPlay.includes(k) && !(F[k]?.n > 0) && (!ops || ops.has(open.get(k).op)));
+        while (R.inPlay.length < FACT.newMax && fresh.length) R.inPlay.push(fresh.splice(Math.floor(this.rand() * fresh.length), 1)[0]);
+        if (R.inPlay.length >= FACT.newMax) break;
+      }
+      // then New facts already seen (missed in a check, or demoted), once the unseen ones run out
+      const seen = [...open.keys()].filter((k) => this.stage(k) === 'new' && !R.inPlay.includes(k));
+      while (R.inPlay.length < FACT.newMax && seen.length) R.inPlay.push(seen.shift());
+    }
+    const fresh = R.inPlay.filter((k) => ok(k) && !waiting(k));
+    const fam = keys.filter((k) => this.stage(k) !== 'new' && !waiting(k));
+    const due = fam.filter((k) => F[k].due > 0 && F[k].due <= now && ['known', 'mastered'].includes(F[k].s)).sort((x, y) => F[x].due - F[y].due);
+    // maintenance (the ladder is done): reviews when they're due, then whatever isn't Known yet, and
+    // only if nothing else is left the Known / Mastered fact whose review is nearest
+    if (this.maintaining) {
+      if (due.length) return out(due[0], 'review');
+      const shaky = [...fresh, ...fam.filter((k) => F[k].s === 'learning')];
+      if (shaky.length) return out(pickR(shaky), 'practice');
+      const soon = fam.filter((k) => k !== R.last || fam.length === 1).sort((x, y) => (F[x].due || Infinity) - (F[y].due || Infinity));
+      if (soon.length) return out(soon[0], 'extra');
+    }
+    const checking = this.curStep.kind === 'check';
+    const familiar = checking ? due.length > 0 || !fresh.length : fam.length > 0 && (!fresh.length || this.rand() < FACT.familiar);
+    if (familiar && due.length) return out(due[0], 'review');
+    if (familiar && fam.length) {
+      const w = { learning: 3, known: 2, mastered: 1 }, l = fam.length > 1 ? fam.filter((k) => k !== R.last) : fam;
+      let t = this.rand() * l.reduce((s, k) => s + w[F[k].s], 0);
+      for (const k of l) { t -= w[F[k].s]; if (t <= 0) return out(k, 'familiar'); }
+      return out(l[l.length - 1], 'familiar');
+    }
+    if (fresh.length) return out(pickR(fresh), checking ? 'check' : 'new');
+    // nothing else: a miss that isn't back yet, or anything open
+    return keys.length ? out(pickR(keys), 'rest') : null;
+  },
+  // counts for the HUD / tests: stages of the open facts, the step's progress
+  summary() {
+    if (!this.rec) return null;
+    const open = [...this.open().keys()], cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
+    open.forEach((k) => cnt[this.stage(k)]++);
+    const st = this.curStep, fs = stepFacts(st);
+    return {
+      child: this.child.id, guest: !!this.child.guest, wiring: this.rec.wiring, step: this.rec.step, steps: this.steps.length, maintaining: this.maintaining,
+      ladder: this.steps.map((s, i) => ({ step: i + 1, op: s.op, tables: s.tables ?? null, range: [...s.range], kind: s.kind ?? null, facts: stepFacts(s).length, open: i < this.rec.step })),
+      open: open.length, stages: cnt, inPlay: [...this.rec.inPlay],
+      current: { kind: st.kind ?? null, facts: fs.length, known: fs.filter((f) => ['known', 'mastered'].includes(this.stage(f.key))).length, answered: fs.filter((f) => this.rec.facts[f.key]?.n > 0).length },
+      now: this.now(), day: this.day(), today: this.rec.practice[this.date()] || 0,
+    };
+  },
+};
 
 // ===========================================================================
 // Renderer + bloom (Neon Dash's UnrealBloomPass setup)
@@ -1313,9 +1607,10 @@ class CamRig {
 // unlocked = the weapons a player can pick (every WEAPON without `locked`, plus any a part has unlocked)
 // lastRail = the last rail-gun shot: { hits: robot ids it passed through, len, end }
 // pilot = player 0's pilot (a PILOTS entry), null until one is picked on the title screen
+// child = who's playing (a CHILDREN entry), null until picked; their record is Facts.rec
 // wave = the wave in the meadow (0 until the first one comes out); cleared = no glitched or powered-down
 // robot is left in it; waveStats = this wave's robots fixed and taken apart, and where its counts began
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null,
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null,
   wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0 } };
 // The start screen is the title (pick a pilot) until a pilot is picked, then the pause screen (▶)
 function setPause(on) {
@@ -1326,40 +1621,76 @@ function setPause(on) {
 }
 
 // ===========================================================================
-// Title screen: ROBOT BATTLE and a big tile per pilot. A tap (or the d-pad / ◀ ▶
-// keys and A / Enter) picks one and starts the game: startGame(), the same path as
-// __rb.start(pilot). The sim already runs behind it, so the mech idles in the meadow.
+// Title screen: ROBOT BATTLE, then "who's playing?" with a big tile per child
+// (pickChild(), the same path as __rb.player(name)), then a big tile per pilot. A tap
+// (or the d-pad / ◀ ▶ keys and A / Enter) picks one; picking a pilot starts the game:
+// startGame(), the same path as __rb.start(pilot). On the pilot pick, the ◀ chip, Esc /
+// Backspace or pad B goes back to who's playing. The sim already runs behind it, so
+// the mech idles in the meadow.
 // ===========================================================================
 const Title = {
-  cur: 0,
+  cur: 0, kid: 0,
   get on() { return $('start').classList.contains('on'); },
   build() {
     const last = pilotOf(store.get('pilot', '')); this.cur = last ? PILOTS.indexOf(last) : 0;
+    const kid = childOf(store.get('child', '')); this.kid = kid ? CHILDREN.indexOf(kid) : 0;
+    $('kids').innerHTML = CHILDREN.map((C) => `<button class="pilot kid" data-k="${C.id}" aria-label="${C.name}" style="--c:${C.hex}"><b class="face">${C.icon}</b><span>${C.name}</span></button>`).join('');
     $('pilots').innerHTML = PILOTS.map((P) => `<button class="pilot" data-p="${P.id}" aria-label="${P.name}" style="--c:${P.hex}"><img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span></button>`).join('');
     this.draw();
   },
   draw() {
-    const title = !Game.pilot, st = $('start');
+    const title = !Game.pilot, st = $('start'), C = Game.child;
     st.classList.toggle('title', title);
+    st.classList.toggle('who', title && !C);
+    [...$('kids').children].forEach((b, i) => b.classList.toggle('cur', i === this.kid));
     [...$('pilots').children].forEach((b, i) => b.classList.toggle('cur', i === this.cur));
     const P = Game.pilot, who = $('who');
     if (P && who.dataset.p !== P.id) { who.dataset.p = P.id; who.style.setProperty('--c', P.hex); who.innerHTML = `<img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span>`; }
+    const kb = $('kidB');
+    if (C && kb.dataset.k !== C.id) { kb.dataset.k = C.id; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">◀</span><b class="face">${C.icon}</b><span>${C.name}</span>`; }
+    [...$('wireB').children].forEach((i) => i.classList.toggle('on', i.dataset.w === wiringMode()));
   },
-  // keys and pad on the title (not in manual mode: checks use __rb.start)
+  // keys and pad on the title (not in manual mode: checks use __rb.player / __rb.start)
   input(pad) {
     if (Game.manual || !this.on) return;
-    const n = PILOTS.length, kp = (...c) => c.some((k) => keysPressed.has(k));
-    if (!Game.pilot) {
-      const d = (kp('ArrowRight', 'KeyD') || pad?.rightP ? 1 : 0) - (kp('ArrowLeft', 'KeyA') || pad?.leftP ? 1 : 0);
+    const kp = (...c) => c.some((k) => keysPressed.has(k));
+    const d = (kp('ArrowRight', 'KeyD') || pad?.rightP ? 1 : 0) - (kp('ArrowLeft', 'KeyA') || pad?.leftP ? 1 : 0);
+    if (!Game.pilot && !Game.child) {
+      const n = CHILDREN.length;
+      if (d) { this.kid = (this.kid + d + n) % n; this.draw(); Sfx.click(); }
+      if (kp('Enter', 'Space') || pad?.aP) { pickChild(CHILDREN[this.kid].id); Sfx.unlock(); Sfx.click(); }
+    } else if (!Game.pilot) {
+      const n = PILOTS.length;
+      if (kp('Escape', 'Backspace') || pad?.bP) { pickChild(null); Sfx.click(); return; }
       if (d) { this.cur = (this.cur + d + n) % n; this.draw(); Sfx.click(); }
       if (kp('Enter', 'Space') || pad?.aP) startGame(PILOTS[this.cur].id);
     } else if (kp('Enter') || pad?.aP) startPlay();
   },
 };
+// Who's playing: load child `c`'s record (an id, a name or an index into CHILDREN) and go on to the
+// pilot pick; null goes back to who's playing. The last child picked is remembered for next time
+// (the tile is highlighted); Guest's record is never saved. Mid-game it swaps whose record is used.
+function pickChild(c) {
+  if (c == null) { if (Game.pilot) return { ok: false, why: 'playing' }; Game.child = null; Title.draw(); return { ok: true, child: null }; }
+  const C = childOf(c);
+  if (!C) return { ok: false, why: 'no such child' };
+  Facts.load(C); Game.child = C; store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
+  Title.draw();
+  return { ok: true, child: C.id };
+}
+// the Quick Fix setting for whoever is playing: 'math' or 'colour' (colour until someone's picked)
+const wiringMode = () => (Game.child && Facts.rec ? Facts.rec.wiring : 'colour');
+function setWiring(mode) {
+  if (!Facts.setWiring(mode)) return { ok: false, why: Game.child ? 'math or colour' : 'nobody playing' };
+  Title.draw();
+  return { ok: true, wiring: mode };
+}
 // Pick pilot `p` (an id, a name or an index) for player 0 and start: the title gives way to the game.
+// (A check that calls __rb.start without __rb.player first plays as Guest, so it leaves no record.)
 function startGame(p) {
   const P = pilotOf(p), h = Game.humans[0];
   if (!P || !h) return { ok: false, why: 'no such pilot' };
+  if (!Game.child) pickChild('guest');
   Game.pilot = P; setPilot(h, P); store.set('pilot', P.id); Title.cur = PILOTS.indexOf(P);
   startPlay();
   return { ok: true, pilot: P.id };
@@ -3409,9 +3740,13 @@ function gatherInput(dt) {
     const sc = SCHEMES[h.idx];
     const k = (n) => anyKey(sc[n]) || (solo && anyKey(SOLO_EXTRA[n]));
     const pad = readPad(h.idx);
-    // Start pauses and carries on; on the title it picks the highlighted pilot. The title's own keys and
-    // pad (◀ ▶, A) go to Title.input, and while it's up (outside manual mode) the mech isn't driven.
-    if (pad && pad.startP) { if (!Game.pilot && h.idx === 0 && !Game.manual) startGame(PILOTS[Title.cur].id); else setPause(!Game.paused); }
+    // Start pauses and carries on; on the title it picks the highlighted child, then the highlighted pilot.
+    // The title's own keys and pad (◀ ▶, A, B) go to Title.input, and while it's up (outside manual mode)
+    // the mech isn't driven.
+    if (pad && pad.startP) {
+      if (!Game.pilot && h.idx === 0 && !Game.manual) { if (!Game.child) pickChild(CHILDREN[Title.kid].id); else startGame(PILOTS[Title.cur].id); }
+      else setPause(!Game.paused);
+    }
     const titleUp = h.idx === 0 && Title.on && !Game.manual;
     if (titleUp) Title.input(pad);
     sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) selectWeapon(h, WEAPONS[w]); });
@@ -4009,6 +4344,10 @@ function nextWave() {
 }
 $('nextB').addEventListener('click', (e) => { e.stopPropagation(); if (Waves.showing) nextWave(); });
 $('pilots').addEventListener('click', (e) => { const b = e.target.closest('.pilot'); if (b) { e.stopPropagation(); startGame(b.dataset.p); } });
+$('kids').addEventListener('click', (e) => { const b = e.target.closest('.kid'); if (b) { e.stopPropagation(); Sfx.unlock(); Sfx.click(); pickChild(b.dataset.k); } });
+// ◀ on the pilot pick: back to who's playing (on the pause screen the chip only shows who it is)
+$('kidB').addEventListener('click', (e) => { e.stopPropagation(); if (!Game.pilot) { Sfx.click(); pickChild(null); } });
+$('wireB').addEventListener('click', (e) => { e.stopPropagation(); Sfx.click(); setWiring(wiringMode() === 'math' ? 'colour' : 'math'); });
 
 // ===========================================================================
 // Test hooks: the Chrome test tab gets no animation frames, so checks drive
@@ -4056,12 +4395,33 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // pick player 0's pilot (an id or a name from PILOTS, any case, or an index) and start, as a tap on
   // their tile does: the title goes, and (outside manual mode) the robots come out. Again mid-game it
   // swaps the pilot and carries on.
   start(pilot) { const res = startGame(pilot); return { ...res, state: Game.state, paused: Game.paused, title: this.state().title, pilot: this.state().pilot }; },
+  // ---- math (M1): who's playing and the fact tracker ----
+  // pick who's playing ('orion', 'apollo', 'guest', any case, or an index), as a tap on their tile does:
+  // loads their record and goes on to the pilot pick; null goes back to who's playing (title only)
+  player(name) { const res = pickChild(name); return { ...res, title: this.state().title, wiring: wiringMode(), facts: Facts.summary() }; },
+  // the current child's record (a copy), with summary: the ladder, stage counts of the open facts, in play
+  facts() { return Facts.rec ? { ...JSON.parse(JSON.stringify(Facts.rec)), summary: Facts.summary() } : null; },
+  // record an answer: value given for a × b in ms milliseconds (op defaults to '×'; a fact object works too:
+  // answer({ op: '×', a: 7, b: 8 }, 56, 1800))
+  answer(a, b, value, ms, op = '×') {
+    const res = typeof a === 'object' ? Facts.answer(a, b, value) : Facts.answer({ op, a, b }, value, ms);
+    return { ...res, fact: res.key ? { ...Facts.rec.facts[res.key] } : null };
+  },
+  // the next fact to ask: { op, a, b, key, answer, stage, why: miss | review | familiar | new | check | practice | extra | rest };
+  // opts.exclude = facts already on the board, opts.ops = ops the asking UI can show
+  nextFact(opts) { return Facts.next(opts); },
+  // a parent opens steps early, up to step n
+  openStep(n) { const res = Facts.openStep(n); return { ...res, facts: Facts.summary() }; },
+  // move the tracker's clock by ms (to cross days); clock() just reads it. Not saved: a reload is back to now.
+  clock(ms = 0) { Facts.offset += Number(ms) || 0; return { offset: Facts.offset, now: Facts.now(), day: Facts.day(), date: Facts.date() }; },
+  // the Quick Fix setting for whoever is playing: 'math' or 'colour'
+  wiring(mode) { return mode == null ? { wiring: wiringMode() } : setWiring(mode); },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
   render(dt = 1 / 60) { render(dt); return true; },
   // hold a key code down (or release it): hold('KeyW', true)
@@ -4222,7 +4582,13 @@ window.__rb = {
       fx: { ...Impacts.live(), sparks: Sparks.list.filter((p) => p.t < p.life).length },
       // the pilot picked on the title screen (null until then); title: the title / pause screen is up
       pilot: Game.pilot ? { id: Game.pilot.id, name: Game.pilot.name, color: Game.pilot.hex } : null,
-      title: Title.on ? (Game.pilot ? 'pause' : 'title') : null,
+      // 'who' = who's playing, 'title' = the pilot pick, 'pause'; null while playing
+      title: Title.on ? (Game.pilot ? 'pause' : Game.child ? 'title' : 'who') : null,
+      // who's playing (null until picked), their Quick Fix setting, and math = it's math wiring
+      child: Game.child ? { id: Game.child.id, name: Game.child.name, color: Game.child.hex, guest: !!Game.child.guest } : null,
+      children: CHILDREN.map((C) => C.name),
+      wiring: wiringMode(), math: wiringMode() === 'math',
+      factStep: Facts.rec ? Facts.rec.step : null,
       pilots: PILOTS.map((P) => P.name),
       // hidden parts in the meadow: found = in the bag now (gone from the meadow); spotted = a squadmate drone marked it (by = its id)
       hidden: Hidden.list.map((q) => ({ id: q.id, part: q.part, x: r3(q.x), z: r3(q.z), found: q.found, spotted: q.spotted, by: q.by })),
