@@ -982,7 +982,8 @@ const GLOW_LUM = 0.4;
 // Smashables: trees, big rocks and fence sections. A player's attacks wear their hp down (damage as
 // dealt to a robot, times `weapon[w]`: the electromagnet is electronic and does nothing to wood or
 // stone), and so does a player's mech walking into one: `walk` hp a second pushing in at top speed,
-// less when slower, none under walkMin m/s. Broken stays broken: it leaves `obstacles`, so it no
+// less when slower, none under walkMin m/s. A jump whose feet clear one sails over it whole, and one that comes
+// down on it crushes it (jumpPass). Broken stays broken: it leaves `obstacles`, so it no
 // longer blocks anything or stops a round, and it never grows back.
 const PROP = {
   tree:  { hp: 60, walk: 50 },
@@ -1877,6 +1878,27 @@ function pushProps(m, touched, dt) {
     if (Props.hit(o.prop, PROP[o.kind].walk * into / MECH.topSpeed * dt, 'walk', -dx, -dz)) m.human?.rig.kick(o.kind === 'fence' ? 0.4 : 0.8);
   }
 }
+// #46: a player's jump and a smashable its body overlaps (from mechTick). Heights are the mech's own: its feet
+// are J.y above the ground under it (the soles sit at m.pos.y standing) and the jump tops out at its own peak,
+// so other legs with other jumps follow the same rule. The object's top is o.h above the ground under it, and
+// what counts as under the feet is the object's own footprint (o.r), not the mech's wider body.
+//   null    as walking into it: not in a jump, or a jump whose peak can't get the feet over its top
+//   'over'  passed whole, with no push and no damage: the feet are above its top, or it isn't under them yet. It
+//           stays passed (m.over) after landing beside it, until the mech is clear of it or walks back into it
+//   'stomp' a jump that can clear it comes down into it: crushed
+//   'bump'  a jump that can clear it rises into it too soon: hit as walking, held at its edge until the feet are over
+function jumpPass(m, J, gy, o, d, dx, dz) {
+  const p = o.prop;
+  if (!J) {
+    if (!m.over?.has(p)) return null;
+    if ((Math.sin(m.legHeading) * dx + Math.cos(m.legHeading) * dz) * m.speed / d <= 0) return 'over';   // not walking toward it
+    m.over.delete(p); return null;
+  }
+  const top = groundH(o.x, o.z) + o.h, peak = J.v > 0 ? J.y + J.v * J.v / (2 * UPGRADE.gravity) : J.peak;
+  if (gy + peak < top) return null;
+  if (gy + J.y >= top || d >= o.r) { (m.over ||= new Set()).add(p); return 'over'; }
+  return J.v < 0 ? 'stomp' : 'bump';
+}
 
 // ===========================================================================
 // The mech, built from parts: legs, torso, arms, cockpit
@@ -2260,14 +2282,26 @@ function mechTick(m, dt) {
   // Knockback from rams and kicks slides the mech and fades out
   m.pos.x += m.push.x * dt; m.pos.z += m.push.z * dt; m.push.multiplyScalar(Math.exp(-3.5 * dt));
   let touched = null;    // the props a player's mech is leaning on (smashed after the loop: it changes `obstacles`)
+  let stomped = null, near = null;   // #46: props a jump comes down on; the props the mech's body is over this tick
+  const J0 = m.human ? m.hop : null, gy = J0 && groundH(m.pos.x, m.pos.z);
   for (const o of obstacles) {
     const dx = m.pos.x - o.x, dz = m.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + S.radius;
     if (d < min && d > 1e-6) {
+      const p = m.human && o.prop;
+      if (p) {
+        (near ||= new Set()).add(p);
+        const pass = jumpPass(m, J0, gy, o, d, dx, dz);
+        if (pass === 'over') continue;
+        if (pass === 'stomp') { (stomped ||= new Set()).add(p); continue; }
+        if (pass === 'bump') { m.pos.x = o.x + dx / d * o.r; m.pos.z = o.z + dz / d * o.r; (touched ||= []).push([o, dx, dz, d]); continue; }
+      }
       m.pos.x = o.x + dx / d * min; m.pos.z = o.z + dz / d * min;
-      if (m.human && o.prop) (touched ||= []).push([o, dx, dz, d]);
+      if (p) (touched ||= []).push([o, dx, dz, d]);
     }
   }
+  if (m.over) for (const p of m.over) if (!near?.has(p)) m.over.delete(p);   // clear of it now
   if (touched) pushProps(m, touched, dt);
+  if (stomped) for (const p of stomped) if (Props.hit(p, p.hp, 'stomp', -Math.sin(m.legHeading), -Math.cos(m.legHeading))) m.human.rig.kick(0.8);
   const r = Math.hypot(m.pos.x, m.pos.z);
   if (r > WORLD_R) { m.pos.x *= WORLD_R / r; m.pos.z *= WORLD_R / r; }
   m.pos.y = groundH(m.pos.x, m.pos.z);
@@ -6514,11 +6548,12 @@ window.__rb = {
           // G2: the upgrade levels on this mech, what they do now, and the upgrade pieces on its model (upgradeLook).
           // recharge: how fast weapon cooldowns run down (1 = as built); mend: what one part mends in self-repair;
           // kick: the kick's damage; jump: how high a jump goes (0 = can't); air: in a jump now, y = how high above
-          // the ground, peak = this jump's highest so far, last = the last landed jump's height, jumps = landed
+          // the ground, peak = this jump's highest so far, last = the last landed jump's height, jumps = landed,
+          // over = the smashables this jump has passed over whole (ids; kept after landing until the mech is clear of them)
           upgrades: { ...upLevels({ upgrades: m.upg }) },
           effects: { maxHealth: m.maxHealth, topSpeed: r3((m.spec || MECH).topSpeed), recharge: r3(1 + UPGRADE.recharge * (m.upg?.battery || 0)), mend: mendPer(m),
             kick: r3(WEAPON.kick.dmg * (1 + UPGRADE.kick * (m.upg?.ram || 0))), jump: UPGRADE.jump[m.upg?.spring || 0] },
-          jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps },
+          jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps, over: m.over ? [...m.over].map((p) => p.id) : [] },
           look: upgradeLook(m.model),
           // G3: the paint on this mech, read back from its model: body / trim = the colours on its role materials, meshes
           // = how many wear each, decal = the one showing ('none' if none), decals = how many squares show it, and where
@@ -6571,7 +6606,7 @@ window.__rb = {
       // hidden parts in the meadow: found = in the bag now (gone from the meadow); spotted = a squadmate drone marked it (by = its id)
       hidden: Hidden.list.map((q) => ({ id: q.id, part: q.part, x: r3(q.x), z: r3(q.z), found: q.found, spotted: q.spotted, by: q.by })),
       hiddenFound: Hidden.list.filter((q) => q.found).length,
-      // every smashable: 'tree' | 'rock' | 'fence' (a fence section); broken for good once hp is 0 (by = what broke it, 'walk' = walked into)
+      // every smashable: 'tree' | 'rock' | 'fence' (a fence section); broken for good once hp is 0 (by = what broke it, 'walk' = walked into, 'stomp' = a jump came down on it)
       props: Props.list.map((p) => ({ id: p.id, kind: p.kind, x: r3(p.x), z: r3(p.z), hp: r3(p.hp), maxHp: p.maxHp, broken: p.broken, by: p.by, blocking: p.obs.some((o) => obstacles.includes(o)) })),
       propsBroken: Props.list.filter((p) => p.broken).length,
       // waves: the wave out now (0 before the first); cleared = no glitched or powered-down robot left in it;
