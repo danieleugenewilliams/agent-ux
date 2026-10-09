@@ -63,10 +63,13 @@
   #hurt { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(255,40,60,0) 45%, rgba(255,40,60,.75)); }
   .key.wide { width: 110px; }
   /* ---------- SQUAD + PARTS ---------- */
-  #hud .right { position: absolute; right: 22px; top: 22px; display: flex; gap: 10px; align-items: center; }
-  #hud .squad { display: flex; gap: 8px; }
+  /* the top-right group never reaches left past the health panel (❤️ bar 🔧 ⤴️, ending ~496 px in): when the squad chips
+     and the counters don't fit on one row beside it, the counters (🔩 🔍 🎒) stay on top and the chips wrap below them (#39) */
+  #hud .right { position: absolute; right: 22px; top: 22px; left: 512px; display: flex; flex-wrap: wrap-reverse; justify-content: flex-end; gap: 8px 10px; align-items: center; }
+  #hud .counts { display: flex; gap: 10px; align-items: center; }
+  #hud .squad { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   #hud .parts { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 18px; background: rgba(20,24,42,.6); font-size: 30px; font-weight: 900; }
-  #hud .mate { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 18px; background: rgba(20,24,42,.6); border: 3px solid var(--cyan); box-shadow: 0 0 10px rgba(63,240,255,.5); font-size: 18px; font-weight: 800; }
+  #hud .mate { display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 8px 12px; border-radius: 18px; background: rgba(20,24,42,.6); border: 3px solid var(--cyan); box-shadow: 0 0 10px rgba(63,240,255,.5); font-size: 18px; font-weight: 800; }
   #hud .mate b { font-size: 26px; }
   #hud .bagb { position: relative; width: 62px; height: 62px; border-radius: 50%; border: 4px solid var(--ink); background: var(--yellow); font-size: 32px; cursor: pointer; box-shadow: 0 5px 0 var(--ink); }
   #hud .bagb small, .panel .ok small { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
@@ -232,12 +235,27 @@
     text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink); animation: drop 1.4s ease-out forwards; }
   @keyframes drop { from { transform: translateY(0); opacity: 1; } to { transform: translateY(58px); opacity: 0; } }
   #hud .found { font-size: 24px; padding: 10px 14px; }
-  /* narrow screens: the pilot drops under the hearts and 🔍 under the bag, so the top row is no wider than
-     before and the 🔩 box doesn't cover the 🔧 button */
+  /* narrow screens (a phone held upright): the health panel takes the whole top row, so the pilot drops under the
+     hearts (face over name, on the left) and the top-right group moves under the health panel: 🔩 🔍 🎒 on the right
+     beside the pilot, the squad chips on their own row below, wrapping right to left (#39) */
   @media (max-width: 760px) {
+    #hud .health .who.on { position: absolute; left: 0; top: calc(100% + 8px); }
+    #hud .health .face { width: 44px; height: 44px; }
+    #hud .right { top: 100px; left: 22px; }
+    #hud .squad { flex-basis: 100%; }
+  }
+  @media (max-width: 560px) {
+    #hud .mate { padding: 6px 10px; font-size: 16px; } #hud .mate b { font-size: 22px; }
+  }
+  /* a phone on its side: the pilot sits under the hearts, the counters stay top right, and the squad chips take the
+     row below them, from beside the pilot to the right edge (clear of the 🌊 over the compass) */
+  @media (max-height: 460px) and (min-width: 600px) {
     #hud .health .who.on { position: absolute; left: 0; top: calc(100% + 8px); flex-direction: row; gap: 8px; }
     #hud .health .face { width: 44px; height: 44px; }
-    #hud .found { position: absolute; right: 0; top: calc(100% + 8px); }
+    #hud .health:has(.jumpb.on) .bar { width: 150px; }
+    #hud .right { top: 22px; left: 140px; }
+    #hud .squad { flex-basis: 100%; }
+    #hud .mate { padding: 6px 10px; font-size: 16px; } #hud .mate b { font-size: 22px; }
   }
   /* ---------- WAVES: the wave number over the compass; the clear screen over the running meadow ---------- */
   #hud .wave { position: absolute; right: 22px; bottom: 154px; width: 120px; display: none; align-items: center; justify-content: center; gap: 8px; padding: 6px 12px; border-radius: 18px; background: rgba(20,24,42,.6); font: 900 26px 'Asap', sans-serif; }
@@ -640,7 +658,7 @@
     <div class="arm torso" id="cTorso"><b>🎯</b></div>
     <div class="hub"></div>
   </div>
-  <div class="right"><div id="squad" class="squad"></div><div class="parts" id="partsBox"><span>🔩</span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span>🔍</span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag">🎒<small>B</small></button></div>
+  <div class="right"><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span>🔩</span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span>🔍</span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag">🎒<small>B</small></button></div></div>
   <div class="prompt" id="prompt">
     <button class="pfix" id="pFix" aria-label="Fix">🔧<small>F</small></button>
     <button class="pparts" id="pParts" aria-label="Take parts">🔩<small>G</small></button>
