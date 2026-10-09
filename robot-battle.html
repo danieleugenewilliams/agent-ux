@@ -1569,6 +1569,9 @@ addEventListener('keydown', (e) => {
     const k = d ? d[2] : e.code === 'Backspace' ? '⌫' : e.code === 'Enter' || e.code === 'NumpadEnter' ? '✔' : null;
     if (k || e.code === 'Escape') { e.preventDefault(); if (!e.repeat) { if (k) FixUI.key(k); else FixUI.closeEntry(); } return; }
   }
+  // the send-home panel is open: its keys (◀ ▶ / A D / Q E move, Enter / Space pick, Esc keeps the squad) go
+  // to it alone, so they don't also turn, aim or fire the mech; the other keys still drive
+  if (FixUI.mode === 'home' && FixUI.homeKeyDown(e)) { e.preventDefault(); return; }
   if (e.code === 'Escape' && FixUI.mode) { FixUI.dismiss(); return; }
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (!e.repeat) keysPressed.add(e.code);
@@ -5018,7 +5021,9 @@ const FixUI = {
   },
   // squad full: every squadmate as a tile; tap the one that goes home. The new robot is shown in the top.
   openHome(r) {
-    this.mode = 'home'; this.r = r; this.homeKey = null; this.homeWarn = null;   // mode first, so freeing the mouse isn't a pause
+    this.mode = 'home'; this.r = r; this.homeKey = null; this.homeWarn = null; this.homeKb = false;   // mode first, so freeing the mouse isn't a pause
+    for (const c of this.homeCodes()) keys.delete(c);   // a picker key held from before (A turning, Space firing) lets go now
+    mouse.down = false;
     $('homeNew').textContent = '❓  ➕' + ROBOT_TYPES[r.type].icon;
     this.show('home'); this.drawHome();
     if (document.pointerLockElement) document.exitPointerLock();
@@ -5026,9 +5031,10 @@ const FixUI = {
   drawHome() {
     if (this.mode !== 'home') return;
     const rp = Game.humans[0]?.repair, pad = padConnected(), cur = rp?.cur ?? 0;
-    const key = JSON.stringify([Game.squad.map((q) => q.id + q.name + JSON.stringify(q.upg || {})), pad && cur, this.homeWarn]); if (key === this.homeKey) return; this.homeKey = key;
+    const show = pad || this.homeKb;   // the cursor shows once a pad is in or a picker key has been pressed
+    const key = JSON.stringify([Game.squad.map((q) => q.id + q.name + JSON.stringify(q.upg || {})), show && cur, this.homeWarn]); if (key === this.homeKey) return; this.homeKey = key;
     $('homeTiles').innerHTML = Game.squad.map((q, i) => { const n = (q.upg?.plating || 0) + (q.upg?.job || 0), warn = this.homeWarn === q.id;
-      return `<div class="homeTile"><button class="tile mate${pad && i === cur % Game.squad.length ? ' cur' : ''}${warn ? ' warn' : ''}" data-id="${q.id}" data-up="${n}" aria-label="${q.name}${n ? ': has upgrades' : ''}">${ROBOT_TYPES[q.type].icon}${n ? '<span class="wb">⚠️</span>' : ''}</button><span>${q.name}</span>`
+      return `<div class="homeTile"><button class="tile mate${show && i === cur % Game.squad.length ? ' cur' : ''}${warn ? ' warn' : ''}" data-id="${q.id}" data-up="${n}" aria-label="${q.name}${n ? ': has upgrades' : ''}">${ROBOT_TYPES[q.type].icon}${n ? '<span class="wb">⚠️</span>' : ''}</button><span>${q.name}</span>`
         + `${n ? `<span class="hup">⬆️${'<i></i>'.repeat(n)}</span>` : ''}</div>`; }).join('');
     $('homeWarn').classList.toggle('on', this.homeWarn != null);
   },
@@ -5045,6 +5051,28 @@ const FixUI = {
     }
     this.homeWarn = null;
     return chooseHome(h, mate);
+  },
+  // #45: the keyboard in the send-home panel, as the garage tabs: ◀ ▶ (A D, Q E) move between squadmates, Enter /
+  // Space pick the one the cursor is on (an upgraded one warns first, as with the pad and a tap, and moving away
+  // clears the warning), Esc keeps the squad. The arrows are player 1's in two-player, so only solo uses them here.
+  // Returns true when the key was the panel's (it goes nowhere else); false lets it through to the game.
+  homeCodes() { return ['KeyA', 'KeyD', 'KeyQ', 'KeyE', 'Space', 'Enter', 'NumpadEnter', ...(Game.humans.length === 1 ? ['ArrowLeft', 'ArrowRight'] : [])]; },
+  homeKeyDown(e) {
+    const h = Game.humans[0], rp = h?.repair;
+    if (this.mode !== 'home' || !rp || rp.kind !== 'home') return false;
+    if (e.code === 'Escape') { if (!e.repeat) this.dismiss(); return true; }
+    if (!this.homeCodes().includes(e.code)) return false;
+    if (e.repeat) return true;
+    const n = Game.squad.length; if (!n) return true;
+    const d = ['ArrowLeft', 'KeyA', 'KeyQ'].includes(e.code) ? -1 : ['ArrowRight', 'KeyD', 'KeyE'].includes(e.code) ? 1 : 0;
+    this.homeKb = true;
+    if (d) { rp.cur = ((rp.cur ?? 0) + d + n) % n; this.homeWarn = null; if (!Game.manual) Sfx.click(); this.drawHome(); return true; }
+    // Enter / Space on a tile that has focus (after a click) picks that one
+    const t = e.target instanceof Element && e.target.closest('#homeTiles .mate');
+    if (t) { const i = Game.squad.findIndex((q) => q.id === +t.dataset.id); if (i >= 0) rp.cur = i; }
+    this.pickHome(h, Game.squad[(rp.cur ?? 0) % n]);
+    if (this.mode === 'home') this.drawHome();
+    return true;
   },
   openName(r) {
     this.r = r; this.mode = 'name'; this.drag = null;
