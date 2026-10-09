@@ -415,6 +415,71 @@
   .pconfirm.on { display: flex; }
   .pconfirm .big { font-size: 56px; }
   @media (max-width: 560px) { #parent .top { font-size: 26px; } .ptab { font-size: 16px; padding: 0 10px 0 6px; } .pslow { grid-template-columns: 1fr; } }
+  /* ---------- GARAGE (G1): the bay over the game canvas, which draws the lift and the trophies in their boxes.
+     The layer is see-through where the 3D shows; everything else of the game is hidden while it's open ---------- */
+  body.garage #hud, body.garage #start, body.garage #clear, body.garage #parentB, body.garage #downOv, body.garage #hurt { display: none !important; }
+  #garage.on { pointer-events: auto; }
+  body.garage.off #c { filter: none; }   /* a powered-down mech greys the meadow, not the bay */
+  .gbay { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 16px; }
+  .gtop { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 8px solid transparent;
+    border-image: repeating-linear-gradient(-45deg, var(--yellow) 0 14px, var(--ink) 14px 28px) 8; }
+  #garageX { flex: none; width: 56px; height: 56px; border-radius: 50%; border: 4px solid var(--ink); background: #ff4d5e; color: #fff; font-size: 26px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
+  .gtop .gt { font-size: 40px; filter: drop-shadow(0 0 10px rgba(255,216,61,.6)); }
+  .gtabs { display: flex; gap: 10px; flex: 1; justify-content: center; }
+  .gtab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 84px; height: 66px; padding: 2px 12px; border-radius: 18px; border: 4px solid var(--ink);
+    background: rgba(20,24,42,.85); color: #fff; font-size: 30px; line-height: 1; cursor: pointer; box-shadow: 0 5px 0 var(--ink); }
+  .gtab small { font: 800 13px 'Asap', sans-serif; margin-top: 3px; opacity: .85; }
+  .gtab.on { background: var(--yellow); color: var(--ink); box-shadow: 0 5px 0 var(--ink), 0 0 18px rgba(255,216,61,.7); }
+  .gtab.locked { filter: saturate(.3); }
+  .gtab.locked.on { background: #5b6178; color: #fff; }
+  .gtab .lk { position: absolute; right: -8px; top: -8px; font-size: 20px; font-style: normal; filter: none; }
+  .gbody { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(200px, 36%) 1fr; gap: 14px; }
+  .glift { position: relative; border-radius: 22px; border: 4px solid rgba(255,216,61,.55); box-shadow: inset 0 0 40px rgba(0,0,0,.5); }
+  .gwho { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 16px; background: rgba(20,24,42,.8);
+    font: 900 20px 'Asap', sans-serif; color: var(--c, #fff); white-space: nowrap; }
+  .gwall { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; min-height: 0; }
+  /* a shelf: the piece stands on a plank across the bottom of its box */
+  .tslot { position: relative; min-height: 0; border-radius: 18px; border: 3px solid rgba(255,255,255,.22);
+    background: linear-gradient(to bottom, transparent 80%, #8a6a45 80%, #8a6a45 85%, #5d4630 85%, #5d4630 88%, transparent 88%); }
+  .tslot.got { border-color: var(--pc); box-shadow: 0 0 14px color-mix(in srgb, var(--pc) 45%, transparent); }
+  .tslot.none { border-style: dashed; }
+  .tslot .tv { position: absolute; inset: 4px 4px 12% 4px; }
+  .tslot .tf { position: absolute; left: 6px; top: 4px; display: flex; gap: 2px; font-size: 22px; line-height: 1; }
+  .tslot.none .tf { opacity: .35; filter: grayscale(1); }
+  .tslot .tn { position: absolute; right: 8px; bottom: 2px; font: 900 28px 'Asap', sans-serif; color: #fff; text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink); }
+  .tslot.none .tn { opacity: .55; font-size: 24px; }
+  .glock { grid-column: 1 / -1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 22px; border: 4px dashed rgba(255,255,255,.3);
+    background: rgba(20,24,42,.6); text-align: center; }
+  .glock .big { font-size: 90px; line-height: 1; }
+  .glock .ti { font-size: 46px; line-height: 1; }
+  .glock b { font: 900 26px 'Asap', sans-serif; color: var(--yellow); }
+  /* the 🔧 buttons: under ⭐ on the pause screen, beside ▶ on the clear screen */
+  #start .rcol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .garb { position: relative; display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; padding: 0; border-radius: 50%; border: 5px solid var(--ink); background: var(--cyan); font-size: 36px; cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
+  .garb small { position: absolute; right: -8px; bottom: -8px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font: 900 15px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; }
+  .garb:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+  @media (max-width: 760px) { #clear .garb { width: 60px; height: 60px; font-size: 28px; } }
+  /* a phone: the clear screen's row (three counts, 🔧, ▶) tightens so the banner stays inside the screen */
+  @media (max-width: 560px) { #clear .row { gap: 6px; } #clear .n { padding: 4px 6px; gap: 3px; } #clear .garb { width: 52px; height: 52px; font-size: 24px; } #nextB { width: 66px; height: 66px; font-size: 30px; margin-left: 2px; } }
+  @media (max-width: 560px) {
+    #start .garb { width: 60px; height: 60px; font-size: 28px; }
+    .gbay { padding: 8px 8px 10px; gap: 8px; }
+    .gtop { gap: 6px; } .gtop .gt { font-size: 28px; }
+    .gtabs { gap: 6px; } .gtab { min-width: 0; flex: 1; height: 58px; padding: 2px 4px; font-size: 26px; } .gtab small { font-size: 11px; }
+    .gbody { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 36%) 1fr; gap: 8px; }
+    .gwall { gap: 6px; } .tslot .tf { font-size: 16px; } .tslot .tn { font-size: 21px; right: 5px; }
+    .glock .big { font-size: 64px; }
+  }
+  /* a phone on its side: a slimmer top bar, the lift narrower */
+  @media (max-height: 460px) and (min-width: 600px) {
+    .gbay { padding: 6px 10px 8px; gap: 6px; }
+    .gtop { padding-bottom: 6px; border-bottom-width: 6px; } .gtop .gt { font-size: 28px; }
+    .gtab { height: 48px; min-width: 70px; font-size: 24px; } .gtab small { font-size: 11px; margin-top: 1px; }
+    #garageX { width: 44px; height: 44px; font-size: 22px; }
+    .gbody { grid-template-columns: minmax(160px, 28%) 1fr; gap: 8px; }
+    .gwall { gap: 6px; } .tslot .tf { font-size: 17px; } .tslot .tn { font-size: 22px; }
+    .gwho { font-size: 15px; padding: 2px 10px; }
+  }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
 <script type="importmap">
@@ -440,7 +505,7 @@
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
-    <div class="resume"><div class="who" id="who"></div><button class="gridb" id="gridB" aria-label="My facts">⭐<b id="gridN"></b><small>T</small></button><button id="go" aria-label="Play">▶</button></div>
+    <div class="resume"><div class="who" id="who"></div><div class="rcol"><button class="gridb" id="gridB" aria-label="My facts">⭐<b id="gridN"></b><small>T</small></button><button class="garb" id="garageB" aria-label="Garage">🔧<small>G</small></button></div><button id="go" aria-label="Play">▶</button></div>
     <div class="keys">
       <div class="hint"><div class="keyset">
         <div class="key e"></div><div class="key">W</div><div class="key e"></div>
@@ -488,7 +553,7 @@
   <div class="banner">
     <div class="head"><span>🏆</span><span class="rb-title">CLEARED!</span></div>
     <div class="stars" id="clearStars"><i>⭐</i><i>⭐</i><i>⭐</i><i class="bonus" id="clearBonus" aria-label="Fast repair">🌟</i></div>
-    <div class="row"><span class="n" aria-label="Fixed">🔧<b id="clearFixed">0</b></span><span class="n" aria-label="Taken apart">🔩<b id="clearTaken">0</b></span><span class="n" aria-label="Hidden parts found">🔍<b id="clearFound">0</b></span><button id="nextB" aria-label="Next wave">▶<small>↵</small></button></div>
+    <div class="row"><span class="n" aria-label="Fixed">🔧<b id="clearFixed">0</b></span><span class="n" aria-label="Taken apart">🔩<b id="clearTaken">0</b></span><span class="n" aria-label="Hidden parts found">🔍<b id="clearFound">0</b></span><button class="garb" id="garageC" aria-label="Garage">🔧<small>G</small></button><button id="nextB" aria-label="Next wave">▶<small>↵</small></button></div>
   </div>
   <div class="confetti" id="confetti"></div>
 </div>
@@ -567,6 +632,19 @@
   </div>
 </div>
 
+<!-- GARAGE (G1): the bay. The player's mech on a lift, four tabs, and the trophy wall: each part type on a shelf as a
+     3D piece (drawn on the game canvas under this layer, in each slot's box) with how many were found and the icons of
+     the robots they came from; a type never found is a dark outline. Only 🏆 works yet: 🦾 🤖 🎨 are 🔒 coming soon -->
+<div id="garage" class="screen">
+  <div class="gbay">
+    <div class="gtop"><span class="gt">🔧</span><div class="gtabs" id="gTabs"></div><button class="x" id="garageX" aria-label="Close">✖</button></div>
+    <div class="gbody">
+      <div class="glift" id="gLift"><span class="gwho" id="gWho"></span></div>
+      <div class="gwall" id="gWall"></div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -591,7 +669,9 @@ const MECH = {
   radius: 2.3,
 };
 const WORLD_R = 115;
-const MECH_HEALTH = 100;
+// G1 tougher mechs: 150 (was 100). Enemy damage is unchanged, so a full-speed Charger ram (20) takes
+// 8 to power it down (was 5) and a Sniper round (12) 13 (was 9). Starting values, tuned at the playtest.
+const MECH_HEALTH = 150;
 // Weapons. The cannon fires bullets; punch and kick are melee swings that land
 // at `strike` seconds in. Punch follows the torso, kick follows the legs.
 // The cannon fires short bursts while fire is held: `burst` rounds `cool` apart,
@@ -670,7 +750,7 @@ const AREA_ICON = { hull: '🤖', legs: '🦿', power: '⚡', wiring: '〰️' }
 // where each kind of hit lands: a Sniper's round on the hull, a drone's zap in the power and
 // wiring (so 🔋 and 🔌 have something to mend), a Bouncer's stomp mostly in the legs
 const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 } };
-const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 50, kitReach: 3.5, kits: 6 };
+const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_ICON = { parts: '🔧', ally: '🤖', kit: '🧰', reboot: '🔌' };
 // At 0 hearts the mech powers down like a robot: dark, no moving, aiming or firing,
 // and glitched robots leave it alone. It reboots after downTime with rebootHealth,
@@ -690,7 +770,8 @@ const SHAPE_SVG = {
   star: '<polygon points="20,3 25,14.5 37,15.5 28,23.5 30.5,35.5 20,29 9.5,35.5 12,23.5 3,15.5 15,14.5"/>',
 };
 // a squadmate's steady glow level (in its own colour); color: the fallback for its name label
-const ALLY = { glow: 2.6, color: '#3ff0ff' };
+// energy: a fixed robot comes back with this × its robot type's energy (a Charger squadmate: 150)
+const ALLY = { glow: 2.6, color: '#3ff0ff', energy: 1.5 };
 // Math wiring (the child's Quick Fix setting): each plug is a fact the tracker picks, each port an answer.
 // A right answer quicker than FACT.fast (3 s) throws `sparks` extra gold sparks. A repair whose every fact
 // was right first time, under FACT.fast on average, is a fast repair: the robot comes back gold (its glow
@@ -838,20 +919,31 @@ function stepFacts(st) {
 //     answer), which doesn't count again; due: next review / miss return (epoch ms, 0 = none);
 //     box: index into FACT.reviewDays; miss: due is a miss coming back; last: when it was last answered }
 // Times are the tracker's clock: now() = Date.now() + offset, which __rb.clock(ms) moves for tests.
+// G1: the garage's part of a child's record (saved with it, so Guest's is never kept). trophies: every part
+// ever collected, by type: n = how many, from = where they came from (a robot type, or 'meadow' for a
+// hidden part), so the wall keeps a part found even after it's spent from the bag. upgrades, paint and
+// unlocks are for G2–G4. Added with ||= on load, so a record saved before G1 keeps everything else.
+const blankGarage = () => ({ trophies: {}, upgrades: {}, paint: null, unlocks: [] });
+function fillGarage(r) {
+  const g = r.garage = r.garage && typeof r.garage === 'object' ? r.garage : blankGarage();
+  if (!g.trophies || typeof g.trophies !== 'object') g.trophies = {};
+  g.upgrades ||= {}; if (g.paint === undefined) g.paint = null; if (!Array.isArray(g.unlocks)) g.unlocks = [];
+  return r;
+}
 const Facts = {
   child: null, rec: null, offset: 0, rand: Math.random, onCheer: null,
   now() { return Date.now() + this.offset; },
   // a day number: local calendar days, so "different days" means different dates on the family's clock
   day(t = this.now()) { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); },
   date(t = this.now()) { const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; },
-  blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now, cheered: {} }; },
+  blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now, cheered: {}, garage: blankGarage() }; },
   valid(r, C) { return !!r && r.v === 1 && r.child === C.id && LADDERS[r.ladder] && Number.isInteger(r.step) && r.step >= 1 && r.step <= LADDERS[r.ladder].length && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
   // pick who's playing: their saved record (a fresh one if there's none, or it can't be read); Guest's is never saved
   load(c) {
     const C = childOf(c); if (!C) return null;
     let r = C.guest ? null : store.get('facts.' + C.id, null);
     if (!this.valid(r, C)) r = this.blank(C);
-    r.practice ||= {}; r.opened ||= []; r.cheered ||= {};
+    r.practice ||= {}; r.opened ||= []; r.cheered ||= {}; fillGarage(r);   // a record saved before G1 gets an empty garage
     this.child = C; this.rec = r;
     this.advance(); this.save();
     return r;
@@ -890,7 +982,7 @@ const Facts = {
     if (C === this.child && this.rec) return this.rec;
     const r = C.guest ? null : store.get('facts.' + C.id, null);
     const out = this.valid(r, C) ? r : this.blank(C);
-    out.practice ||= {}; out.opened ||= []; out.cheered ||= {};
+    out.practice ||= {}; out.opened ||= []; out.cheered ||= {}; fillGarage(out);
     return out;
   },
   // run fn with child c as the tracker's child (on the live record if c is playing; otherwise on their saved
@@ -940,10 +1032,11 @@ const Facts = {
     return out;
   },
   // a parent resets child c: their record starts again from blank (the Quick Fix setting is kept: it's a
-  // setting, not progress). Only that child's record is touched; Guest has none.
+  // setting, not progress; so is the garage: trophies and upgrades earned stay earned). Only that child's
+  // record is touched; Guest has none.
   reset(c) {
     const C = childOf(c); if (!C || C.guest) return { ok: false, why: C ? 'guest keeps nothing' : 'no such child' };
-    const r = this.blank(C); r.wiring = this.peek(C).wiring;
+    const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.garage = was.garage;
     if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else store.set('facts.' + C.id, r);
     return { ok: true, child: C.id };
   },
@@ -1279,6 +1372,8 @@ const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowR
 addEventListener('keydown', (e) => {
   // typing a robot's name: the keys spell the name and don't drive the mech
   if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
+  // the garage is open: keys go to it (Esc / G close, ◀ ▶ pick a tab), not the game
+  if (Garage.on) { if (Garage.key(e) !== 'native') e.preventDefault(); return; }
   // the fact grid or the parent view is open: keys go to it (Esc closes, arrows move over the grid), not the game
   if (Progress.mode) { if (Progress.key(e) !== 'native') e.preventDefault(); return; }
   // the keypad is open: digits, Backspace, Enter and Escape go to it, not the mech (Digit1–5 pick weapons, Enter fires)
@@ -1940,7 +2035,7 @@ const Title = {
   },
   // keys and pad on the title (not in manual mode: checks use __rb.player / __rb.start)
   input(pad) {
-    if (Game.manual || !this.on || Progress.mode) return;
+    if (Game.manual || !this.on || Progress.mode || Garage.on) return;
     const kp = (...c) => c.some((k) => keysPressed.has(k));
     const d = (kp('ArrowRight', 'KeyD') || pad?.rightP ? 1 : 0) - (kp('ArrowLeft', 'KeyA') || pad?.leftP ? 1 : 0);
     if (!Game.pilot && !Game.child) {
@@ -1953,6 +2048,7 @@ const Title = {
       if (d) { this.cur = (this.cur + d + n) % n; this.draw(); Sfx.click(); }
       if (kp('Enter', 'Space') || pad?.aP) startGame(PILOTS[this.cur].id);
     } else if (kp('KeyT') || pad?.yP) Progress.openGrid('pause');      // ⭐ my facts
+    else if (kp('KeyG') || pad?.xP) Garage.open('pause');             // 🔧 the garage
     else if (kp('Enter') || pad?.aP) startPlay();
   },
 };
@@ -3695,6 +3791,8 @@ function fixRobot(h, r) {
   if (rp.home) sendHome(rp.home);                        // the squad was full: the one picked goes home now
   // a fast math repair: it comes back gold, with more health, and the wave's clear screen gets a 🌟
   r.gold = fastRepair(r.wires);
+  // a squadmate is tougher than the glitched robot it was: ALLY.energy × its type's energy (not the wave's toughened one)
+  r.maxHealth = Math.round(ROBOT_TYPES[r.type].health * ALLY.energy);
   if (r.gold) { r.maxHealth = Math.round(r.maxHealth * MATHFIX.health); setGlowColor(r, MATHFIX.gold); Game.waveStats.fast++; }
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
@@ -3729,7 +3827,7 @@ function takeParts(h, r, picks) {
   if (new Set(picks).size !== picks.length) return { ok: false, why: 'same part twice' };
   if (!picks.every((id) => r.parts.includes(id))) return { ok: false, why: 'not on this robot' };
   if (r.repairBy) cancelRepair(r.repairBy);
-  for (const id of picks) Game.bag[id] = (Game.bag[id] || 0) + 1;
+  for (const id of picks) { Game.bag[id] = (Game.bag[id] || 0) + 1; Garage.collect(id, r.type); }
   // a part that `unlocks` a weapon (the Sniper's 🔭 scope: the rail gun) makes it selectable
   const unlocked = picks.map((id) => PARTS[id].unlocks).filter((w) => w && WEAPON[w] && !Game.unlocked.has(w));
   for (const w of unlocked) unlockWeapon(w);
@@ -3985,7 +4083,7 @@ const Hidden = {
     const m = h.mech; if (m.state === 'down') return null;
     const q = this.list.find((k) => !k.found && Math.hypot(k.x - m.pos.x, k.z - m.pos.z) < HIDDEN.reach); if (!q) return null;
     q.found = true; q.foundBy = h.idx; scene.remove(q.g);
-    Game.bag[q.part] = (Game.bag[q.part] || 0) + 1;
+    Game.bag[q.part] = (Game.bag[q.part] || 0) + 1; Garage.collect(q.part, 'meadow');
     if (h.idx === 0) updateHud.partPop = (updateHud.partPop || []).concat(q.part);   // +1 and its icon drop out of the 🔩 count
     const y = groundH(q.x, q.z) + 1;
     Sparks.burst(q.x, y, q.z, 36, SPARK_GLINT, 7); Impacts.flash(new V3(q.x, y, q.z), 2.5);
@@ -4149,6 +4247,8 @@ function gatherInput(dt) {
     const sc = SCHEMES[h.idx];
     const k = (n) => anyKey(sc[n]) || (solo && anyKey(SOLO_EXTRA[n]));
     const pad = readPad(h.idx);
+    // the garage is open: player 0's pad works it; nobody drives, and no Start un-pauses the world under it
+    if (Garage.on) { if (h.idx === 0) Garage.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // the fact grid or the parent view is open: player 0's pad works it, and the mech stands still
     if (h.idx === 0 && Progress.mode) { Progress.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // Start pauses and carries on; on the title it picks the highlighted child, then the highlighted pilot.
@@ -4179,6 +4279,8 @@ function gatherInput(dt) {
     if (Game.paused || titleUp) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
     // ⭐ my facts: T opens the grid (and pauses) when no panel is up
     if (h.idx === 0 && keysPressed.has('KeyT') && !FixUI.mode && Progress.openGrid('hud')) continue;
+    // the clear screen's 🔧: G or pad X opens the garage (no robot is down to fix or take apart once it's cleared)
+    if (h.idx === 0 && Waves.showing && (keysPressed.has('KeyG') || (pad && pad.xP)) && Garage.open('clear').ok) continue;
     // the clear screen's ▶: Enter (which isn't also a shot) or pad A (not while the 🔧 panel, which uses A, is open)
     if (h.idx === 0 && Waves.showing && (keysPressed.has('Enter') || (pad && pad.aP && FixUI.mode !== 'mend'))) { keys.delete('Enter'); nextWave(); }
     // powered down: nothing moves, aims or fires until it reboots
@@ -4670,7 +4772,7 @@ const Progress = {
   canGrid() { return !!Game.child && !Game.child.guest && !!Facts.rec; },
   // open the grid from 'hud' (pauses the game; closing carries on) or 'pause' (the pause screen is up)
   openGrid(from = Title.on ? 'pause' : 'hud') {
-    if (this.mode || !this.canGrid()) return false;
+    if (this.mode || Garage.on || !this.canGrid()) return false;
     if (from === 'hud') { if (FixUI.mode || Title.on) return false; setPause(true); }
     else if (!Title.on || !Game.pilot) return false;
     this.mode = 'grid'; this.from = from; this.sel = null; this.cur = null;
@@ -4761,7 +4863,7 @@ const Progress = {
   },
   // ---- the parent view
   holdStart() {
-    if (this.mode || this.holdT || !Title.on) return false;
+    if (this.mode || this.holdT || !Title.on || Garage.on) return false;
     $('parentB').classList.add('holding');
     this.holdT = setTimeout(() => { this.holdT = null; $('parentB').classList.remove('holding'); this.openParent(); }, PARENT.hold);
     return true;
@@ -4770,6 +4872,7 @@ const Progress = {
   kids() { return CHILDREN.filter((C) => !C.guest); },
   // open the parent view on whoever is playing (or the first child); outside the title / pause screen it pauses first
   openParent(c) {
+    if (Garage.on) return false;
     if (this.mode === 'grid') this.close();
     if (this.mode) return false;
     if (!Title.on) setPause(true);
@@ -4935,6 +5038,267 @@ function updateHud() {
   }
 }
 
+// ===========================================================================
+// The garage (G1). A bay with the player's mech on a lift, four tabs and the trophy
+// wall. It opens from the 🔧 on the pause screen and on the clear screen (G or pad X
+// there too); the world is paused while it's open, and ✖, Esc, G, pad B (or Start)
+// closes it: back to the pause screen, or from the clear screen straight back to the
+// running meadow. Only 🏆 Trophies works in this slice; 🦾 Mech, 🤖 Squad and 🎨 Paint
+// show 🔒 coming soon. The 3D (the lift, a piece per part type) is drawn by the game's
+// own renderer into each box's rectangle while the garage is open, under a see-through
+// HTML layer that carries the counts, the icons and the buttons.
+// ===========================================================================
+const GARAGE_TABS = [
+  { id: 'trophies', icon: '🏆', name: 'Trophies' },
+  { id: 'mech', icon: '🦾', name: 'Mech', locked: true },
+  { id: 'squad', icon: '🤖', name: 'Squad', locked: true },
+  { id: 'paint', icon: '🎨', name: 'Paint', locked: true },
+];
+const GARAGE = { bg: '#1b2034', lift: 1.2, spin: 0.45, pieceSpin: 0.7, ghost: '#0b0e18', rim: '#6f7a9c' };
+// where a trophy came from, as an icon: the robot type's own, or 🔍 for a part hidden in the meadow
+const sourceIcon = (src) => (src === 'meadow' ? '🔍' : ROBOT_TYPES[src]?.icon ?? '❓');
+const Garage = {
+  on: false, from: null, tab: 'trophies', loose: blankGarage(), t: 0, liftT: 0, drawn: {}, scene: null,
+  // whoever is playing's garage (their record's; before anyone is picked, a loose one for this session)
+  rec() { return Facts.rec ? fillGarage(Facts.rec).garage : this.loose; },
+  // a part went into the bag: count it on the wall, with where it came from (a robot type or 'meadow')
+  collect(part, from) {
+    if (!PARTS[part]) return;
+    const t = this.rec().trophies[part] ||= { n: 0, from: {} };
+    t.n++; t.from[from] = (t.from[from] || 0) + 1;
+    Facts.save();
+    if (this.on) this.draw();
+  },
+  // every part type: how many found, found or not, and how many from each source
+  trophies() {
+    const g = this.rec();
+    return Object.fromEntries(Object.keys(PARTS).map((id) => { const t = g.trophies[id], n = t?.n || 0; return [id, { count: n, found: n > 0, from: { ...(t?.from || {}) } }]; }));
+  },
+  // robot types built with part id (the hint on an outline: who to hunt)
+  carriers(id) { return Object.keys(ROBOT_TYPES).filter((t) => ROBOT_TYPES[t].parts.includes(id)); },
+  // open from 'pause' (the pause screen is up) or 'clear' (the clear screen is up: this pauses the world).
+  // Left out: whichever of the two is up.
+  open(from) {
+    if (this.on) return { ok: false, why: 'open' };
+    if (Progress.mode) return { ok: false, why: 'facts open' };
+    from ??= Title.on ? 'pause' : Waves.showing ? 'clear' : null;
+    if (from === 'pause') {
+      if (!Title.on || !Game.pilot) return { ok: false, why: 'not paused' };
+      if (['wires', 'parts', 'home', 'name'].includes(FixUI.mode)) return { ok: false, why: 'repairing' };
+    } else if (from === 'clear') {
+      if (!Waves.showing) return { ok: false, why: 'not cleared' };
+    } else return { ok: false, why: 'pause or clear screen only' };
+    if (FixUI.mode === 'bag' || FixUI.mode === 'mend') FixUI.close();
+    Progress.holdStop();
+    if (from === 'clear') setPause(true);
+    this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {};
+    document.body.classList.add('garage'); $('garage').classList.add('on');
+    this.build(); this.dress(); this.draw();
+    if (!Game.manual) { Sfx.click(); Sfx.tone(70, 1.1, 'sawtooth', 0.07, 150); Sfx.tone(1200, 0.08, 'square', 0.05, null, 1.1); }
+    return { ok: true, from };
+  },
+  // close: back to the pause screen, or from the clear screen back into the running meadow (the mouse
+  // stays free, so the clear screen's ▶ can still be clicked)
+  close() {
+    if (!this.on) return { ok: false, why: 'closed' };
+    const from = this.from;
+    this.on = false; this.from = null;
+    document.body.classList.remove('garage'); $('garage').classList.remove('on');
+    if (from === 'clear') setPause(false); else Title.draw();
+    if (!Game.manual) Sfx.click();
+    return { ok: true, to: from };
+  },
+  setTab(t) {
+    const T = GARAGE_TABS.find((x) => x.id === t || x.icon === t) || GARAGE_TABS[t];
+    if (!T) return { ok: false, why: 'no such tab' };
+    if (this.tab !== T.id) { this.tab = T.id; this.drawn = {}; this.draw(); if (!Game.manual) Sfx.click(); }
+    return { ok: true, tab: T.id, locked: !!T.locked };
+  },
+  step(d) { const i = GARAGE_TABS.findIndex((x) => x.id === this.tab), n = GARAGE_TABS.length; return this.setTab(GARAGE_TABS[(i + d + n) % n].id); },
+  // keys while it's open go to it alone: Esc / G close, ◀ ▶ (A D, Q E) or 1–4 pick a tab. Tab, and Enter / Space
+  // on a focused button, stay the browser's (so they click)
+  key(e) {
+    if (e.code === 'Tab' || (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
+    if (e.repeat) return 'used';
+    if (e.code === 'Escape' || e.code === 'KeyG') this.close();
+    else if (['ArrowLeft', 'KeyA', 'KeyQ'].includes(e.code)) this.step(-1);
+    else if (['ArrowRight', 'KeyD', 'KeyE'].includes(e.code)) this.step(1);
+    else { const d = /^Digit([1-4])$/.exec(e.code); if (d) this.setTab(+d[1] - 1); }
+    return 'used';
+  },
+  // the gamepad: ◀ ▶ or LB / RB pick a tab; B, X or Start closes
+  pad(pad) {
+    if (!pad) return;
+    if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
+    if (pad.bP || pad.xP || pad.startP) this.close();
+  },
+  // ---- the HTML layer: tabs, the wall (or the 🔒), who's on the lift
+  draw() {
+    if (!this.on) return;
+    $('gTabs').innerHTML = GARAGE_TABS.map((T) => `<button class="gtab${T.id === this.tab ? ' on' : ''}${T.locked ? ' locked' : ''}" data-t="${T.id}" aria-label="${T.name}${T.locked ? ': coming soon' : ''}">${T.icon}<small>${T.name}</small>${T.locked ? '<i class="lk">🔒</i>' : ''}</button>`).join('');
+    const T = GARAGE_TABS.find((x) => x.id === this.tab);
+    if (T.locked) $('gWall').innerHTML = `<div class="glock" data-tab="${T.id}"><span class="big">🔒</span><span class="ti">${T.icon}</span><b>coming soon</b></div>`;
+    else {
+      const tr = this.trophies();
+      $('gWall').innerHTML = Object.keys(PARTS).map((id) => {
+        const P = PARTS[id], t = tr[id];
+        const icons = t.found ? Object.entries(t.from).sort((a, b) => b[1] - a[1]).map(([s]) => sourceIcon(s)) : this.carriers(id).map(sourceIcon);
+        return `<div class="tslot ${t.found ? 'got' : 'none'}" data-part="${id}" data-found="${t.found ? 1 : 0}" data-n="${t.count}" style="--pc:${P.hex}" aria-label="${id}: ${t.found ? t.count : 'not found yet'}">`
+          + `<div class="tv"></div><span class="tf">${icons.join('')}</span><b class="tn">${t.found ? '×' + t.count : '❓'}</b></div>`;
+      }).join('');
+    }
+    const P = Game.pilot, C = Game.child, who = $('gWho');
+    who.style.setProperty('--c', P?.hex || '#fff'); who.textContent = `${C?.icon ?? ''} ${P?.name ?? ''}`.trim();
+  },
+  // what the open wall shows, read back from the page: per part, found, the count and icons shown, and what
+  // the 3D drew in its box last frame ('piece' or 'outline'); lock = the 🔒 tab showing instead
+  dom() {
+    if (!this.on) return null;
+    const lock = $('gWall').querySelector('.glock');
+    const slots = Object.fromEntries([...$('gWall').querySelectorAll('.tslot')].map((el) => [el.dataset.part,
+      { found: el.dataset.found === '1', n: +el.dataset.n, count: el.querySelector('.tn').textContent, icons: el.querySelector('.tf').textContent, drawn: this.drawn[el.dataset.part] ?? null }]));
+    return { tab: this.tab, lock: lock ? { tab: lock.dataset.tab, text: lock.textContent } : null, slots, lift: this.drawn.lift ?? null,
+      tabs: [...$('gTabs').children].map((b) => b.dataset.t + (b.classList.contains('on') ? '*' : '') + (b.classList.contains('locked') ? '🔒' : '')) };
+  },
+  status() {
+    const tr = this.trophies();
+    return { on: this.on, from: this.from, tab: this.tab, tabs: GARAGE_TABS.map((T) => ({ id: T.id, locked: !!T.locked })), paused: Game.paused,
+      trophies: tr, found: Object.values(tr).filter((t) => t.found).length, types: Object.keys(PARTS).length, dom: this.dom() };
+  },
+  // ---- the 3D: one scene, built once: lights, the lift (with a copy of the player's mech on it, made on
+  // each open so it wears the current pilot and colours), and a lit piece and a dark outline per part type
+  build() {
+    if (this.scene) return;
+    const S = this.scene = new THREE.Scene();
+    S.add(new THREE.HemisphereLight('#d6e6ff', '#2a2433', 1.5));
+    const key = new THREE.DirectionalLight('#ffffff', 2.4); key.position.set(4, 9, 7); S.add(key);
+    const rim = new THREE.DirectionalLight('#3ff0ff', 1.4); rim.position.set(-6, 4, -5); S.add(rim);
+    this.cam = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
+    // the lift: a round platform with a hazard-striped rim on a piston
+    const L = this.lift = new THREE.Group(); S.add(L);
+    const c = document.createElement('canvas'); c.width = 256; c.height = 32; const g = c.getContext('2d');
+    g.fillStyle = '#ffd83d'; g.fillRect(0, 0, 256, 32); g.fillStyle = '#14182a';
+    for (let x = -32; x < 256; x += 32) { g.beginPath(); g.moveTo(x, 32); g.lineTo(x + 16, 0); g.lineTo(x + 32, 0); g.lineTo(x + 16, 32); g.fill(); }
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = 6;
+    const deck = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 4.6, 0.7, 48), [new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }), mat('#3a4157', { metalness: 0.6, roughness: 0.45 }), mat('#3a4157')]);
+    deck.position.y = -0.35; L.add(deck);
+    const piston = cyl(0.8, 0.8, 14, '#9aa3b8', { metalness: 0.8, roughness: 0.25 }, 24); piston.position.y = -7.7; L.add(piston);
+    this.mechAt = new THREE.Group(); L.add(this.mechAt);
+    // the pieces: each lit, and as a dark outline (a near-black piece in a lighter rim) for a type never found
+    this.pieces = {};
+    const ghost = new THREE.MeshStandardMaterial({ color: GARAGE.ghost, roughness: 0.9, metalness: 0 });
+    const rimMat = new THREE.MeshBasicMaterial({ color: GARAGE.rim, side: THREE.BackSide });
+    for (const id of Object.keys(PARTS)) {
+      const lit = partPiece(id), out = lit.clone(true);
+      const meshes = []; out.traverse((o) => { if (o.isMesh) meshes.push(o); });
+      for (const o of meshes) { o.material = ghost; const sh = new THREE.Mesh(o.geometry, rimMat); sh.scale.setScalar(1.09); o.add(sh); }
+      const holder = new THREE.Group(); holder.add(lit, out); holder.visible = false; S.add(holder);
+      this.pieces[id] = { holder, lit, out };
+    }
+  },
+  // put a copy of the player's mech on the lift, as it looks now (pilot, colours)
+  dress() {
+    if (this.mech) { this.mechAt.remove(this.mech); this.mech = null; }
+    const src = Game.humans[0]?.mech?.model?.root; if (!src) return;
+    const m = this.mech = src.clone(true); m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.visible = true;
+    // measured on its own (not where the lift happens to be), then centred on the lift: the model's own
+    // origin is between its feet, not under its middle
+    m.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(m), size = box.getSize(new V3()), mid = box.getCenter(new V3());
+    m.position.set(-mid.x, 0, -mid.z); this.mechAt.add(m);
+    this.mechBox = { y: mid.y, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5 + 0.4 };
+  },
+  // draw the scene into element el's box, the camera framing a ball of radius rad round (0, y, 0). false if it's off screen
+  view(el, y, rad, lookDown = 0.12) {
+    const R = renderer, H = innerHeight, b = el.getBoundingClientRect();
+    if (b.width < 4 || b.height < 4 || b.bottom <= 0 || b.top >= H) return false;
+    const x = b.left, yy = H - b.bottom, cam = this.cam;
+    R.setViewport(x, yy, b.width, b.height); R.setScissor(x, yy, b.width, b.height);
+    cam.aspect = b.width / b.height;
+    const d = rad / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) / Math.min(1, cam.aspect);
+    cam.position.set(0, y + d * lookDown, d); cam.lookAt(0, y, 0); cam.near = d / 20; cam.far = d * 4; cam.updateProjectionMatrix();
+    R.render(this.scene, cam);
+    return true;
+  },
+  render(dt) {
+    this.t += dt; this.liftT = Math.min(1, this.liftT + dt / GARAGE.lift);
+    const R = renderer, W = innerWidth, H = innerHeight, keep = R.getClearColor(new THREE.Color()), keepA = R.getClearAlpha();
+    R.setRenderTarget(null); R.setScissorTest(false); R.setViewport(0, 0, W, H); R.setClearColor(GARAGE.bg, 1); R.clear();
+    R.autoClear = false; R.setScissorTest(true);
+    try {
+      // the lift rises into the bay as it opens, the mech slowly turning on it
+      const e = 1 - Math.pow(1 - this.liftT, 3);
+      this.lift.visible = true; Object.values(this.pieces).forEach((p) => (p.holder.visible = false));
+      this.lift.position.y = -9 * (1 - e); this.mechAt.rotation.y = 0.6 + this.t * GARAGE.spin;
+      const mb = this.mechBox || { y: 4, r: 6 };
+      this.drawn.lift = this.mech && this.view($('gLift'), mb.y, mb.r, 0.18) ? 'mech' : null;
+      this.lift.visible = false;
+      if (this.tab === 'trophies') {
+        const tr = this.trophies();
+        for (const el of $('gWall').querySelectorAll('.tslot')) {
+          const id = el.dataset.part, p = this.pieces[id]; if (!p) continue;
+          const found = tr[id].found;
+          p.holder.visible = true; p.lit.visible = found; p.out.visible = !found;
+          p.holder.rotation.set(0.18, this.t * GARAGE.pieceSpin + id.length, 0);
+          this.drawn[id] = this.view(el.querySelector('.tv'), 0.25, 1.2, 0.3) ? (found ? 'piece' : 'outline') : null;
+          p.holder.visible = false;
+        }
+      }
+    } finally {
+      R.setScissorTest(false); R.setViewport(0, 0, W, H); R.autoClear = true; R.setClearColor(keep, keepA);
+    }
+  },
+  init() {
+    $('garageX').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
+    $('gTabs').addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('.gtab'); if (b) this.setTab(b.dataset.t); });
+    $('garage').addEventListener('click', (e) => e.stopPropagation());
+    $('garageB').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); this.open('pause'); });
+    $('garageC').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); this.open('clear'); });
+  },
+};
+// A part type as a small 3D piece for its shelf, about 2 m across, centred on the origin, in its PARTS colour
+function partPiece(id) {
+  const P = PARTS[id], g = new THREE.Group(), steel = '#b9c0cf', metal = { metalness: 0.6, roughness: 0.35 };
+  const add = (m, x = 0, y = 0, z = 0) => { m.position.set(x, y, z); g.add(m); return m; };
+  if (id === 'armour') {
+    add(rbox(1.7, 1.25, 0.3, 0.12, P.hex, metal)).rotation.z = 0.08;
+    for (const [x, y] of [[-0.62, 0.42], [0.62, 0.42], [-0.62, -0.42], [0.62, -0.42]]) add(new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), mat(steel, metal)), x, y, 0.17);
+    add(rbox(1.1, 0.16, 0.12, 0.05, '#ffd83d'), 0, 0, 0.17);
+  } else if (id === 'battery') {
+    add(cyl(0.48, 0.48, 1.35, P.hex, metal, 24));
+    add(cyl(0.5, 0.5, 0.18, '#1a1f2c', {}, 24), 0, 0.3, 0);
+    add(cyl(0.16, 0.16, 0.22, steel, metal, 12), 0, 0.78, 0);
+    add(rbox(0.16, 0.5, 0.06, 0.02, '#ffffff', { emissive: '#ffffff', emissiveIntensity: 0.6 }), 0, -0.15, 0.48).rotation.z = 0.5;
+  } else if (id === 'motor') {
+    const gear = new THREE.Group(); g.add(gear); gear.rotation.x = Math.PI / 2;
+    gear.add(cyl(0.68, 0.68, 0.34, P.hex, metal, 28));
+    for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2, t = rbox(0.26, 0.3, 0.26, 0.04, P.hex, metal); t.position.set(Math.cos(a) * 0.78, 0, Math.sin(a) * 0.78); t.rotation.y = -a; gear.add(t); }
+    gear.add(cyl(0.22, 0.22, 0.6, steel, metal, 16));
+  } else if (id === 'wiring') {
+    const pts = []; for (let i = 0; i <= 60; i++) { const t = i / 60, a = t * Math.PI * 5; pts.push(new V3(Math.cos(a) * 0.55, (t - 0.5) * 1.2, Math.sin(a) * 0.55)); }
+    add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, 0.1, 8), mat(P.hex, { roughness: 0.5 })));
+    add(rbox(0.32, 0.3, 0.32, 0.05, '#1a1f2c'), 0.55, 0.72, 0); add(rbox(0.1, 0.16, 0.06, 0.02, steel, metal), 0.5, 0.94, 0); add(rbox(0.1, 0.16, 0.06, 0.02, steel, metal), 0.62, 0.94, 0);
+  } else if (id === 'ram') {
+    add(rbox(1.0, 0.9, 0.9, 0.18, P.hex, metal), 0.35, 0, 0);
+    add(cyl(0.18, 0.18, 1.0, '#2a2f40', metal, 12), -0.6, 0, 0).rotation.z = Math.PI / 2;
+    for (const s of [-1, 1]) add(new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.7, 12), mat('#ffd83d')), 0.6, s * 0.42, 0).rotation.z = -Math.PI / 2 - s * 0.5;
+  } else if (id === 'scope') {
+    add(cyl(0.24, 0.3, 1.6, P.hex, metal, 20)).rotation.z = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.07, 10, 24), mat('#1a1f2c')), 0.8, 0, 0).rotation.y = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.CircleGeometry(0.26, 24), glowMat('#3ff0ff', 1.6)), 0.82, 0, 0).rotation.y = Math.PI / 2;
+    add(rbox(0.5, 0.22, 0.2, 0.05, '#1a1f2c'), 0, -0.36, 0);
+  } else if (id === 'rotor') {
+    add(cyl(0.2, 0.2, 0.3, '#3a4152', metal, 16));
+    for (let i = 0; i < 3; i++) { const bl = rbox(1.0, 0.06, 0.26, 0.03, P.hex, metal), a = (i / 3) * Math.PI * 2; bl.position.set(Math.cos(a) * 0.55, 0.1, Math.sin(a) * 0.55); bl.rotation.y = -a; bl.rotation.x = 0.25; g.add(bl); }
+    g.rotation.x = 0.5;
+  } else if (id === 'spring') {
+    const pts = []; for (let i = 0; i <= 90; i++) { const t = i / 90, a = t * Math.PI * 12; pts.push(new V3(Math.cos(a) * 0.45, (t - 0.5) * 1.5, Math.sin(a) * 0.45)); }
+    add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 220, 0.08, 8), mat(P.hex, metal)));
+    add(cyl(0.55, 0.55, 0.08, steel, metal, 24), 0, -0.78, 0); add(cyl(0.55, 0.55, 0.08, steel, metal, 24), 0, 0.78, 0);
+  }
+  return g;
+}
+
 function render(dt) {
   const W = innerWidth, H = innerHeight;
   for (const m of Game.mechs) syncMechModel(m);
@@ -4949,6 +5313,7 @@ function render(dt) {
   Props.sync();
   Beams.sync();
   Dust.update(dt);
+  if (Garage.on) { Garage.render(dt); updateHud(); return; }   // the bay instead of the meadow (the world is paused)
   const h = Game.humans[0]; if (!h) return;
   h.rig.update(dt, h.mech);
   const c = h.rig.cam; c.aspect = W / H; c.updateProjectionMatrix();
@@ -5211,6 +5576,17 @@ window.__rb = {
   parentDo(what, child) { const res = Progress.act(what, child); return { ...res, view: this.parent() }; },
   // the table cheer: what's showing now, and the tables that have cheered for whoever is playing
   cheer() { return { showing: Progress.cheering ? { ...Progress.cheering, tables: [...Progress.cheering.tables] } : null, on: $('cheer').classList.contains('on'), cheered: Facts.rec ? { ...(Facts.rec.cheered || {}) } : null }; },
+  // ---- the garage (G1) ----
+  // open (true: from the pause screen or the clear screen, whichever is up) or close (false) the garage, as its 🔧
+  // and ✖ do; tab picks a tab ('trophies' | 'mech' | 'squad' | 'paint', or 0–3). Returns what happened (ok, why)
+  // and the garage's state: on, from, tab, paused, each part type's trophy count / found / sources, and dom = what
+  // the open wall shows, read back from the page (and what the 3D drew in each box)
+  garage(open, tab) {
+    let res = {};
+    if (open === true) res = Garage.open(); else if (open === false) res = Garage.close();
+    if (tab != null && (open !== false)) res = { ...res, tabRes: Garage.setTab(tab) };
+    return { ...res, ...Garage.status(), title: this.state().title, clearScreen: Waves.showing };
+  },
   // the Quick Fix setting for whoever is playing: 'math' or 'colour'
   wiring(mode) { return mode == null ? { wiring: wiringMode() } : setWiring(mode); },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
@@ -5433,6 +5809,8 @@ window.__rb = {
       // clear = this wave's counts (fixed, taken apart, hidden parts found, robots it brought, left to beat,
       // player power-downs, stars once cleared); clearScreen = the clear screen is up
       wave: Game.wave, cleared: Game.cleared, clear: Waves.stats(), clearScreen: Waves.showing,
+      // G1: the garage (on, from 'pause' | 'clear', tab, paused, trophies by part: { count, found, from }, dom = the wall read back)
+      garage: Garage.status(),
       waveRules: { ...WAVE, next: Waves.list(Game.wave + 1), nextTough: r3(Waves.tough(Game.wave + 1)) },
     };
   },
@@ -5456,6 +5834,7 @@ spawnPlayer(0, 0, 0, 0);
 buildHud();
 FixUI.init();
 Progress.init();
+Garage.init();
 onResize();
 Title.build();
 // the portraits' initials use the web font: draw them again once it has loaded
