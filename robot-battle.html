@@ -178,6 +178,14 @@
   #home .top .new { display: flex; align-items: center; gap: 10px; }
   .tile.mate { background: var(--cyan); }
   .homeTile { display: flex; flex-direction: column; align-items: center; gap: 8px; font: 800 18px 'Asap', sans-serif; }
+  /* G3: an upgraded squadmate shows its upgrades (⬆️ and pips) on its tile; the first tap on it warns (they're lost
+     going home) and the tile turns red; a second tap sends it */
+  .homeTile .hup { display: flex; align-items: center; gap: 3px; font-size: 16px; }
+  .homeTile .hup i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); background: var(--yellow); }
+  .tile.mate.warn { background: #ff4d5e; animation: shake .3s; box-shadow: 0 6px 0 var(--ink), 0 0 0 5px #ff4d5e, 0 0 24px #ff4d5e; }
+  .tile.mate .wb { position: absolute; right: -10px; top: -10px; font-size: 24px; }
+  .hwarn { display: none; margin-top: 14px; padding: 6px 14px; border-radius: 14px; background: #ff4d5e; color: #fff; font: 900 24px 'Asap', sans-serif; text-align: center; box-shadow: 0 4px 0 var(--ink); }
+  .hwarn.on { display: block; }
   #hud .mate.home { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255,216,61,.7); opacity: .75; }
   #hud .prompt .pfix.full::after { content: '🏠'; position: absolute; left: -10px; top: -10px; font-size: 22px; }
   /* ---------- TITLE: pick your pilot (a tap starts the game); PAUSE: ▶ carries on as the same pilot ---------- */
@@ -480,6 +488,42 @@
   .ubuy:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   .ubuy.off { filter: grayscale(1) brightness(.6); cursor: not-allowed; }
   .ubuy.max { background: var(--yellow); filter: none; cursor: default; }
+  /* G3: the 🤖 Squad tab. A card per squadmate (its icon and name in its glow colour, its energy), a row per upgrade,
+     and 🏠 ➜ ⬆️✖ once it has one (sent home, its upgrades go with it) */
+  .gwall.squad { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr; }
+  .scard { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 18px; border: 4px solid var(--gc); background: rgba(20,24,42,.7); box-shadow: 0 0 14px color-mix(in srgb, var(--gc) 40%, transparent); overflow: hidden; }
+  .scard.got { animation: newWpn .6s; }
+  .shead { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .shead .sic { font-size: 34px; line-height: 1; }
+  .shead .sname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 900 22px 'Asap', sans-serif; color: var(--gc); text-shadow: 2px 2px 0 var(--ink); }
+  .shead .shp { font: 900 20px 'Asap', sans-serif; color: #fff; white-space: nowrap; }
+  .srow { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 2px 6px; padding: 5px 6px; border-radius: 14px; border: 3px solid color-mix(in srgb, var(--pc) 70%, transparent); background: rgba(255,255,255,.05); }
+  .srow.cur { border-color: var(--yellow); box-shadow: 0 0 0 2px var(--ink), 0 0 16px rgba(255,216,61,.7); }
+  .srow .spart { grid-row: 1 / 3; font-size: 30px; line-height: 1; }
+  .srow .ufx { font: 900 19px 'Asap', sans-serif; color: #fff; white-space: nowrap; text-shadow: 2px 2px 0 var(--ink); }
+  .srow .pips { display: flex; gap: 4px; justify-self: end; }
+  .srow .pips i { width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--ink); background: rgba(255,255,255,.18); }
+  .srow .pips i.on { background: var(--pc); box-shadow: 0 0 8px var(--pc); }
+  .srow .ucost { font: 900 17px 'Asap', sans-serif; color: #fff; white-space: nowrap; }
+  .srow .uhave { justify-self: end; font: 900 16px 'Asap', sans-serif; color: var(--green); white-space: nowrap; }
+  .srow .uhave.short { color: #ff4d5e; }
+  .srow .ubuy { grid-column: 3; grid-row: 1 / 3; width: 50px; height: 46px; font-size: 22px; }
+  .srow .ubuy.bad { animation: shake .3s; }
+  .scard { position: relative; }
+  /* (in the card's head line on a phone held upright; at the foot of the card otherwise) */
+  .swarn { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 12px; background: #ff4d5e; color: #fff; font: 900 18px 'Asap', sans-serif; white-space: nowrap; box-shadow: 0 3px 0 var(--ink); }
+  /* G3: the 🎨 Paint tab. A row each for the body colour, the trim colour and the decal; the picked swatch is ringed */
+  .gwall.paint { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+  .prow { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 18px; border: 4px solid rgba(255,255,255,.18); background: rgba(20,24,42,.7); }
+  .prow.cur { border-color: var(--yellow); box-shadow: 0 0 0 3px var(--ink), 0 0 18px rgba(255,216,61,.7); }
+  .plab { flex: none; width: 58px; display: flex; flex-direction: column; align-items: center; font-size: 32px; line-height: 1; }
+  .plab small { font: 800 12px 'Asap', sans-serif; margin-top: 3px; color: #fff; opacity: .85; }
+  .psw { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .swatch, .decal { flex: none; width: 46px; height: 46px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); cursor: pointer; box-shadow: 0 3px 0 var(--ink); }
+  .swatch { background: var(--sc); }
+  .decal { border-radius: 12px; background: #5b6178; font-size: 24px; display: flex; align-items: center; justify-content: center; }
+  .decal img { width: 34px; height: 34px; pointer-events: none; }
+  .swatch.on, .decal.on { outline: 4px solid #fff; outline-offset: 2px; transform: scale(1.1); }
   /* the 🔧 buttons: under ⭐ on the pause screen, beside ▶ on the clear screen */
   #start .rcol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .garb { position: relative; display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; padding: 0; border-radius: 50%; border: 5px solid var(--ink); background: var(--cyan); font-size: 36px; cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
@@ -501,6 +545,18 @@
     .ucard .ufx { font-size: 17px; } .ucard .pips i { width: 12px; height: 12px; border-width: 2px; } .ucard .pips { gap: 2px; }
     .ucard .ucost { font-size: 16px; } .ucard .uhave { font-size: 15px; } .ucard .ukey { display: none; }
     .ubuy { width: 46px; height: 42px; font-size: 20px; border-radius: 12px; border-width: 3px; }
+    .gwall.squad { grid-template-columns: 1fr; grid-template-rows: repeat(3, auto); align-content: start; }
+    .scard { flex-direction: row; flex-wrap: wrap; padding: 4px 6px; gap: 4px; border-width: 3px; border-radius: 14px; }
+    .shead { width: 100%; } .shead .sic { font-size: 24px; } .shead .sname { font-size: 17px; } .shead .shp { font-size: 16px; }
+    .srow { flex: 1 1 0; min-width: 0; padding: 3px 4px; gap: 1px 4px; border-width: 2px; border-radius: 10px; }
+    .srow .spart { font-size: 22px; } .srow .ufx { font-size: 14px; } .srow .ucost { font-size: 13px; } .srow .uhave { font-size: 13px; }
+    .srow .pips i { width: 10px; height: 10px; border-width: 2px; } .srow .pips { gap: 2px; }
+    .srow .ubuy { width: 38px; height: 36px; font-size: 17px; }
+    .swarn { position: static; transform: none; flex: none; padding: 0 6px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
+    .gwall.paint { gap: 6px; justify-content: flex-start; }
+    .prow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
+    .plab { width: 40px; font-size: 24px; } .plab small { font-size: 10px; }
+    .psw { gap: 5px; } .swatch, .decal { width: 36px; height: 36px; border-width: 3px; } .decal img { width: 26px; height: 26px; }
   }
   /* a phone on its side: a slimmer top bar, the lift narrower */
   @media (max-height: 460px) and (min-width: 600px) {
@@ -515,6 +571,17 @@
     .ucard .ufx { font-size: 16px; } .ucard .pips i { width: 11px; height: 11px; border-width: 2px; } .ucard .pips { gap: 2px; }
     .ucard .ucost { font-size: 15px; } .ucard .uhave { font-size: 14px; } .ucard .ukey { display: none; }
     .ubuy { width: 44px; height: 36px; font-size: 18px; border-radius: 12px; border-width: 3px; box-shadow: 0 3px 0 var(--ink); }
+    .scard { padding: 4px 6px; gap: 4px; border-width: 3px; border-radius: 14px; }
+    .shead .sic { font-size: 24px; } .shead .sname { font-size: 16px; } .shead .shp { font-size: 15px; }
+    .srow { padding: 2px 4px; gap: 1px 4px; border-width: 2px; border-radius: 10px; }
+    .srow .spart { font-size: 22px; } .srow .ufx { font-size: 14px; } .srow .ucost { font-size: 13px; } .srow .uhave { font-size: 13px; }
+    .srow .pips i { width: 10px; height: 10px; border-width: 2px; } .srow .pips { gap: 2px; }
+    .srow .ubuy { width: 38px; height: 34px; font-size: 16px; }
+    .swarn { font-size: 13px; padding: 0 6px; }
+    .gwall.paint { gap: 6px; }
+    .prow { gap: 6px; padding: 3px 6px; border-width: 3px; border-radius: 14px; }
+    .plab { width: 40px; font-size: 22px; } .plab small { font-size: 10px; }
+    .psw { gap: 5px; } .swatch, .decal { width: 32px; height: 32px; border-width: 3px; } .decal img { width: 24px; height: 24px; }
   }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
@@ -633,6 +700,7 @@
   <div class="panel">
     <div class="top"><span class="new">🏠<span id="homeNew"></span></span><button class="x" id="homeX" aria-label="Cancel">✖</button></div>
     <div class="tiles" id="homeTiles"></div>
+    <div class="hwarn" id="homeWarn" aria-label="Its upgrades are lost if it goes home. Tap again to send it home">⚠️ 🏠 ➜ ⬆️✖ <span class="again">👆👆</span></div>
   </div>
 </div>
 
@@ -735,6 +803,7 @@ const ROBOT_HITS = {
   snipe: { dmg: 12, allyDmg: 20, speed: 130, range: 100, push: 1.5 },   // a Sniper's round: slower than the cannon, so it can be dodged
   zap:   { dmg: 3, push: 0 },                                          // a drone diving in
   stomp: { dmg: 8, combo: 5, allyDmg: 18, push: 4 },                   // a Bouncer landing; each bounce before it adds `combo`
+  ram:   { allyDmg: 20, push: 8 },                                     // G3: a squadmate Charger ramming a robot (ALLY_RAM)
 };
 const ROBOT = {
   downTime: 12,              // seconds a beaten robot stays powered down
@@ -808,6 +877,43 @@ const UPGRADE = { cost: 2, energy: 25, speed: 0.08, recharge: 0.1, mend: 10, kic
 const upgradeOf = (n) => { const s = String(n ?? '').toLowerCase(); return UPGRADES.find((U) => U.id === s || U.alias.includes(s) || U.name.toLowerCase() === s || PARTS[U.id].icon === n) || null; };
 // a garage's upgrade levels, every upgrade listed, each a whole number from 0 to its max
 const upLevels = (g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
+// G3: squadmate upgrades, bought in the garage's 🤖 tab. Each squadmate has two, each with `max` levels at `cost` parts a
+// level, from the bag. They belong to that squadmate (r.upg) and go with it when it's sent home. The squad isn't
+// saved, so neither are they.
+//   plating 🛡️ (armour)      +25% energy a level, on its squadmate energy (gold included)
+//   job     its own part      its squad job gets stronger a level:
+//           🐏 Charger  ram damage +25% (20 → 25 → 30)       🔭 Sniper  rifle range +25% (70 → 87.5 → 105 m)
+//           🐝 drone    scout range +25% (70 → 87.5 → 105 m)  🦘 Bouncer chain +1 bounce (4 → 5 → 6)
+const SQUAD_UP = { cost: 2, max: 2, energy: 0.25, range: 0.25, scout: 0.25, ram: 0.25, chain: 1 };
+const SQUAD_UPS = [
+  { id: 'plating', name: 'Plating', alias: ['armor', 'plate', 'energy'] },   // (a part id or icon works too: squadBuy)
+  { id: 'job', name: 'Job boost', alias: ['boost', 'jobboost'] },
+];
+// each type's job: the part its boost costs and what a level does, as an icon
+const SQUAD_JOB = {
+  charger: { part: 'ram', fx: '💥+25%', what: 'ram' },
+  sniper: { part: 'scope', fx: '🎯+25%', what: 'range' },
+  drone: { part: 'rotor', fx: '📡+25%', what: 'scout' },
+  bouncer: { part: 'spring', fx: '🔗+1', what: 'chain' },
+};
+const squadUpOf = (n) => { const s = String(n ?? '').toLowerCase(); return SQUAD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s || U.alias.includes(s)) || null; };
+const squadPart = (r, id) => (id === 'plating' ? 'armour' : SQUAD_JOB[r.type].part);
+const jobLv = (r) => r.upg?.job || 0;
+// G3: a squadmate Charger's ram (its squad job): it winds up and charges a glitched robot on the ground near its
+// leader, ROBOT_HITS.ram.allyDmg a hit (× its job boost). reach: how far it looks for one; lead: how near its leader that one must be
+const ALLY_RAM = { reach: 30, lead: 35, windup: 0.5, charge: 2.0, recover: 1.0, cool: 3.0, minSpeed: 5 };
+// G3: paint (the 🎨 tab). Free. Body and trim colours from PALETTE, and a decal (DECALS). Saved per child in
+// rec.garage.paint as { body, trim, decal }; null = the mech as built (PAINT's orange and yellow, no decal).
+const PALETTE = ['#ff8a1f', '#ffd83d', '#ff4d5e', '#ff5fa2', '#a77bff', '#4f9dff', '#3ff0ff', '#3ee07a', '#e8ecf4', '#3a4157'];
+const DECALS = [
+  { id: 'none', icon: '🚫', name: 'No decal' },
+  { id: 'stars', icon: '⭐', name: 'Stars' },
+  { id: 'flames', icon: '🔥', name: 'Flames' },
+  { id: 'stripes', icon: '🏁', name: 'Stripes' },
+  { id: 'emblem', icon: '🛡️', name: "Pilot's emblem" },
+];
+const paintColour = (c) => { if (Number.isInteger(c)) return PALETTE[c] ?? null; const s = String(c ?? '').toLowerCase(); return PALETTE.includes(s) ? s : null; };
+const decalOf = (d) => (Number.isInteger(d) ? DECALS[d] : DECALS.find((D) => D.id === String(d ?? '').toLowerCase() || D.icon === d)) || null;
 // At 0 hearts the mech powers down like a robot: dark, no moving, aiming or firing,
 // and glitched robots leave it alone. It reboots after downTime with rebootHealth,
 // or sooner once a squadmate has mended it up to wakeHealth. No game over.
@@ -986,7 +1092,10 @@ function fillGarage(r) {
   if (!g.upgrades || typeof g.upgrades !== 'object') g.upgrades = {};
   // G2: levels kept to whole numbers in range (a level of 0 isn't written)
   for (const [k, v] of Object.entries(upLevels(g))) { if (v) g.upgrades[k] = v; else delete g.upgrades[k]; }
-  if (g.paint === undefined) g.paint = null; if (!Array.isArray(g.unlocks)) g.unlocks = [];
+  // G3: paint kept only as palette colours and a known decal; anything else is the mech as built (null)
+  const p = g.paint;
+  g.paint = p && typeof p === 'object' && paintColour(p.body) && paintColour(p.trim) && decalOf(p.decal) ? { body: paintColour(p.body), trim: paintColour(p.trim), decal: decalOf(p.decal).id } : null;
+  if (!Array.isArray(g.unlocks)) g.unlocks = [];
   return r;
 }
 const Facts = {
@@ -1851,7 +1960,94 @@ function buildMech(paint = PAINT) {
     if (!o.isMesh || !o.material.emissive || !(o.material.emissiveIntensity > 0)) return;
     o.material = o.material.clone(); lights.push({ mat: o.material, k: o.material.emissiveIntensity });
   });
-  return { root, body, pelvis, torso, legs, arms, flashes, muzzleLight, lights, cockpit, canopy, ringGlow, skirt, chest, back };
+  // G3 paint roles: every mesh in the body colour that doesn't glow is 'body', in the trim colour 'trim' (see adoptPaint).
+  // (Every standard material is in lights by now, glowing or not: a black emissive is what doesn't glow)
+  root.traverse((o) => {
+    if (!o.isMesh || !o.material.color || o.material.emissive?.getHex()) return;
+    const hex = '#' + o.material.color.getHexString();
+    if (hex === paint.armour) o.userData.paint = 'body'; else if (hex === paint.trim) o.userData.paint = 'trim';
+  });
+  // G3 decal sockets: flat spots on the sections the chase camera sees (each side of the pilot's badge on the back
+  // plate, the top of each shoulder pauldron). [parent group, position, rotation, size]
+  const sockets = [
+    ...[-1, 1].map((s) => [torso, [s * 1.0, 0.95, 1.725], [0, 0, 0], 0.68]),
+    ...arms.map((A) => [A.shoulder, [A.s * 0.2, 0.97, 0], [-Math.PI / 2, 0, 0], 0.82]),
+  ];
+  const md = { root, body, pelvis, torso, legs, arms, flashes, muzzleLight, lights, cockpit, canopy, ringGlow, skirt, chest, back, sockets };
+  adoptPaint(md);
+  return md;
+}
+
+// G3 paint. Paint goes through materials, not meshes: a mech owns one copy of each material its painted meshes
+// use (md.paintMats[role]: source material → its copy), and paintMech sets the role's colour on those copies.
+// A mesh joins a role by its userData.paint tag ('body' | 'trim'); adoptPaint gives every tagged mesh not yet
+// adopted this mech's copy. So a section model swapped in later (new legs, a new torso) only has to tag its
+// meshes and call adoptPaint(md), then paintMech(md, …): the paint follows, whatever the geometry. The cached
+// mat() materials are shared with robots, trophies and upgrade pieces, so they're never changed.
+function adoptPaint(md) {
+  md.paintMats ||= { body: new Map(), trim: new Map() };
+  md.root.traverse((o) => {
+    const role = o.isMesh && o.userData.paint, M = role && md.paintMats[role];
+    if (!M || o.userData.painted) return;
+    let c = M.get(o.material);
+    if (!c) {
+      c = o.material.clone(); M.set(o.material, c);
+      for (const L of md.lights) if (L.mat === o.material) L.mat = c;   // still dims with the rest when it powers down
+    }
+    o.material = c; o.userData.painted = true;
+  });
+}
+// a decal's picture: drawn once per kind, trim colour and emblem, on a see-through square
+function decalTex(kind, trim, emblem) {
+  decalTex.cache ||= new Map();
+  const key = kind + trim + emblem; if (decalTex.cache.has(key)) return decalTex.cache.get(key);
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.lineJoin = 'round'; g.strokeStyle = '#14182a';
+  const star = (x, y, R) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * 0.45 : R; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.lineWidth = 10; g.stroke(); g.fillStyle = trim; g.fill(); };
+  if (kind === 'stars') { star(92, 96, 70); star(186, 168, 50); star(176, 52, 30); }
+  else if (kind === 'flames') {
+    // three tongues of flame licking up from the bottom, hot at the root and the trim colour at the tips
+    const gr = g.createLinearGradient(0, 256, 0, 20); gr.addColorStop(0, '#ff3d1f'); gr.addColorStop(0.45, '#ff8a1f'); gr.addColorStop(1, trim);
+    g.beginPath(); g.moveTo(14, 250);
+    for (const [x, top, w] of [[60, 40, 48], [130, 12, 56], [200, 60, 46]]) { g.quadraticCurveTo(x - w, 160, x - 6, top); g.quadraticCurveTo(x + w * 0.2, 130, x + w * 0.9, 250 - (x === 200 ? 0 : 30)); }
+    g.lineTo(244, 250); g.closePath(); g.lineWidth = 10; g.stroke(); g.fillStyle = gr; g.fill();
+  } else if (kind === 'stripes') {
+    // two racing stripes, corner to corner
+    for (const o of [-46, 46]) { g.beginPath(); g.moveTo(-20 + o, 276); g.lineTo(40 + o, 276); g.lineTo(276 + o, 40); g.lineTo(276 + o, -20); g.closePath(); g.lineWidth = 10; g.stroke(); g.fillStyle = trim; g.fill(); }
+  } else if (kind === 'emblem') {
+    g.beginPath(); g.arc(128, 128, 116, 0, Math.PI * 2); g.fillStyle = trim; g.fill(); g.lineWidth = 12; g.stroke();
+    g.font = '150px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(emblem, 128, 140);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  decalTex.cache.set(key, t);
+  return t;
+}
+// whoever is playing's paint on model md: body and trim colours on its own role materials, and the decal on its
+// sockets (one see-through square each, pushed just off the surface). p = { body, trim, decal } (Garage.paintNow()).
+function paintMech(md, p, pilot = Game.pilot) {
+  if (!md?.paintMats) return null;
+  for (const c of md.paintMats.body.values()) c.color.set(p.body);
+  for (const c of md.paintMats.trim.values()) c.color.set(p.trim);
+  if (!md.decals) {
+    const m = new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.05, roughness: 0.5, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, depthWrite: false });
+    md.decals = { mat: m, planes: md.sockets.map(([parent, pos, rot, size]) => {
+      const q = new THREE.Mesh(new THREE.PlaneGeometry(size, size), m); q.position.set(...pos); q.rotation.set(...rot); q.renderOrder = 2; q.userData.decal = true; parent.add(q); return q; }) };
+  }
+  const D = md.decals, on = p.decal !== 'none';
+  if (on) { const t = decalTex(p.decal, p.trim, pilot?.emblem ?? '⭐'); if (D.mat.map !== t) { D.mat.map = t; D.mat.needsUpdate = true; } }
+  for (const q of D.planes) q.visible = on;
+  md.paintNow = { ...p };
+  return md.paintNow;
+}
+// what paint model md wears, read back from the model: its role materials' colours (every copy), how many meshes
+// wear each role, and the decal squares showing (and on what)
+function paintLook(md) {
+  if (!md?.paintMats) return null;
+  const hexes = (role) => [...new Set([...md.paintMats[role].values()].map((c) => '#' + c.color.getHexString()))];
+  const meshes = { body: 0, trim: 0 }; md.root.traverse((o) => { if (o.isMesh && o.userData.painted) meshes[o.userData.paint]++; });
+  const shown = md.decals ? md.decals.planes.filter((q) => q.visible && q.parent) : [];
+  return { body: hexes('body'), trim: hexes('trim'), meshes, decal: shown.length ? md.paintNow?.decal ?? null : 'none', decals: shown.length,
+    decalOn: shown.map((q) => (q.parent === md.torso ? 'back' : 'shoulder')) };
 }
 
 // G2: each upgrade shows on the mech, in its part's colour, more of it at each level:
@@ -1940,6 +2136,7 @@ function applyUpgrades() {
   }
   m.spec = lv.motor ? { ...MECH, topSpeed: MECH.topSpeed * (1 + UPGRADE.speed * lv.motor) } : undefined;
   dressUpgrades(m.model, lv);
+  paintMech(m.model, Garage.paintNow());   // G3: and their paint
   return lv;
 }
 // G2 spring legs: player h's mech jumps (C, L, a stick pressed in, or __rb.jump). Refused without spring legs,
@@ -1994,6 +2191,7 @@ function setPilot(h, P) {
   p.helmet.material.color.copy(col); p.shoulders.material.color.copy(col).multiplyScalar(0.55); p.visor.material.emissive.copy(col);
   p.badge.material.map?.dispose(); p.badge.material.map = new THREE.CanvasTexture(pilotFace(P)); p.badge.material.map.colorSpace = THREE.SRGBColorSpace; p.badge.material.needsUpdate = true;
   md.canopy.material.emissive.copy(col); md.ringGlow.material.emissive.copy(col);
+  if (md.decals) paintMech(md, Garage.paintNow(), P);   // G3: the emblem decal is the pilot's
 }
 
 // Simulation state for one mech. Players and robots write the same `input`
@@ -2413,9 +2611,10 @@ const Bullets = {
   },
   // kind: 'gun' (a player's cannon) | 'em' (a player's electromagnetic pulse) | 'snipe' (a Sniper's rifle);
   // dmg defaults to the kind's
-  fire(from, dir, owner, kind = 'gun', dmg) {
+  // range: how far it flies (its kind's range if left out; G3: a squadmate Sniper's boosted rifle reaches further)
+  fire(from, dir, owner, kind = 'gun', dmg, range) {
     const W = WEAPON[kind] || ROBOT_HITS[kind], foe = !!owner?.type && owner.state === 'glitched';
-    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(W.speed), d: 0, owner, kind, foe, spd: W.speed, range: W.range, dmg: dmg ?? W.dmg, look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
+    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(W.speed), d: 0, owner, kind, foe, spd: W.speed, range: range ?? W.range, dmg: dmg ?? W.dmg, look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
     if (this.list.length > this.pool.length) this.list.shift();
   },
   tick(dt) {
@@ -3176,7 +3375,7 @@ const ROBOT_TYPES = {
     icon: '🐏', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
     spec: { topSpeed: 6.5, backSpeed: 5, accel: 4.5, brake: 8, boostSpeed: 17, boostAccel: 18, legTurn: 2.4, torsoTurn: 4, stride: 1.6, radius: 2.0 },
     paint: { armour: '#8a5cff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
-    build: buildCharger, ai: chargerAI, ally: allyAI, pose: chargerPose,
+    build: buildCharger, ai: chargerAI, ally: allyCharger, pose: chargerPose,
     parts: ['armour', 'battery', 'motor', 'wiring', 'ram'],
     notice: 60,
     tell: 'jolt',        // its glow flickers and its body jolts when the glitch spikes
@@ -3353,6 +3552,60 @@ function chargerAI(r, dt) {
   inp.aimYaw = r.legHeading;
 }
 
+// G3 squad job: ramming. A squadmate Charger follows like any squadmate; when a glitched robot on the ground is
+// within ALLY_RAM.reach of it (and within ALLY_RAM.lead of its leader) it paws the ground (windup), then charges it,
+// homing as it goes. allyRams() lands the hit on contact: ramDamage(r), and its job boost adds SQUAD_UP.ram a level.
+// It never rams a player or a squadmate.
+const ramDamage = (r) => Math.round(ROBOT_HITS.ram.allyDmg * (1 + SQUAD_UP.ram * jobLv(r)));
+const rammable = (q) => q.state === 'glitched' && !ROBOT_TYPES[q.type].flies && !q.air;
+function allyCharger(r, dt) {
+  const ai = r.ai, inp = r.input, lead = r.leader?.mech;
+  ai.ramCool = (ai.ramCool || 0) - dt;
+  const tgt = ai.ramAt && Game.robots.includes(ai.ramAt) && rammable(ai.ramAt) ? ai.ramAt : null;
+  if (ai.mode === 'windup' || ai.mode === 'charge') {
+    if (!tgt) { ai.mode = 'recover'; ai.t = ALLY_RAM.recover; }
+    else {
+      ai.t -= dt;
+      const err = wrapAngle(Math.atan2(-(tgt.pos.x - r.pos.x), -(tgt.pos.z - r.pos.z)) - r.legHeading);
+      inp.turn = clamp(-err * 2.5, -1, 1); inp.aimYaw = r.legHeading;
+      if (ai.mode === 'windup') { inp.throttle = 0; inp.boost = false; if (ai.t <= 0) { ai.mode = 'charge'; ai.t = ALLY_RAM.charge; } }
+      else { inp.throttle = 1; inp.boost = true; if (ai.t <= 0) { ai.mode = 'recover'; ai.t = ALLY_RAM.recover; } }
+      return;
+    }
+  }
+  if (ai.mode === 'recover') {
+    inp.throttle = 0; inp.boost = false; ai.t -= dt;
+    if (ai.t > 0) return;
+    ai.mode = 'follow'; ai.ramAt = null; ai.ramCool = ALLY_RAM.cool;
+  }
+  if (ai.ramCool <= 0 && lead && lead.state !== 'down') {
+    let best = null, bd = ALLY_RAM.reach;
+    for (const q of Game.robots) if (rammable(q) && flatDist(q, lead) < ALLY_RAM.lead) { const d = flatDist(q, r); if (d < bd) { bd = d; best = q; } }
+    if (best) {
+      ai.mode = 'windup'; ai.t = ALLY_RAM.windup; ai.ramAt = best; inp.throttle = 0; inp.boost = false;
+      const k = loud(r.pos); if (k > 0) Sfx.snort(k);
+      return;
+    }
+  }
+  allyAI(r, dt);
+}
+// A charging squadmate Charger that reaches its glitched target rams it (checked each tick, like rams(), with a
+// reach past the bodies' separation)
+function allyRams() {
+  for (const r of Game.squad) {
+    const q = r.ai.ramAt;
+    if (r.type !== 'charger' || r.ai.mode !== 'charge' || r.speed < ALLY_RAM.minSpeed || !q || !Game.robots.includes(q) || !rammable(q)) continue;
+    const dx = q.pos.x - r.pos.x, dz = q.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
+    if (d > q.spec.radius + r.spec.radius + 0.6) continue;
+    const dmg = ramDamage(r);
+    hitRobot(q, dmg, 'ram', dx, dz, new V3(q.pos.x - dx / d * q.spec.radius, q.pos.y + ROBOT_TYPES[q.type].hitY, q.pos.z - dz / d * q.spec.radius));
+    r.rams = (r.rams || 0) + 1; r.lastRam = dmg;
+    r.push.x -= dx / d * 6; r.push.z -= dz / d * 6; r.speed = 0;     // it bounces off
+    r.ai.mode = 'recover'; r.ai.t = ALLY_RAM.recover;
+    if (!Game.manual) Sfx.ram();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // The Sniper. Keeps its distance: inside keep[0] it turns and walks away (sliding
 // along the rim if it's backed up against the hills), past keep[1] it closes in,
@@ -3394,7 +3647,7 @@ function sniperGun(r, tgt, ally, dt) {
       if (Math.abs(wrapAngle(r.torsoYaw - inp.aimYaw)) < 0.25) { sniperShoot(r, tp, ally); ai.gunT = ally ? G.allyCool : G.cool; }
       else ai.aimT = 0.15;                               // still swinging round: hold the aim a moment longer
     }
-  } else if (ai.gunT <= 0 && dist < (ally ? G.allyRange : G.range)) {
+  } else if (ai.gunT <= 0 && dist < (ally ? sniperRange(r) : G.range)) {
     ai.aimT = ally ? G.allyAim : G.aim;
     const k = loud(r.pos); if (k > 0) Sfx.aimWhine(k);
   }
@@ -3404,16 +3657,19 @@ function sniperShoot(r, tp, ally) {
   const from = new V3(r.pos.x + rx * 0.85 + fx * 3.2, r.pos.y + 5.25, r.pos.z + rz * 0.85 + fz * 3.2);
   const dir = tp.clone().sub(from).normalize();
   if (!ally) { dir.applyAxisAngle(UP, (Math.random() - 0.5) * 0.05); dir.y += (Math.random() - 0.5) * 0.02; dir.normalize(); }
-  Bullets.fire(from, dir, r, 'snipe', ally ? ROBOT_HITS.snipe.allyDmg : undefined);
+  // a squadmate's round flies at least past its (boosted) range, so a target it aims at is one it can reach
+  Bullets.fire(from, dir, r, 'snipe', ally ? ROBOT_HITS.snipe.allyDmg : undefined, ally ? Math.max(ROBOT_HITS.snipe.range, sniperRange(r) + 15) : undefined);
   r.shots = (r.shots || 0) + 1;
   Sparks.burst(from.x, from.y, from.z, 6, ally ? SPARK_ZAP : SPARK_HOT, 4);
   const k = loud(r.pos); if (k > 0) Sfx.snipe(k);
 }
 // Squad job: hits from far away. Follows like any squadmate, and picks off the nearest
 // glitched robot within gun.allyRange with its rifle (a quick cyan laser, then a round).
+// G3: its job boost reaches SQUAD_UP.range further a level
+const sniperRange = (r) => ROBOT_TYPES.sniper.gun.allyRange * (1 + SQUAD_UP.range * jobLv(r));
 function allySniper(r, dt) {
   allyAI(r, dt);
-  const G = ROBOT_TYPES.sniper.gun; let best = null, bd = G.allyRange;
+  let best = null, bd = sniperRange(r);
   r.ai.gunT = (r.ai.gunT || 0) - dt;
   for (const q of Game.robots) if (q.state === 'glitched') { const d = flatDist(q, r); if (d < bd) { bd = d; best = q; } }
   if (!best) { r.ai.aimT = 0; return; }
@@ -3480,12 +3736,14 @@ function droneFly(r, dt) {
 // has spotted yet, marks it with a beacon (its icon high over it: the part's, or 🧰), then comes back.
 // ai.scout is the thing it's off to (a Hidden.list or Kits.list entry; their .kind says which).
 const scoutable = (k) => (k.kind === 'kit' ? Kits.list.includes(k) : !k.found);
+// G3: its job boost scouts SQUAD_UP.scout further a level
+const scoutRange = (r) => ROBOT_TYPES.drone.scout * (1 + SQUAD_UP.scout * jobLv(r));
 function allyDrone(r, dt) {
-  const ai = r.ai, T = ROBOT_TYPES.drone, lead = r.leader?.mech;
+  const ai = r.ai, T = ROBOT_TYPES.drone, lead = r.leader?.mech, far = scoutRange(r);
   ai.scoutT = (ai.scoutT || 0) - dt;
   if (ai.mode === 'scout') {
     const k = ai.scout;
-    if (!k || !scoutable(k) || !lead || Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z) > T.scout + 20) { ai.mode = 'follow'; ai.scout = null; ai.scoutT = 2; }
+    if (!k || !scoutable(k) || !lead || Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z) > far + 20) { ai.mode = 'follow'; ai.scout = null; ai.scoutT = 2; }
     else {
       const d = steer(r, k.x, k.z, 1, 6);
       r.input.boost = false; r.input.aimYaw = r.legHeading;
@@ -3499,7 +3757,7 @@ function allyDrone(r, dt) {
   }
   if (ai.scoutT <= 0 && lead && lead.state !== 'down') {
     const claimed = new Set(Game.squad.map((q) => q.ai.scout).filter(Boolean));
-    let best = null, bd = T.scout;
+    let best = null, bd = far;
     for (const k of [...Hidden.list.filter(scoutable), ...Kits.list]) { if (k.spotted || claimed.has(k)) continue; const d = Math.hypot(k.x - lead.pos.x, k.z - lead.pos.z); if (d < bd && d > T.scoutMin) { bd = d; best = k; } }
     if (best) { ai.mode = 'scout'; ai.scout = best; ai.hover = 0; return; }
     ai.scoutT = 1;
@@ -3643,6 +3901,8 @@ function bouncerAI(r, dt) {
   if (dist < 12) inp.throttle = 0;
   if (ai.t <= 0 && dist < J.reach) { ai.mode = 'crouch'; ai.t = J.crouch; inp.throttle = inp.turn = 0; }
 }
+// G3: how many robots a squadmate Bouncer's chain springs off: 4, and its job boost adds SQUAD_UP.chain a level
+const bounceChain = (r) => 4 + SQUAD_UP.chain * jobLv(r);
 // Squad job: bouncing from enemy to enemy. When a glitched robot comes within jump.reach
 // (and near its leader) it crouches and springs from one glitched robot's head to the
 // next, each stomp harder than the last, then hops back to its place.
@@ -3656,7 +3916,7 @@ function allyBouncer(r, dt) {
     if (ai.t > 0) return;
     if (ai.mode === 'crouch') {
       r.bounces = 0;
-      const plan = bouncePlan(r, null, (q) => q.state === 'glitched', 4);
+      const plan = bouncePlan(r, null, (q) => q.state === 'glitched', bounceChain(r));
       if (plan.length) { hop(r, plan.shift(), plan); return; }
     }
     ai.mode = 'follow';
@@ -3985,6 +4245,7 @@ function fixRobot(h, r) {
   r.maxHealth = Math.round(ROBOT_TYPES[r.type].health * ALLY.energy);
   if (r.gold) { r.maxHealth = Math.round(r.maxHealth * MATHFIX.health); setGlowColor(r, MATHFIX.gold); Game.waveStats.fast++; }
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
+  r.upg = { plating: 0, job: 0 };                        // G3: its own garage upgrades start at none
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
   r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
   r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow;   // its own colour (or gold), held steady (the glitch flicker is gone)
@@ -3994,6 +4255,15 @@ function fixRobot(h, r) {
   if (!Game.manual) Sfx.fixed();
   if (h.idx === 0) { if (rp.askName) FixUI.openName(r); else FixUI.close(); }
   Game.waveStats.fixed++; Waves.check();
+}
+// G3: a squadmate's energy with its plating: its squadmate energy (ALLY.energy × its type's, × MATHFIX.health if
+// gold), SQUAD_UP.energy more a level, worked out unrounded and rounded once
+const squadEnergy = (r) => Math.round(ROBOT_TYPES[r.type].health * ALLY.energy * (r.gold ? MATHFIX.health : 1) * (1 + SQUAD_UP.energy * (r.upg?.plating || 0)));
+// what squadmate r's upgrades do now: energy, and its job (ram damage, rifle range m, scout range m or chain bounces)
+function squadEffects(r) {
+  const J = SQUAD_JOB[r.type];
+  const job = { ram: ramDamage(r), range: r3(sniperRange(r)), scout: r3(scoutRange(r)), chain: bounceChain(r) }[J.what];
+  return { maxHealth: r.maxHealth, job: { what: J.what, value: job } };
 }
 function setRobotName(r, name) {
   r.name = name;
@@ -4488,8 +4758,8 @@ function gatherInput(dt) {
     } else if (asking && pad) {
       // who goes home: d-pad ◀ ▶ moves between squadmates, A sends that one home, B backs out
       const rp = h.repair, n = Game.squad.length;
-      if (n && (pad.leftP || pad.rightP)) rp.cur = (rp.cur + (pad.rightP ? 1 : -1) + n) % n;
-      if (pad.aP && n) chooseHome(h, Game.squad[rp.cur % n]);
+      if (n && (pad.leftP || pad.rightP)) { rp.cur = (rp.cur + (pad.rightP ? 1 : -1) + n) % n; if (h.idx === 0) FixUI.homeWarn = null; }
+      if (pad.aP && n) { if (h.idx === 0) FixUI.pickHome(h, Game.squad[rp.cur % n]); else chooseHome(h, Game.squad[rp.cur % n]); }
       else if (pad.bP) { padB = true; cancelRepair(h); if (h.idx === 0) FixUI.relock(); }
       if (h.idx === 0 && FixUI.mode === 'home') FixUI.drawHome();
     } else if (wiring && pad) {
@@ -4545,6 +4815,7 @@ function tick(dt) {
   for (const r of Game.robots) robotTick(r, dt);
   Bullets.tick(dt);
   rams();
+  allyRams();
   separate();
   for (const h of Game.humans) playerTick(h, dt);
   Sparks.tick(dt);
@@ -4603,7 +4874,7 @@ const FixUI = {
     $('jumpBtn').addEventListener('click', (e) => { e.stopPropagation(); const h = Game.humans[0]; if (!Game.paused && !h?.repair && !['wires', 'parts', 'home', 'name'].includes(this.mode)) jumpMech(h); });   // as C: not while fixing, taking parts, sending home or naming
     $('mendX').addEventListener('click', () => this.dismiss());
     $('mendTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.useMend(Game.humans[0], t.dataset.part); });
-    $('homeTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) chooseHome(Game.humans[0], Game.squad.find((q) => q.id === +t.dataset.id)); });
+    $('homeTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.pickHome(Game.humans[0], Game.squad.find((q) => q.id === +t.dataset.id)); });
     $('homeX').addEventListener('click', () => this.dismiss());
     // the weapon slots on the HUD: a tap picks one (a locked one buzzes)
     $('weapons').addEventListener('click', (e) => { const b = e.target.closest('.wpn'); if (b) { e.stopPropagation(); selectWeapon(Game.humans[0], b.dataset.w); } });
@@ -4729,7 +5000,7 @@ const FixUI = {
   },
   // squad full: every squadmate as a tile; tap the one that goes home. The new robot is shown in the top.
   openHome(r) {
-    this.mode = 'home'; this.r = r; this.homeKey = null;   // mode first, so freeing the mouse isn't a pause
+    this.mode = 'home'; this.r = r; this.homeKey = null; this.homeWarn = null;   // mode first, so freeing the mouse isn't a pause
     $('homeNew').textContent = '❓  ➕' + ROBOT_TYPES[r.type].icon;
     this.show('home'); this.drawHome();
     if (document.pointerLockElement) document.exitPointerLock();
@@ -4737,8 +5008,25 @@ const FixUI = {
   drawHome() {
     if (this.mode !== 'home') return;
     const rp = Game.humans[0]?.repair, pad = padConnected(), cur = rp?.cur ?? 0;
-    const key = JSON.stringify([Game.squad.map((q) => q.id + q.name), pad && cur]); if (key === this.homeKey) return; this.homeKey = key;
-    $('homeTiles').innerHTML = Game.squad.map((q, i) => `<div class="homeTile"><button class="tile mate${pad && i === cur % Game.squad.length ? ' cur' : ''}" data-id="${q.id}" aria-label="${q.name}">${ROBOT_TYPES[q.type].icon}</button><span>${q.name}</span></div>`).join('');
+    const key = JSON.stringify([Game.squad.map((q) => q.id + q.name + JSON.stringify(q.upg || {})), pad && cur, this.homeWarn]); if (key === this.homeKey) return; this.homeKey = key;
+    $('homeTiles').innerHTML = Game.squad.map((q, i) => { const n = (q.upg?.plating || 0) + (q.upg?.job || 0), warn = this.homeWarn === q.id;
+      return `<div class="homeTile"><button class="tile mate${pad && i === cur % Game.squad.length ? ' cur' : ''}${warn ? ' warn' : ''}" data-id="${q.id}" data-up="${n}" aria-label="${q.name}${n ? ': has upgrades' : ''}">${ROBOT_TYPES[q.type].icon}${n ? '<span class="wb">⚠️</span>' : ''}</button><span>${q.name}</span>`
+        + `${n ? `<span class="hup">⬆️${'<i></i>'.repeat(n)}</span>` : ''}</div>`; }).join('');
+    $('homeWarn').classList.toggle('on', this.homeWarn != null);
+  },
+  // G3: pick who goes home, as a tap on their tile does. A squadmate with upgrades isn't sent on the first pick: that
+  // warns (its tile turns red, ⚠️ 🏠 ➜ ⬆️✖ shows) and only a second pick of the same one sends it. Mouse / touch, the
+  // pad's A and __rb.sendHome all come here.
+  pickHome(h, mate) {
+    if (!mate || !Game.squad.includes(mate)) return chooseHome(h, mate);
+    const n = (mate.upg?.plating || 0) + (mate.upg?.job || 0);
+    if (n && this.homeWarn !== mate.id && h?.repair?.kind === 'home') {
+      this.homeWarn = mate.id; this.drawHome();
+      if (!Game.manual) Sfx.buzz();
+      return { ok: false, why: 'upgrades', warn: mate.id, upgrades: { ...mate.upg } };
+    }
+    this.homeWarn = null;
+    return chooseHome(h, mate);
   },
   openName(r) {
     this.r = r; this.mode = 'name'; this.drag = null;
@@ -5237,22 +5525,23 @@ function updateHud() {
 // wall. It opens from the 🔧 on the pause screen and on the clear screen (G or pad X
 // there too); the world is paused while it's open, and ✖, Esc, G, pad B (or Start)
 // closes it: back to the pause screen, or from the clear screen straight back to the
-// running meadow. 🏆 Trophies and 🦾 Mech (G2: upgrades bought with parts from the bag)
-// work; 🤖 Squad and 🎨 Paint show 🔒 coming soon. The 3D (the lift, a piece per part type) is drawn by the game's
+// running meadow. 🏆 Trophies, 🦾 Mech (G2: upgrades bought with parts from the bag), 🤖 Squad
+// (G3: each squadmate's own upgrades) and 🎨 Paint (G3: free colours and a decal). The 3D (the lift, a piece per part type) is drawn by the game's
 // own renderer into each box's rectangle while the garage is open, under a see-through
 // HTML layer that carries the counts, the icons and the buttons.
 // ===========================================================================
 const GARAGE_TABS = [
   { id: 'trophies', icon: '🏆', name: 'Trophies' },
   { id: 'mech', icon: '🦾', name: 'Mech' },
-  { id: 'squad', icon: '🤖', name: 'Squad', locked: true },
-  { id: 'paint', icon: '🎨', name: 'Paint', locked: true },
+  { id: 'squad', icon: '🤖', name: 'Squad' },
+  { id: 'paint', icon: '🎨', name: 'Paint' },
 ];
 const GARAGE = { bg: '#1b2034', lift: 1.2, spin: 0.45, pieceSpin: 0.7, ghost: '#0b0e18', rim: '#6f7a9c' };
 // where a trophy came from, as an icon: the robot type's own, or 🔍 for a part hidden in the meadow
 const sourceIcon = (src) => (src === 'meadow' ? '🔍' : ROBOT_TYPES[src]?.icon ?? '❓');
 const Garage = {
   on: false, from: null, tab: 'trophies', loose: blankGarage(), t: 0, liftT: 0, drawn: {}, scene: null, cur: 0,   // cur: the 🦾 card picked by keys / pad
+  scur: 0, prow: 0,   // G3: the 🤖 button picked (squadmate × upgrade, in reading order) and the 🎨 row picked (0 body, 1 trim, 2 decal)
   // whoever is playing's garage (their record's; before anyone is picked, a loose one for this session)
   rec() { return Facts.rec ? fillGarage(Facts.rec).garage : this.loose; },
   // a part went into the bag: count it on the wall, with where it came from (a robot type or 'meadow')
@@ -5285,7 +5574,7 @@ const Garage = {
     if (FixUI.mode === 'bag' || FixUI.mode === 'mend') FixUI.close();
     Progress.holdStop();
     if (from === 'clear') setPause(true);
-    this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {}; this.cur = 0;
+    this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {}; this.cur = 0; this.scur = 0; this.prow = 0;
     document.body.classList.add('garage'); $('garage').classList.add('on');
     this.build(); this.dress(); this.draw();
     if (!Game.manual) { Sfx.click(); Sfx.tone(70, 1.1, 'sawtooth', 0.07, 150); Sfx.tone(1200, 0.08, 'square', 0.05, null, 1.1); }
@@ -5315,23 +5604,43 @@ const Garage = {
   key(e) {
     if (e.code === 'Tab' || (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
     if (e.repeat) return 'used';
-    if (this.tab === 'mech' && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
-    else if (this.tab === 'mech' && (e.code === 'Enter' || e.code === 'Space')) this.buy(UPGRADES[this.cur].id);
+    if (this.tab !== 'trophies' && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
+    else if (this.tab !== 'trophies' && (e.code === 'Enter' || e.code === 'Space')) this.act();
     else if (e.code === 'Escape' || e.code === 'KeyG') this.close();
     else if (['ArrowLeft', 'KeyA', 'KeyQ'].includes(e.code)) this.step(-1);
     else if (['ArrowRight', 'KeyD', 'KeyE'].includes(e.code)) this.step(1);
     else { const d = /^Digit([1-4])$/.exec(e.code); if (d) this.setTab(+d[1] - 1); }
     return 'used';
   },
-  // the gamepad: ◀ ▶ or LB / RB pick a tab; on 🦾, ▲ ▼ move between the upgrades and A buys; B, X or Start closes
+  // the gamepad: ◀ ▶ or LB / RB pick a tab; on 🦾 / 🤖, ▲ ▼ move between the upgrades and A buys; on 🎨, ▲ ▼ pick
+  // a row and A puts on its next colour or decal; B, X or Start closes
   pad(pad) {
     if (!pad) return;
     if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
-    if (this.tab === 'mech') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.buy(UPGRADES[this.cur].id); }
+    if (this.tab !== 'trophies') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
     if (pad.bP || pad.xP || pad.startP) this.close();
   },
-  // move the 🦾 pick d cards on (reading order, round the end)
-  move(d) { const n = UPGRADES.length; this.cur = (this.cur + d + n) % n; this.draw(); if (!Game.manual) Sfx.click(); return UPGRADES[this.cur].id; },
+  // move the pick d on (reading order, round the end): the 🦾 card, the 🤖 button or the 🎨 row
+  move(d) {
+    const wrap = (i, n) => (n ? (i + d + n) % n : 0);
+    let out;
+    if (this.tab === 'squad') { const o = this.squadOptions(); this.scur = wrap(this.scur, o.length); out = o[this.scur] ? o[this.scur].id + ':' + o[this.scur].up : null; }
+    else if (this.tab === 'paint') { this.prow = wrap(this.prow, 3); out = ['body', 'trim', 'decal'][this.prow]; }
+    else { this.cur = wrap(this.cur, UPGRADES.length); out = UPGRADES[this.cur].id; }
+    this.draw(); if (!Game.manual) Sfx.click();
+    return out;
+  },
+  // Enter / Space / pad A on the open tab: buy the 🦾 or 🤖 pick, or put on the 🎨 row's next colour / decal
+  act() {
+    if (this.tab === 'mech') return this.buy(UPGRADES[this.cur].id);
+    if (this.tab === 'squad') { const o = this.squadOptions()[this.scur]; return o ? this.squadBuy(o.id, o.up) : { ok: false, why: 'no squad' }; }
+    if (this.tab === 'paint') {
+      const p = this.paintNow(), row = ['body', 'trim', 'decal'][this.prow];
+      const next = row === 'decal' ? DECALS[(DECALS.findIndex((D) => D.id === p.decal) + 1) % DECALS.length].id : PALETTE[(PALETTE.indexOf(p[row]) + 1) % PALETTE.length];
+      return this.setPaint({ [row]: next });
+    }
+    return null;
+  },
   // ---- G2: upgrades. Levels, and what buying the next level of each needs
   levels() { return upLevels(this.rec()); },
   offer() {
@@ -5363,17 +5672,68 @@ const Garage = {
     if (!Game.manual) { Sfx.mendParts(); Sfx.tone(523, 0.12, 'square', 0.06, 784, 0.32); }
     return { ok: true, id: U.id, level: lv + 1, spent: UPGRADE.cost, left: Game.bag[U.id] || 0 };
   },
-  // a card's shake (refused) or glow (bought)
-  flash(id, cls) {
-    const el = this.on && $('gWall').querySelector(`.ucard[data-up="${id}"]`); if (!el) return;
+  // a card's shake (refused) or glow (bought); sel picks the element (a 🦾 card by default)
+  flash(id, cls, sel = `.ucard[data-up="${id}"]`) {
+    const el = this.on && $('gWall').querySelector(sel); if (!el) return;
     el.classList.remove('bad', 'got'); void el.offsetWidth; el.classList.add(cls);
+  },
+  // ---- G3: squad upgrades. Every squadmate's two, in reading order (squadmate, then plating / job): what the
+  // 🤖 tab's buttons are, and what ▲ ▼ step through
+  squadOptions() { return Game.squad.flatMap((r) => SQUAD_UPS.map((U) => ({ id: r.id, up: U.id }))); },
+  squadOffer(r) {
+    return Object.fromEntries(SQUAD_UPS.map((U) => { const part = squadPart(r, U.id), lv = r.upg?.[U.id] || 0, have = Game.bag[part] || 0, max = lv >= SQUAD_UP.max;
+      return [U.id, { level: lv, max: SQUAD_UP.max, part, cost: SQUAD_UP.cost, have, maxed: max, can: !max && have >= SQUAD_UP.cost }]; }));
+  },
+  // buy the next level of upgrade name ('plating' | 'job', or an alias: 'armour', 'boost', the part's id or icon) for
+  // squadmate id (a squad robot's id, or the robot itself): spends SQUAD_UP.cost of its part from the bag and puts it
+  // on that squadmate. Plating raises its energy (and its health by the same, as 🛡️ does on the mech); the job boost
+  // makes its squad job stronger. Refused with nothing spent: 'no such squadmate' | 'no such upgrade' | 'maxed' |
+  // 'not enough parts'. The 🤖 buttons, keys and pad and __rb.squadUpgrade() all come here.
+  squadBuy(id, name) {
+    const r = Game.squad.find((q) => q === id || q.id === id);
+    if (!r) return { ok: false, why: 'no such squadmate' };
+    // a part (its id or icon) names the upgrade it pays for: 🛡️ plating, this robot's own part its job boost
+    const P = Object.keys(PARTS).find((k) => k === name || PARTS[k].icon === name);
+    const U = P ? (P === 'armour' ? SQUAD_UPS[0] : P === SQUAD_JOB[r.type].part ? SQUAD_UPS[1] : null) : squadUpOf(name);
+    if (!U) return { ok: false, why: 'no such upgrade' };
+    r.upg ||= { plating: 0, job: 0 };
+    const part = squadPart(r, U.id), lv = r.upg[U.id] || 0, have = Game.bag[part] || 0;
+    let res;
+    if (lv >= SQUAD_UP.max) res = { ok: false, why: 'maxed', id: r.id, up: U.id, level: lv };
+    else if (have < SQUAD_UP.cost) res = { ok: false, why: 'not enough parts', id: r.id, up: U.id, level: lv, part, have, need: SQUAD_UP.cost };
+    if (res) {
+      if (!Game.manual) Sfx.buzz();
+      this.flash(null, 'bad', `.sbuy[data-id="${r.id}"][data-up="${U.id}"]`);
+      return res;
+    }
+    Game.bag[part] = have - SQUAD_UP.cost; if (!Game.bag[part]) delete Game.bag[part];
+    r.upg[U.id] = lv + 1;
+    if (U.id === 'plating') { const max = squadEnergy(r), d = max - r.maxHealth; r.maxHealth = max; r.health = clamp(r.health + d, 1, max); }
+    if (this.on) { const i = this.squadOptions().findIndex((o) => o.id === r.id && o.up === U.id); if (i >= 0) this.scur = i; this.draw(); this.flash(null, 'got', `.scard[data-id="${r.id}"]`); }
+    if (!Game.manual) { Sfx.mendParts(); Sfx.tone(523, 0.12, 'square', 0.06, 784, 0.32); }
+    return { ok: true, id: r.id, up: U.id, level: lv + 1, part, spent: SQUAD_UP.cost, left: Game.bag[part] || 0, effects: squadEffects(r) };
+  },
+  // ---- G3: paint. Whoever is playing's paint (the mech as built when they've none)
+  paintNow() { const p = this.rec().paint; return p ? { ...p } : { body: PAINT.armour, trim: PAINT.trim, decal: 'none' }; },
+  // change any of body / trim (palette colours: a hex from PALETTE or its index) and decal (an id, icon or index);
+  // a value left out stays. Free, saved to whoever is playing's record, on the mech straight away. An unknown value
+  // is refused and nothing changes.
+  setPaint(o = {}) {
+    const p = this.paintNow(), next = { ...p };
+    for (const k of ['body', 'trim']) if (o[k] != null) { const c = paintColour(o[k]); if (!c) return { ok: false, why: 'not a palette colour', [k]: o[k], palette: PALETTE.slice() }; next[k] = c; }
+    if (o.decal != null) { const D = decalOf(o.decal); if (!D) return { ok: false, why: 'no such decal', decal: o.decal, decals: DECALS.map((x) => x.id) }; next.decal = D.id; }
+    this.rec().paint = next; Facts.save();
+    const m = Game.humans[0]?.mech; if (m) paintMech(m.model, next);
+    if (this.on) { this.dress(); this.draw(); }
+    if (!Game.manual) Sfx.tone(880, 0.07, 'triangle', 0.06, 1320);
+    return { ok: true, paint: { ...next } };
   },
   // ---- the HTML layer: tabs, the wall (or the 🔒), who's on the lift
   draw() {
     if (!this.on) return;
     $('gTabs').innerHTML = GARAGE_TABS.map((T) => `<button class="gtab${T.id === this.tab ? ' on' : ''}${T.locked ? ' locked' : ''}" data-t="${T.id}" aria-label="${T.name}${T.locked ? ': coming soon' : ''}">${T.icon}<small>${T.name}</small>${T.locked ? '<i class="lk">🔒</i>' : ''}</button>`).join('');
     const T = GARAGE_TABS.find((x) => x.id === this.tab);
-    $('gWall').classList.toggle('mech', T.id === 'mech');
+    for (const c of ['mech', 'squad', 'paint']) $('gWall').classList.toggle(c, T.id === c);
     if (T.locked) $('gWall').innerHTML = `<div class="glock" data-tab="${T.id}"><span class="big">🔒</span><span class="ti">${T.icon}</span><b>coming soon</b></div>`;
     else if (T.id === 'mech') {
       // a card per upgrade: the part (3D), what a level does, pips, cost × part, the bag's count, the buy button
@@ -5388,6 +5748,33 @@ const Garage = {
           + `<div class="tv"></div><b class="ufx">${U.fx}</b><span class="pips">${pips}</span>`
           + `<div class="ubot"><span class="ucost">${o.maxed ? '' : o.cost + '×' + P.icon}</span><span class="uhave${o.can || o.maxed ? '' : ' short'}">🎒${o.have}</span>${key}${btn}</div></div>`;
       }).join('');
+    } else if (T.id === 'squad') {
+      // G3: a card per squadmate: its icon, name (in its glow colour) and energy; a row per upgrade (the part and
+      // what a level does, pips, cost × part, the bag's count, ⬆️); and once it has any, 🏠 ➜ ⬆️✖ (sent home, they go)
+      const opts = this.squadOptions(); this.scur = opts.length ? Math.min(this.scur, opts.length - 1) : 0;
+      $('gWall').innerHTML = !Game.squad.length ? `<div class="glock sempty"><span class="big">🤖</span><b>🔧 ➜ 🤖</b></div>`
+        : Game.squad.map((r) => {
+          const of = this.squadOffer(r), J = SQUAD_JOB[r.type], any = SQUAD_UPS.some((U) => of[U.id].level > 0);
+          const rows = SQUAD_UPS.map((U) => {
+            const o = of[U.id], P = PARTS[o.part], cur = opts[this.scur]?.id === r.id && opts[this.scur]?.up === U.id;
+            const pips = Array.from({ length: o.max }, (_, k) => `<i class="${k < o.level ? 'on' : ''}"></i>`).join('');
+            const fx = U.id === 'plating' ? '❤️+25%' : J.fx;
+            const btn = o.maxed ? `<button class="ubuy sbuy max" data-id="${r.id}" data-up="${U.id}" aria-label="${r.name} ${U.name}: all done">⭐</button>`
+              : `<button class="ubuy sbuy${o.can ? '' : ' off'}" data-id="${r.id}" data-up="${U.id}" aria-label="Buy ${U.name} for ${r.name}${o.can ? '' : ': need ' + o.cost + ' ' + o.part}">⬆️</button>`;
+            return `<div class="srow${cur ? ' cur' : ''}" data-id="${r.id}" data-up="${U.id}" data-level="${o.level}" style="--pc:${P.hex}" aria-label="${U.name}: level ${o.level} of ${o.max}">`
+              + `<span class="spart">${P.icon}</span><b class="ufx">${fx}</b><span class="pips">${pips}</span>`
+              + `<span class="ucost">${o.maxed ? '' : o.cost + '×' + P.icon}</span><span class="uhave${o.can || o.maxed ? '' : ' short'}">🎒${o.have}</span>${btn}</div>`;
+          }).join('');
+          return `<div class="scard" data-id="${r.id}" style="--gc:${r.glowColor || ALLY.color}"><div class="shead"><span class="sic">${ROBOT_TYPES[r.type].icon}</span><b class="sname">${r.name}</b>`
+            + `${any ? '<span class="swarn" aria-label="Sent home, its upgrades are lost">🏠 ➜ ⬆️✖</span>' : ''}<span class="shp">❤️${r.maxHealth}</span></div>${rows}</div>`;
+        }).join('');
+    } else if (T.id === 'paint') {
+      // G3: three rows: 🤖 body colour, ✨ trim colour, 🏷️ decal (each decal drawn as it will look, in the trim colour)
+      const p = this.paintNow(), em = Game.pilot?.emblem ?? '⭐';
+      const row = (i, id, icon, name, inner) => `<div class="prow${i === this.prow ? ' cur' : ''}" data-row="${id}"><span class="plab">${icon}<small>${name}</small></span><div class="psw">${inner}</div></div>`;
+      const sw = (id) => PALETTE.map((c, k) => `<button class="swatch${p[id] === c ? ' on' : ''}" data-row="${id}" data-v="${k}" style="--sc:${c}" aria-label="${id} colour ${k + 1}"></button>`).join('');
+      const dec = DECALS.map((D) => `<button class="decal${p.decal === D.id ? ' on' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}">${D.id === 'none' ? D.icon : `<img alt="" src="${decalTex(D.id, p.trim, em).image.toDataURL()}">`}</button>`).join('');
+      $('gWall').innerHTML = row(0, 'body', '🤖', 'Body', sw('body')) + row(1, 'trim', '✨', 'Trim', sw('trim')) + row(2, 'decal', '🏷️', 'Decal', dec);
     } else {
       const tr = this.trophies();
       $('gWall').innerHTML = Object.keys(PARTS).map((id) => {
@@ -5413,7 +5800,16 @@ const Garage = {
       return [el.dataset.up, { pips: el.querySelectorAll('.pips i.on').length, of: el.querySelectorAll('.pips i').length, cost: el.querySelector('.ucost').textContent, have: el.querySelector('.uhave').textContent,
         short: el.querySelector('.uhave').classList.contains('short'), button: b.classList.contains('max') ? 'max' : b.classList.contains('off') ? 'off' : 'buy', fx: el.querySelector('.ufx').textContent,
         key: el.querySelector('.ukey')?.textContent ?? null, picked: el.classList.contains('cur'), drawn: this.drawn['up:' + el.dataset.up] ?? null }]; }));
-    return { tab: this.tab, lock: lock ? { tab: lock.dataset.tab, text: lock.textContent } : null, slots, cards, lift: this.drawn.lift ?? null,
+    // G3: the 🤖 cards as shown (per squadmate: name, energy shown, the 🏠 warning, and per upgrade the same as a 🦾
+    // card's), and the 🎨 rows (the colour / decal lit in each, how many swatches, the row picked)
+    const rowOf = (el) => { const b = el.querySelector('.ubuy'); return { pips: el.querySelectorAll('.pips i.on').length, of: el.querySelectorAll('.pips i').length, fx: el.querySelector('.ufx').textContent, part: el.querySelector('.spart').textContent,
+      cost: el.querySelector('.ucost').textContent, have: el.querySelector('.uhave').textContent, short: el.querySelector('.uhave').classList.contains('short'),
+      button: b.classList.contains('max') ? 'max' : b.classList.contains('off') ? 'off' : 'buy', picked: el.classList.contains('cur') }; };
+    const squad = [...$('gWall').querySelectorAll('.scard')].map((el) => ({ id: +el.dataset.id, icon: el.querySelector('.sic').textContent, name: el.querySelector('.sname').textContent, hp: el.querySelector('.shp').textContent,
+      warn: el.querySelector('.swarn')?.textContent ?? null, rows: Object.fromEntries([...el.querySelectorAll('.srow')].map((r) => [r.dataset.up, rowOf(r)])) }));
+    const prows = [...$('gWall').querySelectorAll('.prow')];
+    const paint = prows.length ? Object.fromEntries(prows.map((el) => { const on = el.querySelector('.on'); return [el.dataset.row, { on: on ? (el.dataset.row === 'decal' ? on.dataset.v : PALETTE[+on.dataset.v]) : null, n: el.querySelectorAll('.swatch, .decal').length, picked: el.classList.contains('cur'), imgs: el.querySelectorAll('img').length }]; })) : null;
+    return { tab: this.tab, lock: lock ? { tab: lock.dataset.tab, text: lock.textContent } : null, slots, cards, squad, empty: !!$('gWall').querySelector('.sempty'), paint, lift: this.drawn.lift ?? null,
       tabs: [...$('gTabs').children].map((b) => b.dataset.t + (b.classList.contains('on') ? '*' : '') + (b.classList.contains('locked') ? '🔒' : '')) };
   },
   status() {
@@ -5421,7 +5817,10 @@ const Garage = {
     return { on: this.on, from: this.from, tab: this.tab, tabs: GARAGE_TABS.map((T) => ({ id: T.id, locked: !!T.locked })), paused: Game.paused,
       trophies: tr, found: Object.values(tr).filter((t) => t.found).length, types: Object.keys(PARTS).length,
       // G2: upgrade levels, and per upgrade what buying its next level needs (cost, have in the bag, can, maxed)
-      upgrades: this.levels(), offer: this.offer(), cur: UPGRADES[this.cur].id, dom: this.dom() };
+      upgrades: this.levels(), offer: this.offer(), cur: UPGRADES[this.cur].id,
+      // G3: per squadmate its upgrades, what the next level of each needs, and what they do; the 🤖 pick; paint
+      squad: Game.squad.map((r) => ({ id: r.id, type: r.type, name: r.name, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, offer: this.squadOffer(r), effects: squadEffects(r) })),
+      scur: this.squadOptions()[this.scur] ?? null, paint: this.paintNow(), prow: ['body', 'trim', 'decal'][this.prow], dom: this.dom() };
   },
   // ---- the 3D: one scene, built once: lights, the lift (with a copy of the player's mech on it, made on
   // each open so it wears the current pilot and colours), and a lit piece and a dark outline per part type
@@ -5521,6 +5920,12 @@ const Garage = {
     // G2: a 🦾 card's ⬆️ buys; a tap anywhere else on a card picks it
     $('gWall').addEventListener('click', (e) => {
       const b = e.target.closest('.ubuy'), c = e.target.closest('.ucard');
+      // G3: a 🤖 ⬆️ buys for its squadmate (a tap elsewhere on its row picks it); a 🎨 swatch or decal puts it on
+      const sr = e.target.closest('.srow'), pv = e.target.closest('.swatch, .decal'), pr = e.target.closest('.prow');
+      if (b && b.classList.contains('sbuy')) { e.stopPropagation(); if (!b.classList.contains('max')) this.squadBuy(+b.dataset.id, b.dataset.up); return; }
+      if (sr) { e.stopPropagation(); const i = this.squadOptions().findIndex((o) => o.id === +sr.dataset.id && o.up === sr.dataset.up); if (i >= 0) { this.scur = i; this.draw(); } return; }
+      if (pv) { e.stopPropagation(); const row = pv.dataset.row; this.prow = ['body', 'trim', 'decal'].indexOf(row); this.setPaint({ [row]: row === 'decal' ? pv.dataset.v : +pv.dataset.v }); return; }
+      if (pr) { e.stopPropagation(); this.prow = ['body', 'trim', 'decal'].indexOf(pr.dataset.row); this.draw(); return; }
       if (b) { e.stopPropagation(); if (!b.classList.contains('max')) this.buy(b.dataset.up); }
       else if (c) { e.stopPropagation(); this.cur = Math.max(0, UPGRADES.findIndex((U) => U.id === c.dataset.up)); this.draw(); }
     });
@@ -5794,7 +6199,7 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // pick player 0's pilot (an id or a name from PILOTS, any case, or an index) and start, as a tap on
   // their tile does: the title goes, and (outside manual mode) the robots come out. Again mid-game it
@@ -5868,6 +6273,24 @@ window.__rb = {
   upgrade(name) {
     const res = Garage.buy(name), st = this.state();
     return { ...res, upgrades: st.upgrades, bag: st.bag, player: st.players[0] };
+  },
+  // ---- G3: squad upgrades and paint ----
+  // buy the next level of a squadmate's upgrade, as its ⬆️ in the 🤖 tab does (the garage needn't be open): id = the
+  // squadmate's id; name = 'plating' | 'job' (or 'armour' / 🛡️ for plating, 'boost' or the robot's own part, e.g.
+  // 'scope' / 🔭, for the job boost). Spends 2 of its part from the bag; refused (why: 'no such squadmate' |
+  // 'no such upgrade' | 'maxed' | 'not enough parts') with nothing spent. Returns what happened, the bag, and that
+  // squadmate as state().squad shows it (upgrades, energy, effects)
+  squadUpgrade(id, name) {
+    const res = Garage.squadBuy(id, name), st = this.state();
+    return { ...res, bag: st.bag, mate: st.squad.find((q) => q.id === id) ?? null };
+  },
+  // paint player 0's mech, as the 🎨 tab does (free; the garage needn't be open): body and trim = a PALETTE colour (its
+  // hex or index), decal = 'none' | 'stars' | 'flames' | 'stripes' | 'emblem' (or its index). Left out (undefined or
+  // null) keeps what's on. Saved to whoever is playing's record (never Guest's). Refused (why: 'not a palette colour' |
+  // 'no such decal') with nothing changed. Returns the paint and players[0].paint (read back from the meadow model)
+  paint(body, trim, decal) {
+    const res = Garage.setPaint({ body, trim, decal });
+    return { ...res, now: Garage.paintNow(), look: paintLook(Game.humans[0]?.mech?.model), palette: PALETTE.slice(), decals: DECALS.map((D) => D.id) };
   },
   // player i's mech jumps, as C / L / a stick pressed in do (refused without spring legs, powered down, or in the air)
   jump(i = 0) { return { ...jumpMech(Game.humans[i]), player: this.state().players[i] ?? null }; },
@@ -5955,12 +6378,13 @@ window.__rb = {
     return { result, robot: robotState(r), bag: { ...Game.bag }, parts: Game.parts };
   },
   // While the send-home panel is up (a 4th fix), pick squadmate id to go home, as a tap on its tile
-  // does: the Quick Fix opens, and it leaves once that fix is done. With no panel up, squadmate id
+  // does: the Quick Fix opens, and it leaves once that fix is done. (G3: a squadmate with upgrades warns on the
+  // first pick, why: 'upgrades'; picking it again sends it.) With no panel up, squadmate id
   // goes home straight away.
   sendHome(id) {
     const h = Game.humans[0], r = Game.squad.find((q) => q.id === id);
     let res;
-    if (h?.repair?.kind === 'home') res = chooseHome(h, r);
+    if (h?.repair?.kind === 'home') res = FixUI.pickHome(h, r);   // G3: an upgraded squadmate warns first (a second call sends it)
     else res = r ? { ok: sendHome(r), home: id, now: true } : { ok: false, why: 'not in squad' };
     return { ...res, squad: this.state().squad, ui: FixUI.mode, repair: this.state().repair };
   },
@@ -6050,10 +6474,16 @@ window.__rb = {
             kick: r3(WEAPON.kick.dmg * (1 + UPGRADE.kick * (m.upg?.ram || 0))), jump: UPGRADE.jump[m.upg?.spring || 0] },
           jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps },
           look: upgradeLook(m.model),
+          // G3: the paint on this mech, read back from its model: body / trim = the colours on its role materials, meshes
+          // = how many wear each, decal = the one showing ('none' if none), decals = how many squares show it, and where
+          paint: paintLook(m.model),
         };
       }),
       robots: Game.robots.map(robotState),
-      squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null })),
+      // G3: type, health / maxHealth, its garage upgrades (plating, job) and what they do (effects: maxHealth, job =
+      // { what: ram | range | scout | chain, value }), its mode, and rams = squadmate Charger rams landed (lastRam = the last's damage)
+      squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null,
+        type: r.type, health: r.health, maxHealth: r.maxHealth, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, effects: squadEffects(r), mode: r.ai.mode, rams: r.rams || 0, lastRam: r.lastRam ?? null })),
       parts: Game.parts,                                  // total parts collected (the HUD's 🔩)
       bag: { ...Game.bag },                               // parts collected, by kind: { armour: 2, ram: 1 }
       takeMax: REPAIR.takeMax,
