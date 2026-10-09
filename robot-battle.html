@@ -4600,7 +4600,7 @@ const FixUI = {
     $('bagBtn').addEventListener('click', (e) => { e.stopPropagation(); this.toggleBag(); });
     $('bagX').addEventListener('click', () => this.dismiss());
     $('mendBtn').addEventListener('click', (e) => { e.stopPropagation(); this.toggleMend(); });
-    $('jumpBtn').addEventListener('click', (e) => { e.stopPropagation(); const h = Game.humans[0]; if (!Game.paused && !h?.repair) jumpMech(h); });
+    $('jumpBtn').addEventListener('click', (e) => { e.stopPropagation(); const h = Game.humans[0]; if (!Game.paused && !h?.repair && !['wires', 'parts', 'home', 'name'].includes(this.mode)) jumpMech(h); });   // as C: not while fixing, taking parts, sending home or naming
     $('mendX').addEventListener('click', () => this.dismiss());
     $('mendTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.useMend(Game.humans[0], t.dataset.part); });
     $('homeTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) chooseHome(Game.humans[0], Game.squad.find((q) => q.id === +t.dataset.id)); });
