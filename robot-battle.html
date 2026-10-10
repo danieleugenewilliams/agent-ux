@@ -336,7 +336,70 @@
     .entry .pad { grid-template-columns: repeat(3, 76px); gap: 6px; }
     .entry .pad button { height: 50px; font-size: 30px; border-radius: 16px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
   }
-  /* a fast repair: the bonus star on the clear screen (only there when it was earned) */
+  /* ---------- P3-1 THE FIX RAMP: from wave 1 a row of slots over the board: a chip per wire (✔ once it's in) and a card per
+     puzzle (🔥 / 🔍, ✔ once solved). A card opens its puzzle in the panel, the way the keypad does ---------- */
+  .fslots { display: none; justify-content: center; align-items: center; gap: 12px; margin: 0 0 14px; }
+  #fix.ramp .fslots { display: flex; }
+  .fslots .wchip { position: relative; width: 46px; height: 46px; border-radius: 50%; border: 4px solid var(--ink); background: rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; }
+  .fslots .wchip svg { width: 30px; height: 30px; flex: none; }
+  .fslots .card { position: relative; width: 78px; height: 66px; border-radius: 18px; border: 5px solid var(--ink); background: var(--yellow); font-size: 36px; line-height: 1; cursor: pointer; padding: 0;
+    box-shadow: 0 5px 0 var(--ink); touch-action: manipulation; animation: cardPulse 1.4s ease-in-out infinite; }
+  .fslots .card:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  @keyframes cardPulse { 0%,100% { box-shadow: 0 5px 0 var(--ink), 0 0 0 0 rgba(255,216,61,.0); } 50% { box-shadow: 0 5px 0 var(--ink), 0 0 18px 4px rgba(255,216,61,.75); } }
+  .fslots .done { animation: none; filter: grayscale(.5) brightness(.75); cursor: default; }
+  .fslots .done::after { content: '✔'; position: absolute; right: -10px; top: -10px; width: 28px; height: 28px; border-radius: 50%; background: var(--green); border: 3px solid var(--ink); color: #fff; font: 900 16px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; filter: none; }
+  .fslots .card.cur, .fslots .card.open { outline: 5px dashed var(--yellow); outline-offset: 5px; }
+  .fslots .card.open { background: #fff; animation: none; }
+  #fix.puzzling .board { display: none; }
+  .puz { display: none; flex-direction: column; align-items: center; gap: 14px; }
+  #fix.puzzling .puz { display: flex; }
+  .puz.bad { animation: shake .3s; }
+  /* 🔥 Find the break: the loop 🔋 → 4 wire segments → ⚙️; dark until the break is spliced, then the current runs and the motor spins */
+  .loop { width: min(420px, calc(100vw - 92px)); height: auto; touch-action: manipulation; }
+  .loop .seg { cursor: pointer; }
+  .loop .hit { stroke: transparent; stroke-width: 46; pointer-events: stroke; }
+  .loop .w { stroke: #8a93ad; stroke-width: 12; stroke-linecap: round; fill: none; pointer-events: none; }
+  .loop .lead { stroke: #8a93ad; stroke-width: 12; stroke-linecap: round; fill: none; }
+  .loop .cut { stroke: #2a211c; }
+  .loop .char { fill: #2a211c; stroke: #000; stroke-width: 2; pointer-events: none; }
+  .loop .spark { fill: #ff8a1f; pointer-events: none; }
+  .loop .cur .w { stroke: var(--yellow); filter: drop-shadow(0 0 6px var(--yellow)); }
+  .loop .hint .w, .loop .hint .char { stroke: var(--yellow); animation: hintGlow .4s ease-in-out infinite alternate; }
+  @keyframes hintGlow { from { filter: drop-shadow(0 0 2px var(--yellow)); } to { filter: drop-shadow(0 0 14px var(--yellow)); } }
+  .loop .miss .w { stroke: #ff4d5e; }
+  .loop.lit .w, .loop.lit .lead { stroke: var(--yellow); stroke-dasharray: 16 10; animation: current .5s linear infinite; filter: drop-shadow(0 0 6px var(--yellow)); }
+  @keyframes current { to { stroke-dashoffset: -26; } }
+  .loop .part { font-size: 52px; dominant-baseline: central; text-anchor: middle; pointer-events: none; }
+  .loop .motor { filter: grayscale(1) brightness(.6); transform-box: fill-box; transform-origin: center; }
+  .loop.lit .motor { filter: none; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* 🔍 What broke?: the robot and its symptom, then part tiles from its own parts */
+  .sym { display: flex; align-items: center; gap: 10px; font-size: 58px; line-height: 1; }
+  .sym .badge { display: flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,77,94,.25); border: 4px solid #ff4d5e; font-size: 46px; }
+  .sym .badge.ok { background: rgba(62,224,122,.25); border-color: var(--green); }
+  .puz .tiles .tile.hint { box-shadow: 0 6px 0 var(--ink), 0 0 0 6px var(--yellow), 0 0 30px var(--yellow); animation: hintPop .4s ease-in-out infinite alternate; }
+  @keyframes hintPop { to { transform: scale(1.1); } }
+  .puz .tiles .tile.miss { filter: grayscale(.8) brightness(.55); }
+  @media (max-width: 560px) { .fslots { gap: 8px; } .fslots .card { width: 66px; height: 58px; font-size: 30px; } .fslots .wchip { width: 40px; height: 40px; } .fslots .wchip svg { width: 26px; height: 26px; } .sym { font-size: 46px; } .sym .badge { width: 64px; height: 64px; font-size: 36px; } }
+  /* a phone on its side: the slots stand in a column beside the board (the same breakpoint as the keypad); the wires and
+     ports shrink, and up to 6 ports go two to a column */
+  @media (max-height: 460px) and (min-width: 600px) {
+    #fix.ramp .panel { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 22px; align-items: center; padding: 10px 18px 14px; }
+    #fix.ramp .panel .top { grid-column: 1 / -1; font-size: 30px; margin-bottom: 4px; }
+    #fix.ramp .panel .x { width: 44px; height: 44px; font-size: 22px; }
+    #fix.ramp .fslots { flex-direction: column; margin: 0; gap: 10px; }
+    #fix.ramp .fslots .card { width: 66px; height: 54px; font-size: 28px; }
+    #fix.ramp .fslots .wchip { width: 38px; height: 38px; } #fix.ramp .fslots .wchip svg { width: 24px; height: 24px; }
+    #fix.ramp .puz .tiles { flex-wrap: nowrap; gap: 12px; } #fix.ramp .puz .tile { width: 72px; height: 72px; font-size: 36px; }
+    #fix.ramp .sym { font-size: 44px; } #fix.ramp .sym .badge { width: 60px; height: 60px; font-size: 32px; }
+    #fix.ramp .board .col { gap: 12px; }
+    #fix.ramp .board.math { width: min(520px, calc(100vw - 200px)); }
+    #fix.ramp .board .plug, #fix.ramp .board .port { height: 62px; }
+    #fix.ramp .board:not(.math) .plug, #fix.ramp .board:not(.math) .port { width: 62px; }
+    #fix.ramp #ports:has(> :nth-child(4)) { display: grid; grid-template-columns: repeat(2, auto); }
+    #fix.ramp .loop { width: min(380px, calc(100vw - 230px)); }
+    #fix.ramp .puz { gap: 8px; }
+  }
   #clear .stars i.bonus { display: none; filter: drop-shadow(0 0 12px rgba(255,194,26,1)); }
   #clear .stars i.bonus.on { display: inline; }
   #hud .mate.gold { background: rgba(120,90,10,.7); }
@@ -681,6 +744,10 @@
 <div id="fix" class="screen">
   <div class="panel">
     <div class="top"><span>🔧🤖<span class="how" id="fixHow"></span></span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
+    <!-- P3-1 (from wave 1): the board's slots, its wires (✔ once in) and its puzzle cards; a card opens its puzzle -->
+    <div class="fslots" id="fixSlots"></div>
+    <!-- an open puzzle card (🔥 Find the break, 🔍 What broke?); ✖, Esc or pad B go back to the board -->
+    <div class="puz" id="puz"></div>
     <div class="board" id="board"><svg id="wireSvg"></svg><div class="col" id="plugs"></div><div class="col" id="ports"></div></div>
     <!-- MATH WIRING: the keypad for a typed plug (🔢): on-screen keys, the keyboard's digits (✔ / Enter), or a gamepad's number dial -->
     <div class="entry" id="entry"><div class="q"><span class="fact" id="entQ"></span><span class="fact">=</span><b class="val" id="entV"></b></div><div class="pad" id="entKeys"></div></div>
@@ -959,6 +1026,41 @@ const ALLY = { glow: 2.6, color: '#3ff0ff', energy: 1.5 };
 // becomes `gold`, held at `glow`) with `health` × its health, and the wave's clear screen gets a 🌟.
 // show: how long (ms) a plug shows its right answer after a wrong wire or a wrong typed answer.
 const MATHFIX = { show: 1500, gold: '#ffc21a', glow: 3.4, health: 1.25, sparks: 26 };
+// ---- P3-1: the fix ramp. From wave 1 a Quick Fix is a board of slots: math wires (colour wires in colour wiring) and
+// puzzle cards, done in any order; the robot reboots as a squadmate once every slot is done. The wave decides the
+// counts (PACE: the last band whose `from` the wave has reached), not the faults. band = how the tracker picks the
+// facts (Facts.next's band); target = the fix time (ms, board open to reboot) the playtest judges, not a check.
+// A 🧲 shutdown takes one slot off: a puzzle while there are 2, otherwise a math wire, never below 1 and 1.
+// Wave 0 (manual setup before any wave) keeps the fault-driven board of before, burnt plugs and all.
+const PACE = [
+  { from: 1, band: 'warm', math: 1, puzzles: 2, target: 15000 },
+  { from: 3, band: 'mix', math: 2, puzzles: 1, target: 15000 },
+  { from: 5, band: 'stretch', math: 3, puzzles: 1, target: 20000 },
+];
+// The robotics puzzles, by type (#48 adds 🧠 'chain'). Each is built from a fault the robot really has:
+//   break 🔥 Find the break: a loop 🔋 → `segs` wire segments → ⚙️ with one segment charred (burnt wires) or
+//            loose (none burnt); tap it to splice it, the loop lights and the motor spins. A circuit is a closed loop.
+//   part  🔍 What broke?: the robot shows a symptom of how it was beaten and `tiles` of its own parts; tap the
+//            part that fixes it. What each part does.
+// Which fills a slot: the type this child saw least recently (a tie: 🔥 if wires burnt, else 🔍), never one twice.
+const PUZZLES = {
+  break: { icon: '🔥', name: 'Find the break', segs: 4 },
+  part: { icon: '🔍', name: 'What broke?', tiles: 3 },
+};
+// glow: how long (ms) the right answer glows after a wrong tap; done: how long a solved card shows before the board
+const PUZZLE = { glow: 1200, done: 700 };
+// 🔍's symptoms: how the robot was beaten -> what it shows, and the parts that fix it (the first one it has is right).
+// Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
+// else (setup damage, an electromagnet) leaves its wiring sparking.
+const SYMPTOMS = {
+  limp: { icon: '🦵', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram'] },
+  holes: { icon: '🕳️', parts: ['armour', 'rotor'], by: ['gun', 'snipe'] },
+  drained: { icon: '🪫', parts: ['battery', 'wiring'], by: ['rail'] },
+  sparks: { icon: '⚡', parts: ['wiring', 'battery'], by: ['setup', 'em'] },
+};
+const symptomOf = (how) => Object.keys(SYMPTOMS).find((k) => SYMPTOMS[k].by.includes(how)) || 'sparks';
+// a decoy port (math wiring, from wave 1): W.ports holds DECOY + k, and W.decoys[k] is the answer it shows
+const DECOY = 100;
 // where squadmates walk, in the leader's frame: [right, behind] metres
 const SQUAD_SLOTS = [[-6, 7], [6, 7], [0, 12]];
 const ROBOT_NAMES = ['Bolt', 'Sprocket', 'Rusty', 'Zippy', 'Clank', 'Gizmo', 'Sparky', 'Dynamo', 'Piston', 'Cog', 'Nugget', 'Turbo', 'Pixel', 'Rivet', 'Widget', 'Boomer'];
@@ -1132,6 +1234,7 @@ const Facts = {
     let r = C.guest ? null : store.get('facts.' + C.id, null);
     if (!this.valid(r, C)) r = this.blank(C);
     r.practice ||= {}; r.opened ||= []; r.cheered ||= {}; fillGarage(r);   // a record saved before G1 gets an empty garage
+    r.puzzles ||= { seq: 0, seen: {} };                                   // P3-1: when each puzzle type was last seen
     this.child = C; this.rec = r;
     this.advance(); this.save();
     return r;
@@ -1171,6 +1274,7 @@ const Facts = {
     const r = C.guest ? null : store.get('facts.' + C.id, null);
     const out = this.valid(r, C) ? r : this.blank(C);
     out.practice ||= {}; out.opened ||= []; out.cheered ||= {}; fillGarage(out);
+    out.puzzles ||= { seq: 0, seen: {} };
     return out;
   },
   // run fn with child c as the tracker's child (on the live record if c is playing; otherwise on their saved
@@ -1345,6 +1449,25 @@ const Facts = {
     const fresh = R.inPlay.filter((k) => ok(k) && !waiting(k));
     const fam = keys.filter((k) => this.stage(k) !== 'new' && !waiting(k));
     const due = fam.filter((k) => F[k].due > 0 && F[k].due <= now && ['known', 'mastered'].includes(F[k].s)).sort((x, y) => F[x].due - F[y].due);
+    // P3-1: the wave's band (opts.band) changes only what it prefers; a miss coming back has already gone first.
+    // 'warm' (waves 1–2): a familiar fact, Known or Mastered first, then Learning, fastest typical time first (not the
+    // one just asked, while there's another); with nothing familiar, a New fact. During a check step it asks as
+    // today, so it never re-drills what the child just sorted. 'stretch' (asked for one wire a board, from wave 5): the
+    // slowest Learning or Known fact by typical time, or else a New fact from the newest open step. 'mix': today's pick.
+    const typ = (k) => this.typical(F[k]) ?? Infinity;
+    if (opts.band === 'warm' && this.curStep.kind !== 'check') {
+      const l = fam.length > 1 ? fam.filter((k) => k !== R.last) : fam, fast = (x, y) => typ(x) - typ(y);
+      const pick = l.filter((k) => ['known', 'mastered'].includes(F[k].s)).sort(fast)[0] ?? l.filter((k) => F[k].s === 'learning').sort(fast)[0];
+      if (pick) return out(pick, 'warm');
+      if (fresh.length) return out(pickR(fresh), 'new');
+    }
+    if (opts.band === 'stretch') {
+      const slow = fam.filter((k) => ['learning', 'known'].includes(F[k].s)).sort((x, y) => typ(y) - typ(x));
+      if (slow.length) return out(slow[0], 'stretch');
+      const top = stepFacts(this.steps[R.step - 1]).map((f) => f.key).filter((k) => ok(k) && this.stage(k) === 'new' && !waiting(k));
+      const pick = top.find((k) => R.inPlay.includes(k)) ?? (top.length ? top[Math.floor(this.rand() * top.length)] : null);
+      if (pick) { if (!R.inPlay.includes(pick) && R.inPlay.length < FACT.newMax) R.inPlay.push(pick); return out(pick, 'stretch'); }
+    }
     // maintenance (the ladder is done): reviews when they're due, then whatever isn't Known yet, and
     // only if nothing else is left the Known / Mastered fact whose review is nearest
     if (this.maintaining) {
@@ -1574,6 +1697,8 @@ addEventListener('keydown', (e) => {
   // the send-home panel is open: its keys (◀ ▶ / A D / Q E move, Enter / Space pick, Esc keeps the squad) go
   // to it alone, so they don't also turn, aim or fire the mech; the other keys still drive
   if (FixUI.mode === 'home' && FixUI.homeKeyDown(e)) { e.preventDefault(); return; }
+  // P3-1: a board with puzzles: its keys (a card's cursor, the open puzzle's moves and answers, Esc back to the board)
+  if (FixUI.mode === 'wires' && FixUI.puzKeyDown(e)) { e.preventDefault(); return; }
   if (e.code === 'Escape' && FixUI.mode) { FixUI.dismiss(); return; }
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (!e.repeat) keysPressed.add(e.code);
@@ -2447,7 +2572,9 @@ class CamRig {
 // wave = the wave in the meadow (0 until the first one comes out); cleared = no glitched or powered-down
 // robot is left in it; waveStats = this wave's robots fixed and taken apart, and where its counts began
 const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null,
-  wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0, fast: 0 } };
+  wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0, fast: 0 },
+  // P3-1: every fix this session (board open to reboot, with its slot counts), and the last one
+  fixes: [], lastFix: null };
 // The start screen is the title (pick a pilot) until a pilot is picked, then the pause screen (▶)
 function setPause(on) {
   Game.paused = on;
@@ -3520,6 +3647,7 @@ function spawnRobot(type, x, z) {
     harm: {}, shock: 0, beatenBy: null, faults: null,
     ai: { think: Math.random() * 0.05, mode: 'stalk', t: 0.6, alert: 0 },
     wires: makeWires(REPAIR.wires), wrongWires: 0, repairBy: null, name: null, leader: null,
+    board: null,                   // P3-1: its fix board once it's down in a wave (fixPlan; null at wave 0)
     parts: T.parts.slice(),        // the parts still on it, offered when it's taken apart
     lift: 0,                       // height above the ground (a drone's flight, a Bouncer dropping)
     swarm: null,                   // a drone's swarm id
@@ -4014,7 +4142,11 @@ function powerDown(r, how) {
   r.state = 'down'; r.downT = ROBOT.downTime; r.downs++; r.ai.mode = 'off'; r.ai.aimT = 0;
   r.beatenBy = how === 'em' ? 'em' : r.lastHitBy ?? null;
   r.faults = faultsOf(r, how === 'em');
-  r.wires = makeWires(r.faults.wires, r.faults.burnt);
+  // P3-1: from wave 1 the wave sets the board (fixPlan): its math wires, none burnt (a burnt wire is 🔥's charred
+  // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
+  const P = Game.wave >= 1 ? fixPlan(Game.wave, r.beatenBy) : null;
+  r.board = P && { wave: Game.wave, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, puzzles: null };
+  r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
   r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
   // beaten mid-hop: it drops out of the air
@@ -4039,9 +4171,76 @@ function faultsOf(r, em) {
   const burnt = Math.min(wires, wear >= FAULTS.burnt[1] ? 2 : wear >= FAULTS.burnt[0] ? 1 : 0);
   return { wires, burnt, wear: Math.round(wear * 1000) / 1000, by: r.beatenBy, health: r.health };
 }
+// ---- P3-1: the fix ramp. The board a robot beaten by `how` (a weapon, or 'em' for a 🧲 shutdown) with `burnt`
+// burnt wires gets in wave `wave`: its band, math wires, puzzle types (in slot order), slot count and target time.
+// Pure: it reads which puzzle this child saw least recently and changes nothing. Wave 0 has no ramp (null counts:
+// the board is the fault-driven one of before).
+function fixPlan(wave, how, burnt = 0) {
+  wave = Math.floor(Number(wave) || 0);
+  if (wave < 1) return { band: null, math: null, puzzles: [], slots: null, target: null, wave: 0 };
+  const B = PACE.filter((b) => wave >= b.from).pop();
+  let math = B.math, n = B.puzzles;
+  if (how === 'em') { if (n >= 2) n--; else math--; }   // a 🧲 shutdown: one slot fewer
+  math = Math.max(1, math); n = Math.max(1, n);
+  const puzzles = puzzleTypes(n, burnt > 0);
+  return { band: B.band, math, puzzles, slots: math + puzzles.length, target: B.target, wave };
+}
+// when each puzzle type was last seen, for whoever is playing (kept in their record; Guest's lasts while Guest
+// plays); with nobody picked (manual checks), for this page. seq orders them: a board dealt in the same ms still counts.
+const Puzzles = { loose: { seq: 0, seen: {} } };
+const puzzleSeen = () => (Facts.rec ? (Facts.rec.puzzles ||= { seq: 0, seen: {} }) : Puzzles.loose);
+// the n puzzle types for a board, least recently seen first (never seen = first); a tie goes to 🔥 if wires burnt,
+// else 🔍. No type twice. (#48: a 🧲 board's first slot becomes 🧠.)
+function puzzleTypes(n, burnt) {
+  const S = puzzleSeen().seen, first = burnt ? 'break' : 'part';
+  return ['break', 'part'].sort((x, y) => (S[x] ?? -1) - (S[y] ?? -1) || (x === first ? -1 : y === first ? 1 : 0)).slice(0, n);
+}
+// deal a board's puzzles, the first time its fix opens (so a robot taken apart instead never counts as seen)
+function dealPuzzles(r) {
+  const B = r.board; if (!B || B.puzzles) return;
+  const S = puzzleSeen();
+  B.puzzles = puzzleTypes(B.n, B.burnt > 0).map((type) => {
+    S.seen[type] = ++S.seq;
+    if (type === 'break') {
+      const n = PUZZLES.break.segs, choices = Array.from({ length: n }, (_, i) => i);
+      return { type, choices, answer: Math.floor(Math.random() * n), cut: B.burnt > 0 ? 'charred' : 'loose', done: false, wrong: 0 };
+    }
+    // 🔍: the right part is the first of the symptom's parts the robot has; the other tiles are its other parts
+    // (not the symptom's fallback part while there are enough others, so only one tile reads as right)
+    const sym = symptomOf(r.beatenBy), want = SYMPTOMS[sym].parts, answer = want.find((id) => r.parts.includes(id)) || r.parts[0];
+    let rest = r.parts.filter((id) => id !== answer);
+    const clear = rest.filter((id) => !want.includes(id));
+    if (clear.length >= PUZZLES.part.tiles - 1) rest = clear;
+    const choices = shuffle([answer, ...shuffle(rest.slice()).slice(0, PUZZLES.part.tiles - 1)]);
+    return { type, symptom: sym, choices, answer, done: false, wrong: 0 };
+  });
+  Facts.save();
+}
+// every slot on the board is done: every wire in, and (from wave 1) every puzzle solved
+const boardDone = (r) => r.wires.link.every((p) => p >= 0) && (!r.board || (!!r.board.puzzles && r.board.puzzles.every((q) => q.done)));
+// Answer puzzle k of robot r's open fix, as a tap does: a segment index (🔥) or a part id (🔍). Right: the slot is
+// done, and it counts as the board's previous answer (W.last), so the next fact is timed from here; the last slot
+// fixes the robot. Wrong: a buzz and nothing else lost (no fact record, no gold). 'ok' | 'wrong' | 'done' (solved
+// already) | 'not fixing' | 'no such slot'.
+function solvePuzzle(h, r, k, answer) {
+  if (!h?.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
+  const P = r.board?.puzzles?.[k]; if (!P) return 'no such slot';
+  if (P.done) return 'done';
+  if (P.type === 'break' ? Number(answer) !== P.answer : answer !== P.answer) {
+    P.wrong++;
+    Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 8, SPARK_ZAP, 4);
+    if (!Game.manual) Sfx.buzz();
+    return 'wrong';
+  }
+  P.done = true; r.wires.last = Facts.now();
+  Sparks.burst(r.pos.x, r.pos.y + 3.2, r.pos.z, 16, SPARK_MEND, 5);
+  if (!Game.manual) Sfx.mendParts();
+  if (boardDone(r)) fixRobot(h, r);
+  return 'ok';
+}
 function reboot(r) {
   r.wires.link.fill(-1);
-  r.harm = {}; r.shock = 0; r.faults = null; r.beatenBy = null;   // a fresh start: the next beating sets new faults
+  r.harm = {}; r.shock = 0; r.faults = null; r.beatenBy = null; r.board = null;   // a fresh start: the next beating sets new faults
   r.state = 'glitched'; r.health = Math.round(r.maxHealth * ROBOT.rebootHealth); r.reboots++;
   r.ai.mode = 'recover'; r.ai.t = 1.2; r.flickT = 0;
   Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 30, SPARK_ZAP, 8);
@@ -4080,8 +4279,11 @@ const STAGE_RANK = { new: 0, learning: 1, known: 2, mastered: 3 };
 // Matched vs typed (M3): a New fact is matched, plug to port (its answer is on the board to learn from);
 // a Learning, Known or Mastered fact is typed (recall), and so is a burnt plug's. Which is which is
 // decided here, once per board: a miss that drops a fact to New doesn't turn its plug into a matched one.
+// P3-1, from wave 1 (r.board): the wave's band picks the facts (warm: every wire; stretch: one wire, the rest
+// today's pick), and a matched (New) fact always has at least 3 answer ports showing: decoys near its answer
+// (setDecoys). Wave 0 boards are as before.
 function setFacts(r) {
-  const W = r.wires, picked = [], n = W.plugs.length;
+  const W = r.wires, picked = [], n = W.plugs.length, band = r.board?.band;
   // no plug straight across from its own port (with 2 or more), so where a port sits says nothing:
   // reshuffle, and if that keeps failing, rotate by one
   const across = (p) => p.some((c, i) => c === W.plugs[i]);
@@ -4091,7 +4293,9 @@ function setFacts(r) {
     const taken = new Set(picked.map((f) => f.answer));
     const clash = [];
     for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (taken.has(a * b)) clash.push(makeFact('×', a, b).key);
-    let f = Facts.next({ exclude: clash, ops: ['×'] });
+    const opts = { exclude: clash, ops: ['×'] };
+    if (band === 'warm' || (band === 'stretch' && i === 0)) opts.band = band;
+    let f = Facts.next(opts);
     if (!f || taken.has(f.answer)) {                     // nothing left on the child's open steps: any 1–9 fact with a new answer
       const free = []; for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (!taken.has(a * b)) free.push(makeFact('×', a, b));
       const g = free[Math.floor(Math.random() * free.length)]; f = { ...g, stage: Facts.rec ? Facts.stage(g.key) : 'new', why: 'board' };
@@ -4105,13 +4309,42 @@ function setFacts(r) {
   W.missed = false;                                      // a miss on these facts (kept across tries: see fastRepair)
   // which way round a fact is shown (7 × 8 or 8 × 7) is random, so both get practised
   W.facts.forEach((f) => { f.flip = Math.random() < 0.5; });
+  if (r.board) setDecoys(W);
+}
+// No free answers (from wave 1): while any plug is matched (a New fact), the board shows at least 3 answers to
+// choose from: decoy ports with answers near a matched fact's (7 × 6 = 42: 48 and 36, the table's neighbours),
+// taken in turn from each matched fact. Every answer on the board stays distinct (the ❓ ones too). Then the ports
+// are shuffled again, none straight across from its own plug.
+function setDecoys(W) {
+  W.decoys = []; W.ports = W.ports.filter((c) => c < DECOY);
+  const matched = W.facts.filter((f, i) => !W.typed[i]);
+  if (matched.length) {
+    const used = new Set(W.facts.map((f) => f.answer));
+    const near = matched.map((f) => {
+      const out = [];
+      for (const [a, b] of [[f.a, f.b + 1], [f.a, f.b - 1], [f.a + 1, f.b], [f.a - 1, f.b], [f.a, f.b + 2], [f.a, f.b - 2], [f.a + 2, f.b], [f.a - 2, f.b], [f.a + 1, f.b + 1], [f.a - 1, f.b - 1]])
+        if (a >= 1 && a <= 9 && b >= 1 && b <= 9) out.push(a * b);
+      return out;
+    });
+    for (let k = 0; matched.length + W.decoys.length < 3 && k < 40; k++) {
+      const v = near[k % near.length].find((x) => !used.has(x));
+      if (v == null) continue;
+      used.add(v); W.decoys.push(v);
+    }
+  }
+  W.ports = W.ports.concat(W.decoys.map((_, k) => DECOY + k));
+  const across = (p) => p.some((c, i) => c === W.plugs[i]);
+  W.ports = shuffle(W.ports.slice());
+  for (let t = 0; t < 30 && W.ports.length > 1 && across(W.ports); t++) W.ports = shuffle(W.ports.slice());
+  for (let t = 0; t < W.ports.length && W.ports.length > 1 && across(W.ports); t++) W.ports = W.ports.slice(1).concat(W.ports[0]);
 }
 // plug i is answered by typing (math wiring): its fact is typed (W.typed), or it's burnt, and it isn't in yet
 const typedPlug = (W, i) => !!W.facts && W.link[i] < 0 && (W.burnt[i] || !!W.typed?.[i]);
 // the answer port j shows: the answer of the plug that belongs in it (null in colour wiring); a typed
 // plug's port shows ❓ until it's answered, so a typed answer can't be found by elimination and copied
-const portAnswer = (W, j) => (W.facts ? W.facts[W.plugs.indexOf(W.ports[j])].answer : null);
-const portHidden = (W, j) => typedPlug(W, W.plugs.indexOf(W.ports[j]));
+// (a decoy port shows its decoy answer, and is never hidden)
+const portAnswer = (W, j) => (W.ports[j] >= DECOY ? W.decoys[W.ports[j] - DECOY] : W.facts ? W.facts[W.plugs.indexOf(W.ports[j])].answer : null);
+const portHidden = (W, j) => W.ports[j] < DECOY && typedPlug(W, W.plugs.indexOf(W.ports[j]));
 const factText = (f) => (f.flip ? `${f.b} × ${f.a}` : `${f.a} × ${f.b}`);
 // a new try at the board (the Quick Fix opening): the clock starts, and the answers so far are cleared
 // (a miss isn't: W.missed stays, so leaving after a miss and coming back can't earn a fast repair)
@@ -4184,7 +4417,9 @@ function chooseFor(h, r, choice, name, picks) {
   r.repairBy = h; r.wires.link.fill(-1);
   // math wiring: the tracker picks the board's facts the first time it's opened (leaving and coming back
   // keeps them); colour wiring has none
-  if (isMath()) { if (!r.wires.facts) setFacts(r); } else r.wires.facts = null;
+  if (isMath()) { if (!r.wires.facts) setFacts(r); }
+  else { r.wires.facts = null; r.wires.ports = r.wires.ports.filter((c) => c < DECOY); r.wires.decoys = null; }   // colour wiring: no decoys
+  dealPuzzles(r);                                        // P3-1: the board's puzzles, dealt the first time it opens
   startBoard(r);
   // the squad is full: first ask which squadmate goes home (kind 'home'; the robot's clock holds)
   if (Game.squad.length >= REPAIR.squadMax) {
@@ -4263,7 +4498,7 @@ function connectWire(h, r, plug, port, ms) {
   W.link[plug] = port;
   Sparks.burst(r.pos.x, r.pos.y + 3.2, r.pos.z, 6, SPARK_ZAP, 3);
   if (!Game.manual) Sfx.plug();
-  if (W.link.every((p) => p >= 0)) fixRobot(h, r);
+  if (boardDone(r)) fixRobot(h, r);
   return 'ok';
 }
 // A burnt plug: a 🔌 from the bag swaps in a new wire at once ('new'); with no 🔌, each tap
@@ -4313,11 +4548,16 @@ function typeAnswer(h, r, plug, value, ms) {
   W.link[plug] = W.ports.indexOf(W.plugs[plug]);
   Sparks.burst(r.pos.x, r.pos.y + 3.2, r.pos.z, 14, SPARK_MEND, 4);
   if (!Game.manual) Sfx.plug();
-  if (W.link.every((p) => p >= 0)) fixRobot(h, r);
+  if (boardDone(r)) fixRobot(h, r);
   return 'ok';
 }
 function fixRobot(h, r) {
   const rp = h.repair; h.repair = null; r.repairBy = null;
+  // P3-1: the fix's time, from the board opening (this try) to the reboot, with its slot counts (Game.fixes keeps them all)
+  const B = r.board, W = r.wires, now = Facts.now();
+  Game.lastFix = { ms: Math.max(0, Math.round(now - (W.t0 ?? now))), math: W.plugs.length, puzzles: B?.puzzles?.length ?? 0, types: B?.puzzles?.map((q) => q.type) ?? [],
+    wrong: B?.puzzles?.reduce((s, q) => s + q.wrong, 0) ?? 0, wiring: W.facts ? 'math' : 'colour', wave: Game.wave, band: B?.band ?? null, target: B?.target ?? null, at: now };
+  Game.fixes.push(Game.lastFix);
   if (rp.home) sendHome(rp.home);                        // the squad was full: the one picked goes home now
   // a fast math repair: it comes back gold, with more health, and the wave's clear screen gets a 🌟
   r.gold = fastRepair(r.wires);
@@ -4807,7 +5047,7 @@ function gatherInput(dt) {
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
     // in the picker, the mend panel and the send-home panel the d-pad moves between tiles (◀ ▶), and in
     // the Quick Fix between plugs and ports (▲ ▼); the stick still steers
-    if (pad) { turn += pad.lx - (picking || mending || asking || (wiring && FixUI.entry) ? pad.dpadX : 0); thr -= pad.ly - (wiring ? pad.dpadY : 0); }
+    if (pad) { turn += pad.lx - (picking || mending || asking || (wiring && (FixUI.entry || FixUI.puz)) ? pad.dpadX : 0); thr -= pad.ly - (wiring ? pad.dpadY : 0); }
     let padB = false;   // B was used by a panel this frame (so it doesn't also open the bag)
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
     h.ci.camY = pad ? -pad.ry : 0;
@@ -4845,7 +5085,8 @@ function gatherInput(dt) {
     } else if (wiring && pad) {
       // the Quick Fix: d-pad ▲ ▼ moves, A picks up a plug (or patches a burnt one) then A on a port
       // plugs it in; B puts the plug back down, or backs out
-      if (FixUI.entry) { padB = pad.bP; FixUI.padEntry(pad); }
+      if (FixUI.puz) { padB = pad.bP; FixUI.padPuzzle(pad); }   // P3-1: an open puzzle: d-pad, A, B back to the board
+      else if (FixUI.entry) { padB = pad.bP; FixUI.padEntry(pad); }
       else if (pad.bP) { padB = true; if (FixUI.sel >= 0) { FixUI.sel = -1; FixUI.pad = 'plug'; FixUI.draw(); } else FixUI.dismiss(); }
       else FixUI.padWires(pad);
     } else if (picking) {
@@ -4938,6 +5179,13 @@ const FixUI = {
     });
     board.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
     $('fixX').addEventListener('click', () => this.dismiss());
+    // P3-1: a tap on a puzzle card opens it; in an open puzzle a tap on a segment (🔥) or a part tile (🔍) answers it
+    $('fixSlots').addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) { e.stopPropagation(); this.openPuzzle(+c.dataset.k); } });
+    $('puz').addEventListener('pointerdown', (e) => {
+      const t = e.target.closest('[data-a]'); if (!t || !this.puz) return;
+      e.preventDefault(); this.puzKb = false;
+      const P = this.puzzleOpen(); if (P) this.answerPuzzle(this.puz.k, P.type === 'break' ? +t.dataset.a : t.dataset.a);
+    });
     // the keypad for a typed plug: 1–9, ⌫ 0 ✔ (the keyboard's digits, Backspace and Enter work too)
     $('entKeys').innerHTML = ENTRY_KEYS.map((k) => `<button data-k="${k}" class="${k === '✔' ? 'ok' : k === '⌫' ? 'del' : ''}" aria-label="${k === '⌫' ? 'Delete' : k === '✔' ? 'OK' : k}">${k}</button>`).join('');
     $('entKeys').addEventListener('pointerdown', (e) => { const b = e.target.closest('button'); if (b) { e.preventDefault(); this.key(b.dataset.k); } });
@@ -4967,6 +5215,7 @@ const FixUI = {
   tile(id, cls = '') { const P = PARTS[id], u = P.unlocks && WEAPON[P.unlocks] ? `<span class="unl">${WEAPON[P.unlocks].icon}</span>` : ''; return `<button class="tile ${cls}" data-part="${id}" aria-label="${id}" style="background:${P.hex}">${P.icon}${u}</button>`; },
   openWires(r) {
     this.mode = 'wires'; this.r = r; this.sel = -1; this.drag = null; this.pad = 'plug'; this.cur = 0;   // mode first, so freeing the mouse isn't a pause
+    this.puz = null; this.cardCur = Math.max(0, r.board?.puzzles?.findIndex((q) => !q.done) ?? 0); this.cardKb = false; this.puzKb = false; $('fix').classList.remove('puzzling');
     // beside the 🔧🤖: what beat it (🧲 = shut down by the electromagnet, so there's little to fix)
     $('fixHow').textContent = r.beatenBy && WEAPON[r.beatenBy] ? WEAPON[r.beatenBy].icon : '';
     this.show('fix'); this.renderWires();
@@ -4988,10 +5237,141 @@ const FixUI = {
       return `<div class="plug${W.burnt[i] ? ' burnt' : typed ? ' typed' : ''}" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${face}${b}${rv}</div>`;
     }).join('');
     $('ports').innerHTML = W.ports.map((ci, j) => (M
-      ? `<div class="port" data-port="${j}" style="--wc:${C[ci].hex}">${portHidden(W, j) ? '<span class="ans hide">❓</span>' : `<span class="ans">${portAnswer(W, j)}</span>`}</div>`
+      ? `<div class="port" data-port="${j}" style="--wc:${C[ci]?.hex ?? '#fff'}">${portHidden(W, j) ? '<span class="ans hide">❓</span>' : `<span class="ans">${portAnswer(W, j)}</span>`}</div>`
       : `<div class="port" data-port="${j}" data-color="${C[ci].color}" style="border-color:${C[ci].hex};color:${C[ci].hex}">${this.icon(ci, C[ci].hex, 'none')}</div>`)).join('');
+    this.renderSlots();
     this.draw();
   },
+  // ---- P3-1: the board's slots (from wave 1): a chip per wire, in its cable's colour and shape, and a card per puzzle
+  renderSlots() {
+    const B = this.r?.board, el = $('fixSlots');
+    $('fix').classList.toggle('ramp', !!B);
+    if (!B?.puzzles) { el.innerHTML = ''; return; }
+    const W = this.r.wires;
+    el.innerHTML = W.plugs.map((ci, i) => `<span class="wchip" data-plug="${i}" style="background:${WIRE_COLORS[ci].hex}">${this.icon(ci, '#fff', '#14182a')}</span>`).join('')
+      + B.puzzles.map((P, k) => `<button class="card" data-k="${k}" aria-label="${PUZZLES[P.type].name}">${PUZZLES[P.type].icon}</button>`).join('');
+  },
+  // the puzzle open now (null on the board)
+  puzzleOpen() { return (this.puz && this.r?.board?.puzzles?.[this.puz.k]) || null; },
+  // open puzzle card k of the board (a solved one stays shut). Keys held from the board let go, so they don't carry on.
+  openPuzzle(k) {
+    const P = this.mode === 'wires' && !this.entry && this.r?.board?.puzzles?.[k];
+    if (!P || P.done) { if (P && !Game.manual) Sfx.buzz(); return false; }
+    this.puz = { k, cur: 0, lock: false, hint: -1, miss: null, solved: false }; this.cardCur = k; this.sel = -1; this.drag = null;
+    for (const c of this.puzCodes()) keys.delete(c);
+    $('fix').classList.add('puzzling');
+    if (!Game.manual) Sfx.click();
+    this.drawPuzzle(); this.draw();
+    return true;
+  },
+  closePuzzle() {
+    if (!this.puz) return;
+    this.puz = null; $('fix').classList.remove('puzzling'); $('puz').innerHTML = '';
+    const B = this.r?.board; if (B?.puzzles) { const n = B.puzzles.findIndex((q) => !q.done); if (n >= 0) this.cardCur = n; }
+    if (this.mode === 'wires') this.renderWires();
+  },
+  // the open puzzle: the loop (🔥) or the robot, its symptom and the part tiles (🔍). The cursor (keys, pad) is drawn
+  // once keys or a pad are used; after a wrong tap the right answer glows for PUZZLE.glow
+  drawPuzzle() {
+    const P = this.puzzleOpen(), el = $('puz'); if (!P) { el.innerHTML = ''; return; }
+    const Z = this.puz, cur = (padConnected() || this.puzKb) && !Z.solved ? Z.cur : -1;
+    if (P.type === 'break') {
+      // corners of the loop; segments 0, 1 along the top (battery side first), 2, 3 back along the bottom
+      const L = 46, R = 334, T = 34, Bm = 166, M = 190, pts = [[L, T, M, T], [M, T, R, T], [R, Bm, M, Bm], [M, Bm, L, Bm]];
+      const seg = (i) => {
+        const [x1, y1, x2, y2] = pts[i], cls = `seg${i === cur ? ' cur' : ''}${i === Z.hint ? ' hint' : ''}${i === Z.miss ? ' miss' : ''}`;
+        const hit = `<line class="hit" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+        if (i !== P.answer || P.done) return `<g class="${cls}" data-a="${i}">${hit}<line class="w" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/></g>`;
+        // the break: a gap in the middle; charred (black ends and a scorch) or loose (the two ends pulled apart)
+        const mx = (x1 + x2) / 2, dir = Math.sign(x2 - x1), g = 16, up = P.cut === 'loose' ? (y1 < 100 ? 18 : -18) : 0, cut = P.cut === 'charred' ? ' cut' : '';
+        const a = `<line class="w${cut}" x1="${x1}" y1="${y1}" x2="${mx - dir * g}" y2="${y1 + up}"/>`, b = `<line class="w${cut}" x1="${mx + dir * g}" y1="${y2 + up}" x2="${x2}" y2="${y2}"/>`;
+        const mark = P.cut === 'charred' ? `<ellipse class="char" cx="${mx}" cy="${y1}" rx="26" ry="12"/><circle class="spark" cx="${mx - 6}" cy="${y1 - 4}" r="4"/><circle class="spark" cx="${mx + 8}" cy="${y1 + 3}" r="3"/>`
+          : `<circle class="spark" cx="${mx - dir * g}" cy="${y1 + up}" r="5"/><circle class="spark" cx="${mx + dir * g}" cy="${y2 + up}" r="5"/>`;
+        return `<g class="${cls}" data-a="${i}">${hit}${a}${b}${mark}</g>`;
+      };
+      el.innerHTML = `<svg class="loop${P.done ? ' lit' : ''}" viewBox="0 0 380 200" role="img" aria-label="${PUZZLES.break.name}">`
+        + `<path class="lead" d="M${L},74 V${T} M${L},126 V${Bm} M${R},74 V${T} M${R},126 V${Bm}"/>`
+        + [0, 1, 2, 3].map(seg).join('')
+        + `<text class="part" x="${L}" y="100">🔋</text><text class="part motor" x="${R}" y="100">⚙️</text></svg>`;
+    } else {
+      const T = ROBOT_TYPES[this.r.type];
+      el.innerHTML = `<div class="sym"><span>${T.icon}</span><span class="badge${P.done ? ' ok' : ''}">${P.done ? '✔' : SYMPTOMS[P.symptom].icon}</span></div>`
+        + `<div class="tiles">${P.choices.map((id, i) => this.tile(id, `${i === cur ? 'cur' : ''}${id === Z.hint ? ' hint' : ''}${id === Z.miss ? ' miss' : ''}${P.done && id === P.answer ? ' on' : ''}`).replace('data-part=', `data-a="${id}" data-part=`)).join('')}</div>`;
+    }
+  },
+  // answer the open puzzle (or puzzle k through the hook): right shows it solved for PUZZLE.done, then the board
+  // (unless that was the last slot: the robot is fixed and the panel goes); wrong buzzes, shakes and makes the right
+  // answer glow for PUZZLE.glow, and the child tries again
+  answerPuzzle(k, answer) {
+    const r = this.r, Z = this.puz;
+    const res = solvePuzzle(Game.humans[0], r, k, answer);
+    if (!Z || Z.k !== k || this.mode !== 'wires') return res;
+    const P = r.board.puzzles[k];
+    if (res === 'wrong') {
+      Z.miss = P.type === 'break' ? Number(answer) : answer; Z.hint = P.answer;
+      const b = $('puz'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad');
+      const t = performance.now(); Z.t = t;
+      setTimeout(() => { if (this.puz === Z && Z.t === t) { Z.hint = -1; Z.miss = null; this.drawPuzzle(); } }, PUZZLE.glow);
+      this.drawPuzzle();
+    } else if (res === 'ok') {
+      Z.lock = true; Z.solved = true; Z.hint = -1; Z.miss = null;
+      this.drawPuzzle(); this.renderSlots(); this.draw();
+      setTimeout(() => { if (this.puz === Z) this.closePuzzle(); }, PUZZLE.done);
+    }
+    return res;
+  },
+  // move the open puzzle's cursor: 🔥's segments sit two along the top (0, 1) and two along the bottom (3, 2), so
+  // ◀ ▶ cross the loop and ▲ ▼ go top to bottom; 🔍's tiles are a row
+  puzMove(dx, dy) {
+    const P = this.puzzleOpen(), Z = this.puz; if (!P || Z.lock) return;
+    if (P.type === 'break') {
+      const pos = [[0, 0], [1, 0], [1, 1], [0, 1]], [c, w] = pos[Z.cur];
+      const nc = dx ? 1 - c : c, nw = dy ? 1 - w : w;
+      Z.cur = pos.findIndex(([a, b]) => a === nc && b === nw);
+    } else { const n = P.choices.length; Z.cur = (Z.cur + (dx || dy) + n) % n; }
+    if (!Game.manual) Sfx.click();
+    this.drawPuzzle();
+  },
+  // the gamepad in an open puzzle: the d-pad moves, A answers, B goes back to the board
+  padPuzzle(pad) {
+    const P = this.puzzleOpen(); if (!P) return;
+    if (pad.bP) { this.closePuzzle(); return; }
+    if (pad.aP) { this.answerPuzzle(this.puz.k, P.choices[this.puz.cur]); return; }
+    const dx = (pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), dy = (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0);
+    if (dx || dy) this.puzMove(dx, dy);
+  },
+  // the keyboard on a board with puzzles. In an open puzzle: arrows (solo) or WASD move, Enter / Space answer, Esc goes
+  // back to the board. On the board: ◀ ▶ (solo), A D or Q E move between the puzzle cards and Enter / Space open one
+  // (Esc still leaves the fix; W S and ▲ ▼ still drive). Returns true when the key was the board's, so it goes nowhere
+  // else (not a shot or a turn); the arrows are player 1's in two-player, so only solo uses them here.
+  puzCodes() { return ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'Space', 'Enter', 'NumpadEnter', ...(Game.humans.length === 1 ? ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'] : [])]; },
+  puzKeyDown(e) {
+    const B = this.r?.board;
+    if (this.mode !== 'wires' || this.entry || !B?.puzzles) return false;
+    const codes = this.puzCodes(), c = e.code;
+    const dx = ['ArrowRight', 'KeyD', 'KeyE'].includes(c) ? 1 : ['ArrowLeft', 'KeyA', 'KeyQ'].includes(c) ? -1 : 0;
+    const dy = ['ArrowDown', 'KeyS'].includes(c) ? 1 : ['ArrowUp', 'KeyW'].includes(c) ? -1 : 0;
+    const go = ['Space', 'Enter', 'NumpadEnter'].includes(c);
+    if (this.puz) {
+      if (c === 'Escape') { if (!e.repeat) this.closePuzzle(); return true; }
+      if (!codes.includes(c)) return false;
+      if (e.repeat) return true;
+      this.puzKb = true;
+      const P = this.puzzleOpen();
+      if (go && P) this.answerPuzzle(this.puz.k, P.choices[this.puz.cur]);
+      else if (dx || dy) this.puzMove(dx, dy);
+      else this.drawPuzzle();
+      return true;
+    }
+    if (!codes.includes(c) || dy) return false;          // ▲ ▼ / W S on the board aren't the board's: they still drive
+    if (e.repeat) return true;
+    const n = B.puzzles.length;
+    this.cardKb = true;
+    if (dx) { this.cardCur = (this.cardCur + dx + n) % n; if (!Game.manual) Sfx.click(); this.draw(); }
+    else if (go) this.openPuzzle(this.cardCur % n);
+    return true;
+  },
+
   patch(i) {
     const res = patchWire(Game.humans[0], this.r, i);
     if (res === 'type') { this.openEntry(i); return res; }   // math wiring, no 🔌: type the plug's fact
@@ -5068,10 +5448,12 @@ const FixUI = {
   // patches a burnt plug, opens the keypad on a typed one, or plugs in
   padWires(pad) {
     const W = this.r?.wires; if (!W) return;
-    const n = this.pad === 'port' ? W.ports.length : W.plugs.length;
+    const cards = this.r.board?.puzzles?.length || 0;   // P3-1: the puzzle cards come after the plugs
+    const n = this.pad === 'port' ? W.ports.length : W.plugs.length + cards;
     if (pad.upP || pad.downP) { this.cur = (this.cur + (pad.downP ? 1 : -1) + n) % n; this.draw(); }
     if (!pad.aP) return;
     if (this.pad === 'port') { const i = this.sel, j = this.cur; this.sel = -1; this.pad = 'plug'; this.cur = Math.max(0, i); this.tryWire(i, j); return; }
+    if (this.cur >= W.plugs.length) { this.openPuzzle(this.cur - W.plugs.length); return; }
     const i = this.cur % W.plugs.length;
     if (W.burnt[i]) { this.patch(i); return; }
     if (W.link[i] >= 0) return;
@@ -5222,13 +5604,14 @@ const FixUI = {
     this.drawMend();
     return res;
   },
-  close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; $('fix').classList.remove('typing'); this.show(null); $('nameIn').blur(); },
+  close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); },
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
   // nothing is taken), close the bag, or keep the name
   dismiss() {
     if (this.mode === 'name') { this.confirmName(); return; }
+    if (this.puz) { this.closePuzzle(); return; }        // ✖ / Escape in a puzzle: back to the board (P3-1)
     if (this.entry) { this.closeEntry(); return; }       // ✖ / Escape while typing: back to the board
     if (this.mode === 'wires' || this.mode === 'parts' || this.mode === 'home') cancelRepair(Game.humans[0]);
     this.close(); this.relock();
@@ -5268,9 +5651,15 @@ const FixUI = {
     });
     const fastPlug = new Set((W.log || []).filter((e) => e.right && e.fast).map((e) => e.plug));
     [...ports].forEach((el, j) => { const i = W.link.indexOf(j); el.classList.toggle('done', i >= 0); el.classList.toggle('fast', i >= 0 && !!W.facts && fastPlug.has(i)); });
-    // the gamepad's cursor, on a plug or (holding one) on a port
-    const pc = padConnected() ? (this.pad === 'port' ? ports : plugs)[this.cur] : null;
+    // P3-1: the slots: a wire's chip is ✔ once it's in, a card once its puzzle is solved (the open one is ringed)
+    const chips = $('fixSlots').querySelectorAll('.wchip'), cards = [...$('fixSlots').querySelectorAll('.card')], PZ = this.r.board?.puzzles;
+    chips.forEach((el) => el.classList.toggle('done', W.link[+el.dataset.plug] >= 0));
+    cards.forEach((el, k) => { el.classList.toggle('done', !!PZ?.[k]?.done); el.classList.toggle('open', this.puz?.k === k); });
+    // the gamepad's cursor, on a plug or a puzzle card (the cards come after the plugs) or, holding a plug, on a port;
+    // the keyboard's, on a puzzle card
+    const pc = padConnected() ? (this.pad === 'port' ? ports : [...plugs, ...cards])[this.cur] : null;
     for (const el of [...plugs, ...ports]) el.classList.toggle('cur', el === pc);
+    cards.forEach((el, k) => el.classList.toggle('cur', !this.puz && (el === pc || (this.cardKb && k === this.cardCur))));
     if (this.drag) svg += cable(this.centre(plugs[this.drag.plug], box), [this.drag.x - box.left, this.drag.y - box.top], WIRE_COLORS[W.plugs[this.drag.plug]].hex);
     $('wireSvg').innerHTML = svg;
   },
@@ -6250,8 +6639,16 @@ $('wireB').addEventListener('click', (e) => { e.stopPropagation(); Sfx.click(); 
 // the game with __rb.manual(true), __rb.step(n) and __rb.render().
 // ===========================================================================
 const r3 = (v) => Math.round(v * 1000) / 1000;
+function boardState(r) {
+  const B = r.board, W = r.wires, M = !!W.facts;
+  const slots = W.plugs.map((ci, i) => ({ kind: M ? 'math' : 'colour', type: M ? W.facts[i].key : WIRE_COLORS[ci].color, plug: i, done: W.link[i] >= 0 }));
+  for (let k = 0; k < B.n; k++) slots.push({ kind: 'puzzle', type: B.puzzles?.[k]?.type ?? null, puzzle: k, done: !!B.puzzles?.[k]?.done });
+  return { wave: B.wave, band: B.band, math: W.plugs.length, slots, ports: W.ports.length, shown: M ? W.ports.filter((_, j) => !portHidden(W, j)).length : W.ports.length,
+    decoys: W.decoys ? [...W.decoys] : [], target: B.target, burnt: B.burnt,
+    puzzles: B.puzzles ? B.puzzles.map((q) => ({ ...q, choices: [...q.choices] })) : null, done: boardDone(r) };
+}
 function robotState(r) {
-  const p0 = Game.humans[0]?.mech, wc = (ci) => ({ color: WIRE_COLORS[ci].color, shape: WIRE_COLORS[ci].shape });
+  const p0 = Game.humans[0]?.mech, wc = (ci) => (ci >= DECOY ? { color: null, shape: null, decoy: true } : { color: WIRE_COLORS[ci].color, shape: WIRE_COLORS[ci].shape });
   return {
     id: r.id, type: r.type, name: r.name, x: r3(r.pos.x), z: r3(r.pos.z),
     health: r.health, maxHealth: r.maxHealth,
@@ -6278,6 +6675,12 @@ function robotState(r) {
       show: r.wires.show && r.wires.show.until > performance.now() ? r.wires.show.plug : -1,
       log: (r.wires.log || []).map((e) => ({ ...e })), fast: fastRepair(r.wires) },
     wrongWires: r.wrongWires,
+    // P3-1: its fix board (from wave 1; null at wave 0 and until it's down): band; slots in order, the wires (kind
+    // 'math' | 'colour', type = the fact's key or the wire's colour, plug) then the puzzles (kind 'puzzle', type 'break'
+    // 🔥 | 'part' 🔍, puzzle = its index for puzzle()); ports = answer ports on the board (decoys included), shown =
+    // the answers showing (not ❓); puzzles (dealt when the fix first opens, null before): type, choices (segment
+    // indexes | part ids), answer, wrong taps, done, cut ('charred' | 'loose', 🔥), symptom (🔍); target (ms)
+    board: r.board ? boardState(r) : null,
     gold: !!r.gold,                                   // fixed by a fast math repair: gold glow, more health
     // how it was beaten and what that left to repair (null until it's been downed; cleared when it reboots):
     // by: 'em' (shut down by shock) or the last hit's weapon; wires and burnt as dealt; burntLeft still charred;
@@ -6322,9 +6725,25 @@ window.__rb = {
     const res = typeof a === 'object' ? Facts.answer(a, b, value) : Facts.answer({ op, a, b }, value, ms);
     return { ...res, fact: res.key ? { ...Facts.rec.facts[res.key] } : null };
   },
-  // the next fact to ask: { op, a, b, key, answer, stage, why: miss | review | familiar | new | check | practice | extra | rest };
-  // opts.exclude = facts already on the board, opts.ops = ops the asking UI can show
+  // the next fact to ask: { op, a, b, key, answer, stage, why: miss | review | familiar | new | check | practice | extra | rest
+  // | warm | stretch }; opts.exclude = facts already on the board, opts.ops = ops the asking UI can show, opts.band = the
+  // wave's band ('warm' | 'mix' | 'stretch', P3-1); no options picks as before
   nextFact(opts) { return Facts.next(opts); },
+  // ---- P3-1: the fix ramp ----
+  // the board a robot beaten by `how` (a weapon, or 'em' for a 🧲 shutdown) with `burnt` burnt wires would get in wave
+  // `wave`: { band, math, puzzles: [types in slot order], slots, target (ms) }. Pure: changes nothing. Wave 0: no ramp.
+  plan(wave, how, burnt = 0) { return fixPlan(wave, how, burnt); },
+  // setup only: set the wave number without spawning anything (robots downed from now get that wave's board)
+  waveTo(n) { Game.wave = Math.max(0, Math.floor(Number(n) || 0)); Waves.check(); Waves.draw(); return { wave: Game.wave, cleared: Game.cleared }; },
+  // answer puzzle `slot` (an index into state().robots[i].board.puzzles, the same as its slot's `puzzle`) of robot id's open
+  // fix, as a tap does: a segment index for 🔥, a part id for 🔍. 'ok' | 'wrong' | 'done' (already solved) | 'not fixing' |
+  // 'no such slot'. Through the open puzzle when it's up on screen.
+  puzzle(id, slot, answer) {
+    const r = Game.robots.find((q) => q.id === id); if (!r) return 'not fixing';
+    const res = FixUI.mode === 'wires' && FixUI.r === r ? FixUI.answerPuzzle(slot, answer) : solvePuzzle(Game.humans[0], r, slot, answer);
+    if (FixUI.mode === 'wires' && FixUI.r === r && !FixUI.puz) FixUI.renderWires();
+    return res;
+  },
   // a parent opens steps early, up to step n
   openStep(n) { const res = Facts.openStep(n); return { ...res, facts: Facts.summary() }; },
   // move the tracker's clock by ms (to cross days); clock() just reads it. Not saved: a reload is back to now.
@@ -6611,6 +7030,12 @@ window.__rb = {
       weapons: WEAPONS.slice(), unlocked: WEAPONS.filter((w) => Game.unlocked.has(w)),
       lastRail: Game.lastRail ? { ...Game.lastRail, hits: [...Game.lastRail.hits] } : null,   // the last rail-gun shot: robots it passed through
       squadMax: REPAIR.squadMax,
+      // P3-1: the last fix (board open to reboot): ms, math wires, puzzles (and their types, wrong taps), wiring, wave, band,
+      // target; fixes = every fix this session; puzzle = the puzzle open in the Quick Fix ({ slot, type, cur } or null);
+      // pace = the wave bands; seen = when each puzzle type was last dealt, for whoever is playing (an order)
+      lastFix: Game.lastFix ? { ...Game.lastFix, types: [...Game.lastFix.types] } : null, fixes: Game.fixes.map((f) => ({ ...f, types: [...f.types] })),
+      puzzle: FixUI.puz ? { slot: FixUI.puz.k, type: FixUI.puzzleOpen()?.type ?? null, cur: FixUI.puz.cur } : null,
+      pace: PACE.map((b) => ({ ...b })), seen: { ...puzzleSeen().seen },
       faultRules: { ...FAULTS, weight: { ...FAULTS.weight } },
       pulses: Bullets.list.filter((b) => b.kind === 'em').length, railFx: RailFx.live(),
       fx: { ...Impacts.live(), sparks: Sparks.list.filter((p) => p.t < p.life).length },
