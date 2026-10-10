@@ -1046,7 +1046,7 @@ const ADVANCED = [
 const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', goldFrame: '#b8860b', toast: 3500, cheer: 4500 };
 const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || null; };
 // a garage's upgrade levels, every upgrade listed, each a whole number from 0 to its max
-const upLevels =(g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
+const upLevels = (g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
 // G3: squadmate upgrades, bought in the garage's 🤖 tab. Each squadmate has two, each with `max` levels at `cost` parts a
 // level, from the bag. They belong to that squadmate (r.upg) and go with it when it's sent home. The squad isn't
 // saved, so neither are they.
