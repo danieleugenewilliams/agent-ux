@@ -589,7 +589,7 @@
   #gCheer.on { display: block; }
   #gCheer .gch { position: absolute; left: 50%; top: 18%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 28px 16px; border-radius: 26px;
     background: rgba(20,24,42,.92); border: 5px solid var(--yellow); box-shadow: 0 0 40px rgba(255,216,61,.7); animation: cheerPop .5s ease-out; }
-  #gCheer .gch .big { font-size: 76px; line-height: 1.05; }
+  #gCheer .gch .big { font-size: 76px; line-height: 1.05; white-space: nowrap; }
   #gCheer .gch b { font: 900 34px 'Asap', sans-serif; color: var(--yellow); white-space: nowrap; }
   #gCheer .confetti i { position: fixed; top: -24px; width: 11px; height: 17px; border-radius: 3px; animation: confetti 3s linear forwards; }
   /* G4: the toast in play (a milestone reached): high and centred, away from the HUD's bottom row; taps go through */
@@ -677,7 +677,7 @@
     .gwall { gap: 6px; } .tslot .tf { font-size: 16px; } .tslot .tn { font-size: 21px; right: 5px; }
     .ashelf { gap: 4px; padding-top: 5px; } .aslot { border-radius: 12px; } .aslot .aic { font-size: 16px; left: 4px; top: 3px; }
     .aslot .afx, .aslot .amile { font-size: 15px; right: 3px; } .aslot .awords { display: none; } .aslot .abar { top: 22px; left: 4px; right: 4px; height: 5px; }
-    #gCheer .gch .big { font-size: 56px; } #gCheer .gch b { font-size: 26px; }
+    #gCheer .gch { padding: 10px 16px 12px; max-width: calc(100vw - 32px); } #gCheer .gch .big { font-size: 46px; } #gCheer .gch b { font-size: 26px; }
     #advToast .ti { font-size: 34px; } #advToast b { font-size: 17px; } #advToast small { font-size: 16px; }
     .glock .big { font-size: 64px; }
     .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
@@ -1043,7 +1043,7 @@ const ADVANCED = [
   { id: 'shield', icon: '🛡️', name: 'Shield emitter', at: 36, hex: '#56B4E9', fx: '🫧×3' },
   { id: 'gold', icon: '👑', name: 'Gold plating', at: 45, hex: '#ffc21a', fx: '👑' },
 ];
-const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', toast: 3500, cheer: 4500 };
+const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', goldFrame: '#b8860b', toast: 3500, cheer: 4500 };
 const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || null; };
 // a garage's upgrade levels, every upgrade listed, each a whole number from 0 to its max
 const upLevels =(g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
@@ -2349,6 +2349,30 @@ function paintMech(md, p, pilot = Game.pilot) {
     c.metalness = fin ? (gold ? 0.8 : 0.95) : b.metalness; c.roughness = fin ? (gold ? 0.28 : 0.08) : b.roughness; c.envMapIntensity = fin ? 1.6 : 1;
     if (c.envMap !== env) { c.envMap = env; c.needsUpdate = true; }
   }
+  // gold plating golds the frame too (the dark joints, limbs and guns between the paint), on this mech's own copies of
+  // those materials (made the first time it's needed; the cached mat() ones are shared with robots and never changed)
+  if (gold || md.frameMats) {
+    if (!md.frameMats) {
+      md.frameMats = new Map();
+      md.root.traverse((o) => {
+        const M = o.isMesh && o.material;
+        if (!M?.color || o.userData.painted || o.userData.upgrade || o.userData.decal || (M.emissive && M.emissive.getHex() && M.emissiveIntensity > 0)) return;
+        if (![PAINT.frame, PAINT.dark].includes('#' + M.color.getHexString())) return;
+        let c = md.frameMats.get(M);
+        if (!c) {
+          c = M.clone(); c.userData.base = { color: c.color.clone(), metalness: c.metalness, roughness: c.roughness }; md.frameMats.set(M, c);
+          for (const L of md.lights) if (L.mat === M) L.mat = c;   // (still dims with the rest when it powers down)
+        }
+        o.material = c;
+      });
+    }
+    for (const c of md.frameMats.values()) {
+      const b = c.userData.base, env = gold ? advEnv() : null;
+      if (gold) { c.color.set(ADV.goldFrame); c.metalness = 0.8; c.roughness = 0.35; c.envMapIntensity = 1.6; }
+      else { c.color.copy(b.color); c.metalness = b.metalness; c.roughness = b.roughness; c.envMapIntensity = 1; }
+      if (c.envMap !== env) { c.envMap = env; c.needsUpdate = true; }
+    }
+  }
   if (!md.decals) {
     const m = new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.05, roughness: 0.5, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, depthWrite: false });
     md.decals = { mat: m, planes: md.sockets.map(([parent, pos, rot, size]) => {
@@ -2373,7 +2397,8 @@ function paintLook(md) {
   const b0 = md.paintMats.body.values().next().value;   // G4: finish = 'chrome' | 'gold' | null, and the body's metal read back
   return { body: hexes('body'), trim: hexes('trim'), meshes, decal: shown.length ? md.paintNow?.decal ?? null : 'none', decals: shown.length,
     decalOn: shown.map((q) => (q.parent === md.torso ? 'back' : 'shoulder')),
-    finish: md.finish ?? null, metalness: b0 ? r3(b0.metalness) : null, roughness: b0 ? r3(b0.roughness) : null, mirror: !!b0?.envMap };
+    finish: md.finish ?? null, metalness: b0 ? r3(b0.metalness) : null, roughness: b0 ? r3(b0.roughness) : null, mirror: !!b0?.envMap,
+    frame: md.frameMats?.size ? [...new Set([...md.frameMats.values()].map((c) => '#' + c.color.getHexString()))] : null };   // G4: the frame's colours once gold has touched it
 }
 
 // G2: each upgrade shows on the mech, in its part's colour, more of it at each level:
@@ -5351,6 +5376,7 @@ function gatherInput(dt) {
 function tick(dt) {
   if (Game.state !== 'play' || Game.paused) return;
   Game.ticks++;
+  if (Adv.pending) Adv.flush();   // G4: an unlock's toast held while a fix panel was up
   Meadow.time.value += dt;
   // Robots think at 20 Hz (Family Knockout's bot loop), writing their input.
   // Glitched ones run their type's brain; squadmates their type's squad job (each built on allyAI).
@@ -5899,7 +5925,7 @@ const FixUI = {
     this.drawMend();
     return res;
   },
-  close() { this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); },
+  close() { this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); Adv.flush(); },   // (G4: a toast held for the board)
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
@@ -6442,13 +6468,14 @@ const Garage = {
   has(id) { return !!this.rec().unlocks?.includes(id); },
   // the trophy wall's advanced shelf, and the hooks': per part whether it's unlocked and its milestone; mastered so far;
   // next = the next part to earn and its milestone (null once all five are in); fresh = earned, not yet cheered;
-  // cheer = the parts the garage is cheering now; toast = the parts the in-play toast shows now
+  // cheer = the parts the garage is cheering now; toast = the parts the in-play toast shows now (toastPending = held till the
+  // open fix panel closes)
   advStatus() {
     const ms = Game.child && !Game.child.guest ? Facts.mastery() : null, un = this.unlocks(), n = ms?.mastered ?? 0;
     const nx = ADVANCED.find((A) => !un.includes(A.id));
     return { unlocks: un, mastered: n, goal: ms?.goal ?? null, guest: !!Game.child?.guest,
       next: nx ? { id: nx.id, at: nx.at, left: Math.max(0, nx.at - n) } : null, fresh: this.rec().fresh?.slice() ?? [],
-      cheer: this.cheering ? this.cheering.slice() : null, toast: Adv.toastIds ? Adv.toastIds.slice() : null,
+      cheer: this.cheering ? this.cheering.slice() : null, toast: Adv.toastIds ? Adv.toastIds.slice() : null, toastPending: Adv.pending ? Adv.pending.slice() : null,
       parts: ADVANCED.map((A) => ({ id: A.id, icon: A.icon, at: A.at, got: un.includes(A.id) })) };
   },
   // the cheer for parts earned since the garage last opened (garage.fresh): a banner of them over the bay with confetti
@@ -6875,14 +6902,19 @@ function advPiece(id) {
 }
 // G4: the in-play toast when a fact's answer reaches a milestone: the part's icon and name, its milestone, and 🔧 (it's
 // waiting in the garage). Up for ADV.toast ms; the garage opening takes it down. The unlock is on the mech straight away.
+// A milestone is crossed by answering a fact on a Quick Fix board, so while a board (or any fix panel) is open the toast
+// waits (pending) and shows once it closes, so it never covers a plug, the keypad or a puzzle.
 const Adv = {
-  toastIds: null, toastT: null,
+  toastIds: null, toastT: null, pending: null,
   unlocked(ids) {
     applyUpgrades();   // its effect is on from now (chrome's energy, the jets, the core, the shield, gold)
     this.toast(ids);
   },
+  // show what's pending, once no fix panel is up (FixUI.close and the sim tick call this)
+  flush() { if (this.pending && !FixUI.mode && !Garage.on) { const ids = this.pending; this.pending = null; this.toast(ids); } },
   toast(ids) {
     if (Garage.on) return null;
+    if (FixUI.mode) { this.pending = [...new Set([...(this.pending || []), ...ids])]; return null; }
     const last = advOf(ids[ids.length - 1]);
     this.toastIds = ids.slice();
     $('advToast').innerHTML = `<span class="ti">${ids.map((id) => advOf(id).icon).join('')}</span><span class="tw"><b>${ids.map((id) => advOf(id).name).join(' · ')}</b><small>⭐${last.at} ➜ 🔧</small></span>`;
@@ -6894,7 +6926,7 @@ const Adv = {
     this.toastT = setTimeout(() => this.toastStop(), ADV.toast);
     return this.toastIds;
   },
-  toastStop() { clearTimeout(this.toastT); this.toastIds = null; $('advToast').classList.remove('on'); },
+  toastStop() { clearTimeout(this.toastT); this.toastIds = null; this.pending = null; $('advToast').classList.remove('on'); },
 };
 
 function render(dt) {
@@ -7250,7 +7282,8 @@ window.__rb = {
   // ---- G4: advanced parts ----
   // the advanced parts of whoever is playing ({ unlocks, mastered, goal, next, fresh, cheer, toast, parts }, as state().unlocks),
   // or of child (any child's saved record, read without loading it: { child, unlocks, fresh, mastered }). They come only from
-  // mastery: drive it with answer() and clock(). Nothing here unlocks anything.
+  // mastery: drive it with answer() and clock(). Nothing here unlocks anything, so a record saved before G4 that's already
+  // past a milestone reads e.g. mastered 12, unlocks [] until that child is picked (loading latches it).
   unlocks(child) {
     if (child == null) return Garage.advStatus();
     const C = childOf(child); if (!C) return null;
