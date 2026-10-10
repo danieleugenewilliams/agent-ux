@@ -5439,6 +5439,7 @@ const FixUI = {
     if (res === 'next') { Z.hint = -1; Z.miss = null; Z.tw = { step: P.step, until: performance.now() + 450 }; this.drawPuzzle(); return res; }
     if (res === 'wrong') {
       Z.miss = P.type === 'break' ? Number(answer) : answer; Z.hint = P.type === 'chain' ? P.answer[0] : P.answer;
+      Z.tw = null;                                         // 🧠: the chain is reset, so the last right tap's twitch stops
       const b = $('puz'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad');
       const t = performance.now(); Z.t = t;
       setTimeout(() => { if (this.puz === Z && Z.t === t) { Z.hint = -1; Z.miss = null; this.drawPuzzle(); } }, PUZZLE.glow);
