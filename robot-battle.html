@@ -381,7 +381,26 @@
   @keyframes hintPop { to { transform: scale(1.1); } }
   .puz .tiles .tile.miss { filter: grayscale(.8) brightness(.55); }
   .puz .tiles { flex-wrap: nowrap; }
-  @media (max-width: 560px) { .fslots { gap: 8px; } .fslots .card { width: 66px; height: 58px; font-size: 30px; } .fslots .wchip { width: 40px; height: 40px; } .fslots .wchip svg { width: 26px; height: 26px; } .sym { font-size: 46px; } .sym .badge { width: 64px; height: 64px; font-size: 36px; } .puz .tiles { gap: 10px; } .puz .tile { width: 76px; height: 76px; font-size: 38px; } }
+  /* 🧠 Sense, think, act (#48): three sockets with arrows into a small robot, then the shuffled tiles; a right tap fills a
+     socket, lights its arrow and twitches the eye, then the head, then the legs */
+  .chain { display: flex; align-items: center; gap: 4px; }
+  .chain .sock { width: 56px; height: 56px; border-radius: 50%; border: 4px dashed rgba(255,255,255,.55); display: flex; align-items: center; justify-content: center; font-size: 30px; line-height: 1; }
+  .chain .sock.on { border: 4px solid var(--ink); box-shadow: 0 0 14px rgba(255,216,61,.7); }
+  .chain .arr { font-size: 26px; color: rgba(255,255,255,.3); line-height: 1; }
+  .chain .arr.on { color: var(--yellow); text-shadow: 0 0 10px var(--yellow); }
+  .chain .bot { width: 70px; height: auto; flex: none; }
+  .bot rect, .bot circle { fill: #59607a; stroke: var(--ink); stroke-width: 3; }
+  .bot .eye circle { fill: #2a2f44; } .bot .eye .pupil { fill: #14182a; stroke: none; }
+  .bot .eye.lit circle { fill: #4fc3ff; } .bot .eye.lit .pupil { fill: #fff; }
+  .bot .head.lit > rect { fill: #ff7ad9; } .bot .legs.lit rect { fill: #ff8a1f; }
+  .bot.on { filter: drop-shadow(0 0 8px var(--yellow)); }
+  .bot g { transform-box: fill-box; transform-origin: center; }
+  .bot .tw { animation: twitch .45s ease-in-out; }
+  @keyframes twitch { 0%, 100% { transform: none; } 20% { transform: translate(-3px, -2px) rotate(-6deg) scale(1.12); } 45% { transform: translate(3px, 1px) rotate(5deg); } 70% { transform: translate(-2px, 0) rotate(-3deg); } }
+  .puz .tiles .tile.used { filter: grayscale(.7) brightness(.6); }
+  /* the first-time hint (#48): a hand that taps the answer once; it never takes a tap */
+  .hand { position: fixed; left: 0; top: 0; z-index: 60; font-size: 54px; line-height: 1; pointer-events: none; opacity: 0; filter: drop-shadow(0 3px 4px rgba(0,0,0,.6)); }
+  @media (max-width: 560px) { .chain .sock { width: 46px; height: 46px; font-size: 24px; } .chain .arr { font-size: 20px; } .chain .bot { width: 56px; } .puz .tiles:has(> :nth-child(4)) { gap: 8px; } .puz .tiles:has(> :nth-child(4)) .tile { width: 66px; height: 66px; font-size: 32px; } .fslots { gap: 8px; } .fslots .card { width: 66px; height: 58px; font-size: 30px; } .fslots .wchip { width: 40px; height: 40px; } .fslots .wchip svg { width: 26px; height: 26px; } .sym { font-size: 46px; } .sym .badge { width: 64px; height: 64px; font-size: 36px; } .puz .tiles { gap: 10px; } .puz .tile { width: 76px; height: 76px; font-size: 38px; } }
   /* a phone on its side: the slots stand in a column beside the board (the same breakpoint as the keypad); the wires and
      ports shrink, and up to 6 ports go two to a column */
   @media (max-height: 460px) and (min-width: 600px) {
@@ -400,6 +419,7 @@
     #fix.ramp #ports:has(> :nth-child(4)) { display: grid; grid-template-columns: repeat(2, auto); }
     #fix.ramp .loop { width: min(380px, calc(100vw - 230px)); }
     #fix.ramp .puz { gap: 8px; }
+    #fix.ramp .chain .sock { width: 44px; height: 44px; font-size: 22px; } #fix.ramp .chain .bot { width: 48px; } #fix.ramp .chain .arr { font-size: 20px; }
   }
   #clear .stars i.bonus { display: none; filter: drop-shadow(0 0 12px rgba(255,194,26,1)); }
   #clear .stars i.bonus.on { display: inline; }
@@ -1033,23 +1053,39 @@ const MATHFIX = { show: 1500, gold: '#ffc21a', glow: 3.4, health: 1.25, sparks: 
 // facts (Facts.next's band); target = the fix time (ms, board open to reboot) the playtest judges, not a check.
 // A 🧲 shutdown takes one slot off: a puzzle while there are 2, otherwise a math wire, never below 1 and 1.
 // Wave 0 (manual setup before any wave) keeps the fault-driven board of before, burnt plugs and all.
+// #48: sizes = each puzzle's size in the band: 🔥's segments, 🔍's part tiles, 🧠's tiles (4 = the three plus the 🛡️ decoy).
 const PACE = [
-  { from: 1, band: 'warm', math: 1, puzzles: 2, target: 15000 },
-  { from: 3, band: 'mix', math: 2, puzzles: 1, target: 15000 },
-  { from: 5, band: 'stretch', math: 3, puzzles: 1, target: 20000 },
+  { from: 1, band: 'warm', math: 1, puzzles: 2, target: 15000, sizes: { break: 4, part: 3, chain: 3 } },
+  { from: 3, band: 'mix', math: 2, puzzles: 1, target: 15000, sizes: { break: 5, part: 3, chain: 3 } },
+  { from: 5, band: 'stretch', math: 3, puzzles: 1, target: 20000, sizes: { break: 6, part: 4, chain: 4 } },
 ];
-// The robotics puzzles, by type (#48 adds 🧠 'chain'). Each is built from a fault the robot really has:
+// The robotics puzzles, by type. Each is built from a fault the robot really has:
 //   break 🔥 Find the break: a loop 🔋 → `segs` wire segments → ⚙️ with one segment charred (burnt wires) or
 //            loose (none burnt); tap it to splice it, the loop lights and the motor spins. A circuit is a closed loop.
 //   part  🔍 What broke?: the robot shows a symptom of how it was beaten and `tiles` of its own parts; tap the
 //            part that fixes it. What each part does.
-// Which fills a slot: the type this child saw least recently (a tie: 🔥 if wires burnt, else 🔍), never one twice.
+//   chain 🧠 Sense, think, act (#48): a 🧲 shutdown scrambled the robot's controller. Tiles 👁️ sensor, 🧠 controller,
+//            ⚙️ motor (and from wave 5 a 🛡️ decoy), shuffled; tap them in order. Each right tap lights the next arrow along
+//            the chain and the robot's eye, then head, then legs twitch; a wrong tap buzzes and the chain starts again.
+//            Every robot senses, decides, then acts.
+// Which fills a slot: on a 🧲 board the first slot is 🧠; every other slot takes 🔥 or 🔍, the one this child saw least
+// recently (a tie: 🔥 if wires burnt, else 🔍), never one twice. segs / tiles: the wave-1 sizes (PACE's sizes rule).
 const PUZZLES = {
   break: { icon: '🔥', name: 'Find the break', segs: 4 },
   part: { icon: '🔍', name: 'What broke?', tiles: 3 },
+  chain: { icon: '🧠', name: 'Sense, think, act', tiles: 3 },
 };
-// glow: how long (ms) the right answer glows after a wrong tap; done: how long a solved card shows before the board
-const PUZZLE = { glow: 1200, done: 700 };
+// 🧠's tiles (not parts: they never go in the bag). order = the chain, sensor first; decoy = the extra tile from wave 5
+const CHAIN = { tiles: { sensor: { icon: '👁️', hex: '#4fc3ff' }, controller: { icon: '🧠', hex: '#ff7ad9' }, motor: { icon: '⚙️', hex: '#ff8a1f' }, shield: { icon: '🛡️', hex: '#8a5cff' } },
+  order: ['sensor', 'controller', 'motor'], decoy: 'shield' };
+// glow: how long (ms) the right answer glows after a wrong tap; done: how long a solved card shows before the board;
+// hint: the first-time hint's length (ms): a hand taps the right answer once, the first time a child meets a type (#48)
+const PUZZLE = { glow: 1200, done: 700, hint: 2000 };
+// #48: fix times for the playtest: each ramp fix's time is kept per day in the child's record for `days` days, and the
+// parent view shows today's median beside today's minutes (the targets: PACE's 15 s and 20 s)
+const FIXTIME = { days: 14 };
+// the median of a list of numbers (the mean of the middle two for an even count, rounded); null for none
+function median(a) { if (!a?.length) return null; const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : Math.round((b[m - 1] + b[m]) / 2); }
 // 🔍's symptoms: how the robot was beaten -> what it shows, and the parts that fix it (the first one it has is right).
 // Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
 // else (setup damage, an electromagnet) leaves its wiring sparking.
@@ -1197,7 +1233,9 @@ function stepFacts(st) {
 //   { v, child, ladder, step (steps 1..step are open), opened: [{ step, at, by: 'start'|'auto'|'parent' }],
 //     wiring: 'math'|'colour', inPlay: [keys of the New facts being taught, at most FACT.newMax],
 //     facts: { key: entry }, practice: { 'YYYY-MM-DD': ms answering }, last: the last key picked, created,
-//     cheered: { table: when its cheer played } (M4: each table's cheer plays once) }
+//     cheered: { table: when its cheer played } (M4: each table's cheer plays once),
+//     #48, added with ||= when first written (so valid() and v are untouched): hints: { puzzle type: when its first-time
+//     hint played }, fixMs: { 'YYYY-MM-DD': [each ramp fix's ms, board open to reboot] } for the last FIXTIME.days days }
 // An entry (made on a fact's first answer, or when it comes into play):
 //   { op, a, b, s: stage, streak: right in a row, n: answers, right, ms: [recent times], hist: [1 right / 0 wrong],
 //     days: [day numbers with a right answer under 3 s], missDay: the day of its last miss (or too-slow
@@ -1318,6 +1356,17 @@ const Facts = {
     return Object.entries(rec.facts).filter(([, e]) => e.n > 0).map(([key, e]) => ({ key, a: e.a, b: e.b, s: e.s, ms: this.typical(e), n: e.n, right: e.right }))
       .sort((x, y) => y.ms - x.ms || x.right / x.n - y.right / y.n).slice(0, n);
   },
+  // #48: a fix's time (ms, board open to reboot) goes in today's list; days older than FIXTIME.days go
+  addFix(ms) {
+    if (!this.rec) return;
+    const F = (this.rec.fixMs ||= {}), k = this.date(), d0 = new Date(this.now()); d0.setHours(12, 0, 0, 0); d0.setDate(d0.getDate() - (FIXTIME.days - 1));
+    (F[k] ||= []).push(Math.max(0, Math.round(ms)));
+    const oldest = this.date(d0.getTime());
+    for (const key of Object.keys(F)) if (key < oldest) delete F[key];
+    this.save();
+  },
+  // fix times on each of the last n days, oldest first, ending today: { date, n, median (ms; null with no fixes) }
+  fixDays(rec = this.rec, n = FIXTIME.days) { return this.days(rec, n).map(({ date }) => { const a = rec?.fixMs?.[date] || []; return { date, n: a.length, median: median(a) }; }); },
   // time answering on each of the last n days, oldest first, ending today (the tracker's clock): { date, ms, wd }
   days(rec = this.rec, n = 14) {
     const out = [], d0 = new Date(this.now()); d0.setHours(12, 0, 0, 0);
@@ -4146,7 +4195,7 @@ function powerDown(r, how) {
   // P3-1: from wave 1 the wave sets the board (fixPlan): its math wires, none burnt (a burnt wire is 🔥's charred
   // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
   const P = Game.wave >= 1 ? fixPlan(Game.wave, r.beatenBy) : null;
-  r.board = P && { wave: Game.wave, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, puzzles: null };
+  r.board = P && { wave: Game.wave, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null };
   r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
   r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
@@ -4178,60 +4227,83 @@ function faultsOf(r, em) {
 // the board is the fault-driven one of before).
 function fixPlan(wave, how, burnt = 0) {
   wave = Math.floor(Number(wave) || 0);
-  if (wave < 1) return { band: null, math: null, puzzles: [], slots: null, target: null, wave: 0 };
+  if (wave < 1) return { band: null, math: null, puzzles: [], slots: null, target: null, sizes: null, wave: 0 };
   const B = PACE.filter((b) => wave >= b.from).pop();
   let math = B.math, n = B.puzzles;
   if (how === 'em') { if (n >= 2) n--; else math--; }   // a 🧲 shutdown: one slot fewer
   math = Math.max(1, math); n = Math.max(1, n);
-  const puzzles = puzzleTypes(n, burnt > 0);
-  return { band: B.band, math, puzzles, slots: math + puzzles.length, target: B.target, wave };
+  const puzzles = puzzleTypes(n, burnt > 0, how === 'em');
+  return { band: B.band, math, puzzles, slots: math + puzzles.length, target: B.target, sizes: { ...B.sizes }, wave };
 }
 // when each puzzle type was last seen, for whoever is playing (kept in their record; Guest's lasts while Guest
 // plays); with nobody picked (manual checks), for this page. seq orders them: a board dealt in the same ms still counts.
 const Puzzles = { loose: { seq: 0, seen: {} } };
 const puzzleSeen = () => (Facts.rec ? (Facts.rec.puzzles ||= { seq: 0, seen: {} }) : Puzzles.loose);
 // the n puzzle types for a board, least recently seen first (never seen = first); a tie goes to 🔥 if wires burnt,
-// else 🔍. No type twice. (#48: a 🧲 board's first slot becomes 🧠.)
-function puzzleTypes(n, burnt) {
+// else 🔍. No type twice. A 🧲 board's (em) first slot is 🧠, and its other slots follow the same rule over 🔥 and 🔍
+// (with today's PACE every 🧲 board has one puzzle, so that is 🧠 alone).
+function puzzleTypes(n, burnt, em = false) {
   const S = puzzleSeen().seen, first = burnt ? 'break' : 'part';
-  return ['break', 'part'].sort((x, y) => (S[x] ?? -1) - (S[y] ?? -1) || (x === first ? -1 : y === first ? 1 : 0)).slice(0, n);
+  const lru = ['break', 'part'].sort((x, y) => (S[x] ?? -1) - (S[y] ?? -1) || (x === first ? -1 : y === first ? 1 : 0));
+  return (em ? ['chain', ...lru] : lru).slice(0, n);
 }
+// #48: the first-time hints, by puzzle type: { type: when its hint played }. In the child's record (added with ||=, so
+// valid() and v are untouched); Guest's and nobody's last for this page only (a reload is a new session).
+Puzzles.guestHints = {}; Puzzles.looseHints = {};
+const puzzleHints = (write = false) => (Facts.child?.guest ? Puzzles.guestHints : Facts.rec ? (write ? (Facts.rec.hints ||= {}) : Facts.rec.hints || {}) : Puzzles.looseHints);   // a read never adds the key
 // deal a board's puzzles, the first time its fix opens (so a robot taken apart instead never counts as seen)
 function dealPuzzles(r) {
   const B = r.board; if (!B || B.puzzles) return;
-  const S = puzzleSeen();
-  B.puzzles = puzzleTypes(B.n, B.burnt > 0).map((type) => {
+  const S = puzzleSeen(), Z = B.sizes || {};
+  B.puzzles = puzzleTypes(B.n, B.burnt > 0, !!B.em).map((type) => {
     S.seen[type] = ++S.seq;
     if (type === 'break') {
-      const n = PUZZLES.break.segs, choices = Array.from({ length: n }, (_, i) => i);
-      return { type, choices, answer: Math.floor(Math.random() * n), cut: B.burnt > 0 ? 'charred' : 'loose', done: false, wrong: 0 };
+      const n = Z.break || PUZZLES.break.segs, choices = Array.from({ length: n }, (_, i) => i);
+      return { type, size: n, choices, answer: Math.floor(Math.random() * n), cut: B.burnt > 0 ? 'charred' : 'loose', done: false, wrong: 0, hinted: false };
+    }
+    if (type === 'chain') {
+      // 🧠: the three tiles of the chain (and the 🛡️ decoy at size 4), shuffled, never already in order
+      const tiles = (Z.chain || PUZZLES.chain.tiles) > CHAIN.order.length ? [...CHAIN.order, CHAIN.decoy] : CHAIN.order.slice();
+      let choices = shuffle(tiles.slice());
+      for (let t = 0; t < 10 && CHAIN.order.every((id, i) => choices[i] === id); t++) choices = shuffle(choices);
+      return { type, size: choices.length, choices, answer: CHAIN.order.slice(), step: 0, done: false, wrong: 0, hinted: false };
     }
     // 🔍: the right part is the first of the symptom's parts the robot has; the other tiles are its other parts
-    // (not the symptom's fallback part while there are enough others, so only one tile reads as right)
+    // (not the symptom's fallback part while there are enough others, so only one tile reads as right). A robot with
+    // too few parts for the size (a drone has 3; wave 5 asks 4) gets a part it doesn't have, never one of the symptom's.
     const sym = symptomOf(r.beatenBy), want = SYMPTOMS[sym].parts, answer = want.find((id) => r.parts.includes(id)) || r.parts[0];
+    const size = Z.part || PUZZLES.part.tiles;
     let rest = r.parts.filter((id) => id !== answer);
     const clear = rest.filter((id) => !want.includes(id));
-    if (clear.length >= PUZZLES.part.tiles - 1) rest = clear;
-    const choices = shuffle([answer, ...shuffle(rest.slice()).slice(0, PUZZLES.part.tiles - 1)]);
-    return { type, symptom: sym, choices, answer, done: false, wrong: 0 };
+    if (clear.length >= size - 1) rest = clear;
+    rest = shuffle(rest.slice()).slice(0, size - 1);
+    if (rest.length < size - 1) rest.push(...shuffle(Object.keys(PARTS).filter((id) => PARTS[id].fixes && !want.includes(id) && !r.parts.includes(id))).slice(0, size - 1 - rest.length));
+    const choices = shuffle([answer, ...rest]);
+    return { type, size: choices.length, symptom: sym, choices, answer, done: false, wrong: 0, hinted: false };
   });
   Facts.save();
 }
 // every slot on the board is done: every wire in, and (from wave 1) every puzzle solved
 const boardDone = (r) => r.wires.link.every((p) => p >= 0) && (!r.board || (!!r.board.puzzles && r.board.puzzles.every((q) => q.done)));
-// Answer puzzle k of robot r's open fix, as a tap does: a segment index (🔥) or a part id (🔍). Right: the slot is
-// done, and it counts as the board's previous answer (W.last), so the next fact is timed from here; the last slot
-// fixes the robot. Wrong: a buzz and nothing else lost (no fact record, no gold). 'ok' | 'wrong' | 'done' (solved
-// already) | 'not fixing' | 'no such slot'.
+// Answer puzzle k of robot r's open fix, as a tap does: a segment index (🔥), a part id (🔍) or one tile id (🧠).
+// Right: the slot is done, and it counts as the board's previous answer (W.last), so the next fact is timed from here;
+// the last slot fixes the robot. 🧠 takes three right taps in order: one that isn't the last is 'next' (the chain
+// lights one arrow further). Wrong: a buzz and nothing else lost (no fact record, no gold); 🧠's chain starts again.
+// 'ok' | 'next' | 'wrong' | 'done' (solved already) | 'not fixing' | 'no such slot'.
 function solvePuzzle(h, r, k, answer) {
   if (!h?.repair || h.repair.r !== r || h.repair.kind !== 'fix') return 'not fixing';
   const P = r.board?.puzzles?.[k]; if (!P) return 'no such slot';
   if (P.done) return 'done';
-  if (P.type === 'break' ? Number(answer) !== P.answer : answer !== P.answer) {
-    P.wrong++;
+  if (P.type === 'chain' ? answer !== P.answer[P.step] : P.type === 'break' ? Number(answer) !== P.answer : answer !== P.answer) {
+    P.wrong++; if (P.type === 'chain') P.step = 0;
     Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 8, SPARK_ZAP, 4);
     if (!Game.manual) Sfx.buzz();
     return 'wrong';
+  }
+  if (P.type === 'chain' && ++P.step < P.answer.length) {
+    Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 6, SPARK_MEND, 3);
+    if (!Game.manual) Sfx.tone(440 + 160 * P.step, 0.1, 'triangle', 0.14, 660 + 160 * P.step);
+    return 'next';
   }
   P.done = true; r.wires.last = Facts.now();
   Sparks.burst(r.pos.x, r.pos.y + 3.2, r.pos.z, 16, SPARK_MEND, 5);
@@ -4559,6 +4631,7 @@ function fixRobot(h, r) {
   Game.lastFix = { ms: Math.max(0, Math.round(now - (W.t0 ?? now))), math: W.plugs.length, puzzles: B?.puzzles?.length ?? 0, types: B?.puzzles?.map((q) => q.type) ?? [],
     wrong: B?.puzzles?.reduce((s, q) => s + q.wrong, 0) ?? 0, wiring: W.facts ? 'math' : 'colour', wave: Game.wave, band: B?.band ?? null, target: B?.target ?? null, at: now };
   Game.fixes.push(Game.lastFix);
+  if (B) Facts.addFix(Game.lastFix.ms);                  // #48: a ramp fix's time, in the child's record (wave 0 writes nothing)
   if (rp.home) sendHome(rp.home);                        // the squad was full: the one picked goes home now
   // a fast math repair: it comes back gold, with more health, and the wave's clear screen gets a 🌟
   r.gold = fastRepair(r.wires);
@@ -5258,15 +5331,43 @@ const FixUI = {
   openPuzzle(k) {
     const P = this.mode === 'wires' && !this.entry && this.r?.board?.puzzles?.[k];
     if (!P || P.done) { if (P && !Game.manual) Sfx.buzz(); return false; }
-    this.puz = { k, cur: 0, lock: false, hint: -1, miss: null, solved: false }; this.cardCur = k; this.sel = -1; this.drag = null;
+    this.puz = { k, cur: 0, lock: false, hint: -1, miss: null, solved: false, tw: null }; this.cardCur = k; this.sel = -1; this.drag = null;
     for (const c of this.puzCodes()) keys.delete(c);
     $('fix').classList.add('puzzling');
     if (!Game.manual) Sfx.click();
     this.drawPuzzle(); this.draw();
+    // #48: the first time this child meets this type, a hand taps the right answer once (PUZZLE.hint); it never blocks
+    // a tap, and a tap stops it
+    const H = puzzleHints(true);
+    if (!H[P.type]) { H[P.type] = Facts.now(); P.hinted = true; Facts.save(); this.playHint(P); }
     return true;
   },
+  // the first-time hint: a 👆 over the panel (pointer-events none, so every tap goes through) that taps the answer: the
+  // break, the part, or 🧠's three tiles in order
+  playHint(P) {
+    this.stopHint();
+    const box = $('puz'), at = (a) => box.querySelector(`[data-a="${a}"]`)?.getBoundingClientRect();
+    const pts = (P.type === 'chain' ? P.answer : [P.answer]).map(at).filter((b) => b && b.width);
+    if (!pts.length) return;
+    const el = document.createElement('div'); el.className = 'hand'; el.textContent = '👆'; el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el); this.hint = { el, type: P.type, until: performance.now() + PUZZLE.hint };
+    const xy = (b) => `translate(${Math.round(b.left + b.width / 2)}px, ${Math.round(b.top + b.height / 2)}px)`;
+    const f = [{ transform: xy(pts[0]) + ' translate(-30%, 40%) scale(1)', opacity: 0, offset: 0 }], step = 1 / pts.length;
+    pts.forEach((b, i) => {
+      const o = i * step;
+      f.push({ transform: xy(b) + ' translate(-30%, 40%) scale(1)', opacity: 1, offset: o + step * 0.35 });
+      f.push({ transform: xy(b) + ' translate(-30%, 15%) scale(.82)', opacity: 1, offset: o + step * 0.6 });
+      f.push({ transform: xy(b) + ' translate(-30%, 40%) scale(1)', opacity: 1, offset: o + step * 0.85 });
+    });
+    f.push({ transform: xy(pts[pts.length - 1]) + ' translate(-30%, 60%) scale(1)', opacity: 0, offset: 1 });
+    const H = this.hint;
+    try { el.animate(f, { duration: PUZZLE.hint, easing: 'ease-in-out', fill: 'forwards' }); } catch (e) { /* no Web Animations: no hand (it starts hidden) */ }
+    H.timer = setTimeout(() => { if (this.hint === H) this.stopHint(); }, PUZZLE.hint);
+  },
+  stopHint() { const H = this.hint; if (!H) return; this.hint = null; clearTimeout(H.timer); H.el.remove(); },
   closePuzzle() {
     if (!this.puz) return;
+    this.stopHint();
     this.puz = null; $('fix').classList.remove('puzzling'); $('puz').innerHTML = '';
     const B = this.r?.board; if (B?.puzzles) { const n = B.puzzles.findIndex((q) => !q.done); if (n >= 0) this.cardCur = n; }
     if (this.mode === 'wires') this.renderWires();
@@ -5277,8 +5378,9 @@ const FixUI = {
     const P = this.puzzleOpen(), el = $('puz'); if (!P) { el.innerHTML = ''; return; }
     const Z = this.puz, cur = (padConnected() || this.puzKb) && !Z.solved ? Z.cur : -1;
     if (P.type === 'break') {
-      // corners of the loop; segments 0, 1 along the top (battery side first), 2, 3 back along the bottom
-      const L = 46, R = 334, T = 34, Bm = 166, M = 190, pts = [[L, T, M, T], [M, T, R, T], [R, Bm, M, Bm], [M, Bm, L, Bm]];
+      // corners of the loop; the segments run along the top (battery side first), then back along the bottom: 4 are
+      // 0, 1 on top and 2, 3 below; 5 are 3 on top, 2 below; 6 are 3 and 3 (#48: the size grows with the wave)
+      const L = 46, R = 334, T = 34, Bm = 166, pts = this.loopPts(P.choices.length, L, R, T, Bm);
       const seg = (i) => {
         const [x1, y1, x2, y2] = pts[i], cls = `seg${i === cur ? ' cur' : ''}${i === Z.hint ? ' hint' : ''}${i === Z.miss ? ' miss' : ''}`;
         const hit = `<line class="hit" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
@@ -5292,13 +5394,38 @@ const FixUI = {
       };
       el.innerHTML = `<svg class="loop${P.done ? ' lit' : ''}" viewBox="0 0 380 200" role="img" aria-label="${PUZZLES.break.name}">`
         + `<path class="lead" d="M${L},74 V${T} M${L},126 V${Bm} M${R},74 V${T} M${R},126 V${Bm}"/>`
-        + [0, 1, 2, 3].map(seg).join('')
+        + pts.map((_, i) => seg(i)).join('')
         + `<text class="part" x="${L}" y="100">🔋</text><text class="part motor" x="${R}" y="100">⚙️</text></svg>`;
+    } else if (P.type === 'chain') {
+      // 🧠: the chain's three sockets, each filled as it is tapped right, with an arrow lighting after it, into the robot;
+      // its eye, then head, then legs twitch as the arrows reach them. Below, the shuffled tiles (a used one dims).
+      const n = P.answer.length, st = P.done ? n : P.step, tw = Z.tw && Z.tw.until > performance.now() ? Z.tw.step : 0;
+      const sock = (i) => `<span class="sock${i < st ? ' on' : ''}" style="${i < st ? `background:${CHAIN.tiles[P.answer[i]].hex}` : ''}">${i < st ? CHAIN.tiles[P.answer[i]].icon : ''}</span>`;
+      const arr = (i) => `<b class="arr${i < st ? ' on' : ''}">➜</b>`;
+      const bot = `<svg class="bot${P.done ? ' on' : ''}" viewBox="0 0 80 100" role="img" aria-label="robot">`
+        + `<g class="head${st >= 2 ? ' lit' : ''}${tw === 2 ? ' tw' : ''}"><rect x="14" y="6" width="52" height="36" rx="10"/><g class="eye${st >= 1 ? ' lit' : ''}${tw === 1 ? ' tw' : ''}"><circle cx="40" cy="24" r="10"/><circle class="pupil" cx="40" cy="24" r="4"/></g></g>`
+        + `<rect class="body" x="20" y="46" width="40" height="28" rx="6"/>`
+        + `<g class="legs${st >= 3 ? ' lit' : ''}${tw === 3 ? ' tw' : ''}"><rect x="24" y="76" width="10" height="20" rx="4"/><rect x="46" y="76" width="10" height="20" rx="4"/></g></svg>`;
+      el.innerHTML = `<div class="chain" role="img" aria-label="${PUZZLES.chain.name}">${CHAIN.order.map((_, i) => sock(i) + arr(i)).join('')}${bot}</div>`
+        + `<div class="tiles">${P.choices.map((id, i) => {
+          const C = CHAIN.tiles[id], used = !P.done && P.answer.indexOf(id) >= 0 && P.answer.indexOf(id) < st;
+          const cls = `tile${i === cur ? ' cur' : ''}${id === Z.hint ? ' hint' : ''}${id === Z.miss ? ' miss' : ''}${used || P.done ? ' used' : ''}`;
+          return `<button class="${cls}" data-a="${id}" aria-label="${id}" style="background:${C.hex}">${C.icon}</button>`;
+        }).join('')}</div>`;
+      if (tw) { const t = Z.tw; setTimeout(() => { if (this.puz === Z && Z.tw === t) { Z.tw = null; this.drawPuzzle(); } }, t.until - performance.now() + 20); }
     } else {
       const T = ROBOT_TYPES[this.r.type];
       el.innerHTML = `<div class="sym"><span>${T.icon}</span><span class="badge${P.done ? ' ok' : ''}">${P.done ? '✔' : SYMPTOMS[P.symptom].icon}</span></div>`
         + `<div class="tiles">${P.choices.map((id, i) => this.tile(id, `${i === cur ? 'cur' : ''}${id === Z.hint ? ' hint' : ''}${id === Z.miss ? ' miss' : ''}${P.done && id === P.answer ? ' on' : ''}`).replace('data-part=', `data-a="${id}" data-part=`)).join('')}</div>`;
     }
+  },
+  // 🔥's segments for a loop of n: [x1, y1, x2, y2] each, the top row left to right from the battery, then the bottom
+  // row right to left back to it (the top gets the extra one when n is odd)
+  loopPts(n, L, R, T, Bm) {
+    const top = Math.ceil(n / 2), bot = n - top, out = [];
+    for (let i = 0; i < top; i++) out.push([L + ((R - L) * i) / top, T, L + ((R - L) * (i + 1)) / top, T]);
+    for (let i = 0; i < bot; i++) out.push([R - ((R - L) * i) / bot, Bm, R - ((R - L) * (i + 1)) / bot, Bm]);
+    return out.map((q) => q.map((v) => Math.round(v * 1000) / 1000));
   },
   // answer the open puzzle (or puzzle k through the hook): right shows it solved for PUZZLE.done, then the board
   // (unless that was the last slot: the robot is fixed and the panel goes); wrong buzzes, shakes and makes the right
@@ -5308,14 +5435,18 @@ const FixUI = {
     const res = solvePuzzle(Game.humans[0], r, k, answer);
     if (!Z || Z.k !== k || this.mode !== 'wires') return res;
     const P = r.board.puzzles[k];
+    if (res !== 'done') this.stopHint();
+    if (res === 'next') { Z.hint = -1; Z.miss = null; Z.tw = { step: P.step, until: performance.now() + 450 }; this.drawPuzzle(); return res; }
     if (res === 'wrong') {
-      Z.miss = P.type === 'break' ? Number(answer) : answer; Z.hint = P.answer;
+      Z.miss = P.type === 'break' ? Number(answer) : answer; Z.hint = P.type === 'chain' ? P.answer[0] : P.answer;
+      Z.tw = null;                                         // 🧠: the chain is reset, so the last right tap's twitch stops
       const b = $('puz'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad');
       const t = performance.now(); Z.t = t;
       setTimeout(() => { if (this.puz === Z && Z.t === t) { Z.hint = -1; Z.miss = null; this.drawPuzzle(); } }, PUZZLE.glow);
       this.drawPuzzle();
     } else if (res === 'ok') {
       Z.lock = true; Z.solved = true; Z.hint = -1; Z.miss = null;
+      if (P.type === 'chain') Z.tw = { step: P.answer.length, until: performance.now() + 450 };
       this.drawPuzzle(); this.renderSlots(); this.draw();
       setTimeout(() => { if (this.puz === Z) this.closePuzzle(); }, PUZZLE.done);
     }
@@ -5326,9 +5457,12 @@ const FixUI = {
   puzMove(dx, dy) {
     const P = this.puzzleOpen(), Z = this.puz; if (!P || Z.lock) return;
     if (P.type === 'break') {
-      const pos = [[0, 0], [1, 0], [1, 1], [0, 1]], [c, w] = pos[Z.cur];
-      const nc = dx ? 1 - c : c, nw = dy ? 1 - w : w;
-      Z.cur = pos.findIndex(([a, b]) => a === nc && b === nw);
+      // ◀ ▶ move along the segment's row (wrapping), ▲ ▼ jump to the other row's nearest segment (4: as before, a 2 × 2)
+      const pts = this.loopPts(P.choices.length, 0, 1, 0, 1), mid = (i) => (pts[i][0] + pts[i][2]) / 2;
+      const rowOf = (low) => pts.map((q, i) => i).filter((i) => (pts[i][1] === 1) === low).sort((a, b) => mid(a) - mid(b));
+      const low = pts[Z.cur][1] === 1;
+      if (dx) { const R = rowOf(low), j = R.indexOf(Z.cur); Z.cur = R[(j + dx + R.length) % R.length]; }
+      if (dy) { const R = rowOf(!low), m = mid(Z.cur); Z.cur = R.reduce((b, i) => (Math.abs(mid(i) - m) < Math.abs(mid(b) - m) - 1e-9 ? i : b), R[0]); }
     } else { const n = P.choices.length; Z.cur = (Z.cur + (dx || dy) + n) % n; }
     if (!Game.manual) Sfx.click();
     this.drawPuzzle();
@@ -5605,7 +5739,7 @@ const FixUI = {
     this.drawMend();
     return res;
   },
-  close() { this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); },
+  close() { this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); },
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
@@ -5867,6 +6001,7 @@ const Progress = {
       slowest: Facts.slowest(rec, PARENT.slowest).map((q) => ({ fact: `${q.a} × ${q.b}`, key: q.key, stage: q.s, ms: q.ms, n: q.n, right: q.right })),
       days: days.map((d) => ({ date: d.date, ms: Math.round(d.ms), min: +(d.ms / 60000).toFixed(2) })),
       todayMs: Math.round(td.ms), today: +(td.ms / 60000).toFixed(2),
+      fixMs: (() => { const f = Facts.fixDays(rec, PARENT.days); return { today: f[f.length - 1].median, days: f }; })(),   // #48: median fix times
       grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number),
     };
   },
@@ -5891,7 +6026,8 @@ const Progress = {
     const info = !p ? '<span class="dim">Tap a fact for its time</span>'
       : `<i class="cell s-${s}">${STAGE_LOOK[s].icon}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`;
     const slow = D.slowest.length ? D.slowest.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${STAGE_LOOK[q.stage].icon}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
-    $('pBody').innerHTML = `<div class="psum"><span>⭐ Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span><span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span></div>`
+    $('pBody').innerHTML = `<div class="psum"><span>⭐ Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span><span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span>`
+      + `<span class="pfix" title="Today's median fix time (board open to reboot), ${D.fixMs.days[D.fixMs.days.length - 1].n} fixes">🔧⏱️ <b>${secs(D.fixMs.today)}</b> median fix</span></div>`
       + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div></div>`
       + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
@@ -6646,7 +6782,7 @@ function boardState(r) {
   for (let k = 0; k < B.n; k++) slots.push({ kind: 'puzzle', type: B.puzzles?.[k]?.type ?? null, puzzle: k, done: !!B.puzzles?.[k]?.done });
   return { wave: B.wave, band: B.band, math: W.plugs.length, slots, ports: W.ports.length, shown: M ? W.ports.filter((_, j) => !portHidden(W, j)).length : W.ports.length,
     decoys: W.decoys ? [...W.decoys] : [], target: B.target, burnt: B.burnt,
-    puzzles: B.puzzles ? B.puzzles.map((q) => ({ ...q, choices: [...q.choices] })) : null, done: boardDone(r) };
+    puzzles: B.puzzles ? B.puzzles.map((q) => ({ ...q, choices: [...q.choices], ...(Array.isArray(q.answer) ? { answer: [...q.answer] } : {}) })) : null, done: boardDone(r) };
 }
 function robotState(r) {
   const p0 = Game.humans[0]?.mech, wc = (ci) => (ci >= DECOY ? { color: null, shape: null, decoy: true } : { color: WIRE_COLORS[ci].color, shape: WIRE_COLORS[ci].shape });
@@ -6739,9 +6875,13 @@ window.__rb = {
   // answer puzzle `slot` (an index into state().robots[i].board.puzzles, the same as its slot's `puzzle`) of robot id's open
   // fix, as a tap does: a segment index for 🔥, a part id for 🔍. 'ok' | 'wrong' | 'done' (already solved) | 'not fixing' |
   // 'no such slot'. Through the open puzzle when it's up on screen.
+  // #48: 🧠 takes a tile id (one tap: 'next' while the chain isn't done) or an array of tile ids in tap order (taps until
+  // one isn't 'next', and returns that result).
   puzzle(id, slot, answer) {
     const r = Game.robots.find((q) => q.id === id); if (!r) return 'not fixing';
-    const res = FixUI.mode === 'wires' && FixUI.r === r ? FixUI.answerPuzzle(slot, answer) : solvePuzzle(Game.humans[0], r, slot, answer);
+    const tap = (a) => (FixUI.mode === 'wires' && FixUI.r === r ? FixUI.answerPuzzle(slot, a) : solvePuzzle(Game.humans[0], r, slot, a));
+    let res;
+    if (Array.isArray(answer)) { for (const a of answer) { res = tap(a); if (res !== 'next') break; } res ??= 'empty'; } else res = tap(answer);
     if (FixUI.mode === 'wires' && FixUI.r === r && !FixUI.puz) FixUI.renderWires();
     return res;
   },
@@ -7035,8 +7175,10 @@ window.__rb = {
       // target; fixes = every fix this session; puzzle = the puzzle open in the Quick Fix ({ slot, type, cur } or null);
       // pace = the wave bands; seen = when each puzzle type was last dealt, for whoever is playing (an order)
       lastFix: Game.lastFix ? { ...Game.lastFix, types: [...Game.lastFix.types] } : null, fixes: Game.fixes.map((f) => ({ ...f, types: [...f.types] })),
-      puzzle: FixUI.puz ? { slot: FixUI.puz.k, type: FixUI.puzzleOpen()?.type ?? null, cur: FixUI.puz.cur } : null,
-      pace: PACE.map((b) => ({ ...b })), seen: { ...puzzleSeen().seen },
+      puzzle: FixUI.puz ? { slot: FixUI.puz.k, type: FixUI.puzzleOpen()?.type ?? null, cur: FixUI.puz.cur, step: FixUI.puzzleOpen()?.step ?? null } : null,
+      pace: PACE.map((b) => ({ ...b, sizes: { ...b.sizes } })), seen: { ...puzzleSeen().seen },
+      // #48: the puzzle types whose first-time hint this child has had (Guest's: this page only); hint = the hint playing now
+      hints: Object.keys(puzzleHints()), hint: FixUI.hint ? { type: FixUI.hint.type, on: !!FixUI.hint.el.isConnected } : null,
       faultRules: { ...FAULTS, weight: { ...FAULTS.weight } },
       pulses: Bullets.list.filter((b) => b.kind === 'em').length, railFx: RailFx.live(),
       fx: { ...Impacts.live(), sparks: Sparks.list.filter((p) => p.t < p.life).length },
