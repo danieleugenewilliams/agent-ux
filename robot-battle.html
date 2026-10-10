@@ -380,7 +380,8 @@
   .puz .tiles .tile.hint { box-shadow: 0 6px 0 var(--ink), 0 0 0 6px var(--yellow), 0 0 30px var(--yellow); animation: hintPop .4s ease-in-out infinite alternate; }
   @keyframes hintPop { to { transform: scale(1.1); } }
   .puz .tiles .tile.miss { filter: grayscale(.8) brightness(.55); }
-  @media (max-width: 560px) { .fslots { gap: 8px; } .fslots .card { width: 66px; height: 58px; font-size: 30px; } .fslots .wchip { width: 40px; height: 40px; } .fslots .wchip svg { width: 26px; height: 26px; } .sym { font-size: 46px; } .sym .badge { width: 64px; height: 64px; font-size: 36px; } }
+  .puz .tiles { flex-wrap: nowrap; }
+  @media (max-width: 560px) { .fslots { gap: 8px; } .fslots .card { width: 66px; height: 58px; font-size: 30px; } .fslots .wchip { width: 40px; height: 40px; } .fslots .wchip svg { width: 26px; height: 26px; } .sym { font-size: 46px; } .sym .badge { width: 64px; height: 64px; font-size: 36px; } .puz .tiles { gap: 10px; } .puz .tile { width: 76px; height: 76px; font-size: 38px; } }
   /* a phone on its side: the slots stand in a column beside the board (the same breakpoint as the keypad); the wires and
      ports shrink, and up to 6 ports go two to a column */
   @media (max-height: 460px) and (min-width: 600px) {
