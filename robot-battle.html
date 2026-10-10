@@ -890,8 +890,9 @@ const UPGRADES = [
   { id: 'spring', name: 'Spring legs', max: 2, fx: '⤴️', alias: ['springs', 'jump'] },
   { id: 'ram', name: 'Ram plate', max: 2, fx: '🦶+25%', alias: ['ramplate', 'kick'] },
 ];
-// jump: how high each spring level jumps (m; level 0 can't); gravity pulls the mech back down (m/s²)
-const UPGRADE = { cost: 2, energy: 25, speed: 0.08, recharge: 0.1, mend: 10, kick: 0.25, jump: [0, 2.6, 4.2], gravity: 22 };
+// jump: how high each spring level jumps (m; level 0 can't); gravity pulls the mech back down (m/s²). #46: gravity was
+// 22; lighter, the same heights hang longer, so a running jump carries the mech further (level 1 over a fence: #46)
+const UPGRADE = { cost: 2, energy: 25, speed: 0.08, recharge: 0.1, mend: 10, kick: 0.25, jump: [0, 2.6, 4.2], gravity: 12 };
 const upgradeOf = (n) => { const s = String(n ?? '').toLowerCase(); return UPGRADES.find((U) => U.id === s || U.alias.includes(s) || U.name.toLowerCase() === s || PARTS[U.id].icon === n) || null; };
 // a garage's upgrade levels, every upgrade listed, each a whole number from 0 to its max
 const upLevels = (g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
@@ -982,7 +983,8 @@ const GLOW_LUM = 0.4;
 // Smashables: trees, big rocks and fence sections. A player's attacks wear their hp down (damage as
 // dealt to a robot, times `weapon[w]`: the electromagnet is electronic and does nothing to wood or
 // stone), and so does a player's mech walking into one: `walk` hp a second pushing in at top speed,
-// less when slower, none under walkMin m/s. Broken stays broken: it leaves `obstacles`, so it no
+// less when slower, none under walkMin m/s. A jump whose feet clear one sails over it whole, and one that comes
+// down on it, or lands still within its walking reach, crushes it (jumpPass). Broken stays broken: it leaves `obstacles`, so it no
 // longer blocks anything or stops a round, and it never grows back.
 const PROP = {
   tree:  { hp: 60, walk: 50 },
@@ -1779,13 +1781,18 @@ const Meadow = {
     for (const s of [-1, 1]) {
       const p = new THREE.Mesh(FENCE.geo.post, post); p.position.set(s * (L / 2 - 0.2), 0.85, 0); p.rotation.y = srange(-0.2, 0.2); p.castShadow = true; g.add(p); posts.push(p);
     }
-    for (const y of [0.7, 1.3]) { const r = new THREE.Mesh(FENCE.geo.rail, rail); r.position.set(0, y, 0.14); r.rotation.z = srange(-0.03, 0.03); r.castShadow = true; g.add(r); rails.push(r); }
+    for (const y of [0.7, 1.3]) { const r = new THREE.Mesh(FENCE.geo.rail, rail); r.position.set(0, y, FENCE.railZ); r.rotation.z = srange(-0.03, 0.03); r.castShadow = true; g.add(r); rails.push(r); }
     scene.add(g);
     const c = (k) => ({ x: x + ux * k, z: z + uz * k, r: 1.05, h: 1.7 });
-    Props.add('fence', x, z, [c(-1), c(1)], { root: g, posts, rails });
+    Props.add('fence', x, z, [c(-1), c(1)], { root: g, posts, rails, foot: { ux, uz, ...FENCE.foot } });
   },
 };
-const FENCE = { len: 4, geo: { post: new THREE.BoxGeometry(0.24, 1.7, 0.24), rail: new THREE.BoxGeometry(3.9, 0.2, 0.09) } };
+const FENCE = { len: 4, railZ: 0.14, geo: { post: new THREE.BoxGeometry(0.24, 1.7, 0.24), rail: new THREE.BoxGeometry(3.9, 0.2, 0.09) } };
+// #46: a section's real footprint, from the parts above, for a jump (walking still meets its two 1.05 m circles):
+// half its length along the run, and how far it reaches either side of its line (n0 behind, n1 in front, where the
+// rails sit). A post's half-width is taken at its 0.2 rad twist, so it's about 0.3 m deep
+FENCE.foot = (() => { const P = FENCE.geo.post.parameters, R = FENCE.geo.rail.parameters, ph = P.depth / 2 * (Math.cos(0.2) + Math.sin(0.2));
+  return { half: Math.max(FENCE.len / 2 - 0.2 + ph, R.width / 2), n0: -ph, n1: Math.max(ph, FENCE.railZ + R.depth / 2) }; })();
 
 // ===========================================================================
 // Props: everything in the meadow that can be smashed (trees, big rocks, fence
@@ -1876,6 +1883,36 @@ function pushProps(m, touched, dt) {
     if (into < PROP.walkMin) continue;
     if (Props.hit(o.prop, PROP[o.kind].walk * into / MECH.topSpeed * dt, 'walk', -dx, -dz)) m.human?.rig.kick(o.kind === 'fence' ? 0.4 : 0.8);
   }
+}
+// #46: a player's jump and a smashable its body is within walking reach of (from mechTick, once a tick per smashable,
+// so both circles of a fence get the same answer). Heights are the mech's own: its feet are J.y above the ground
+// under it (the soles sit at m.pos.y standing) and the jump tops out at its own peak, so other legs with other jumps
+// follow the same rule. The object's top is its height above the ground under it. In the air what counts is the
+// object's real footprint (footGap: a fence section's posts and rails, not its blocking circles) against the
+// mech's centre; on the ground it's walking reach, as ever.
+//   null    as walking into it: on the ground and not passed, or a jump whose peak can't get the feet over its top
+//   'air'   in a jump that can clear it, not over it yet: no push and no damage, but not passed either. Landing still
+//           inside its walking reach crushes it (mechTick)
+//   'over'  passed whole: the feet were above its top over its footprint (kept in m.over until the mech is clear of
+//           its walking reach), and in the air now
+//   'held'  passed whole and on the ground now: never closer than before this tick's step, walking damage if pushing in
+//   'stomp' the jump comes down into its footprint with the feet below its top: crushed
+//   'bump'  the jump rises into its footprint with the feet below its top: held where it was and hit as walking
+function jumpPass(m, J, gy, p) {
+  const passed = !!m.over?.has(p);
+  if (!J) return passed ? 'held' : null;
+  const top = groundH(p.x, p.z) + p.obs[0].h, peak = J.v > 0 ? J.y + J.v * J.v / (2 * UPGRADE.gravity) : J.peak;
+  if (gy + peak < top) return null;
+  if (footGap(p, m.pos.x, m.pos.z) > 0) return passed ? 'over' : 'air';
+  if (gy + J.y >= top) { (m.over ||= new Set()).add(p); return 'over'; }
+  return J.v < 0 ? 'stomp' : 'bump';
+}
+// how far (x, z) is outside smashable p's real footprint (0 = over it): a fence section's box, else its circles
+function footGap(p, x, z) {
+  const F = p.foot;
+  if (!F) return Math.min(...p.obs.map((o) => Math.hypot(x - o.x, z - o.z) - o.r));
+  const dx = x - p.x, dz = z - p.z, a = Math.abs(dx * F.ux + dz * F.uz) - F.half, n = -dx * F.uz + dz * F.ux;
+  return Math.hypot(Math.max(0, a), n < F.n0 ? F.n0 - n : n > F.n1 ? n - F.n1 : 0);
 }
 
 // ===========================================================================
@@ -2255,18 +2292,37 @@ function mechTick(m, dt) {
   m.torsoYaw = turnToward(m.torsoYaw, inp.aimYaw, S.torsoTurn * dt);
   m.aimPitch = approach(m.aimPitch, clamp(inp.aimPitch, -0.35, 0.5), 1.5 * dt);
   // Walk
-  const fx = -Math.sin(m.legHeading), fz = -Math.cos(m.legHeading);
+  const fx = -Math.sin(m.legHeading), fz = -Math.cos(m.legHeading), x0 = m.pos.x, z0 = m.pos.z;   // (#46: where it stood)
   m.pos.x += fx * m.speed * dt; m.pos.z += fz * m.speed * dt;
   // Knockback from rams and kicks slides the mech and fades out
   m.pos.x += m.push.x * dt; m.pos.z += m.push.z * dt; m.push.multiplyScalar(Math.exp(-3.5 * dt));
   let touched = null;    // the props a player's mech is leaning on (smashed after the loop: it changes `obstacles`)
+  // #46: props a jump comes down on; the props the mech's body is within walking reach of this tick; the ones a
+  // clearable jump is beside but not over yet (crushed if it lands there); each prop's jumpPass answer this tick
+  let stomped = null, near = null, beside = null, pass = null;
+  const J0 = m.human ? m.hop : null, gy = J0 && groundH(m.pos.x, m.pos.z);
   for (const o of obstacles) {
     const dx = m.pos.x - o.x, dz = m.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + S.radius;
     if (d < min && d > 1e-6) {
+      const p = m.human && o.prop;
+      if (p) {
+        (near ||= new Set()).add(p);
+        let k = (pass ||= new Map()).get(p); if (k === undefined) pass.set(p, k = jumpPass(m, J0, gy, p));
+        if (k === 'over') continue;
+        if (k === 'air') { (beside ||= new Set()).add(p); continue; }
+        if (k === 'stomp') { (stomped ||= new Set()).add(p); continue; }
+        if (k === 'bump') { m.pos.x = x0; m.pos.z = z0; (touched ||= []).push([o, dx, dz, d]); continue; }
+        if (k === 'held') {
+          const d0 = Math.hypot(x0 - o.x, z0 - o.z);
+          if (d < d0) { m.pos.x = o.x + dx / d * d0; m.pos.z = o.z + dz / d * d0; (touched ||= []).push([o, dx, dz, d]); }
+          continue;
+        }
+      }
       m.pos.x = o.x + dx / d * min; m.pos.z = o.z + dz / d * min;
-      if (m.human && o.prop) (touched ||= []).push([o, dx, dz, d]);
+      if (p) (touched ||= []).push([o, dx, dz, d]);
     }
   }
+  if (m.over) for (const p of m.over) if (!near?.has(p)) m.over.delete(p);   // clear of its walking reach now
   if (touched) pushProps(m, touched, dt);
   const r = Math.hypot(m.pos.x, m.pos.z);
   if (r > WORLD_R) { m.pos.x *= WORLD_R / r; m.pos.z *= WORLD_R / r; }
@@ -2275,9 +2331,12 @@ function mechTick(m, dt) {
   const J = m.hop;
   if (J) {
     J.y += J.v * dt - 0.5 * UPGRADE.gravity * dt * dt; J.v -= UPGRADE.gravity * dt; J.peak = Math.max(J.peak, J.y);   // exact under constant gravity
-    if (J.y <= 0) { m.hop = null; m.hopPeak = J.peak; m.jumps++; m.onLand?.(m, J.peak); }
-    else m.pos.y += J.y;
+    if (J.y <= 0) {
+      m.hop = null; m.hopPeak = J.peak; m.jumps++; m.onLand?.(m, J.peak);
+      if (beside) for (const p of beside) if (!m.over?.has(p)) (stomped ||= new Set()).add(p);   // #46: landed in its reach: came down into it
+    } else m.pos.y += J.y;
   }
+  if (stomped) for (const p of stomped) if (Props.hit(p, p.hp, 'stomp', -Math.sin(m.legHeading), -Math.cos(m.legHeading))) m.human.rig.kick(0.8);
   // Gait: a footfall every stride, at the front of each leg's swing
   const prevPhase = m.phase;
   m.phase += (m.speed * dt / S.stride) * Math.PI;
@@ -6514,11 +6573,12 @@ window.__rb = {
           // G2: the upgrade levels on this mech, what they do now, and the upgrade pieces on its model (upgradeLook).
           // recharge: how fast weapon cooldowns run down (1 = as built); mend: what one part mends in self-repair;
           // kick: the kick's damage; jump: how high a jump goes (0 = can't); air: in a jump now, y = how high above
-          // the ground, peak = this jump's highest so far, last = the last landed jump's height, jumps = landed
+          // the ground, peak = this jump's highest so far, last = the last landed jump's height, jumps = landed,
+          // over = the smashables this jump has passed over whole (ids; kept after landing until the mech is clear of them)
           upgrades: { ...upLevels({ upgrades: m.upg }) },
           effects: { maxHealth: m.maxHealth, topSpeed: r3((m.spec || MECH).topSpeed), recharge: r3(1 + UPGRADE.recharge * (m.upg?.battery || 0)), mend: mendPer(m),
             kick: r3(WEAPON.kick.dmg * (1 + UPGRADE.kick * (m.upg?.ram || 0))), jump: UPGRADE.jump[m.upg?.spring || 0] },
-          jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps },
+          jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps, over: m.over ? [...m.over].map((p) => p.id) : [] },
           look: upgradeLook(m.model),
           // G3: the paint on this mech, read back from its model: body / trim = the colours on its role materials, meshes
           // = how many wear each, decal = the one showing ('none' if none), decals = how many squares show it, and where
@@ -6571,7 +6631,7 @@ window.__rb = {
       // hidden parts in the meadow: found = in the bag now (gone from the meadow); spotted = a squadmate drone marked it (by = its id)
       hidden: Hidden.list.map((q) => ({ id: q.id, part: q.part, x: r3(q.x), z: r3(q.z), found: q.found, spotted: q.spotted, by: q.by })),
       hiddenFound: Hidden.list.filter((q) => q.found).length,
-      // every smashable: 'tree' | 'rock' | 'fence' (a fence section); broken for good once hp is 0 (by = what broke it, 'walk' = walked into)
+      // every smashable: 'tree' | 'rock' | 'fence' (a fence section); broken for good once hp is 0 (by = what broke it, 'walk' = walked into, 'stomp' = a jump came down on it)
       props: Props.list.map((p) => ({ id: p.id, kind: p.kind, x: r3(p.x), z: r3(p.z), hp: r3(p.hp), maxHp: p.maxHp, broken: p.broken, by: p.by, blocking: p.obs.some((o) => obstacles.includes(o)) })),
       propsBroken: Props.list.filter((p) => p.broken).length,
       // waves: the wave out now (0 before the first); cleared = no glitched or powered-down robot left in it;
