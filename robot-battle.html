@@ -568,6 +568,40 @@
   .glock .big { font-size: 90px; line-height: 1; }
   .glock .ti { font-size: 46px; line-height: 1; }
   .glock b { font: 900 26px 'Asap', sans-serif; color: var(--yellow); }
+  /* G4: the advanced shelf, under the trophies: five slots across, lit once unlocked, an outline with its milestone till then */
+  .gwall.trophies { grid-template-rows: 1fr 1fr 1.15fr; }
+  .ashelf { grid-column: 1 / -1; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding-top: 8px; border-top: 4px dashed rgba(255,216,61,.35); }
+  .aslot { position: relative; min-height: 0; min-width: 0; border-radius: 18px; border: 3px dashed rgba(255,255,255,.28); }   /* (no fill: the 3D piece is drawn under this layer) */
+  .aslot.got { border: 3px solid var(--pc); box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 55%, transparent); }
+  .aslot.next { border-color: var(--yellow); }
+  .aslot.new { animation: advNew .7s ease-in-out 6; }
+  @keyframes advNew { 0%,100% { box-shadow: 0 0 0 0 rgba(255,216,61,.9); } 50% { box-shadow: 0 0 0 12px rgba(255,216,61,0); } }
+  .aslot .tv { position: absolute; inset: 4px 4px 26% 4px; }
+  .aslot .aic { position: absolute; left: 6px; top: 4px; font-size: 22px; line-height: 1; }
+  .aslot.none .aic { opacity: .4; filter: grayscale(1); }
+  .aslot .afx, .aslot .amile { position: absolute; right: 6px; bottom: 2px; font: 900 22px 'Asap', sans-serif; color: #fff; white-space: nowrap; text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink); }
+  .aslot .amile { color: var(--yellow); }
+  .aslot .awords { position: absolute; left: 6px; bottom: 6px; max-width: 52%; font: 800 11px/1.05 'Asap', sans-serif; color: rgba(255,255,255,.75); }
+  .aslot .abar { position: absolute; left: 6px; right: 6px; top: 30px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.18); overflow: hidden; }
+  .aslot .abar i { display: block; height: 100%; background: var(--yellow); }
+  /* G4: the garage's cheer for parts earned since it last opened (over the bay; taps go through) */
+  #gCheer { position: absolute; inset: 0; display: none; pointer-events: none; }
+  #gCheer.on { display: block; }
+  #gCheer .gch { position: absolute; left: 50%; top: 18%; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 28px 16px; border-radius: 26px;
+    background: rgba(20,24,42,.92); border: 5px solid var(--yellow); box-shadow: 0 0 40px rgba(255,216,61,.7); animation: cheerPop .5s ease-out; }
+  #gCheer .gch .big { font-size: 76px; line-height: 1.05; }
+  #gCheer .gch b { font: 900 34px 'Asap', sans-serif; color: var(--yellow); white-space: nowrap; }
+  #gCheer .confetti i { position: fixed; top: -24px; width: 11px; height: 17px; border-radius: 3px; animation: confetti 3s linear forwards; }
+  /* G4: the toast in play (a milestone reached): high and centred, away from the HUD's bottom row; taps go through */
+  #advToast { position: fixed; left: 50%; top: max(22%, 180px); translate: -50% 0; z-index: 6; display: none; align-items: center; gap: 12px; max-width: calc(100vw - 32px); padding: 8px 20px 8px 14px;
+    border-radius: 22px; background: rgba(20,24,42,.9); border: 4px solid var(--yellow); box-shadow: 0 0 26px rgba(255,216,61,.6); pointer-events: none; }
+  #advToast.on { display: flex; animation: cheerPop .45s ease-out; }
+  #advToast .ti { font-size: 44px; line-height: 1; }
+  #advToast .tw { display: flex; flex-direction: column; min-width: 0; }
+  #advToast b { font: 900 22px 'Asap', sans-serif; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #advToast small { font: 900 20px 'Asap', sans-serif; color: var(--yellow); }
+  body.garage #advToast { display: none; }
+  body:has(#cheer.on) #advToast { top: max(48%, 180px); }   /* under the table cheer when both come from one answer */
   /* G2: the 🦾 Mech tab. A card per upgrade: its part as a 3D piece, what it does, its level pips, the cost
      (2 × the part) with how many the bag has, and a buy button (grey when the bag is short; ⭐ when it's maxed) */
   .gwall.mech { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
@@ -641,6 +675,10 @@
     .gtabs { gap: 6px; } .gtab { min-width: 0; flex: 1; height: 58px; padding: 2px 4px; font-size: 26px; } .gtab small { font-size: 11px; }
     .gbody { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 36%) 1fr; gap: 8px; }
     .gwall { gap: 6px; } .tslot .tf { font-size: 16px; } .tslot .tn { font-size: 21px; right: 5px; }
+    .ashelf { gap: 4px; padding-top: 5px; } .aslot { border-radius: 12px; } .aslot .aic { font-size: 16px; left: 4px; top: 3px; }
+    .aslot .afx, .aslot .amile { font-size: 15px; right: 3px; } .aslot .awords { display: none; } .aslot .abar { top: 22px; left: 4px; right: 4px; height: 5px; }
+    #gCheer .gch .big { font-size: 56px; } #gCheer .gch b { font-size: 26px; }
+    #advToast .ti { font-size: 34px; } #advToast b { font-size: 17px; } #advToast small { font-size: 16px; }
     .glock .big { font-size: 64px; }
     .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
     .ucard { padding: 4px 6px 6px; border-width: 3px; border-radius: 14px; }
@@ -668,6 +706,8 @@
     #garageX { width: 44px; height: 44px; font-size: 22px; }
     .gbody { grid-template-columns: minmax(160px, 28%) 1fr; gap: 8px; }
     .gwall { gap: 6px; } .tslot .tf { font-size: 17px; } .tslot .tn { font-size: 22px; }
+    .ashelf { gap: 5px; padding-top: 4px; } .aslot .aic { font-size: 16px; } .aslot .afx, .aslot .amile { font-size: 16px; } .aslot .awords { display: none; } .aslot .abar { top: 22px; height: 5px; }
+    #gCheer .gch { top: 10%; } #gCheer .gch .big { font-size: 50px; }
     .gwho { font-size: 15px; padding: 2px 10px; }
     .ucard { padding: 3px 6px 5px; border-width: 3px; border-radius: 14px; }
     .ucard .ufx { font-size: 16px; } .ucard .pips i { width: 11px; height: 11px; border-width: 2px; } .ucard .pips { gap: 2px; }
@@ -845,7 +885,7 @@
 <!-- GARAGE (G1): the bay. The player's mech on a lift, four tabs, and the trophy wall: each part type on a shelf as a
      3D piece (drawn on the game canvas under this layer, in each slot's box) with how many were found and the icons of
      the robots they came from; a type never found is a dark outline. G2: 🦾 Mech has a card per upgrade (bought with
-     parts from the bag). 🤖 🎨 are 🔒 coming soon -->
+     parts from the bag). G4: under the trophies, a shelf of the five advanced parts that facts Mastered unlock -->
 <div id="garage" class="screen">
   <div class="gbay">
     <div class="gtop"><span class="gt">🔧</span><div class="gtabs" id="gTabs"></div><button class="x" id="garageX" aria-label="Close">✖</button></div>
@@ -854,7 +894,10 @@
       <div class="gwall" id="gWall"></div>
     </div>
   </div>
+  <div id="gCheer"></div>
 </div>
+<!-- G4: the toast in play when a milestone unlocks an advanced part -->
+<div id="advToast" role="status"></div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -863,6 +906,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // ===========================================================================
 // Tuning. Metres and seconds. The mech is heavy: it gathers speed slowly,
@@ -982,8 +1026,27 @@ const UPGRADES = [
 // 22; lighter, the same heights hang longer, so a running jump carries the mech further (level 1 over a fence: #46)
 const UPGRADE = { cost: 2, energy: 25, speed: 0.08, recharge: 0.1, mend: 10, kick: 0.25, jump: [0, 2.6, 4.2], gravity: 12 };
 const upgradeOf = (n) => { const s = String(n ?? '').toLowerCase(); return UPGRADES.find((U) => U.id === s || U.alias.includes(s) || U.name.toLowerCase() === s || PARTS[U.id].icon === n) || null; };
+// G4: advanced parts. Every 9 facts Mastered (of the 45) unlocks one that no robot drops (at = the milestone). They're
+// latched per child in rec.garage.unlocks (ids, in this order): a fact slipping back from Mastered never takes one
+// away, and a parent's reset keeps them (it keeps the garage). rec.garage.fresh = ones earned but not yet cheered in
+// the garage. Guest earns none. What each does (ADV):
+//   chrome ✨  energy: +25 energy past the armour cap, and a mirror finish
+//   jets   🚀  jet: a second jump in mid-air (rising `jet` m from wherever it fires), with a flame burst (flame s)
+//   fusion ⚡  recharge: weapons recharge 20% faster (added to the power cells' 10% a level), and the core glows
+//   shield 🛡️  shield: a bubble that blocks the next 3 hits, back to 3 each wave
+//   gold   👑  gold: the whole mech turns gold, and squadmates glow gold
+// toast: how long the in-play toast stays (ms); cheer: how long the garage's cheer stays (ms)
+const ADVANCED = [
+  { id: 'chrome', icon: '✨', name: 'Chrome plating', at: 9, hex: '#dfe7f2', fx: '❤️+25' },
+  { id: 'jets', icon: '🚀', name: 'Jump jets', at: 18, hex: '#ff6a2a', fx: '⤴️⤴️' },
+  { id: 'fusion', icon: '⚡', name: 'Fusion core', at: 27, hex: '#3ff0ff', fx: '⏱️+20%' },
+  { id: 'shield', icon: '🛡️', name: 'Shield emitter', at: 36, hex: '#56B4E9', fx: '🫧×3' },
+  { id: 'gold', icon: '👑', name: 'Gold plating', at: 45, hex: '#ffc21a', fx: '👑' },
+];
+const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', toast: 3500, cheer: 4500 };
+const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || null; };
 // a garage's upgrade levels, every upgrade listed, each a whole number from 0 to its max
-const upLevels = (g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
+const upLevels =(g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
 // G3: squadmate upgrades, bought in the garage's 🤖 tab. Each squadmate has two, each with `max` levels at `cost` parts a
 // level, from the bag. They belong to that squadmate (r.upg) and go with it when it's sent home. The squad isn't
 // saved, so neither are they.
@@ -1246,7 +1309,7 @@ function stepFacts(st) {
 // ever collected, by type: n = how many, from = where they came from (a robot type, or 'meadow' for a
 // hidden part), so the wall keeps a part found even after it's spent from the bag. upgrades, paint and
 // unlocks are for G2–G4. Added with ||= on load, so a record saved before G1 keeps everything else.
-const blankGarage = () => ({ trophies: {}, upgrades: {}, paint: null, unlocks: [] });
+const blankGarage = () => ({ trophies: {}, upgrades: {}, paint: null, unlocks: [], fresh: [] });
 function fillGarage(r) {
   const g = r.garage = r.garage && typeof r.garage === 'object' ? r.garage : blankGarage();
   if (!g.trophies || typeof g.trophies !== 'object') g.trophies = {};
@@ -1256,11 +1319,14 @@ function fillGarage(r) {
   // G3: paint kept only as palette colours and a known decal; anything else is the mech as built (null)
   const p = g.paint;
   g.paint = p && typeof p === 'object' && paintColour(p.body) && paintColour(p.trim) && decalOf(p.decal) ? { body: paintColour(p.body), trim: paintColour(p.trim), decal: decalOf(p.decal).id } : null;
-  if (!Array.isArray(g.unlocks)) g.unlocks = [];
+  // G4: unlocks kept as known advanced-part ids, once each, in ADVANCED order; fresh only ever holds unlocked ones
+  const ids = ADVANCED.map((A) => A.id), un = Array.isArray(g.unlocks) ? g.unlocks : [];
+  g.unlocks = ids.filter((id) => un.includes(id));
+  g.fresh = Array.isArray(g.fresh) ? ids.filter((id) => g.fresh.includes(id) && g.unlocks.includes(id)) : [];
   return r;
 }
 const Facts = {
-  child: null, rec: null, offset: 0, rand: Math.random, onCheer: null,
+  child: null, rec: null, offset: 0, rand: Math.random, onCheer: null, onUnlock: null,
   now() { return Date.now() + this.offset; },
   // a day number: local calendar days, so "different days" means different dates on the family's clock
   day(t = this.now()) { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); },
@@ -1275,8 +1341,18 @@ const Facts = {
     r.practice ||= {}; r.opened ||= []; r.cheered ||= {}; fillGarage(r);   // a record saved before G1 gets an empty garage
     r.puzzles ||= { seq: 0, seen: {} };                                   // P3-1: when each puzzle type was last seen
     this.child = C; this.rec = r;
-    this.advance(); this.save();
+    this.advance(); this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
     return r;
+  },
+  // G4: latch the advanced parts whoever is playing has earned: every ADVANCED part whose milestone their Mastered
+  // count has reached. Never takes one away. Guest (and nobody) earns none. The new ones also go in garage.fresh, for
+  // the cheer the next time the garage opens. Returns the ids newly earned. The caller saves.
+  latch() {
+    if (!this.rec || !this.child || this.child.guest) return [];
+    const g = fillGarage(this.rec).garage, n = this.mastery()?.mastered ?? 0, got = [];
+    for (const A of ADVANCED) if (n >= A.at && !g.unlocks.includes(A.id)) { g.unlocks.push(A.id); g.fresh.push(A.id); got.push(A.id); }
+    if (got.length) fillGarage(this.rec);   // back in ADVANCED order
+    return got;
   },
   save() { if (this.rec && this.child && !this.child.guest) store.set('facts.' + this.child.id, this.rec); },
   get steps() { return this.rec ? LADDERS[this.rec.ladder] : []; },
@@ -1459,9 +1535,11 @@ const Facts = {
     // cheered yet. Recorded in the record, so each table cheers once per child.
     const cheer = [], ch = (this.rec.cheered ||= {});
     for (const t of new Set([f.a, f.b])) if (!(t in ch) && this.tableDone(this.rec, t)) { ch[t] = now; cheer.push(t); }
+    const unlocked = this.latch();   // G4: a milestone reached (Mastered count) unlocks its advanced part, for good
     this.advance(); this.save();
     if (cheer.length) this.onCheer?.(cheer, this.child);
-    return { ok: true, op: f.op, a: f.a, b: f.b, key: f.key, value, answer: f.answer, right, fast, ms, from, to: e.s, due: e.due, step: this.rec.step, cheer };
+    if (unlocked.length) this.onUnlock?.(unlocked, this.child);
+    return { ok: true, op: f.op, a: f.a, b: f.b, key: f.key, value, answer: f.answer, right, fast, ms, from, to: e.s, due: e.due, step: this.rec.step, cheer, unlocked };
   },
   // The next fact to ask. opts.exclude: facts already on the board (keys or { op, a, b }); opts.ops: only
   // these ops (what the asking UI can show). A missed fact whose couple of minutes are up comes first;
@@ -2259,8 +2337,18 @@ function decalTex(kind, trim, emblem) {
 // sockets (one see-through square each, pushed just off the surface). p = { body, trim, decal } (Garage.paintNow()).
 function paintMech(md, p, pilot = Game.pilot) {
   if (!md?.paintMats) return null;
-  for (const c of md.paintMats.body.values()) c.color.set(p.body);
-  for (const c of md.paintMats.trim.values()) c.color.set(p.trim);
+  // G4: gold plating turns the whole mech gold over its paint; chrome plating (or gold) gives the painted parts a mirror
+  // finish: fully metal and smooth, reflecting a room (advEnv) so it shines instead of going dark. Off again for a
+  // child without them (each material keeps how it was built)
+  const fin = md.finish ?? null, gold = fin === 'gold';
+  for (const c of md.paintMats.body.values()) c.color.set(gold ? ADV.gold : p.body);
+  for (const c of md.paintMats.trim.values()) c.color.set(gold ? ADV.goldTrim : p.trim);
+  for (const role of ['body', 'trim']) for (const c of md.paintMats[role].values()) {
+    const b = c.userData.base ||= { metalness: c.metalness, roughness: c.roughness };
+    const env = fin ? advEnv() : null;
+    c.metalness = fin ? (gold ? 0.8 : 0.95) : b.metalness; c.roughness = fin ? (gold ? 0.28 : 0.08) : b.roughness; c.envMapIntensity = fin ? 1.6 : 1;
+    if (c.envMap !== env) { c.envMap = env; c.needsUpdate = true; }
+  }
   if (!md.decals) {
     const m = new THREE.MeshStandardMaterial({ transparent: true, alphaTest: 0.05, roughness: 0.5, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, depthWrite: false });
     md.decals = { mat: m, planes: md.sockets.map(([parent, pos, rot, size]) => {
@@ -2272,6 +2360,9 @@ function paintMech(md, p, pilot = Game.pilot) {
   md.paintNow = { ...p };
   return md.paintNow;
 }
+// G4: a soft studio room, prefiltered once, for the mirror finishes (and the trophy wall's chrome and gold) to reflect.
+// Only their own materials use it: the meadow's lighting is untouched.
+function advEnv() { return (advEnv.tex ||= new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture); }
 // what paint model md wears, read back from the model: its role materials' colours (every copy), how many meshes
 // wear each role, and the decal squares showing (and on what)
 function paintLook(md) {
@@ -2279,8 +2370,10 @@ function paintLook(md) {
   const hexes = (role) => [...new Set([...md.paintMats[role].values()].map((c) => '#' + c.color.getHexString()))];
   const meshes = { body: 0, trim: 0 }; md.root.traverse((o) => { if (o.isMesh && o.userData.painted) meshes[o.userData.paint]++; });
   const shown = md.decals ? md.decals.planes.filter((q) => q.visible && q.parent) : [];
+  const b0 = md.paintMats.body.values().next().value;   // G4: finish = 'chrome' | 'gold' | null, and the body's metal read back
   return { body: hexes('body'), trim: hexes('trim'), meshes, decal: shown.length ? md.paintNow?.decal ?? null : 'none', decals: shown.length,
-    decalOn: shown.map((q) => (q.parent === md.torso ? 'back' : 'shoulder')) };
+    decalOn: shown.map((q) => (q.parent === md.torso ? 'back' : 'shoulder')),
+    finish: md.finish ?? null, metalness: b0 ? r3(b0.metalness) : null, roughness: b0 ? r3(b0.roughness) : null, mirror: !!b0?.envMap };
 }
 
 // G2: each upgrade shows on the mech, in its part's colour, more of it at each level:
@@ -2291,8 +2384,13 @@ function paintLook(md) {
 //   wiring  a blue cable loop over each shoulder per level
 //   spring  a coil spring behind each shin (level 2: longer and thicker)
 //   ram     a ram plate on each foot's toes (level 2: bigger, with yellow spikes)
+// G4, the advanced parts (adv = { id: unlocked }):
+//   jets   a jet nozzle each side of the back, with a flame under each that shows while a mid-air jump burns
+//   fusion a glowing core in the chest, in a ring, pulsing
+//   shield a see-through bubble round the whole mech while it has hits left to block (md.bubble)
+//   (chrome and gold are the finish on the paint: paintMech)
 // Built afresh each time: the old pieces come off and the grown meshes go back to their base scale first.
-function dressUpgrades(md, lv) {
+function dressUpgrades(md, lv, adv = {}) {
   if (!md) return null;
   if (md.up) { for (const o of md.up.meshes) o.removeFromParent(); md.lights = md.lights.filter((L) => !md.up.lights.includes(L)); }
   const up = md.up = { meshes: [], lights: [], lv: { ...lv } };
@@ -2337,7 +2435,27 @@ function dressUpgrades(md, lv) {
     put('ram', L.foot, rbox(1.3 + 0.25 * ra, 0.5 + 0.15 * ra, 0.3, 0.1, hex('ram'), { metalness: 0.8, roughness: 0.25 }), 0, 0.02, -1.9);
     if (ra >= 2) for (const x of [-0.4, 0.4]) put('spike', L.foot, new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 10), mat('#ffd83d')), x, 0.02, -2.25).rotation.x = -Math.PI / 2;
   }
+  // 🚀 jet nozzles on the back, a flame under each (shown while the second jump burns)
+  md.flames = [];
+  if (adv.jets) for (const s of [-1, 1]) {
+    put('jet', md.torso, cyl(0.26, 0.36, 0.7, '#3a4157', metal, 16), s * 0.75, -0.2, 1.85);
+    const f = put('flame', md.torso, new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.6, 14), glow(ADVANCED[1].hex, 3)), s * 0.75, -1.35, 1.85);
+    f.rotation.x = Math.PI; f.visible = false; md.flames.push(f);
+  }
+  // ⚡ the fusion core in the chest
+  md.core = null;
+  if (adv.fusion) {
+    md.core = put('core', md.torso, new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 14), glow(ADVANCED[2].hex, 3.2)), 0, 0.95, -1.78);
+    put('ring', md.torso, new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.08, 8, 28), mat('#b9c0cf', metal)), 0, 0.95, -1.74);
+  }
+  // 🛡️ the shield bubble (no shadow; syncMechModel shows it while hits are left, brighter as it blocks one)
+  md.bubble = null;
+  if (adv.shield) {
+    md.bubble = put('bubble', md.root, new THREE.Mesh(new THREE.SphereGeometry(5.4, 32, 20),
+      new THREE.MeshBasicMaterial({ color: ADVANCED[3].hex, transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending })), 0, 4.2, 0);
+  }
   for (const o of up.meshes) o.traverse((q) => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; } });
+  if (md.bubble) { md.bubble.castShadow = false; md.bubble.receiveShadow = false; }
   md.lights.push(...up.lights);
   return up;
 }
@@ -2353,10 +2471,15 @@ function upgradeLook(md) {
 // G2: whoever is playing's upgrades on player 0's mech: energy (a rise in maxHealth is a rise in health too, so
 // buying 🛡️ on a full mech fills it to the new top; a powered-down mech stays at 0), top speed (its own spec),
 // and the look. m.upg = the levels the weapons, the kick, self-repair and the jump read.
+// G4: and whoever is playing's advanced parts: m.adv = { id: unlocked } (chrome's energy, the jets, the fusion core, the
+// shield, gold), the finish (md.finish), and the squad's gold glow. The shield fills when it's first on for this child.
 function applyUpgrades() {
   const m = Game.humans[0]?.mech; if (!m) return null;
   const lv = m.upg = upLevels(Garage.rec());
-  const max = MECH_HEALTH + UPGRADE.energy * lv.armour, d = max - m.maxHealth;
+  const adv = m.adv = Object.fromEntries(ADVANCED.map((A) => [A.id, Garage.has(A.id)]));
+  const who = Game.child?.id ?? null;
+  if (!adv.shield) { m.shield = 0; m.shieldFor = null; } else if (m.shieldFor !== who) { m.shield = ADV.shield; m.shieldFor = who; }
+  const max = MECH_HEALTH + UPGRADE.energy * lv.armour + (adv.chrome ? ADV.energy : 0), d = max - m.maxHealth;
   if (d) {
     m.maxHealth = max;
     if (m.state === 'down') m.damage.hull = Math.max(0, m.damage.hull + d);
@@ -2368,10 +2491,24 @@ function applyUpgrades() {
     }
   }
   m.spec = lv.motor ? { ...MECH, topSpeed: MECH.topSpeed * (1 + UPGRADE.speed * lv.motor) } : undefined;
-  dressUpgrades(m.model, lv);
-  paintMech(m.model, Garage.paintNow());   // G3: and their paint
+  dressUpgrades(m.model, lv, adv);
+  m.model.finish = adv.gold ? 'gold' : adv.chrome ? 'chrome' : null;
+  paintMech(m.model, Garage.paintNow());   // G3: and their paint (G4: in its finish)
+  squadGlow();
   return lv;
 }
+// G4 gold plating: every squadmate glows gold while whoever is playing has it; otherwise its own colour again (kept in
+// r.ownGlow). Only the glow colour: a squadmate's r.gold (a fast fix, with its extra energy) is its own and untouched.
+function squadGlow() {
+  const gold = !!Game.humans[0]?.mech?.adv?.gold;
+  for (const r of Game.squad) {
+    r.ownGlow ??= r.glowColor;
+    const want = gold ? ADV.gold : r.ownGlow;
+    if (r.glowColor !== want) setGlowColor(r, want);
+  }
+}
+// G2 power cells and G4's fusion core: how fast mech m's weapon cooldowns run down (1 = as built)
+const rechargeOf = (m) => 1 + UPGRADE.recharge * (m?.upg?.battery || 0) + (m?.adv?.fusion ? ADV.recharge : 0);
 // G2 spring legs: player h's mech jumps (C, L, a stick pressed in, or __rb.jump). Refused without spring legs,
 // powered down, or already in the air
 function jumpMech(h) {
@@ -2379,7 +2516,15 @@ function jumpMech(h) {
   const lv = m.upg?.spring || 0;
   if (!lv) return { ok: false, why: 'no spring legs' };
   if (m.state === 'down') return { ok: false, why: 'powered down' };
-  if (m.hop) return { ok: false, why: 'in the air' };
+  // G4 jump jets: one more jump in mid-air, rising ADV.jet m from wherever it fires (the same jump goes on: its peak,
+  // and what it has passed over, carry on), with a flame burst under the jets
+  if (m.hop && m.adv?.jets && !m.hop.jet) {
+    m.hop.v = Math.sqrt(2 * UPGRADE.gravity * ADV.jet); m.hop.jet = true; m.jetT = ADV.flame; m.jetJumps = (m.jetJumps || 0) + 1;
+    Sparks.burst(m.pos.x, m.pos.y + 1.5, m.pos.z, 36, SPARK_HOT, 7);
+    if (!Game.manual) { Sfx.noise(0.45, 0.22, 900, 0, 0.8); Sfx.tone(220, 0.35, 'sawtooth', 0.08, 660); }
+    return { ok: true, level: lv, jet: true, height: r3(m.hop.y + ADV.jet) };
+  }
+  if (m.hop) return { ok: false, why: m.hop.jet ? 'jets used' : 'in the air' };
   const H = UPGRADE.jump[lv];
   m.hop = { y: 0, v: Math.sqrt(2 * UPGRADE.gravity * H), peak: 0 };
   if (!Game.manual) { Sfx.tone(160, 0.3, 'sine', 0.22, 520); Sfx.tone(320, 0.18, 'triangle', 0.08, 900, 0.03); }
@@ -2511,6 +2656,8 @@ function mechTick(m, dt) {
       if (beside) for (const p of beside) if (!m.over?.has(p)) (stomped ||= new Set()).add(p);   // #46: landed in its reach: came down into it
     } else m.pos.y += J.y;
   }
+  if (m.jetT) m.jetT = Math.max(0, m.jetT - dt);             // G4: the jets' flame burst burning down
+  if (m.shieldHit) m.shieldHit = Math.max(0, m.shieldHit - dt);   // G4: the bubble's flash from a blocked hit
   if (stomped) for (const p of stomped) if (Props.hit(p, p.hp, 'stomp', -Math.sin(m.legHeading), -Math.cos(m.legHeading))) m.human.rig.kick(0.8);
   // Gait: a footfall every stride, at the front of each leg's swing
   const prevPhase = m.phase;
@@ -2546,6 +2693,10 @@ function syncMechModel(m) {
   for (const A of md.arms) { A.arm.rotation.x = m.aimPitch; A.fore.position.z = 0; }   // arms pitch with the aim
   // Powered down: the lights go out, the body sags, the torso tips forward and the arms hang
   for (const L of md.lights) L.mat.emissiveIntensity = L.k * m.glow;
+  // G4: the jets' flame (while a mid-air jump burns), the fusion core's pulse, the shield bubble (while it has hits left)
+  if (md.flames) for (const f of md.flames) { const t = (m.jetT || 0) / ADV.flame; f.visible = t > 0; f.scale.set(0.7 + 0.3 * t, 0.4 + 0.9 * t, 0.7 + 0.3 * t); }
+  if (md.core) md.core.scale.setScalar(1 + 0.12 * Math.sin(Game.ticks / 7) * (m.state === 'down' ? 0 : 1));
+  if (md.bubble) { md.bubble.visible = m.shield > 0 || m.shieldHit > 0; md.bubble.material.opacity = 0.04 + 0.02 * (m.shield || 0) + 0.4 * (m.shieldHit || 0); }
   const sl = m.slump;
   md.body.position.y -= sl * 1.1; md.torso.rotation.x = -0.22 * sl;   // (the arms hang at the end, after recoil and swings)
   if (md.icon) {
@@ -3209,7 +3360,7 @@ function startAttack(m, w) {
 }
 function combatTick(m, dt) {
   // G2 power cells: the cooldown runs down 10% faster a level
-  m.cool = Math.max(0, m.cool - dt * (1 + UPGRADE.recharge * (m.upg?.battery || 0)));
+  m.cool = Math.max(0, m.cool - dt * rechargeOf(m));   // (G4: and the fusion core's 20%)
   m.flash = Math.max(0, (m.flash || 0) - dt);
   m.recoil = Math.max(0, (m.recoil || 0) - dt / MUZZLE.recoil);
   // letting go mid-burst still owes that burst's share of the rest, so tapping isn't faster than holding
@@ -3404,6 +3555,14 @@ function shotMech(m, b, at) {
 // A powered-down mech takes no more. At 0 it powers down.
 function hurtMech(m, amount, how = 'hit') {
   if (m.state === 'down') return 0;
+  // G4 shield emitter: the bubble takes the hit whole while it has hits left (ADV.shield a wave), then it's gone till the next wave
+  if (m.shield > 0 && amount > 0) {
+    m.shield--; m.blocked = (m.blocked || 0) + 1; m.shieldHit = 0.4;
+    Sparks.burst(m.pos.x, m.pos.y + 4, m.pos.z, 28, SPARK_ZAP, 8);
+    if (m.human) m.human.rig.kick(0.4);
+    if (!Game.manual) { Sfx.tone(980, 0.12, 'triangle', 0.1, 1480); Sfx.noise(0.15, 0.08, 6000, 0, 2, 'highpass'); }
+    return 0;
+  }
   const dealt = Math.min(amount, m.health), split = Object.entries(HIT_AREAS[how] || HIT_AREAS.hit);
   let left = dealt;
   split.forEach(([a, w], i) => { const d = i === split.length - 1 ? left : Math.min(left, Math.round(dealt * w)); m.damage[a] += d; left -= d; });
@@ -4645,6 +4804,7 @@ function fixRobot(h, r) {
   r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow;   // its own colour (or gold), held steady (the glitch flicker is gone)
   setRobotName(r, rp.name);
   Game.squad.push(r);
+  r.ownGlow = r.glowColor; squadGlow();                  // G4: gold plating's glow on the newcomer too
   Sparks.burst(r.pos.x, r.pos.y + 3.5, r.pos.z, 50, SPARK_ZAP, 9);
   if (!Game.manual) Sfx.fixed();
   if (h.idx === 0) { if (rp.askName) FixUI.openName(r); else FixUI.close(); }
@@ -6129,7 +6289,7 @@ function updateHud() {
   const ids = AREAS.filter((a) => hurtIn(m, a)).map(partFor).filter(Boolean), down = m.state === 'down';
   $('mendBtn').classList.toggle('off', down || !ids.length);
   $('mendBtn').classList.toggle('ready', !down && ids.some((id) => Game.bag[id] > 0));
-  $('jumpBtn').classList.toggle('on', (m.upg?.spring || 0) > 0); $('jumpBtn').classList.toggle('air', !!m.hop || down);
+  $('jumpBtn').classList.toggle('on', (m.upg?.spring || 0) > 0); $('jumpBtn').classList.toggle('air', (!!m.hop && !(m.adv?.jets && !m.hop.jet)) || down);   // (G4: lit in the air while the jets' jump is left)
   const hb = $('health'), now = performance.now();
   for (const src in h.healPop) {
     const v = h.healPop[src];
@@ -6157,7 +6317,7 @@ function updateHud() {
 // there too); the world is paused while it's open, and ✖, Esc, G, pad B (or Start)
 // closes it: back to the pause screen, or from the clear screen straight back to the
 // running meadow. 🏆 Trophies, 🦾 Mech (G2: upgrades bought with parts from the bag), 🤖 Squad
-// (G3: each squadmate's own upgrades) and 🎨 Paint (G3: free colours and a decal). The 3D (the lift, a piece per part type) is drawn by the game's
+// (G3: each squadmate's own upgrades) and 🎨 Paint (G3: free colours and a decal). G4: the trophy wall's advanced shelf, and a cheer for new unlocks. The 3D (the lift, a piece per part type) is drawn by the game's
 // own renderer into each box's rectangle while the garage is open, under a see-through
 // HTML layer that carries the counts, the icons and the buttons.
 // ===========================================================================
@@ -6172,6 +6332,7 @@ const GARAGE = { bg: '#1b2034', lift: 1.2, spin: 0.45, pieceSpin: 0.7, ghost: '#
 const sourceIcon = (src) => (src === 'meadow' ? '🔍' : ROBOT_TYPES[src]?.icon ?? '❓');
 const Garage = {
   on: false, from: null, tab: 'trophies', loose: blankGarage(), t: 0, liftT: 0, drawn: {}, scene: null, cur: 0,   // cur: the 🦾 card picked by keys / pad
+  cheering: null, cheerT: null,   // G4: the advanced parts the garage is cheering now
   scur: 0, prow: 0,   // G3: the 🤖 button picked (squadmate × upgrade, in reading order) and the 🎨 row picked (0 body, 1 trim, 2 decal)
   // whoever is playing's garage (their record's; before anyone is picked, a loose one for this session)
   rec() { return Facts.rec ? fillGarage(Facts.rec).garage : this.loose; },
@@ -6207,9 +6368,12 @@ const Garage = {
     if (from === 'clear') setPause(true);
     this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {}; this.cur = 0; this.scur = 0; this.prow = 0;
     document.body.classList.add('garage'); $('garage').classList.add('on');
-    this.build(); this.dress(); this.draw();
+    this.build(); this.dress();
+    Adv.toastStop();
+    const cheer = this.cheerNew();   // G4: parts earned since it last opened get their cheer now
+    this.draw();
     if (!Game.manual) { Sfx.click(); Sfx.tone(70, 1.1, 'sawtooth', 0.07, 150); Sfx.tone(1200, 0.08, 'square', 0.05, null, 1.1); }
-    return { ok: true, from };
+    return { ok: true, from, cheer };
   },
   // close: back to the pause screen, or from the clear screen back into the running meadow (the mouse
   // stays free, so the clear screen's ▶ can still be clicked)
@@ -6217,6 +6381,7 @@ const Garage = {
     if (!this.on) return { ok: false, why: 'closed' };
     const from = this.from;
     this.on = false; this.from = null;
+    if (this.cheering) this.cheerStop();
     document.body.classList.remove('garage'); $('garage').classList.remove('on');
     if (from === 'clear') setPause(false); else Title.draw();
     if (!Game.manual) Sfx.click();
@@ -6272,6 +6437,35 @@ const Garage = {
     }
     return null;
   },
+  // ---- G4: advanced parts. Whoever is playing's (ids, ADVANCED order; none before anyone is picked, none for Guest)
+  unlocks() { return this.rec().unlocks?.slice() ?? []; },
+  has(id) { return !!this.rec().unlocks?.includes(id); },
+  // the trophy wall's advanced shelf, and the hooks': per part whether it's unlocked and its milestone; mastered so far;
+  // next = the next part to earn and its milestone (null once all five are in); fresh = earned, not yet cheered;
+  // cheer = the parts the garage is cheering now; toast = the parts the in-play toast shows now
+  advStatus() {
+    const ms = Game.child && !Game.child.guest ? Facts.mastery() : null, un = this.unlocks(), n = ms?.mastered ?? 0;
+    const nx = ADVANCED.find((A) => !un.includes(A.id));
+    return { unlocks: un, mastered: n, goal: ms?.goal ?? null, guest: !!Game.child?.guest,
+      next: nx ? { id: nx.id, at: nx.at, left: Math.max(0, nx.at - n) } : null, fresh: this.rec().fresh?.slice() ?? [],
+      cheer: this.cheering ? this.cheering.slice() : null, toast: Adv.toastIds ? Adv.toastIds.slice() : null,
+      parts: ADVANCED.map((A) => ({ id: A.id, icon: A.icon, at: A.at, got: un.includes(A.id) })) };
+  },
+  // the cheer for parts earned since the garage last opened (garage.fresh): a banner of them over the bay with confetti
+  // and a fanfare, their shelf slots glowing. Played once: fresh is emptied and saved.
+  cheerNew() {
+    const g = this.rec(), ids = (g.fresh || []).slice(); if (!ids.length) return null;
+    g.fresh = []; Facts.save();
+    this.cheering = ids;
+    $('gCheer').innerHTML = `<div class="gch"><span class="big">${ids.map((id) => advOf(id).icon).join('')}</span><b>🎉 ⭐${advOf(ids[ids.length - 1]).at}</b></div><div class="confetti" id="gConfetti"></div>`;
+    const el = $('gCheer'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    confetti($('gConfetti'), 70);
+    if (!Game.manual) { Sfx.unlock(); Sfx.table(); }
+    clearTimeout(this.cheerT);
+    this.cheerT = setTimeout(() => this.cheerStop(), ADV.cheer);
+    return ids;
+  },
+  cheerStop() { clearTimeout(this.cheerT); this.cheering = null; $('gCheer').classList.remove('on'); if (this.on && this.tab === 'trophies') this.draw(); },
   // ---- G2: upgrades. Levels, and what buying the next level of each needs
   levels() { return upLevels(this.rec()); },
   offer() {
@@ -6364,7 +6558,7 @@ const Garage = {
     if (!this.on) return;
     $('gTabs').innerHTML = GARAGE_TABS.map((T) => `<button class="gtab${T.id === this.tab ? ' on' : ''}${T.locked ? ' locked' : ''}" data-t="${T.id}" aria-label="${T.name}${T.locked ? ': coming soon' : ''}">${T.icon}<small>${T.name}</small>${T.locked ? '<i class="lk">🔒</i>' : ''}</button>`).join('');
     const T = GARAGE_TABS.find((x) => x.id === this.tab);
-    for (const c of ['mech', 'squad', 'paint']) $('gWall').classList.toggle(c, T.id === c);
+    for (const c of ['trophies', 'mech', 'squad', 'paint']) $('gWall').classList.toggle(c, T.id === c);
     if (T.locked) $('gWall').innerHTML = `<div class="glock" data-tab="${T.id}"><span class="big">🔒</span><span class="ti">${T.icon}</span><b>coming soon</b></div>`;
     else if (T.id === 'mech') {
       // a card per upgrade: the part (3D), what a level does, pips, cost × part, the bag's count, the buy button
@@ -6413,10 +6607,22 @@ const Garage = {
         const icons = t.found ? Object.entries(t.from).sort((a, b) => b[1] - a[1]).map(([s]) => sourceIcon(s)) : this.carriers(id).map(sourceIcon);
         return `<div class="tslot ${t.found ? 'got' : 'none'}" data-part="${id}" data-found="${t.found ? 1 : 0}" data-n="${t.count}" style="--pc:${P.hex}" aria-label="${id}: ${t.found ? t.count : 'not found yet'}">`
           + `<div class="tv"></div><span class="tf">${icons.join('')}</span><b class="tn">${t.found ? '×' + t.count : '❓'}</b></div>`;
-      }).join('');
+      }).join('') + this.advShelf();
     }
     const P = Game.pilot, C = Game.child, who = $('gWho');
     who.style.setProperty('--c', P?.hex || '#fff'); who.textContent = `${C?.icon ?? ''} ${P?.name ?? ''}`.trim();
+  },
+  // G4: the advanced shelf under the trophies: a slot per advanced part, lit once unlocked (its icon and what it does),
+  // an outline till then with its milestone (⭐9, "9 facts mastered"); the next one to earn shows how far there is to go
+  advShelf() {
+    const A = this.advStatus(), cheer = this.cheering || [];
+    return `<div class="ashelf">${A.parts.map((p) => {
+      const D = advOf(p.id), next = A.next?.id === p.id && !A.guest;
+      const foot = p.got ? `<b class="afx">${D.fx}</b>`
+        : `<b class="amile">⭐${p.at}</b><small class="awords">${p.at} facts mastered</small>${next ? `<span class="abar"><i style="width:${Math.round(100 * Math.min(1, A.mastered / p.at))}%"></i></span>` : ''}`;
+      return `<div class="aslot ${p.got ? 'got' : 'none'}${next ? ' next' : ''}${cheer.includes(p.id) ? ' new' : ''}" data-adv="${p.id}" data-got="${p.got ? 1 : 0}" data-at="${p.at}" style="--pc:${D.hex}" aria-label="${D.name}: ${p.got ? 'unlocked' : p.at + ' facts mastered'}">`
+        + `<div class="tv"></div><span class="aic">${D.icon}</span>${foot}</div>`;
+    }).join('')}</div>`;
   },
   // what the open wall shows, read back from the page: per part, found, the count and icons shown, and what
   // the 3D drew in its box last frame ('piece' or 'outline'); lock = the 🔒 tab showing instead
@@ -6440,7 +6646,13 @@ const Garage = {
       warn: el.querySelector('.swarn')?.textContent ?? null, rows: Object.fromEntries([...el.querySelectorAll('.srow')].map((r) => [r.dataset.up, rowOf(r)])) }));
     const prows = [...$('gWall').querySelectorAll('.prow')];
     const paint = prows.length ? Object.fromEntries(prows.map((el) => { const on = el.querySelector('.on'); return [el.dataset.row, { on: on ? (el.dataset.row === 'decal' ? on.dataset.v : PALETTE[+on.dataset.v]) : null, n: el.querySelectorAll('.swatch, .decal').length, picked: el.classList.contains('cur'), imgs: el.querySelectorAll('img').length }]; })) : null;
-    return { tab: this.tab, lock: lock ? { tab: lock.dataset.tab, text: lock.textContent } : null, slots, cards, squad, empty: !!$('gWall').querySelector('.sempty'), paint, lift: this.drawn.lift ?? null,
+    // G4: the advanced shelf as shown: per part, unlocked, the milestone and words shown on an outline (null once lit),
+    // what it does (lit), next = the one to earn next (its progress bar's fill), new = glowing for the cheer, drawn = the 3D
+    const advanced = Object.fromEntries([...$('gWall').querySelectorAll('.aslot')].map((el) => [el.dataset.adv, { got: el.dataset.got === '1', at: +el.dataset.at,
+      mile: el.querySelector('.amile')?.textContent ?? null, words: el.querySelector('.awords')?.textContent ?? null, fx: el.querySelector('.afx')?.textContent ?? null,
+      icon: el.querySelector('.aic').textContent, next: el.classList.contains('next'), bar: el.querySelector('.abar i')?.style.width ?? null, new: el.classList.contains('new'), drawn: this.drawn['adv:' + el.dataset.adv] ?? null }]));
+    const ch = $('gCheer');
+    return { tab: this.tab, lock: lock ? { tab: lock.dataset.tab, text: lock.textContent } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? ch.querySelector('.gch')?.textContent ?? '' : null, empty: !!$('gWall').querySelector('.sempty'), paint, lift: this.drawn.lift ?? null,
       tabs: [...$('gTabs').children].map((b) => b.dataset.t + (b.classList.contains('on') ? '*' : '') + (b.classList.contains('locked') ? '🔒' : '')) };
   },
   status() {
@@ -6451,7 +6663,8 @@ const Garage = {
       upgrades: this.levels(), offer: this.offer(), cur: UPGRADES[this.cur].id,
       // G3: per squadmate its upgrades, what the next level of each needs, and what they do; the 🤖 pick; paint
       squad: Game.squad.map((r) => ({ id: r.id, type: r.type, name: r.name, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, offer: this.squadOffer(r), effects: squadEffects(r) })),
-      scur: this.squadOptions()[this.scur] ?? null, paint: this.paintNow(), prow: ['body', 'trim', 'decal'][this.prow], dom: this.dom() };
+      scur: this.squadOptions()[this.scur] ?? null, paint: this.paintNow(), prow: ['body', 'trim', 'decal'][this.prow],
+      advanced: this.advStatus(), dom: this.dom() };   // G4: the advanced parts (advStatus)
   },
   // ---- the 3D: one scene, built once: lights, the lift (with a copy of the player's mech on it, made on
   // each open so it wears the current pilot and colours), and a lit piece and a dark outline per part type
@@ -6483,12 +6696,23 @@ const Garage = {
       const holder = new THREE.Group(); holder.add(lit, out); holder.visible = false; S.add(holder);
       this.pieces[id] = { holder, lit, out };
     }
+    // G4: the advanced parts the same way (lit once unlocked, an outline till then), keyed 'adv:<id>'
+    for (const A of ADVANCED) {
+      const lit = advPiece(A.id), out = lit.clone(true);
+      const meshes = []; out.traverse((o) => { if (o.isMesh) meshes.push(o); });
+      for (const o of meshes) { o.material = ghost; const sh = new THREE.Mesh(o.geometry, rimMat); sh.scale.setScalar(1.09); o.add(sh); }
+      const holder = new THREE.Group(); holder.add(lit, out); holder.visible = false; S.add(holder);
+      this.pieces['adv:' + A.id] = { holder, lit, out };
+    }
   },
   // put a copy of the player's mech on the lift, as it looks now (pilot, colours)
   dress() {
     if (this.mech) { this.mechAt.remove(this.mech); this.mech = null; }
-    const src = Game.humans[0]?.mech?.model?.root; if (!src) return;
+    const md = Game.humans[0]?.mech?.model, src = md?.root; if (!src) return;
+    // (G4: the shield bubble stays off the lift copy: it would size the framing to the bubble, not the mech)
+    const bub = md.bubble?.visible; if (md.bubble) md.bubble.visible = false;
     const m = this.mech = src.clone(true); m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.visible = true;
+    if (md.bubble) md.bubble.visible = bub;
     // measured on its own (not where the lift happens to be), then centred on the lift: the model's own
     // origin is between its feet, not under its middle
     m.updateMatrixWorld(true);
@@ -6531,6 +6755,15 @@ const Garage = {
           this.drawn[id] = this.view(el.querySelector('.tv'), 0.25, 1.2, 0.3) ? (found ? 'piece' : 'outline') : null;
           p.holder.visible = false;
         }
+        // G4: the advanced shelf
+        for (const el of $('gWall').querySelectorAll('.aslot')) {
+          const id = el.dataset.adv, p = this.pieces['adv:' + id]; if (!p) continue;
+          const got = el.dataset.got === '1';
+          p.holder.visible = true; p.lit.visible = got; p.out.visible = !got;
+          p.holder.rotation.set(0.18, this.t * GARAGE.pieceSpin + id.length, 0);
+          this.drawn['adv:' + id] = this.view(el.querySelector('.tv'), 0, 1.2, 0.3) ? (got ? 'piece' : 'outline') : null;
+          p.holder.visible = false;
+        }
       } else if (this.tab === 'mech') {
         // G2: each card's part, lit and turning
         for (const el of $('gWall').querySelectorAll('.ucard')) {
@@ -6546,6 +6779,7 @@ const Garage = {
     }
   },
   init() {
+    Facts.onUnlock = (ids) => Adv.unlocked(ids);   // G4: a milestone reached in play
     $('garageX').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
     $('gTabs').addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('.gtab'); if (b) this.setTab(b.dataset.t); });
     // G2: a 🦾 card's ⬆️ buys; a tap anywhere else on a card picks it
@@ -6607,6 +6841,61 @@ function partPiece(id) {
   }
   return g;
 }
+// G4: an advanced part as a small 3D piece for the trophy wall's advanced shelf, about 2 m across, centred on the origin:
+// ✨ a mirror plate, 🚀 a pair of jet nozzles with flames, ⚡ a glowing core in a ring, 🛡️ an emitter in its bubble, 👑 a crown
+function advPiece(id) {
+  const g = new THREE.Group(), A = advOf(id), steel = '#b9c0cf', metal = { metalness: 0.6, roughness: 0.35 };
+  const add = (m, x = 0, y = 0, z = 0) => { m.position.set(x, y, z); g.add(m); return m; };
+  const mirror = (hex, rough) => new THREE.MeshStandardMaterial({ color: hex, metalness: 0.9, roughness: rough, envMap: advEnv(), envMapIntensity: 2 });
+  const lamp = (hex, o = {}) => new THREE.MeshBasicMaterial({ color: hex, toneMapped: false, ...o });   // a glow that reads in the bay (no bloom there)
+  if (id === 'chrome') {
+    add(new THREE.Mesh(new RoundedBoxGeometry(1.7, 1.25, 0.3, 3, 0.12), mirror('#ffffff', 0.05))).rotation.z = 0.08;
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 14), mirror('#ffffff', 0.04)), 0.45, 0.3, 0.2);
+  } else if (id === 'jets') {
+    for (const s of [-1, 1]) {
+      add(cyl(0.3, 0.42, 0.9, '#3a4157', metal, 18), s * 0.45, 0.35, 0);
+      add(new THREE.Mesh(new THREE.ConeGeometry(0.34, 1.0, 14), lamp(A.hex)), s * 0.45, -0.6, 0).rotation.x = Math.PI;
+    }
+    add(rbox(1.4, 0.24, 0.5, 0.06, steel, metal), 0, 0.85, 0);
+  } else if (id === 'fusion') {
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), lamp(A.hex)));
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.1, 10, 32), mat(steel, metal))).rotation.x = 1.2;
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.1, 10, 32), mat(steel, metal))).rotation.y = 1.2;
+  } else if (id === 'shield') {
+    add(cyl(0.5, 0.6, 0.3, '#3a4157', metal, 20), 0, -0.6, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), lamp(A.hex)), 0, -0.35, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.95, 28, 18), lamp(A.hex, { transparent: true, opacity: 0.3, depthWrite: false })), 0, 0.05, 0);
+  } else if (id === 'gold') {
+    const gold = mirror(ADV.gold, 0.2);
+    add(new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.7, 0.55, 28, 1, true), gold), 0, -0.25, 0).material.side = THREE.DoubleSide;
+    for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; add(new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.6, 10), gold), Math.cos(a) * 0.74, 0.3, Math.sin(a) * 0.74);
+      add(new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), lamp('#ff4d5e')), Math.cos(a) * 0.76, 0.66, Math.sin(a) * 0.76); }
+  }
+  return g;
+}
+// G4: the in-play toast when a fact's answer reaches a milestone: the part's icon and name, its milestone, and 🔧 (it's
+// waiting in the garage). Up for ADV.toast ms; the garage opening takes it down. The unlock is on the mech straight away.
+const Adv = {
+  toastIds: null, toastT: null,
+  unlocked(ids) {
+    applyUpgrades();   // its effect is on from now (chrome's energy, the jets, the core, the shield, gold)
+    this.toast(ids);
+  },
+  toast(ids) {
+    if (Garage.on) return null;
+    const last = advOf(ids[ids.length - 1]);
+    this.toastIds = ids.slice();
+    $('advToast').innerHTML = `<span class="ti">${ids.map((id) => advOf(id).icon).join('')}</span><span class="tw"><b>${ids.map((id) => advOf(id).name).join(' · ')}</b><small>⭐${last.at} ➜ 🔧</small></span>`;
+    const el = $('advToast'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    const m = Game.humans[0]?.mech;
+    if (m) Sparks.burst(m.pos.x, m.pos.y + 9, m.pos.z, 40, SPARK_GLINT, 8);
+    if (!Game.manual) { Sfx.unlock(); Sfx.find(); }
+    clearTimeout(this.toastT);
+    this.toastT = setTimeout(() => this.toastStop(), ADV.toast);
+    return this.toastIds;
+  },
+  toastStop() { clearTimeout(this.toastT); this.toastIds = null; $('advToast').classList.remove('on'); },
+};
 
 function render(dt) {
   const W = innerWidth, H = innerHeight;
@@ -6678,6 +6967,7 @@ const Waves = {
     const p = Game.humans[0]?.mech; if (!p) return [];
     const before = new Set(Game.robots);
     Game.wave = n; Game.cleared = false;
+    if (p.adv?.shield) p.shield = ADV.shield;     // G4: the shield emitter is back to full each wave
     Object.assign(Game.waveStats, { fixed: 0, taken: 0, found0: Hidden.list.filter((q) => q.found).length, downs0: p.downs, robots: 0, fast: 0 });
     if (n === 1) {
       // as it always was: a Charger out of the trees ahead; a Sniper, a drone swarm and a Bouncer
@@ -6844,7 +7134,7 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // pick player 0's pilot (an id or a name from PILOTS, any case, or an index) and start, as a tap on
   // their tile does: the title goes, and (outside manual mode) the robots come out. Again mid-game it
@@ -6957,7 +7247,17 @@ window.__rb = {
     const res = Garage.setPaint({ body, trim, decal });
     return { ...res, now: Garage.paintNow(), look: paintLook(Game.humans[0]?.mech?.model), palette: PALETTE.slice(), decals: DECALS.map((D) => D.id) };
   },
-  // player i's mech jumps, as C / L / a stick pressed in do (refused without spring legs, powered down, or in the air)
+  // ---- G4: advanced parts ----
+  // the advanced parts of whoever is playing ({ unlocks, mastered, goal, next, fresh, cheer, toast, parts }, as state().unlocks),
+  // or of child (any child's saved record, read without loading it: { child, unlocks, fresh, mastered }). They come only from
+  // mastery: drive it with answer() and clock(). Nothing here unlocks anything.
+  unlocks(child) {
+    if (child == null) return Garage.advStatus();
+    const C = childOf(child); if (!C) return null;
+    const r = Facts.peek(C); return { child: C.id, unlocks: r.garage.unlocks.slice(), fresh: r.garage.fresh.slice(), mastered: Facts.mastery(C).mastered };
+  },
+  // player i's mech jumps, as C / L / a stick pressed in do (refused without spring legs, powered down, or in the air;
+  // G4: in the air with jump jets, once more: jet: true)
   jump(i = 0) { return { ...jumpMech(Game.humans[i]), player: this.state().players[i] ?? null }; },
   // the Quick Fix setting for whoever is playing: 'math' or 'colour'
   wiring(mode) { return mode == null ? { wiring: wiringMode() } : setWiring(mode); },
@@ -7136,9 +7436,14 @@ window.__rb = {
           // the ground, peak = this jump's highest so far, last = the last landed jump's height, jumps = landed,
           // over = the smashables this jump has passed over whole (ids; kept after landing until the mech is clear of them)
           upgrades: { ...upLevels({ upgrades: m.upg }) },
-          effects: { maxHealth: m.maxHealth, topSpeed: r3((m.spec || MECH).topSpeed), recharge: r3(1 + UPGRADE.recharge * (m.upg?.battery || 0)), mend: mendPer(m),
+          effects: { maxHealth: m.maxHealth, topSpeed: r3((m.spec || MECH).topSpeed), recharge: r3(rechargeOf(m)), mend: mendPer(m),
             kick: r3(WEAPON.kick.dmg * (1 + UPGRADE.kick * (m.upg?.ram || 0))), jump: UPGRADE.jump[m.upg?.spring || 0] },
-          jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps, over: m.over ? [...m.over].map((p) => p.id) : [] },
+          jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps, over: m.over ? [...m.over].map((p) => p.id) : [],
+            jet: !!m.hop?.jet, jetJumps: m.jetJumps || 0, flame: r3(m.jetT || 0) },   // G4: jet = this jump's mid-air jet jump is used; jetJumps = all of them; flame = burn left (s)
+          // G4: the advanced parts on this mech (id: on), shield = hits it will still block this wave, blocked = hits blocked
+          // so far, and what the model shows: the jets (and their flames lit now), the core, the bubble
+          adv: { ...(m.adv || {}) }, shield: m.shield || 0, blocked: m.blocked || 0,
+          advLook: m.model ? { jets: m.model.flames?.length || 0, flames: m.model.flames?.filter((f) => f.visible).length || 0, core: !!m.model.core?.parent, bubble: !!m.model.bubble?.visible } : null,
           look: upgradeLook(m.model),
           // G3: the paint on this mech, read back from its model: body / trim = the colours on its role materials, meshes
           // = how many wear each, decal = the one showing ('none' if none), decals = how many squares show it, and where
@@ -7209,6 +7514,7 @@ window.__rb = {
       // G1: the garage (on, from 'pause' | 'clear', tab, paused, trophies by part: { count, found, from }, dom = the wall read back)
       // G2: garage.upgrades = whoever is playing's upgrade levels (saved in their record), garage.offer = what each next level needs
       garage: Garage.status(),
+      unlocks: Garage.advStatus(),                        // G4: whoever is playing's advanced parts (Garage.advStatus)
       upgrades: Garage.levels(),                          // G2: whoever is playing's upgrade levels, by id
       upgradeRules: { ...UPGRADE, jump: [...UPGRADE.jump], list: UPGRADES.map((U) => ({ id: U.id, name: U.name, max: U.max, part: U.id })) },
       waveRules: { ...WAVE, next: Waves.list(Game.wave + 1), nextTough: r3(Waves.tough(Game.wave + 1)) },
