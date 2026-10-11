@@ -908,7 +908,7 @@
   </div>
 </div>
 
-<!-- GARAGE (G1): the bay. The player's mech on a lift, four tabs, and the trophy wall: each part type on a shelf as a
+<!-- GARAGE (G1): the bay. The player's mech on a lift, five tabs (B1: 🦿 Body is the fifth), and the trophy wall: each part type on a shelf as a
      3D piece (drawn on the game canvas under this layer, in each slot's box) with how many were found and the icons of
      the robots they came from; a type never found is a dark outline. G2: 🦾 Mech has a card per upgrade (bought with
      parts from the bag). G4: under the trophies, a shelf of the five advanced parts that facts Mastered unlock. B1: 🦿 Body shows
@@ -6689,7 +6689,7 @@ function updateHud() {
 }
 
 // ===========================================================================
-// The garage (G1). A bay with the player's mech on a lift, four tabs and the trophy
+// The garage (G1). A bay with the player's mech on a lift, five tabs and the trophy
 // wall. It opens from the 🔧 on the pause screen and on the clear screen (G or pad X
 // there too); the world is paused while it's open, and ✖, Esc, G, pad B (or Start)
 // closes it: back to the pause screen, or from the clear screen straight back to the
@@ -6985,7 +6985,7 @@ const Garage = {
       // the tier's name, and what raises it (its upgrades' part icons, and 🔢 for facts mastered, with the bonus it gives)
       const B = Body.status();
       $('gWall').innerHTML = BODY_SECTIONS.map((S) => {
-        const t = B.tiers[S.id], up = Math.min(B.points[S.id], t);
+        const t = B.tiers[S.id], up = B.preview != null ? t : Math.min(B.points[S.id], t);   // (a previewTier forces the tier: no mastery pips)
         const pips = Array.from({ length: BODY.max }, (_, k) => `<i class="${k < up ? 'on' : k < t ? 'on bonus' : ''}"></i>`).join('');
         return `<div class="brow" data-sec="${S.id}" data-tier="${t}" style="--pc:${S.hex}" aria-label="${S.name}: tier ${t} of ${BODY.max}, ${BODY.names[t]}">`
           + `<span class="plab">${S.icon}<small>${S.name}</small></span><span class="pips">${pips}</span><b class="bname">${BODY.names[t]}</b>`
