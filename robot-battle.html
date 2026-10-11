@@ -4622,7 +4622,7 @@ function rescueMate(r) {
 }
 // #59: a squadmate is destroyed, gone for good: its rescue clock ran out (how 'time') or its parts were taken
 // ('parts'). It leaves the squad and the meadow, the ones left close up their places, and Game.lost keeps a note.
-// Anything that ends a squadmate in play comes through here (sending one home isn't an end: it's sendHome).
+// The only other way a squadmate leaves the squad is sendHome (sent home to make room: not destroyed, but gone too).
 function destroyMate(r, how) {
   if (!Game.squad.includes(r)) return false;
   Game.lost.push({ id: r.id, name: r.name, type: r.type, how, wave: Game.wave, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 } });
@@ -5896,7 +5896,9 @@ function fixRobot(h, r) {
   Game.fixes.push(Game.lastFix);
   if (B) Facts.addFix(Game.lastFix.ms);                  // #48: a ramp fix's time, in the child's record (wave 0 writes nothing)
   if (Game.squad.includes(r)) { rescueMate(r); if (h.idx === 0) FixUI.close(); return; }   // #59: a rescued squadmate
-  if (rp.home) sendHome(rp.home);                        // the squad was full: the one picked goes home now
+  // the squad was full: the one picked goes home now (#59: unless the squad has lost one since, a downed squadmate's clock
+  // running out mid-fix, so there's room already)
+  if (rp.home && Game.squad.length >= REPAIR.squadMax) sendHome(rp.home);
   // a fast math repair: it comes back gold, with more health, and the wave's clear screen gets a 🌟
   r.gold = fastRepair(r.wires);
   // a squadmate is tougher than the glitched robot it was: ALLY.energy × its type's energy (not the wave's toughened one)
