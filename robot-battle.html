@@ -13,6 +13,21 @@
     --orange: #ff8a1f; --yellow: #ffd83d; --cyan: #3ff0ff; --ink: #14182a; --green: #3ee07a; --white: #fff;
   }
   * { box-sizing: border-box; }
+  /* I1: an icon from the sprite (icon()): sized by the font, like the emoji it replaces. It sits 0.15em below the baseline;
+     its margins (0.15em over, 0.16em under, the margin box 0.31em under the baseline) give the line the height an emoji
+     glyph gave it (1em up, 0.31em down), so swapping an emoji for an icon moves nothing */
+  .ic { width: 1em; height: 1em; margin: 0.15em 0 0.16em; vertical-align: -0.31em; pointer-events: none; flex: none; overflow: visible; }
+  /* __rb.iconSheet(): every icon at 16, 24 and 48 px, on the dark HUD, a light panel, and (parts) their own colour */
+  #iconSheet { position: fixed; inset: 0; overflow: auto; z-index: 1000; background: #0b0e18; }
+  #iconSheet .ish { display: flex; flex-wrap: wrap; gap: 6px 4px; padding: 10px 12px; }
+  #iconSheet .ish h3 { width: 100%; margin: 2px 0 4px; font: 800 16px 'Asap', sans-serif; }
+  #iconSheet .dark { background: #1b2034; color: #fff; }
+  #iconSheet .light { background: #eef1f7; color: var(--ink); }
+  #iconSheet .isc { width: 118px; display: flex; flex-direction: column; align-items: center; }
+  #iconSheet .isz { display: flex; align-items: center; gap: 6px; height: 52px; }
+  #iconSheet .isz.own { width: 64px; height: 64px; justify-content: center; border-radius: 50%; border: 4px solid var(--ink); }
+  #iconSheet .s16 { font-size: 16px; } #iconSheet .s24 { font-size: 24px; } #iconSheet .s48 { font-size: 48px; }
+  #iconSheet small { font: 700 11px 'Asap', sans-serif; opacity: .8; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #8fc8ff; font-family: 'Asap', system-ui, sans-serif; user-select: none; -webkit-user-select: none; color: #fff; }
   canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
   .screen { position: fixed; inset: 0; display: none; pointer-events: none; }
@@ -190,7 +205,9 @@
   .hwarn { display: none; margin-top: 14px; padding: 6px 14px; border-radius: 14px; background: #ff4d5e; color: #fff; font: 900 24px 'Asap', sans-serif; text-align: center; box-shadow: 0 4px 0 var(--ink); }
   .hwarn.on { display: block; }
   #hud .mate.home { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255,216,61,.7); opacity: .75; }
-  #hud .prompt .pfix.full::after { content: '🏠'; position: absolute; left: -10px; top: -10px; font-size: 22px; }
+  /* I1: the 🏠 badge on a full squad's fix button is the home icon (it was this rule's ::after emoji) */
+  #hud .prompt .pfix .hm { display: none; position: absolute; left: -10px; top: -10px; font-size: 22px; line-height: 1; }
+  #hud .prompt .pfix.full .hm { display: block; }
   /* ---------- TITLE: pick your pilot (a tap starts the game); PAUSE: ▶ carries on as the same pilot ---------- */
   #start .pilots { display: none; margin: 26px auto 0; flex-wrap: wrap; justify-content: center; gap: 16px; width: min(1000px, 94vw); }
   #start.title .pilots { display: flex; }
@@ -479,7 +496,7 @@
   #parentB { display: none; position: fixed; left: 16px; bottom: 16px; width: 62px; height: 62px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); background: rgba(20,24,42,.8); font-size: 28px; cursor: pointer;
     touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
   #parentB.on { display: block; }
-  #parentB svg { position: absolute; inset: -8px; width: calc(100% + 16px); height: calc(100% + 16px); transform: rotate(-90deg); pointer-events: none; }
+  #parentB svg:not(.ic) { position: absolute; inset: -8px; width: calc(100% + 16px); height: calc(100% + 16px); transform: rotate(-90deg); pointer-events: none; }
   #parentB circle { fill: none; stroke: #c06bff; stroke-width: 5; stroke-dasharray: 220; stroke-dashoffset: 220; stroke-linecap: round; }
   #parentB.holding circle { stroke-dashoffset: 0; transition: stroke-dashoffset 2s linear; }
   #parentB .lk { position: absolute; right: -6px; top: -6px; font-size: 16px; pointer-events: none; }
@@ -820,26 +837,26 @@
 <div id="hurt"></div>
 <div id="hud" class="screen on">
   <div class="reticle"></div>
-  <div class="health" id="health"><div class="who" id="pilotHud"><img class="face" id="pilotFace" alt=""><span id="pilotName"></span></div><span class="ico">❤️</span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech">🔧<small>R</small></button><button class="mendb jumpb" id="jumpBtn" aria-label="Jump">⤴️<small>C</small></button></div>
+  <div class="health" id="health"><div class="who" id="pilotHud"><img class="face" id="pilotFace" alt=""><span id="pilotName"></span></div><span class="ico"><i data-ic="energy"></i></span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech"><i data-ic="wrench"></i><small>R</small></button><button class="mendb jumpb" id="jumpBtn" aria-label="Jump"><i data-ic="jump"></i><small>C</small></button></div>
   <div class="weapons" id="weapons"></div>
-  <div class="speed" id="speed"><span class="ico">🦿</span></div>
-  <button class="mastery" id="masteryB" aria-label="My facts: mastered of the goal">⭐<b id="masteryN"></b><small>T</small></button>
-  <div class="wave" id="waveHud" aria-label="Wave"><span>🌊</span><b id="waveN">0</b></div>
+  <div class="speed" id="speed"><span class="ico"><i data-ic="legs"></i></span></div>
+  <button class="mastery" id="masteryB" aria-label="My facts: mastered of the goal"><i data-ic="star"></i><b id="masteryN"></b><small>T</small></button>
+  <div class="wave" id="waveHud" aria-label="Wave"><span><i data-ic="wave"></i></span><b id="waveN">0</b></div>
   <div class="compass">
-    <div class="arm legs" id="cLegs"><b>🦶</b></div>
-    <div class="arm torso" id="cTorso"><b>🎯</b></div>
+    <div class="arm legs" id="cLegs"><b><i data-ic="boot"></i></b></div>
+    <div class="arm torso" id="cTorso"><b><i data-ic="aim"></i></b></div>
     <div class="hub"></div>
   </div>
-  <div class="right"><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span>🔩</span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span>🔍</span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag">🎒<small>B</small></button></div></div>
+  <div class="right"><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
   <div class="prompt" id="prompt">
-    <button class="pfix" id="pFix" aria-label="Fix">🔧<small>F</small></button>
-    <button class="pparts" id="pParts" aria-label="Take parts">🔩<small>G</small></button>
+    <button class="pfix" id="pFix" aria-label="Fix"><i data-ic="wrench"></i><small>F</small><span class="hm"><i data-ic="home"></i></span></button>
+    <button class="pparts" id="pParts" aria-label="Take parts"><i data-ic="bolt"></i><small>G</small></button>
   </div>
 </div>
 
 <!-- PARENTS: hold ~2 s to open the parent view (a tap does nothing, so the boys don't wander in). Only on the title / pause
      screen; it sits after the HUD so the HUD (weapons, speed bars) can't cover it on a phone -->
-<button id="parentB" aria-label="Parents: hold to open"><svg viewBox="0 0 78 78"><circle cx="39" cy="39" r="35"/></svg>👪<span class="lk">🔒</span></button>
+<button id="parentB" aria-label="Parents: hold to open"><svg viewBox="0 0 78 78"><circle cx="39" cy="39" r="35"/></svg><i data-ic="family"></i><span class="lk"><i data-ic="lock"></i></span></button>
 
 <!-- QUICK FIX: drag each plug to the port with the same colour and shape -->
 <div id="clear" class="screen">
@@ -898,8 +915,8 @@
   </div>
 </div>
 
-<!-- POWERED DOWN: 💤 in a ring that fills until the mech reboots; 🤖 when a squadmate is mending it -->
-<div id="downOv"><span id="downIco">💤</span><span class="mate">🤖</span></div>
+<!-- POWERED DOWN: 💤 (the sleep icon; ⚠️'s just before the reboot) in a ring that fills until the mech reboots; 🤖 when a squadmate is mending it -->
+<div id="downOv"><span id="downIco" data-k="sleep"><i data-ic="sleep"></i></span><span class="mate"><i data-ic="robot"></i></span></div>
 
 <!-- NAME: the fixed robot already has a random name; typing a new one is optional -->
 <div id="namer" class="screen">
@@ -981,17 +998,17 @@ const MECH_HEALTH = 150;
 // The cannon fires short bursts while fire is held: `burst` rounds `cool` apart,
 // then a `rest`. That keeps the old 10 dmg / 0.16 s rate (62.5 a second).
 const WEAPON = {
-  gun:   { icon: '🔫', dmg: 10, cool: 0.075, burst: 3, rest: 0.33, speed: 280, range: 95, push: 0.8 },
-  punch: { icon: '👊', dmg: 22, cool: 0.55, strike: 0.16, dur: 0.5, reach: 3.4, arc: 0.85, push: 6 },
-  kick:  { icon: '🦶', dmg: 34, cool: 0.9, strike: 0.32, dur: 0.85, reach: 3.2, arc: 0.7, push: 12 },
+  gun:   { icon: '🔫', ic: 'gun', dmg: 10, cool: 0.075, burst: 3, rest: 0.33, speed: 280, range: 95, push: 0.8 },
+  punch: { icon: '👊', ic: 'punch', dmg: 22, cool: 0.55, strike: 0.16, dur: 0.5, reach: 3.4, arc: 0.85, push: 6 },
+  kick:  { icon: '🦶', ic: 'boot', dmg: 34, cool: 0.9, strike: 0.32, dur: 0.85, reach: 3.2, arc: 0.7, push: 12 },
   // The electromagnetic pulse (a starting weapon, from the left-arm pod): a crackling ball that
   // does little damage but loads `shock` into a robot's electronics. At ROBOT.shockMax it shuts
   // down mostly intact. Shock drains at ROBOT.shockFade a second, so it takes hits close together.
-  em:    { icon: '🧲', dmg: 4, cool: 0.5, speed: 90, range: 55, push: 0.4, shock: 40 },
+  em:    { icon: '🧲', ic: 'em', dmg: 4, cool: 0.5, speed: 90, range: 55, push: 0.4, shock: 40 },
   // The rail gun (locked until a part that `unlocks: 'rail'` is taken): fire starts a `charge`,
   // then one long straight shot that passes through every robot along it (`range` metres, or
   // until it meets the ground, a rock or a tree), then `cool`.
-  rail:  { icon: '☄️', dmg: 60, cool: 1.6, charge: 0.8, range: 140, push: 3, locked: true },
+  rail:  { icon: '☄️', ic: 'rail', dmg: 60, cool: 1.6, charge: 0.8, range: 140, push: 3, locked: true },
 };
 const WEAPONS = ['gun', 'punch', 'kick', 'em', 'rail'];
 const AIM_ASSIST = 0.2;      // rad: the cannon locks onto a robot this close to the torso aim
@@ -1034,14 +1051,14 @@ const REPAIR = { wires: 3, promptRange: 11, keepRange: 16, squadMax: 3, takeMax:
 // `fixes` is what the part can mend on the player's own mech (read by self-repair,
 // e.g. armour for hull damage). A type-only part can later carry `unlocks: '<weapon>'`.
 const PARTS = {
-  armour:  { icon: '🛡️', hex: '#8a5cff', fixes: 'hull' },     // armour plate
-  battery: { icon: '🔋', hex: '#3ee07a', fixes: 'power' },
-  motor:   { icon: '⚙️', hex: '#ff8a1f', fixes: 'legs' },     // leg motor
-  wiring:  { icon: '🔌', hex: '#56B4E9', fixes: 'wiring' },
-  ram:     { icon: '🐏', hex: '#c9ced8', fixes: null },        // the Charger's ram
-  scope:   { icon: '🔭', hex: '#ff5fa2', fixes: null, unlocks: 'rail' },   // the Sniper's scope; only a Sniper carries one
-  rotor:   { icon: '🌀', hex: '#ffd83d', fixes: null },        // a drone's rotor
-  spring:  { icon: '➰', hex: '#9f7bff', fixes: null },        // the Bouncer's coil spring
+  armour:  { icon: '🛡️', ic: 'armour', hex: '#8a5cff', fixes: 'hull' },     // armour plate
+  battery: { icon: '🔋', ic: 'battery', hex: '#3ee07a', fixes: 'power' },
+  motor:   { icon: '⚙️', ic: 'motor', hex: '#ff8a1f', fixes: 'legs' },     // leg motor
+  wiring:  { icon: '🔌', ic: 'wiring', hex: '#56B4E9', fixes: 'wiring' },
+  ram:     { icon: '🐏', ic: 'ram', hex: '#c9ced8', fixes: null },        // the Charger's ram
+  scope:   { icon: '🔭', ic: 'scope', hex: '#ff5fa2', fixes: null, unlocks: 'rail' },   // the Sniper's scope; only a Sniper carries one
+  rotor:   { icon: '🌀', ic: 'rotor', hex: '#ffd83d', fixes: null },        // a drone's rotor
+  spring:  { icon: '➰', ic: 'spring', hex: '#9f7bff', fixes: null },        // the Bouncer's coil spring
 };
 // Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
 // always maxHealth minus the damage in every area, so every heal mends areas too
@@ -1053,11 +1070,13 @@ const PARTS = {
 //    `kits` lie tucked beside trees; a robot drops one the first time it's beaten.
 const AREAS = ['hull', 'legs', 'power', 'wiring'];
 const AREA_ICON = { hull: '🤖', legs: '🦿', power: '⚡', wiring: '〰️' };
+const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };   // I1: each area's icon (AREA_ICON's emoji: until I2)
 // where each kind of hit lands: a Sniper's round on the hull, a drone's zap in the power and
 // wiring (so 🔋 and 🔌 have something to mend), a Bouncer's stomp mostly in the legs
 const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 } };
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_ICON = { parts: '🔧', ally: '🤖', kit: '🧰', reboot: '🔌' };
+const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
 // from the bag (the same bag self-repair spends), and each shows on the mech. id = the part it costs.
 //   armour  🛡️ +25 energy a level (150 → 250)          motor  ⚙️ +8% top speed a level
@@ -1065,12 +1084,12 @@ const HEAL_ICON = { parts: '🔧', ally: '🤖', kit: '🧰', reboot: '🔌' };
 //   spring  ➰ level 1 adds a jump, level 2 higher      ram    🐏 the kick does 25% more damage a level
 // fx = what a level does, as an icon (shown on its card). Saved per child in rec.garage.upgrades.
 const UPGRADES = [
-  { id: 'armour', name: 'Armour plating', max: 4, fx: '❤️+25', alias: ['armor', 'plating', 'energy'] },
-  { id: 'motor', name: 'Leg motors', max: 3, fx: '💨+8%', alias: ['motors', 'legs', 'speed'] },
-  { id: 'battery', name: 'Power cells', max: 3, fx: '⏱️+10%', alias: ['cells', 'power', 'recharge'] },
-  { id: 'wiring', name: 'Wiring harness', max: 2, fx: '🔧+10', alias: ['harness', 'mend'] },
-  { id: 'spring', name: 'Spring legs', max: 2, fx: '⤴️', alias: ['springs', 'jump'] },
-  { id: 'ram', name: 'Ram plate', max: 2, fx: '🦶+25%', alias: ['ramplate', 'kick'] },
+  { id: 'armour', name: 'Armour plating', max: 4, fx: '❤️+25', fxIc: '{energy}+25', alias: ['armor', 'plating', 'energy'] },
+  { id: 'motor', name: 'Leg motors', max: 3, fx: '💨+8%', fxIc: '{speed}+8%', alias: ['motors', 'legs', 'speed'] },
+  { id: 'battery', name: 'Power cells', max: 3, fx: '⏱️+10%', fxIc: '{timer}+10%', alias: ['cells', 'power', 'recharge'] },
+  { id: 'wiring', name: 'Wiring harness', max: 2, fx: '🔧+10', fxIc: '{wrench}+10', alias: ['harness', 'mend'] },
+  { id: 'spring', name: 'Spring legs', max: 2, fx: '⤴️', fxIc: '{jump}', alias: ['springs', 'jump'] },
+  { id: 'ram', name: 'Ram plate', max: 2, fx: '🦶+25%', fxIc: '{boot}+25%', alias: ['ramplate', 'kick'] },
 ];
 // jump: how high each spring level jumps (m; level 0 can't); gravity pulls the mech back down (m/s²). #46: gravity was
 // 22; lighter, the same heights hang longer, so a running jump carries the mech further (level 1 over a fence: #46)
@@ -1087,11 +1106,11 @@ const upgradeOf = (n) => { const s = String(n ?? '').toLowerCase(); return UPGRA
 //   gold   👑  gold: the whole mech turns gold, and squadmates glow gold
 // toast: how long the in-play toast stays (ms); cheer: how long the garage's cheer stays (ms)
 const ADVANCED = [
-  { id: 'chrome', icon: '✨', name: 'Chrome plating', at: 9, hex: '#dfe7f2', fx: '❤️+25' },
-  { id: 'jets', icon: '🚀', name: 'Jump jets', at: 18, hex: '#ff6a2a', fx: '⤴️⤴️' },
-  { id: 'fusion', icon: '⚡', name: 'Fusion core', at: 27, hex: '#3ff0ff', fx: '⏱️+20%' },
-  { id: 'shield', icon: '🛡️', name: 'Shield emitter', at: 36, hex: '#56B4E9', fx: '🫧×3' },
-  { id: 'gold', icon: '👑', name: 'Gold plating', at: 45, hex: '#ffc21a', fx: '👑' },
+  { id: 'chrome', icon: '✨', ic: 'sparkle', name: 'Chrome plating', at: 9, hex: '#dfe7f2', fx: '❤️+25', fxIc: '{energy}+25' },
+  { id: 'jets', icon: '🚀', ic: 'rocket', name: 'Jump jets', at: 18, hex: '#ff6a2a', fx: '⤴️⤴️', fxIc: '{jump}{jump}' },
+  { id: 'fusion', icon: '⚡', ic: 'power', name: 'Fusion core', at: 27, hex: '#3ff0ff', fx: '⏱️+20%', fxIc: '{timer}+20%' },
+  { id: 'shield', icon: '🛡️', ic: 'shield', name: 'Shield emitter', at: 36, hex: '#56B4E9', fx: '🫧×3', fxIc: '{bubble}×3' },
+  { id: 'gold', icon: '👑', ic: 'crown', name: 'Gold plating', at: 45, hex: '#ffc21a', fx: '👑', fxIc: '{crown}' },
 ];
 const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', goldFrame: '#b8860b', toast: 3500, cheer: 4500 };
 const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || null; };
@@ -1105,14 +1124,14 @@ const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.
 //   walkDamage × what walking into a tree, rock or fence does to it    push  × the knock-back it takes
 // Only the player's mech wears a shape; squadmates keep their robot type's look. Saved per child in rec.garage.body.
 const LEG_SHAPES = [
-  { id: 'walker', icon: '🦵', name: 'Walker', part: null, need: 0 },
-  { id: 'hopper', icon: '🦘', name: 'Hopper', part: 'spring', need: 6, energy: -15, topSpeed: 1.05, jump: 1.4, kick: 1.15 },
-  { id: 'spider', icon: '🕷️', name: 'Spider', part: 'motor', need: 6, legTurn: 2, turnSlow: 0, accel: 1.2, topSpeed: 0.9, jump: 0.8 },
-  { id: 'tracks', icon: '🚜', name: 'Tracks', part: 'ram', need: 6, energy: 50, walkDamage: 2, push: 0.5, topSpeed: 0.8, accel: 0.75, legTurn: 0.8, jump: 0.5 },
+  { id: 'walker', icon: '🦵', ic: 'walker', name: 'Walker', part: null, need: 0 },
+  { id: 'hopper', icon: '🦘', ic: 'hopper', name: 'Hopper', part: 'spring', need: 6, energy: -15, topSpeed: 1.05, jump: 1.4, kick: 1.15 },
+  { id: 'spider', icon: '🕷️', ic: 'spider', name: 'Spider', part: 'motor', need: 6, legTurn: 2, turnSlow: 0, accel: 1.2, topSpeed: 0.9, jump: 0.8 },
+  { id: 'tracks', icon: '🚜', ic: 'tracks', name: 'Tracks', part: 'ram', need: 6, energy: 50, walkDamage: 2, push: 0.5, topSpeed: 0.8, accel: 0.75, legTurn: 0.8, jump: 0.5 },
 ];
 const SHAPE_FX = { energy: 0, topSpeed: 1, accel: 1, legTurn: 1, turnSlow: 0.3, jump: 1, kick: 1, walkDamage: 1, push: 1 };
 // the sections a shape can be picked for (B2 builds the legs; the torso and arms have today's shape only, for now)
-const BODY_SHAPES = { legs: LEG_SHAPES, torso: [{ id: 'standard', icon: '🤖', name: 'Standard' }], arms: [{ id: 'standard', icon: '💪', name: 'Standard' }] };
+const BODY_SHAPES = { legs: LEG_SHAPES, torso: [{ id: 'standard', icon: '🤖', ic: 'torso', name: 'Standard' }], arms: [{ id: 'standard', icon: '💪', ic: 'arm', name: 'Standard' }] };
 const legShapeOf = (n) => { const s = String(n ?? '').toLowerCase(); return LEG_SHAPES.find((S) => S.id === s || S.icon === n || S.name.toLowerCase() === s) || null; };
 const shapeFx = (id) => { const S = legShapeOf(id) || LEG_SHAPES[0]; return Object.fromEntries(Object.entries(SHAPE_FX).map(([k, v]) => [k, S[k] ?? v])); };
 // a garage's body shop record, made with ||= the first time it's read (so a record saved before B2 keeps everything else, and
@@ -1143,10 +1162,10 @@ const SQUAD_UPS = [
 ];
 // each type's job: the part its boost costs and what a level does, as an icon
 const SQUAD_JOB = {
-  charger: { part: 'ram', fx: '💥+25%', what: 'ram' },
-  sniper: { part: 'scope', fx: '🎯+25%', what: 'range' },
-  drone: { part: 'rotor', fx: '📡+25%', what: 'scout' },
-  bouncer: { part: 'spring', fx: '🔗+1', what: 'chain' },
+  charger: { part: 'ram', fx: '💥+25%', fxIc: '{smash}+25%', what: 'ram' },
+  sniper: { part: 'scope', fx: '🎯+25%', fxIc: '{aim}+25%', what: 'range' },
+  drone: { part: 'rotor', fx: '📡+25%', fxIc: '{radar}+25%', what: 'scout' },
+  bouncer: { part: 'spring', fx: '🔗+1', fxIc: '{link}+1', what: 'chain' },
 };
 const squadUpOf = (n) => { const s = String(n ?? '').toLowerCase(); return SQUAD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s || U.alias.includes(s)) || null; };
 const squadPart = (r, id) => (id === 'plating' ? 'armour' : SQUAD_JOB[r.type].part);
@@ -1158,11 +1177,11 @@ const ALLY_RAM = { reach: 30, lead: 35, windup: 0.5, charge: 2.0, recover: 1.0, 
 // rec.garage.paint as { body, trim, decal }; null = the mech as built (PAINT's orange and yellow, no decal).
 const PALETTE = ['#ff8a1f', '#ffd83d', '#ff4d5e', '#ff5fa2', '#a77bff', '#4f9dff', '#3ff0ff', '#3ee07a', '#e8ecf4', '#3a4157'];
 const DECALS = [
-  { id: 'none', icon: '🚫', name: 'No decal' },
-  { id: 'stars', icon: '⭐', name: 'Stars' },
-  { id: 'flames', icon: '🔥', name: 'Flames' },
-  { id: 'stripes', icon: '🏁', name: 'Stripes' },
-  { id: 'emblem', icon: '🛡️', name: "Pilot's emblem" },
+  { id: 'none', icon: '🚫', ic: 'none', name: 'No decal' },
+  { id: 'stars', icon: '⭐', ic: 'star', name: 'Stars' },
+  { id: 'flames', icon: '🔥', ic: 'flame', name: 'Flames' },
+  { id: 'stripes', icon: '🏁', ic: 'flag', name: 'Stripes' },
+  { id: 'emblem', icon: '🛡️', ic: 'emblem', name: "Pilot's emblem" },
 ];
 const paintColour = (c) => { if (Number.isInteger(c)) return PALETTE[c] ?? null; const s = String(c ?? '').toLowerCase(); return PALETTE.includes(s) ? s : null; };
 const decalOf = (d) => (Number.isInteger(d) ? DECALS[d] : DECALS.find((D) => D.id === String(d ?? '').toLowerCase() || D.icon === d)) || null;
@@ -1216,12 +1235,12 @@ const PACE = [
 // Which fills a slot: on a 🧲 board the first slot is 🧠; every other slot takes 🔥 or 🔍, the one this child saw least
 // recently (a tie: 🔥 if wires burnt, else 🔍), never one twice. segs / tiles: the wave-1 sizes (PACE's sizes rule).
 const PUZZLES = {
-  break: { icon: '🔥', name: 'Find the break', segs: 4 },
-  part: { icon: '🔍', name: 'What broke?', tiles: 3 },
-  chain: { icon: '🧠', name: 'Sense, think, act', tiles: 3 },
+  break: { icon: '🔥', ic: 'flame', name: 'Find the break', segs: 4 },
+  part: { icon: '🔍', ic: 'search', name: 'What broke?', tiles: 3 },
+  chain: { icon: '🧠', ic: 'brain', name: 'Sense, think, act', tiles: 3 },
 };
 // 🧠's tiles (not parts: they never go in the bag). order = the chain, sensor first; decoy = the extra tile from wave 5
-const CHAIN = { tiles: { sensor: { icon: '👁️', hex: '#4fc3ff' }, controller: { icon: '🧠', hex: '#ff7ad9' }, motor: { icon: '⚙️', hex: '#ff8a1f' }, shield: { icon: '🛡️', hex: '#8a5cff' } },
+const CHAIN = { tiles: { sensor: { icon: '👁️', ic: 'eye', hex: '#4fc3ff' }, controller: { icon: '🧠', ic: 'brain', hex: '#ff7ad9' }, motor: { icon: '⚙️', ic: 'motor', hex: '#ff8a1f' }, shield: { icon: '🛡️', ic: 'armour', hex: '#8a5cff' } },
   order: ['sensor', 'controller', 'motor'], decoy: 'shield' };
 // glow: how long (ms) the right answer glows after a wrong tap; done: how long a solved card shows before the board;
 // hint: the first-time hint's length (ms): a hand taps the right answer once, the first time a child meets a type (#48)
@@ -1235,10 +1254,10 @@ function median(a) { if (!a?.length) return null; const b = [...a].sort((x, y) =
 // Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
 // else (setup damage, an electromagnet) leaves its wiring sparking.
 const SYMPTOMS = {
-  limp: { icon: '🦵', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram'] },
-  holes: { icon: '🕳️', parts: ['armour', 'rotor'], by: ['gun', 'snipe'] },
-  drained: { icon: '🪫', parts: ['battery', 'wiring'], by: ['rail'] },
-  sparks: { icon: '⚡', parts: ['wiring', 'battery'], by: ['setup', 'em'] },
+  limp: { icon: '🦵', ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram'] },
+  holes: { icon: '🕳️', ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe'] },
+  drained: { icon: '🪫', ic: 'drained', parts: ['battery', 'wiring'], by: ['rail'] },
+  sparks: { icon: '⚡', ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em'] },
 };
 const symptomOf = (how) => Object.keys(SYMPTOMS).find((k) => SYMPTOMS[k].by.includes(how)) || 'sparks';
 // a decoy port (math wiring, from wave 1): W.ports holds DECOY + k, and W.decoys[k] is the answer it shows
@@ -1250,12 +1269,12 @@ const ROBOT_NAMES = ['Bolt', 'Sprocket', 'Rusty', 'Zippy', 'Clank', 'Gizmo', 'Sp
 // an emblem under it), drawn by pilotFace(). The colour and emblem are placeholders the family
 // can swap here. Picking one on the title screen starts the game.
 const PILOTS = [
-  { id: 'othello', name: 'Othello', hex: '#ff4d5e', emblem: '⭐' },
-  { id: 'korra',   name: 'Korra',   hex: '#a77bff', emblem: '🔥' },
-  { id: 'beau',    name: 'Beau',    hex: '#4f9dff', emblem: '💎' },
-  { id: 'sneezy',  name: 'Sneezy',  hex: '#3ee07a', emblem: '🌀' },
-  { id: 'nala',    name: 'Nala',    hex: '#ff5fa2', emblem: '🌙' },
-  { id: 'thunder', name: 'Thunder', hex: '#ffd83d', emblem: '⚡' },
+  { id: 'othello', name: 'Othello', hex: '#ff4d5e', emblem: '⭐', emblemIc: 'star' },
+  { id: 'korra',   name: 'Korra',   hex: '#a77bff', emblem: '🔥', emblemIc: 'flame' },
+  { id: 'beau',    name: 'Beau',    hex: '#4f9dff', emblem: '💎', emblemIc: 'gem' },
+  { id: 'sneezy',  name: 'Sneezy',  hex: '#3ee07a', emblem: '🌀', emblemIc: 'swirl' },
+  { id: 'nala',    name: 'Nala',    hex: '#ff5fa2', emblem: '🌙', emblemIc: 'moon' },
+  { id: 'thunder', name: 'Thunder', hex: '#ffd83d', emblem: '⚡', emblemIc: 'power' },
 ];
 // a pilot by id or name (any case), or by index
 const pilotOf = (p) => (Number.isInteger(p) ? PILOTS[p] : PILOTS.find((q) => q.id === String(p).toLowerCase() || q.name.toLowerCase() === String(p).toLowerCase())) || null;
@@ -1296,6 +1315,236 @@ const wrapAngle = (a) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Mat
 const approach = (a, b, max) => (a < b ? Math.min(b, a + max) : Math.max(b, a - max));
 const turnToward = (a, b, max) => wrapAngle(a + clamp(wrapAngle(b - a), -max, max));
 const $ = (id) => document.getElementById(id);
+// ===========================================================================
+// I1: the icon set. Every icon in the game is drawn here as inline SVG on a 24×24 grid, in one style: a rounded 2-unit
+// outline in the game's ink, a flat fill in the thing's colour (metal parts: a two-stop metal gradient, lit from the top
+// left like the mech), and one white highlight band on the lit edge. One hidden <svg> sprite holds a <symbol> per icon
+// (Icons.mount puts it in the page); icon(name) draws one with <use>, and iconTex(name) rasterises one for a world sprite.
+// ICONS[name] = [word (its aria-label), emoji aliases (input only: lookups accept them, nothing renders them), markup].
+// ===========================================================================
+const ICON_INK = '#14182a';
+// (the drawing helpers stay inside: only the set, its gradients and their markup come out)
+const { ICONS, ICON_GRADS, ICON_DEFS } = (() => {
+const INK = ICON_INK;
+// the fills: a metal or colour gradient (lit top left), by name: url(#rbg-<name>)
+const ICON_GRADS = {
+  steel: ['#f4f7fb', '#8b95aa'], dark: ['#9aa4b8', '#4a5368'], gold: ['#ffe98a', '#f0a000'], red: ['#ff8a96', '#e0283c'],
+  orange: ['#ffc07a', '#e8670a'], green: ['#9af5b9', '#1fb85a'], blue: ['#9cc8ff', '#2f6fe0'], purple: ['#c3a8ff', '#6a3fe6'],
+  pink: ['#ffa8cf', '#e23d86'], yellow: ['#fff09a', '#f2b90c'], cyan: ['#b4fbff', '#1cc8e0'], teal: ['#7fe0c8', '#1f8a72'],
+  wire: ['#a8dcff', '#2f8fd0'], violet: ['#d9cbff', '#8a6cf0'],
+};
+const ICON_DEFS = Object.entries(ICON_GRADS).map(([k, [a, b]]) => `<linearGradient id="rbg-${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`).join('');
+// markup helpers: a filled, outlined shape; the same without an outline (n); a highlight band; a thick line with an
+// outline (ln: an ink stroke 4 wider under the colour, so its edge matches a shape's outline)
+const G = (k) => `url(#rbg-${k})`;
+const pa = (d, f, x = '') => `<path d="${d}" fill="${f}"${x}/>`;
+const pn = (d, f) => pa(d, f, ' stroke="none"');
+const ci = (cx, cy, r, f, x = '') => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${f}"${x}/>`;
+const cn = (cx, cy, r, f) => ci(cx, cy, r, f, ' stroke="none"');
+const re = (x, y, w, h, rx, f, xx = '') => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${f}"${xx}/>`;
+const rn = (x, y, w, h, rx, f) => re(x, y, w, h, rx, f, ' stroke="none"');
+const hl = (d) => `<path d="${d}" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="1.6"/>`;
+// (a line's colour is solid: a gradient on a straight line's zero-width box would draw nothing; the mid of the gradient)
+const solid = (c) => { const m = /^url\(#rbg-(\w+)\)$/.exec(c); if (!m) return c; const [a, b] = ICON_GRADS[m[1]].map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
+  return '#' + a.map((v, i) => Math.round(v * 0.4 + b[i] * 0.6).toString(16).padStart(2, '0')).join(''); };
+const ln = (d, c, w = 2.6, cap = 'round') => `<path d="${d}" fill="none" stroke-width="${w + 4}" stroke-linecap="${cap}"/><path d="${d}" fill="none" stroke="${solid(c)}" stroke-width="${w}" stroke-linecap="${cap}"/>`;
+const rot = (a, s, cx = 12, cy = 12) => `<g transform="rotate(${a} ${cx} ${cy})">${s}</g>`;
+const f1 = (v) => +v.toFixed(2);
+// a star of n points (outer R, inner r) round (cx, cy), the first point straight up
+const starD = (cx, cy, R, r, n = 5, a0 = -90) => 'M' + Array.from({ length: n * 2 }, (_, i) => { const a = (a0 + i * 180 / n) * Math.PI / 180, q = i % 2 ? r : R; return f1(cx + Math.cos(a) * q) + ' ' + f1(cy + Math.sin(a) * q); }).join(' L') + ' Z';
+// a gear of n teeth: outer R, root r
+const gearD = (cx, cy, R, r, n) => { const pts = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 - Math.PI / 2, w = Math.PI / n;
+  for (const [da, q] of [[-w * 0.95, r], [-w * 0.45, R], [w * 0.45, R], [w * 0.95, r]]) pts.push(f1(cx + Math.cos(a + da) * q) + ' ' + f1(cy + Math.sin(a + da) * q)); }
+  return 'M' + pts.join(' L') + ' Z'; };
+// the shared pieces
+const HEART = 'M12 20.6 C6.2 16.8 2.6 13.4 2.6 8.9 C2.6 5.8 4.9 3.6 7.6 3.6 C9.5 3.6 11.1 4.6 12 6.3 C12.9 4.6 14.5 3.6 16.4 3.6 C19.1 3.6 21.4 5.8 21.4 8.9 C21.4 13.4 17.8 16.8 12 20.6 Z';
+const SHIELD = 'M12 2.6 L20.4 5.4 L20.4 11.4 C20.4 16.4 16.8 19.7 12 21.4 C7.2 19.7 3.6 16.4 3.6 11.4 L3.6 5.4 Z';
+const BOLT = 'M13.8 2.4 L4.6 13.6 L10.8 13.6 L9.4 21.6 L19.4 9.6 L13.2 9.6 Z';
+const STAR = starD(12, 12.8, 10, 4.3);
+const battery = (lv, c) => re(6, 4.6, 12, 17, 2.6, G('steel')) + re(9.4, 2.2, 5.2, 2.4, 0.8, G('dark')) + rn(8.4, 21.6 - 2.4 - lv, 7.2, lv, 1, c) + hl('M8 7.4 L8 12');
+const flame = (c1, c2) => pa('M12 2.4 C13.2 6.6 18.6 8.6 18.6 14.6 C18.6 18.6 15.6 21.6 12 21.6 C8.4 21.6 5.4 18.6 5.4 14.6 C5.4 11.4 7.4 9.6 8.4 8 C9 10.4 9.9 11.4 10.9 12 C10.9 8.6 10.9 5.6 12 2.4 Z', c1)
+  + pn('M12 12.6 C13.6 14.6 15.5 15.6 15.5 17.6 C15.5 19.6 14 20.4 12 20.4 C10 20.4 8.5 19.6 8.5 17.6 C8.5 16 10.1 15 12 12.6 Z', c2);
+// a pair of mech legs mid-stride (🦿, the Walker, 🔍's limp: x = a crack drawn over it)
+const legs2 = (x) => re(6.4, 2.4, 11.2, 4.6, 1.8, G('dark')) + ln('M9.4 6.6 L7.4 12.2 L6.8 17.6 M14.6 6.6 L16.6 12.2 L17.2 17.6', G('steel'), 3.6)
+  + re(2.4, 17.2, 7.8, 4.2, 1.4, G('dark')) + re(13.8, 17.2, 7.8, 4.2, 1.4, G('dark')) + ci(7.4, 12.2, 2.2, G('orange')) + ci(16.6, 12.2, 2.2, G('orange')) + x;
+const UI = '#fff';   // the UI symbols (✔ ✖ ▶ ...) are white, so they read on a coloured button and a dark panel alike
+const ICONS = {
+  // ---- the HUD and the world's sprites ----
+  energy: ['energy', ['❤️', '❤'], pa(HEART, G('red')) + hl('M5.2 9 C5.2 7.2 6.4 6 8 6')],
+  wrench: ['wrench', ['🔧'], rot(45, pa('M9.8 1.6 L9.8 5.4 L14.2 5.4 L14.2 1.6 A6 6 0 0 1 14.6 11.4 L14.6 20.2 A2.6 2.6 0 0 1 9.4 20.2 L9.4 11.4 A6 6 0 0 1 9.8 1.6 Z', G('steel')) + cn(12, 18.6, 1.1, INK) + hl('M10.9 12.4 L10.9 16'))],
+  jump: ['jump', ['⤴️', '⤴'], ln('M3.6 17.6 L9.4 17.6 Q15.4 17.6 15.4 11.6 L15.4 9.6', G('cyan'), 3.4, 'butt') + pa('M10 10.2 L15.4 3.2 L20.8 10.2 Z', G('cyan')) + pn('M13.7 9 L17.1 9 L17.1 11.8 L13.7 11.8 Z', '#5fe3f2')],
+  legs: ['legs', ['🦿'], legs2('')],
+  star: ['star', ['⭐', '★'], pa(STAR, G('gold')) + hl('M9.2 10.2 L10.8 10.1 L12 6.6')],
+  goldstar: ['gold star', ['🌟'], pa(starD(11, 13.4, 8.8, 3.8), G('gold')) + hl('M8.6 11.2 L10 11.1 L11 8.2') + pa(starD(19.4, 4.6, 3.4, 1.2, 4), '#fff6c2')],
+  wave: ['wave', ['🌊'], pa('M2.6 17.4 C5.2 17.4 6.4 15.2 7.2 12.8 C8.6 8.6 11.6 5.4 15.6 5.4 C18.6 5.4 20.8 7.4 20.8 10.2 C19 9 16.4 9.2 15.2 11.2 C14.2 13 15.2 15.2 17.6 15.4 C19.2 15.5 20.6 14.8 21.4 13.8 L21.4 21.4 L2.6 21.4 Z', G('blue')) + hl('M9.4 12 C10.4 9.4 12.4 7.6 15 7.4')],
+  boot: ['kick', ['🦶'], pa('M7.6 2.6 L13.4 2.6 L13.4 12 L7.6 12 Z', G('steel')) + pa('M2.6 19.8 L2.6 16.4 Q2.6 13.2 6.4 13.2 L14.6 13.2 Q21.4 13.6 21.4 18.6 L21.4 19.8 Z', G('steel'))
+    + pa('M2.6 19.4 L21.4 19.4 L21.4 21.4 L2.6 21.4 Z', G('dark')) + ci(10.5, 12.4, 2.6, G('orange')) + hl('M9.4 4.6 L9.4 9') + hl('M5 16.4 L8 15.6')],
+  aim: ['aim', ['🎯'], ci(12, 12, 9.4, G('red')) + cn(12, 12, 6.2, '#fff') + cn(12, 12, 3.2, '#ff4d5e') + ln('M12 1.6 L12 6.6 M12 17.4 L12 22.4 M1.6 12 L6.6 12 M17.4 12 L22.4 12', '#fff', 1.4, 'butt')],
+  bolt: ['bolt', ['🔩'], rot(40, pa('M9.4 10 L14.6 10 L14.6 19.4 Q14.6 20.8 12 20.8 Q9.4 20.8 9.4 19.4 Z', G('steel')) + `<path d="M9.4 13.6 L14.6 12.6 M9.4 17 L14.6 16" fill="none"/>`
+    + pa('M4.8 6 L8 4 L16 4 L19.2 6 L19.2 8.6 Q19.2 10.4 17.4 10.4 L6.6 10.4 Q4.8 10.4 4.8 8.6 Z', G('steel')) + hl('M7.6 6.4 L16.4 6.4'))],
+  search: ['search', ['🔍'], ln('M15.6 15.6 L20.4 20.4', G('orange'), 3.4) + ci(10, 10, 7.6, G('steel')) + ci(10, 10, 4.8, '#bff3ff') + hl('M7.4 8.6 C7.8 7.6 8.6 7 9.6 6.8')],
+  bag: ['bag', ['🎒'], ln('M8.8 6.4 L8.8 5 Q8.8 2.6 12 2.6 Q15.2 2.6 15.2 5 L15.2 6.4', G('dark'), 1.6) + re(4.6, 6, 14.8, 15.4, 4, G('blue')) + re(7.4, 13.4, 9.2, 6, 2, '#2f62c8') + re(10.4, 11.2, 3.2, 3.6, 0.8, G('steel')) + hl('M6.8 9 L6.8 13')],
+  family: ['parents', ['👪'], ci(16.4, 6.6, 3.2, G('pink')) + pa('M11.2 21.4 L11.2 15.8 Q11.2 11.4 16.4 11.4 Q21.6 11.4 21.6 15.8 L21.6 21.4 Z', G('pink')) + ci(7.6, 6.6, 3.2, G('blue')) + pa('M2.4 21.4 L2.4 15.8 Q2.4 11.4 7.6 11.4 Q12.8 11.4 12.8 15.8 L12.8 21.4 Z', G('blue')) + hl('M4.6 14.6 L4.6 18')],
+  lock: ['locked', ['🔒'], ln('M7.6 10.4 L7.6 7.6 Q7.6 3.2 12 3.2 Q16.4 3.2 16.4 7.6 L16.4 10.4', G('steel'), 2.4, 'butt') + re(4.4, 10, 15.2, 11.4, 2.6, G('gold')) + cn(12, 14.6, 1.7, INK) + rn(11.2, 15, 1.6, 3.6, 0.6, INK) + hl('M6.6 12.4 L6.6 18')],
+  home: ['home', ['🏠'], pa('M5.2 10 L18.8 10 L18.8 21.4 L5.2 21.4 Z', '#eef1f7') + re(10, 14.4, 4, 7, 1, '#3a4157') + pa('M2.4 11.6 L12 3 L21.6 11.6 Z', G('orange')) + hl('M6 9.8 L11.6 5')],
+  sleep: ['sleeping', ['💤'], pa('M2.8 10.2 L13 10.2 L13 12.8 L7.6 18.6 L13 18.6 L13 21.2 L2.8 21.2 L2.8 18.6 L8.2 12.8 L2.8 12.8 Z', G('cyan')) + pa('M14.4 2.8 L21.2 2.8 L21.2 4.8 L17.4 8.9 L21.2 8.9 L21.2 10.9 L14.4 10.9 L14.4 8.9 L18.2 4.8 L14.4 4.8 Z', G('cyan'))],
+  warn: ['warning', ['⚠️', '⚠'], pa('M12 2.8 L21.8 20.6 L2.2 20.6 Z', G('yellow')) + rn(10.9, 8.4, 2.2, 6.6, 1.1, INK) + cn(12, 17.4, 1.3, INK)],
+  robot: ['robot', ['🤖'], ln('M12 3.4 L12 5.6', G('dark'), 1.4) + ci(12, 2.8, 1.5, G('red')) + re(1.8, 10, 2.6, 5.4, 1, G('dark')) + re(19.6, 10, 2.6, 5.4, 1, G('dark')) + re(4, 5.6, 16, 14.4, 4, G('steel'))
+    + rn(6.6, 9, 10.8, 5, 2.5, INK) + cn(9.6, 11.5, 1.5, '#3ff0ff') + cn(14.4, 11.5, 1.5, '#3ff0ff') + rn(9, 16.2, 6, 1.6, 0.8, '#4a5368') + hl('M6 9 L6 13.4')],
+  alert: ['alert', ['❗', '❕'], pa('M9.2 2.8 L14.8 2.8 L13.6 15 L10.4 15 Z', G('red')) + ci(12, 19.2, 2.4, G('red'))],
+  kit: ['repair kit', ['🧰'], ln('M8.2 7.4 L8.2 4.6 L15.8 4.6 L15.8 7.4', G('dark'), 1.6) + re(2.4, 7, 19.2, 14, 2.4, G('red')) + `<path d="M2.4 12.4 L21.6 12.4" fill="none"/>` + re(10, 10.6, 4, 3.8, 0.8, G('steel')) + hl('M4.6 9.4 L19.4 9.4')],
+  // ---- weapons ----
+  gun: ['cannon', ['🔫'], re(10.4, 8.6, 10.4, 5.6, 1.2, G('dark')) + re(19, 7.4, 3, 8, 1, G('orange')) + re(2.4, 6.4, 10, 10.2, 2.6, G('steel')) + pa('M4.4 16 L9.6 16 L8.6 21.4 L4.4 21.4 Z', G('dark')) + rn(4.4, 10.4, 6, 2, 0.6, '#ff8a1f') + hl('M4.6 8.6 L10 8.6')],
+  punch: ['punch', ['👊'], re(6, 17, 12, 4.6, 1.2, G('orange')) + re(3.6, 4.4, 16.8, 13.4, 3.6, G('steel')) + `<path d="M7.8 4.8 L7.8 10.4 M12 4.8 L12 10.4 M16.2 4.8 L16.2 10.4" fill="none"/>`
+    + pa('M3.6 11.2 L13 11.2 Q15 11.2 15 13.2 Q15 15.2 13 15.2 L4.4 15.2', G('steel')) + hl('M5.6 6.6 L5.6 9')],
+  em: ['magnet', ['🧲'], ln('M7 5.6 L7 12 A5 5 0 0 0 17 12 L17 5.6', G('red'), 4.4, 'butt') + re(4.2, 2.6, 5.6, 4.4, 1, G('steel')) + re(14.2, 2.6, 5.6, 4.4, 1, G('steel')) + hl('M5.2 9 L5.2 12.2')],
+  rail: ['rail gun', ['☄️', '☄'], ln('M2.8 14.4 L10.6 9.6 M3.4 20.6 L12.4 11.6 M9.6 21.2 L14.4 13.4', G('pink'), 2.2) + ci(15.8, 8.2, 5.2, G('pink')) + cn(15.8, 8.2, 2.4, '#fff')],
+  // ---- parts (metal, with the part's colour as the accent) ----
+  armour: ['armour', ['🛡️', '🛡'], pa(SHIELD, G('steel')) + pn('M12 5.6 L17.6 7.5 L17.6 11.5 C17.6 15 15.2 17.3 12 18.5 C8.8 17.3 6.4 15 6.4 11.5 L6.4 7.5 Z', G('purple')) + hl('M5.4 7 L5.4 11.6')],
+  battery: ['battery', ['🔋'], battery(10.4, G('green'))],
+  motor: ['motor', ['⚙️', '⚙'], pa(gearD(12, 12, 10.2, 7.6, 8), G('steel')) + ci(12, 12, 4, G('orange')) + cn(12, 12, 1.5, INK) + hl('M6.2 9.4 C6.8 7.8 8 6.6 9.6 6.1')],
+  wiring: ['wiring', ['🔌'], ln('M12 15.6 Q12 20.4 17 20.4 L21.4 20.4', G('wire'), 2.4) + re(8.2, 2.2, 2.4, 4.6, 0.8, G('steel')) + re(13.4, 2.2, 2.4, 4.6, 0.8, G('steel')) + pa('M5.8 6.4 L18.2 6.4 L18.2 11 Q18.2 15.6 13.8 15.6 L10.2 15.6 Q5.8 15.6 5.8 11 Z', G('wire')) + hl('M7.8 8.6 L7.8 11')],
+  ram: ['ram', ['🐏'], ln('M9.4 6.4 C4.6 3.4 1.6 8.6 3.8 12.2 C5.4 14.8 9 13.8 8.6 11', G('steel'), 3) + ln('M14.6 6.4 C19.4 3.4 22.4 8.6 20.2 12.2 C18.6 14.8 15 13.8 15.4 11', G('steel'), 3)
+    + pa('M8.4 4.4 L15.6 4.4 L16.2 13 L12 20.8 L7.8 13 Z', G('steel')) + cn(12, 8.4, 1.1, INK) + cn(12, 13.4, 1.1, INK) + hl('M10 6.6 L9.8 11.6')],
+  scope: ['scope', ['🔭'], rot(-30, re(2.4, 9.8, 4, 4.4, 1, G('dark')) + re(5.6, 8.6, 11.6, 6.8, 1.6, G('pink')) + re(16.4, 6.6, 5.4, 10.8, 1.6, G('steel')) + rn(9.6, 8.6, 1.4, 6.8, 0, '#a82464') + hl('M7.6 10.4 L15 10.4'))],
+  rotor: ['rotor', ['🌀'], [0, 120, 240].map((a) => rot(a, pa('M12 12 C9.4 9.2 9.4 4.4 12.4 2.4 C15.2 4.6 14.6 9.2 12 12 Z', G('yellow')))).join('') + ci(12, 12, 2.8, G('steel'))],
+  spring: ['spring', ['➰'], ln('M6.2 5.4 L17.8 7.6 L6.2 9.8 L17.8 12 L6.2 14.2 L17.8 16.4 L6.2 18.6', G('violet'), 2.6) + re(4.4, 2.2, 15.2, 3, 1, G('steel')) + re(4.4, 19, 15.2, 3, 1, G('steel'))],
+  // ---- robot types: each one's own silhouette, in its armour colour ----
+  charger: ['Charger', ['🐏'], re(3.6, 17, 3.4, 4.4, 1, G('dark')) + re(17, 17, 3.4, 4.4, 1, G('dark')) + re(2.4, 6.4, 19.2, 11.6, 3.4, G('purple')) + rn(5.4, 9.2, 13.2, 3.6, 1.8, INK) + rn(7, 10.2, 10, 1.6, 0.8, '#ff2f5b')
+    + re(7.2, 14.6, 9.6, 4.6, 1, G('steel')) + hl('M4.6 9 L4.6 13')],
+  sniper: ['Sniper', ['🔭'], re(15.6, 5.2, 6.6, 3.4, 1, G('steel')) + ln('M10.4 17.4 L9.8 21 M13.6 17.4 L14.2 21', G('dark'), 1.4) + re(9, 11, 6, 6.8, 1.4, G('teal')) + re(6.4, 2.4, 11, 9.4, 2.6, G('teal'))
+    + cn(11.4, 7.1, 2.9, INK) + cn(11.4, 7.1, 1.3, '#ff2f5b') + hl('M8.4 4.6 L8.4 8')],
+  drone: ['drone', ['🐝'], ln('M4.6 9.4 L19.4 9.4 M4.6 9.4 L4.6 6.6 M19.4 9.4 L19.4 6.6', G('dark'), 1.4) + `<ellipse cx="4.6" cy="5.6" rx="3.4" ry="1.3" fill="${G('steel')}"/><ellipse cx="19.4" cy="5.6" rx="3.4" ry="1.3" fill="${G('steel')}"/>`
+    + ci(12, 14.4, 6.6, G('yellow')) + cn(12, 14.4, 2.6, INK) + cn(12, 14.4, 1.2, '#ff2f5b') + hl('M7.6 12.4 C8 11 9 10 10.2 9.6')],
+  bouncer: ['Bouncer', ['🦘'], ln('M8.4 12.8 L15.6 14.2 L8.4 15.6 L15.6 17 L8.4 18.4', G('steel'), 1.8) + re(5.4, 18.8, 13.2, 2.8, 1, G('dark')) + re(4.4, 2.4, 15.2, 10.6, 3.4, G('blue'))
+    + rn(7, 5.4, 10, 3.6, 1.8, INK) + cn(10, 7.2, 1, '#ff2f5b') + cn(14, 7.2, 1, '#ff2f5b') + hl('M6.6 5 L6.6 9')],
+  // ---- the mech's areas, body sections and leg shapes ----
+  torso: ['torso', [], re(8.6, 2.2, 6.8, 3.6, 1.2, G('dark')) + pa('M5 5.6 L19 5.6 L17.2 19.6 L6.8 19.6 Z', G('steel')) + re(1.8, 4.6, 5.6, 6.4, 2.2, G('orange')) + re(16.6, 4.6, 5.6, 6.4, 2.2, G('orange')) + ci(12, 12, 3, G('cyan')) + rn(9, 16.4, 6, 1.6, 0.8, '#4a5368') + hl('M8 8.4 L8.6 15')],
+  power: ['power', ['⚡'], pa(BOLT, G('yellow')) + hl('M12.8 4.6 L7.4 11.4')],
+  wire: ['wires', ['〰️', '〰'], ln('M3.2 12 C5.4 5.6 8.2 5.6 9.6 12 C11 18.4 13.8 18.4 15.2 12 C16.4 6.6 18.6 5.8 20.8 8.4', G('wire'), 2.8) + ci(3.2, 15, 1.8, G('orange')) + ci(20.8, 9, 1.8, G('orange'))],
+  arm: ['arms', ['💪'], pa('M11.8 16 L11.2 9.4 L17.8 9.4 L18.2 16.4 Z', G('steel')) + pa('M2.4 20.6 L2.4 14.6 Q8.2 9.8 14.2 13.6 L17.8 20.6 Z', G('steel')) + re(10, 2, 9.4, 8.2, 2.8, G('steel'))
+    + rn(10.6, 8.6, 8.2, 1.6, 0.6, '#ff8a1f') + ci(16, 17.4, 2.4, G('orange')) + hl('M4.6 15.4 Q7.6 13 10.6 13.2') + hl('M12.2 4.4 L12.2 6.6')],
+  mech: ['mech', ['🦾'], re(6.6, 13.2, 3.8, 7, 1, G('dark')) + re(13.6, 13.2, 3.8, 7, 1, G('dark')) + re(5, 19.4, 6.2, 2.4, 1, G('steel')) + re(12.8, 19.4, 6.2, 2.4, 1, G('steel')) + re(1.8, 7.2, 3.4, 6.8, 1.2, G('steel')) + re(18.8, 7.2, 3.4, 6.8, 1.2, G('steel'))
+    + pa('M4.8 6.4 L19.2 6.4 L17.6 14 L6.4 14 Z', G('orange')) + re(8.4, 1.8, 7.2, 4.8, 1.4, G('steel')) + rn(9.8, 3.4, 4.4, 1.6, 0.8, '#3ff0ff') + hl('M7 8.4 L8 12')],
+  walker: ['Walker', ['🦵'], legs2('')],
+  hopper: ['Hopper', ['🦘'], re(9.6, 2.2, 11, 4.6, 1.8, G('dark')) + ln('M17.6 6.6 L12.6 11.8 L16.6 17.4', G('steel'), 3.4) + ci(12.6, 11.8, 2.2, G('violet')) + re(13.4, 17.2, 8.2, 4.2, 1.4, G('dark'))
+    + ln('M12.4 6.6 L7.4 11.8 L11.4 17.4', G('steel'), 3.4) + ci(7.4, 11.8, 2.2, G('violet')) + re(8.2, 17.2, 8.2, 4.2, 1.4, G('dark'))],
+  spider: ['Spider', ['🕷️', '🕷'], ln('M9.4 9.6 L5.6 4.4 L2.6 10.6 M14.6 9.6 L18.4 4.4 L21.4 10.6 M9.4 14 L5.4 15.6 L3.2 21.2 M14.6 14 L18.6 15.6 L20.8 21.2', G('steel'), 2)
+    + ci(5.6, 4.4, 1.6, G('orange')) + ci(18.4, 4.4, 1.6, G('orange')) + ci(5.4, 15.6, 1.6, G('orange')) + ci(18.6, 15.6, 1.6, G('orange')) + re(7.4, 7.6, 9.2, 8.6, 3, G('steel')) + rn(9.4, 10.2, 5.2, 2.2, 1.1, INK) + hl('M9 9.6 L9 13.4')],
+  tracks: ['Tracks', ['🚜'], pa('M5 10.6 L7.2 4.6 L16.8 4.6 L19 10.6 Z', G('orange')) + re(2, 10, 20, 11.2, 5.6, G('dark')) + ci(7.4, 15.6, 2.6, G('steel')) + ci(12, 15.6, 2.6, G('steel')) + ci(16.6, 15.6, 2.6, G('steel')) + hl('M8.4 6.8 L15.6 6.8')],
+  // ---- G2 / G3 / G4 effects and advanced parts ----
+  speed: ['speed', ['💨'], ln('M3 6.6 L14.4 6.6 M7.4 12 L21 12 M3 17.4 L12.6 17.4', G('cyan'), 2.8)],
+  timer: ['recharge', ['⏱️', '⏱'], re(10.2, 1.8, 3.6, 3.2, 0.8, G('orange')) + ci(12, 13.4, 8.2, G('steel')) + ci(12, 13.4, 5.6, '#fff') + pn('M12 13.4 L12 7.8 A5.6 5.6 0 0 1 17.6 13.4 Z', '#3ee07a') + `<path d="M12 13.4 L12 9.4" fill="none"/>` + cn(12, 13.4, 1.3, INK)],
+  sparkle: ['chrome', ['✨'], pa('M10 3 Q11 12 18 13 Q11 14 10 22 Q9 14 2 13 Q9 12 10 3 Z', G('steel')) + pa('M18 2.2 Q18.5 5.6 21.8 6.2 Q18.5 6.8 18 10.2 Q17.5 6.8 14.2 6.2 Q17.5 5.6 18 2.2 Z', '#fff')],
+  rocket: ['jets', ['🚀'], rot(45, pa('M12 2.2 C15.6 4.8 16.2 9 16.2 14.4 L7.8 14.4 C7.8 9 8.4 4.8 12 2.2 Z', G('steel')) + pa('M7.8 10.6 L4.8 16.2 L7.8 15.4 Z', G('red')) + pa('M16.2 10.6 L19.2 16.2 L16.2 15.4 Z', G('red'))
+    + pa('M9.4 15.2 L12 21.8 L14.6 15.2 Z', G('orange')) + ci(12, 8.6, 1.9, G('cyan')) + hl('M10 6 L9.6 11'))],
+  shield: ['shield', [], pa('M2.8 17 A9.2 9.2 0 0 1 21.2 17 Z', G('cyan')) + re(7.6, 16.6, 8.8, 4.8, 1.4, G('steel')) + hl('M5.6 13.4 A6.4 6.4 0 0 1 10.6 8.4') + cn(12, 19, 1.2, '#3ff0ff')],
+  bubble: ['bubble', ['🫧'], ci(12, 12, 9, G('cyan')) + hl('M6.6 10.4 A5.8 5.8 0 0 1 10.4 6.6') + cn(15.6, 15.4, 1.4, '#fff')],
+  crown: ['gold', ['👑'], pa('M2.6 7.6 L7.4 12 L12 4 L16.6 12 L21.4 7.6 L19.4 18.4 L4.6 18.4 Z', G('gold')) + re(4.4, 17.4, 15.2, 3.8, 1, G('gold')) + cn(12, 12.4, 1.5, '#ff4d5e') + hl('M5.6 11.4 L6.6 16')],
+  smash: ['smash', ['💥'], pa(starD(12, 12, 10.6, 5, 8, -90), G('orange')) + pn(starD(12, 12, 6, 3, 8, -67.5), '#ffe066')],
+  radar: ['scout', ['📡'], re(4.4, 19, 8.4, 2.6, 1, G('dark')) + ln('M8.6 14.4 L8.6 19', G('dark'), 1.4) + pa('M3.4 6.6 A9.4 9.4 0 0 0 16.8 20 Z', G('steel')) + ln('M10.2 13.4 L14.6 9', G('dark'), 1.2) + ci(15.2, 8.4, 1.8, G('red'))
+    + ln('M16.4 3.2 A5 5 0 0 1 20.8 7.6', G('cyan'), 1.8) + hl('M5.4 10.4 Q6.6 15.6 11.4 17.6')],
+  link: ['chain', ['🔗'], rot(-45, ln('M7.8 8.8 L10.6 8.8 A3.2 3.2 0 0 1 10.6 15.2 L7.8 15.2 A3.2 3.2 0 0 1 7.8 8.8 Z', G('steel'), 2) + ln('M13.4 8.8 L16.2 8.8 A3.2 3.2 0 0 1 16.2 15.2 L13.4 15.2 A3.2 3.2 0 0 1 13.4 8.8 Z', G('steel'), 2))],
+  // ---- paint: decals ----
+  none: ['no decal', ['🚫'], ln('M12 3.6 A8.4 8.4 0 1 1 11.99 3.6 Z M6.1 17.9 L17.9 6.1', G('red'), 2.8)],
+  flame: ['flames', ['🔥'], flame(G('orange'), '#ffe066')],
+  flag: ['stripes', ['🏁'], re(2.6, 2.4, 2.4, 19.2, 1, G('steel')) + pa('M5 3.4 L21 3.4 L21 14 L5 14 Z', '#fff') + [[5, 3.4], [13, 3.4], [9, 8.7], [17, 8.7]].map(([x, y]) => rn(x, y, 4, 5.3, 0, INK)).join('') + pa('M5 3.4 L21 3.4 L21 14 L5 14 Z', 'none')],
+  emblem: ["pilot's emblem", [], pa(SHIELD, G('orange')) + pn(starD(12, 11.6, 5.4, 2.3), '#fff') + hl('M5.4 7 L5.4 11.6')],
+  // ---- Quick Fix puzzles, 🧠's tiles, 🔍's symptoms ----
+  brain: ['controller', ['🧠'], pa('M12 4.4 C10.4 2.6 6.6 3 6 5.6 C3.4 5.8 2.4 8.6 3.4 10.4 C2 12 2.4 15 4.6 15.8 C4.8 18.6 7.8 19.8 9.8 18.4 C10.6 19.8 11.6 20 12 19.6 C12.4 20 13.4 19.8 14.2 18.4 C16.2 19.8 19.2 18.6 19.4 15.8 C21.6 15 22 12 20.6 10.4 C21.6 8.6 20.6 5.8 18 5.6 C17.4 3 13.6 2.6 12 4.4 Z', G('pink'))
+    + `<path d="M12 4.6 L12 19.4 M7.4 9.6 Q9.4 10.4 9.4 12.6 M16.6 9.6 Q14.6 10.4 14.6 12.6" fill="none"/>` + hl('M5 8.6 C5.4 7.4 6.4 6.8 7.6 6.8')],
+  eye: ['sensor', ['👁️', '👁'], pa('M2.2 12 Q12 2.4 21.8 12 Q12 21.6 2.2 12 Z', '#fff') + ci(12, 12, 4.4, G('cyan')) + cn(12, 12, 1.9, INK) + cn(13.4, 10.6, 0.9, '#fff')],
+  limp: ['limping', [], legs2(ln('M15.2 11 L17.6 12.4 L15.8 13.8 L18.2 15', '#ff4d5e', 1.2))],
+  holes: ['holes', ['🕳️', '🕳'], re(2.6, 3.6, 18.8, 16.8, 3, G('steel')) + ci(8, 9, 2.3, INK) + ci(15.8, 8.2, 1.8, INK) + ci(11.6, 15, 2.6, INK) + hl('M4.8 6 L4.8 12')],
+  drained: ['drained', ['🪫'], battery(3.2, '#ff4d5e')],
+  // ---- pilot emblems and the children's own icons ----
+  gem: ['gem', ['💎'], pa('M7 4 L17 4 L21.6 9.6 L12 21.2 L2.4 9.6 Z', G('cyan')) + pn('M7 4 L9.6 9.6 L12 4 Z M14.4 9.6 L17 4 L12 4 Z', '#e6feff') + pn('M2.4 9.6 L21.6 9.6 L12 21.2 Z', '#1cc8e0') + pa('M7 4 L17 4 L21.6 9.6 L12 21.2 L2.4 9.6 Z', 'none')],
+  swirl: ['swirl', [], ln((() => { let d = ''; for (let i = 0; i <= 40; i++) { const t = i / 40, a = t * Math.PI * 3.6, r = 1 + t * 8.2; d += (i ? ' L' : 'M') + f1(12 + Math.cos(a) * r) + ' ' + f1(12 + Math.sin(a) * r); } return d; })(), G('green'), 2.6)],
+  moon: ['moon', ['🌙'], pa('M14.4 2.8 A9.6 9.6 0 1 0 21.4 16.2 A7.6 7.6 0 0 1 14.4 2.8 Z', G('yellow')) + hl('M6 9 C6.6 7 8 5.4 9.8 4.6')],
+  bow: ['bow', ['🏹'], ln('M5.2 3.2 Q15.6 4.4 20.8 18.8', G('orange'), 2.2) + `<path d="M5.2 3.2 L20.8 18.8" fill="none"/>` + ln('M3.4 20.6 L16.4 7.6', G('steel'), 1.4) + pa('M14.2 5.2 L19.4 4.6 L18.8 9.8 Z', G('steel')) + pa('M2.4 18.4 L5.6 18.4 L5.6 21.6 Z', G('red'))],
+  sun: ['sun', ['☀️', '☀'], ln([0, 45, 90, 135, 180, 225, 270, 315].map((a) => { const r = a * Math.PI / 180; return `M${f1(12 + Math.cos(r) * 7.6)} ${f1(12 + Math.sin(r) * 7.6)} L${f1(12 + Math.cos(r) * 9.6)} ${f1(12 + Math.sin(r) * 9.6)}`; }).join(' '), G('yellow'), 1.8) + ci(12, 12, 5.4, G('yellow')) + hl('M9.2 10.2 C9.6 9.4 10.2 8.8 11 8.6')],
+  smile: ['guest', ['🙂'], ci(12, 12, 9.4, G('yellow')) + cn(8.8, 9.8, 1.4, INK) + cn(15.2, 9.8, 1.4, INK) + `<path d="M7.8 14 Q12 18.2 16.2 14" fill="none"/>` + hl('M5.4 9.6 C5.8 7.6 7.2 5.8 9.2 5')],
+  // ---- the garage and the math overlays ----
+  trophy: ['trophies', ['🏆'], ln('M6.4 5.6 L3.6 5.6 Q3.6 10.6 7.2 11.2 M17.6 5.6 L20.4 5.6 Q20.4 10.6 16.8 11.2', G('gold'), 1.6) + re(10.6, 14, 2.8, 4.4, 0, G('gold')) + re(6.6, 17.8, 10.8, 3.6, 1, G('dark'))
+    + pa('M6 3 L18 3 L18 8.8 C18 12.6 15.4 15 12 15 C8.6 15 6 12.6 6 8.8 Z', G('gold')) + hl('M8.2 5.4 L8.2 9')],
+  paint: ['paint', ['🎨'], pa('M12 2.6 C6.4 2.6 2.4 6.6 2.4 11.8 C2.4 17.4 6.6 21.4 11.6 21.4 C13.4 21.4 14.2 20.4 13.6 19 C13 17.6 13.8 16.2 15.6 16.2 L17.8 16.2 C20.2 16.2 21.6 14.6 21.6 12 C21.6 6.6 17.4 2.6 12 2.6 Z', G('steel'))
+    + cn(7.2, 9.6, 1.9, '#ff4d5e') + cn(11.4, 6.6, 1.9, '#ffd83d') + cn(16.2, 7.6, 1.9, '#4f9dff') + cn(7.2, 14.6, 1.9, '#3ee07a')],
+  math: ['math wiring', ['🔢'], re(2.6, 2.6, 18.8, 18.8, 4, G('blue')) + ln('M8.4 8.4 L15.6 15.6 M15.6 8.4 L8.4 15.6', '#fff', 2.4)],
+  colours: ['colour wiring', ['🌈'], ln('M3.4 19 A8.6 8.6 0 0 1 20.6 19', '#ff4d5e', 2.2, 'butt') + `<path d="M7.6 19 A4.4 4.4 0 0 1 16.4 19" fill="none" stroke="#4f9dff" stroke-width="2.2"/><path d="M5.5 19 A6.5 6.5 0 0 1 18.5 19" fill="none" stroke="#ffd83d" stroke-width="2.2"/>`],
+  question: ['what?', ['❓', '❔'], ln('M8 8.2 Q8 3.6 12 3.6 Q16 3.6 16 7.6 Q16 10.2 13.4 11.4 Q12 12.2 12 14.6', G('red'), 3) + ci(12, 19.2, 2.2, G('red'))],
+  // stage of a fact: ○ new, ◐ learning, ● known, ★ mastered
+  new: ['new', ['○'], ln('M12 4 A8 8 0 1 1 11.99 4 Z', '#e8ecf4', 2)],
+  learning: ['learning', ['◐'], ci(12, 12, 8.6, '#e8ecf4') + pn('M12 3.4 A8.6 8.6 0 0 0 12 20.6 Z', G('cyan')) + ci(12, 12, 8.6, 'none')],
+  known: ['known', ['●'], ci(12, 12, 8.6, G('cyan')) + hl('M6.8 10 C7.4 8.2 8.8 7 10.4 6.6')],
+  mastered: ['mastered', [], pa(STAR, G('gold')) + hl('M9.2 10.2 L10.8 10.1 L12 6.6')],
+  // ---- UI symbols: white, so they read on a coloured button and a dark panel ----
+  check: ['yes', ['✔', '✔️', '✅'], ln('M4.4 12.6 L9.6 17.6 L19.6 6.4', UI, 3.2)],
+  cross: ['no', ['✖', '✖️', '❌'], ln('M6 6 L18 18 M18 6 L6 18', UI, 3.2)],
+  play: ['go', ['▶', '▶️'], pa('M7 3.6 L20.4 12 L7 20.4 Z', UI)],
+  back: ['back', ['◀', '◀️'], pa('M17 3.6 L3.6 12 L17 20.4 Z', UI)],
+  up: ['up', ['▲'], pa('M12 4.4 L20.6 18.6 L3.4 18.6 Z', UI)],
+  down: ['down', ['▼', '⬇', '⬇️'], pa('M12 19.6 L20.6 5.4 L3.4 5.4 Z', UI)],
+  arrow: ['to', ['➜', '→'], ln('M3.4 12 L13.4 12', UI, 3.2, 'butt') + pa('M12.6 5 L21 12 L12.6 19 Z', UI)],
+  erase: ['delete', ['⌫'], pa('M8.4 4.6 L21.4 4.6 L21.4 19.4 L8.4 19.4 L2.4 12 Z', UI) + `<path d="M11.6 9 L17.6 15 M17.6 9 L11.6 15" fill="none"/>`],
+  plus: ['add', ['➕'], ln('M12 4.6 L12 19.4 M4.6 12 L19.4 12', UI, 3.2)],
+  enter: ['enter', ['↵'], ln('M19 4 L19 13 L9 13', UI, 2.8) + pa('M10 7.4 L3.6 13 L10 18.6 Z', UI)],
+  skip: ['skip', ['⏭', '⏭️'], pa('M3 5 L11.6 12 L3 19 Z', UI) + pa('M10.6 5 L19.2 12 L10.6 19 Z', UI) + re(18.6, 5, 2.6, 14, 0.8, UI)],
+  upgrade: ['upgrade', ['⬆️', '⬆'], pa('M12 2.6 L20.8 11.6 L15.4 11.6 L15.4 21.4 L8.6 21.4 L8.6 11.6 L3.2 11.6 Z', G('green')) + hl('M10.4 13.6 L10.4 19.4')],
+  // ---- odds and ends the later slices swap in ----
+  bin: ['scrap', ['🗑️', '🗑'], re(9.4, 2.2, 5.2, 2.6, 0.8, G('dark')) + re(3.4, 4.4, 17.2, 3.4, 1.2, G('steel')) + pa('M5.2 7.8 L18.8 7.8 L17.4 21.4 L6.6 21.4 Z', G('steel')) + `<path d="M9.4 10.6 L9.8 18.4 M14.6 10.6 L14.2 18.4" fill="none"/>`],
+  cut: ['cut', ['✂️', '✂'], ln('M8 9.6 L19.6 3.2 M8 14.4 L19.6 20.8', G('steel'), 1.8) + ci(5.4, 7.4, 3, G('red')) + ci(5.4, 16.6, 3, G('red')) + cn(5.4, 7.4, 1.1, INK) + cn(5.4, 16.6, 1.1, INK)],
+  pad: ['gamepad', ['🎮'], pa('M6.4 6.2 L17.6 6.2 C20.6 6.2 22 9.4 22 13.4 C22 17.4 20.4 19.2 18.6 19.2 C16.8 19.2 16.2 16.8 14.6 16.8 L9.4 16.8 C7.8 16.8 7.2 19.2 5.4 19.2 C3.6 19.2 2 17.4 2 13.4 C2 9.4 3.4 6.2 6.4 6.2 Z', G('dark'))
+    + `<path d="M7.4 9.6 L7.4 14 M5.2 11.8 L9.6 11.8" fill="none" stroke-width="1.8" stroke="#eef1f7"/>` + cn(15.6, 10.6, 1.3, '#3ee07a') + cn(18, 13, 1.3, '#ff4d5e')],
+  mouse: ['mouse', ['🖱️', '🖱'], re(5.6, 2.4, 12.8, 19.2, 6.4, G('steel')) + `<path d="M5.8 10 L18.2 10 M12 2.6 L12 10" fill="none"/>` + rn(11.2, 4.4, 1.6, 3.4, 0.8, '#ff8a1f')],
+  tap: ['tap', ['👆'], pa('M6 11 L18.6 11 Q20.4 11 20.4 13 L20.4 16.8 Q20.4 21.6 15.4 21.6 L10.6 21.6 Q6 21.6 6 17 Z', '#f4f7fb') + `<path d="M14.4 11.2 L14.4 14 M17.4 11.2 L17.4 14" fill="none"/>` + re(8.4, 2, 4.6, 13.4, 2.3, '#f4f7fb') + hl('M10 4.4 L10 8')],
+  party: ['party', ['🎉'], pa('M2.8 21.2 L8 9 L15 16 Z', G('orange')) + rn(15, 3, 2, 3.4, 0.6, '#ff4d5e') + cn(19.6, 9, 1.6, '#4f9dff') + rn(11, 4.6, 2, 3, 0.6, '#3ee07a') + cn(19, 16.4, 1.5, '#ffd83d') + ln('M13 11 Q16.6 7.2 20.6 5.4', '#ff5fa2', 1.2)],
+  dice: ['random', ['🎲'], re(3, 3, 18, 18, 4, '#f4f7fb') + [[8, 8], [16, 8], [12, 12], [8, 16], [16, 16]].map(([x, y]) => cn(x, y, 1.6, INK)).join('')],
+  tag: ['name', ['🏷️', '🏷'], pa('M2.8 4 Q2.8 2.8 4 2.8 L11.6 2.8 L21.2 12.4 L12.4 21.2 L2.8 11.6 Z', G('yellow')) + ci(7.6, 7.6, 1.8, INK) + hl('M5 10.4 L10.8 16.2')],
+  swap: ['swap', ['🔄'], ln('M5 10 A7.4 7.4 0 0 1 17.6 7', G('cyan'), 2.4, 'butt') + pa('M15.4 3.2 L21 7.4 L15 10 Z', G('cyan')) + ln('M19 14 A7.4 7.4 0 0 1 6.4 17', G('cyan'), 2.4, 'butt') + pa('M8.6 20.8 L3 16.6 L9 14 Z', G('cyan'))],
+  stick: ['stick', ['🕹️', '🕹'], re(3, 16, 18, 5.6, 1.6, G('dark')) + ln('M12 16 L12 9', G('steel'), 1.8) + ci(12, 6.4, 4, G('red')) + hl('M10.2 5.4 C10.4 4.6 11 4.1 11.8 4')],
+};
+return { ICONS, ICON_GRADS, ICON_DEFS };
+})();
+// the word for each icon, and every emoji alias -> its icon name (input only)
+const ICON_ALIAS = {};
+for (const [n, [, al]] of Object.entries(ICONS)) for (const a of al) ICON_ALIAS[a] ??= n;
+const iconSvg = (n) => `<g stroke="${ICON_INK}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${ICONS[n][2]}</g>`;
+// dev = the game opened from a file or localhost (where a missing icon throws, so a check catches it); otherwise a
+// missing one draws as ❓'s icon (never an emoji)
+const ICON_DEV = /^(file:|http:\/\/(localhost|127\.))/.test(location.href) || /[?&]dev\b/.test(location.search);
+// <svg class="ic"> drawing icon `name` from the sprite. opts: label (its aria-label; the icon's word otherwise), cls (more classes)
+function icon(name, opts = {}) {
+  if (!ICONS[name]) { if (ICON_DEV) throw new Error('no such icon: ' + name); name = 'question'; }
+  const label = String(opts.label ?? ICONS[name][0]).replace(/"/g, '&quot;');
+  return `<svg class="ic${opts.cls ? ' ' + opts.cls : ''}" data-icon="${name}" role="img" aria-label="${label}"><use href="#i-${name}"/></svg>`;
+}
+// a string with icons in it as {name}s (a table's fxIc, e.g. '{energy}+25'), drawn: the text escaped, each {name} an icon()
+const icText = (str) => String(str).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(/\{(\w+)\}/g, (_, n) => icon(n));
+// one icon as a standalone SVG (its own gradients, a fixed size): for a canvas
+const iconFile = (n, px = 128) => `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24"><defs>${ICON_DEFS}</defs>${iconSvg(n)}</svg>`;
+
+// the sprite (one hidden <svg>: the gradients and a <symbol> per icon), and every [data-ic] placeholder in the page drawn.
+// Hidden by size, not display: none, which would stop its gradients painting where they're used.
+const Icons = {
+  mount() {
+    if (!$('iconSprite')) document.body.insertAdjacentHTML('afterbegin', `<svg id="iconSprite" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>${ICON_DEFS}</defs>`
+      + Object.keys(ICONS).map((n) => `<symbol id="i-${n}" viewBox="0 0 24 24">${iconSvg(n)}</symbol>`).join('') + '</svg>');
+    for (const el of document.querySelectorAll('[data-ic]')) el.outerHTML = icon(el.dataset.ic, el.dataset.label ? { label: el.dataset.label } : {});
+  },
+  // the contact sheet: every icon at 16, 24 and 48 px, on the dark HUD, on a light panel, and (parts) on its own colour.
+  // Toggles; returns whether it's open and how many icons it shows
+  sheet(on) {
+    let el = $('iconSheet'); on ??= !el;
+    if (!on) { el?.remove(); return { open: false }; }
+    if (el) return { open: true, icons: Object.keys(ICONS).length };
+    const names = Object.keys(ICONS), cell = (n) => `<div class="isc"><span class="isz">${icon(n, { cls: 's16' })}${icon(n, { cls: 's24' })}${icon(n, { cls: 's48' })}</span><small>${n}</small></div>`;
+    const own = Object.entries(PARTS).map(([id, P]) => `<div class="isc"><span class="isz own" style="background:${P.hex}">${icon(P.ic, { cls: 's48' })}</span><small>${id}</small></div>`).join('');
+    document.body.insertAdjacentHTML('beforeend', `<div id="iconSheet"><div class="ish dark"><h3>Robot Battle icons: ${names.length}, on the HUD</h3>${names.map(cell).join('')}</div>`
+      + `<div class="ish light"><h3>on a light panel</h3>${names.map(cell).join('')}</div><div class="ish dark"><h3>parts on their own colour (the bag's tiles)</h3>${own}</div></div>`);
+    $('iconSheet').addEventListener('click', () => this.sheet(false));
+    return { open: true, icons: names.length };
+  },
+};
 const store = {
   get(k, d) { try { const v = localStorage.getItem('robotbattle.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('robotbattle.' + k, JSON.stringify(v)); } catch (e) {} },
@@ -1319,9 +1568,9 @@ const srange = (a, b) => a + (b - a) * srand();
 // Guest saves nothing. icon and hex are placeholders the family can swap here. wiring:
 // each child's default Quick Fix setting ('math' or 'colour'), which they can change.
 const CHILDREN = [
-  { id: 'orion',  name: 'Orion',  hex: '#3fb4ff', icon: '🏹', ladder: 'orion',  wiring: 'math' },
-  { id: 'apollo', name: 'Apollo', hex: '#ff8a1f', icon: '☀️', ladder: 'apollo', wiring: 'math' },
-  { id: 'guest',  name: 'Guest',  hex: '#c9d2e3', icon: '🙂', ladder: 'apollo', wiring: 'colour', guest: true },
+  { id: 'orion',  name: 'Orion',  hex: '#3fb4ff', icon: '🏹', ic: 'bow', ladder: 'orion',  wiring: 'math' },
+  { id: 'apollo', name: 'Apollo', hex: '#ff8a1f', icon: '☀️', ic: 'sun', ladder: 'apollo', wiring: 'math' },
+  { id: 'guest',  name: 'Guest',  hex: '#c9d2e3', icon: '🙂', ic: 'smile', ladder: 'apollo', wiring: 'colour', guest: true },
 ];
 const childOf = (c) => (CHILDREN.includes(c) ? c : Number.isInteger(c) ? CHILDREN[c] : CHILDREN.find((q) => q.id === String(c).toLowerCase() || q.name.toLowerCase() === String(c).toLowerCase())) || null;
 // fast: an answer under this (ms) counts toward Known and Mastered; slow: a Mastered fact answered
@@ -2765,10 +3014,10 @@ function paintLook(md) {
 // A mesh's section is where it sits (so the 🐏 ram plates on the feet are legs). Body tiers aren't saved: they're worked
 // out from the saved upgrades and unlocks.
 const BODY_SECTIONS = [
-  { id: 'legs', icon: '🦿', name: 'Legs', ups: ['motor', 'spring'], hex: PARTS.motor.hex },
-  { id: 'torso', icon: '🤖', name: 'Torso', ups: ['armour'], hex: PARTS.armour.hex },
-  { id: 'arms', icon: '💪', name: 'Arms', ups: ['ram'], hex: PARTS.ram.hex },
-  { id: 'core', icon: '⚡', name: 'Core', ups: ['battery', 'wiring'], hex: PARTS.battery.hex },
+  { id: 'legs', icon: '🦿', ic: 'legs', name: 'Legs', ups: ['motor', 'spring'], hex: PARTS.motor.hex },
+  { id: 'torso', icon: '🤖', ic: 'torso', name: 'Torso', ups: ['armour'], hex: PARTS.armour.hex },
+  { id: 'arms', icon: '💪', ic: 'arm', name: 'Arms', ups: ['ram'], hex: PARTS.ram.hex },
+  { id: 'core', icon: '⚡', ic: 'power', name: 'Core', ups: ['battery', 'wiring'], hex: PARTS.battery.hex },
 ];
 // names: the tiers' names; env: reflection strength by tier (1 = as built, no map); fin: chrome / gold's 1.6, times this
 // by tier; normal: the normal map's strength; cc / ccRough: the paint's clear-coat; seam / heat: the tier-4 glows;
@@ -3453,7 +3702,7 @@ function syncMechModel(m) {
   md.body.position.y -= sl * 1.1; md.torso.rotation.x = -0.22 * sl;   // (the arms hang at the end, after recoil and swings)
   if (sl > 0) K.down(md, sl);                                          // B2: and the leg piece's own power-down pose
   if (md.icon) {
-    const icon = m.state === 'down' ? (m.downT > PLAYER.warnTime ? '💤' : '⚠️') : null;
+    const icon = m.state === 'down' ? (m.downT > PLAYER.warnTime ? 'sleep' : 'warn') : null;
     md.icon.visible = !!icon;
     if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = 10.2 + Math.sin(Game.ticks / 10) * 0.2; }
   }
@@ -3620,7 +3869,7 @@ function spawnPlayer(i, x, z, heading) {
   const m = newMech(x, z, heading);
   m.model = buildMech(); scene.add(m.model.root);
   // a 💤 over the mech while it's powered down (⚠️ just before it reboots), like a robot's
-  const icon = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, map: iconTex('💤') }));
+  const icon = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, map: iconTex('sleep') }));
   icon.scale.set(2.4, 2.4, 1); icon.visible = false; icon.renderOrder = 7; m.model.root.add(icon); m.model.icon = icon;
   // heals: health mended this tick, by source; healPop: mended but not yet shown on the HUD;
   // beam: the squadmate mending this mech right now
@@ -4396,16 +4645,29 @@ function repairSelf(h, picks) {
 // robot's glow flickers and it spits sparks; a beaten one powers down, then
 // reboots if nobody deals with it.
 // ===========================================================================
-function iconTex(emoji) {
-  iconTex.cache = iconTex.cache || new Map();
-  if (!iconTex.cache.has(emoji)) {
-    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
-    g.font = '100px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(emoji, 64, 72);
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; iconTex.cache.set(emoji, t);
+// I1: a world sprite's picture: icon `name` (an ICONS name; anything else throws) rasterised to a canvas (its SVG as a data
+// URL -> an Image -> the canvas), one CanvasTexture per icon, cached. The texture is made at once and drawn when the image
+// has loaded, so every icon a sprite can show (WORLD_ICONS) is loaded at boot (iconTex.preload), while no sprite shows yet;
+// pending = icons not drawn yet, blank = frames rendered with a sprite showing one of those
+const WORLD_ICONS = ['sleep', 'warn', 'alert', 'bolt', 'home', 'wrench', 'search', 'kit', ...Object.values(PARTS).map((P) => P.ic)];
+function iconTex(name) {
+  const C = iconTex.cache ||= new Map();
+  if (!C.has(name)) {
+    if (!ICONS[name]) throw new Error('no such icon: ' + name);
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.userData = { icon: name, drawn: false };
+    const img = new Image(); iconTex.pending++;
+    t.userData.ready = new Promise((res) => {
+      img.onload = () => { c.getContext('2d').drawImage(img, 10, 10, 108, 108); t.needsUpdate = true; t.userData.drawn = true; iconTex.pending--; res(); };
+      img.onerror = () => { iconTex.pending--; console.error('icon failed to draw: ' + name); res(); };
+    });
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconFile(name, 108));
+    C.set(name, t);
   }
-  return iconTex.cache.get(emoji);
+  return C.get(name);
 }
+iconTex.pending = 0; iconTex.blank = 0;
+iconTex.preload = () => Promise.all(WORLD_ICONS.map((n) => iconTex(n).userData.ready));
 
 // The Charger: a low, four-legged battering ram with one wide visor eye.
 function buildCharger(paint) {
@@ -4445,7 +4707,7 @@ function robotHud(root, y, w = 3.0) {
   const sm = (o) => new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, ...o }), s = w / 3;
   const back = new THREE.Sprite(sm({ color: '#14182a', opacity: 0.75 })); back.scale.set(w + 0.2 * s, 0.42 * s, 1); back.position.y = y; back.renderOrder = 5; root.add(back);
   const fill = new THREE.Sprite(sm({ color: '#3ee07a' })); fill.scale.set(w, 0.26 * s, 1); fill.position.y = y; fill.renderOrder = 6; root.add(fill);
-  const icon = new THREE.Sprite(sm({ map: iconTex('❗') })); icon.scale.set(1.7 * Math.max(s, 0.75), 1.7 * Math.max(s, 0.75), 1); icon.position.y = y + 1.3 * Math.max(s, 0.75); icon.visible = false; root.add(icon);
+  const icon = new THREE.Sprite(sm({ map: iconTex('alert') })); icon.scale.set(1.7 * Math.max(s, 0.75), 1.7 * Math.max(s, 0.75), 1); icon.position.y = y + 1.3 * Math.max(s, 0.75); icon.visible = false; root.add(icon);
   return { back, fill, icon, barY: y, barW: w, iconY: icon.position.y };
 }
 // Each glitched robot type and its own materials: the armour flashes when hit and the glow flickers
@@ -4544,7 +4806,7 @@ function buildBouncer(paint) {
 // it walks (a drone holds its height); flicker(r, dt, hot) its own glitched glow; flies; swarm.
 const ROBOT_TYPES = {
   charger: {
-    icon: '🐏', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
+    icon: '🐏', ic: 'charger', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
     spec: { topSpeed: 6.5, backSpeed: 5, accel: 4.5, brake: 8, boostSpeed: 17, boostAccel: 18, legTurn: 2.4, torsoTurn: 4, stride: 1.6, radius: 2.0 },
     paint: { armour: '#8a5cff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
     build: buildCharger, ai: chargerAI, ally: allyCharger, pose: chargerPose,
@@ -4557,7 +4819,7 @@ const ROBOT_TYPES = {
   // Keeps its distance and shoots: backs off inside keep[0], closes in past keep[1].
   // A shot is `gun.aim` seconds of laser on the target, then one round.
   sniper: {
-    icon: '🔭', health: 70, hitY: 5.3, hitR: 1.8, top: 6.4, beamY: 5.6,
+    icon: '🔭', ic: 'sniper', health: 70, hitY: 5.3, hitR: 1.8, top: 6.4, beamY: 5.6,
     spec: { topSpeed: 6.2, backSpeed: 2.5, accel: 3.2, brake: 6, legTurn: 2.2, torsoTurn: 3.0, stride: 2.8, radius: 1.5 },
     paint: { armour: '#2e9f86', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
     build: buildSniper, ai: sniperAI, ally: allySniper, pose: sniperPose, flicker: stutterGlow,
@@ -4571,7 +4833,7 @@ const ROBOT_TYPES = {
   // Small flyers that come as a swarm of `swarm`. They circle a player at `orbit` metres and
   // take turns diving in to zap (at most two at once). The whole swarm drops one repair kit.
   drone: {
-    icon: '🐝', health: 20, hitY: 0, hitR: 1.0, top: null, beamY: 0.2, flies: true, alt: 5.2, swarm: 6,
+    icon: '🐝', ic: 'drone', health: 20, hitY: 0, hitR: 1.0, top: null, beamY: 0.2, flies: true, alt: 5.2, swarm: 6,
     spec: { topSpeed: 9, backSpeed: 4, accel: 9, brake: 10, legTurn: 3.6, torsoTurn: 6, stride: 50, radius: 0.7 },
     paint: { armour: '#ffd83d', frame: '#3a4152', dark: '#14182a', glow: '#ff2f5b' },
     build: buildDrone, ai: droneAI, ally: allyDrone, pose: dronePose, tick: droneFly,
@@ -4585,7 +4847,7 @@ const ROBOT_TYPES = {
   // jump: reach (how far it jumps at a player), hop (how far between springboards), foot (landing slop),
   // crouch/land (seconds), wild (chance a glitched hop goes off at random), miss (how far off a glitched hop lands).
   bouncer: {
-    icon: '🦘', health: 70, hitY: 2.6, hitR: 1.7, top: 4.1, beamY: 3.0,
+    icon: '🦘', ic: 'bouncer', health: 70, hitY: 2.6, hitR: 1.7, top: 4.1, beamY: 3.0,
     spec: { topSpeed: 4.5, backSpeed: 2, accel: 4, brake: 6, legTurn: 2.5, torsoTurn: 4, stride: 2.4, radius: 1.4 },
     paint: { armour: '#4f7dff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', glow: '#ff2f5b' },
     build: buildBouncer, ai: bouncerAI, ally: allyBouncer, pose: bouncerPose, move: bouncerFly,
@@ -5775,7 +6037,7 @@ const Kits = {
     const hd = new THREE.Mesh(G.handle, mat('#2d3446', { metalness: 0.6, roughness: 0.4 })); hd.position.y = 1.07; g.add(hd);
     const rg = new THREE.Mesh(G.ring, glowMat('#3ee07a', 2.2)); rg.rotation.x = Math.PI / 2; rg.position.y = 0.12; g.add(rg);
     // the beacon a scouting squadmate drone leaves: a tall light and a 🧰 high over the kit
-    const { beam: beacon, mark } = Beacon.add(g, '#3ee07a', '🧰');
+    const { beam: beacon, mark } = Beacon.add(g, '#3ee07a', 'kit');
     g.position.set(x, groundH(x, z), z); g.scale.setScalar(1.4); scene.add(g);
     const k = { id: this.nextId++, kind: 'kit', x, z, from, g, beacon, mark, t: Math.random() * 6, spotted: false };
     this.list.push(k);
@@ -5842,7 +6104,7 @@ const Hidden = {
     const crate = new THREE.Mesh(this.geo.box, mat('#6b5a4a', { roughness: 0.8, metalness: 0.4 })); crate.position.y = 0.12; crate.rotation.set(0.12, Math.random() * 3, 0.2); crate.castShadow = true; g.add(crate);
     const band = new THREE.Mesh(this.geo.band, glowMat(P.hex, 0.5)); band.position.y = 0.12; band.rotation.copy(crate.rotation); g.add(band);
     // bigger than a kit's (a part is small and down in the grass), and the mark at the beam's top, over a hovering drone's name
-    const { beam: beacon, mark } = Beacon.add(g, P.hex, P.icon, 13);
+    const { beam: beacon, mark } = Beacon.add(g, P.hex, P.ic, 13);
     beacon.scale.set(2.5, 1, 2.5); mark.scale.set(2.6, 2.6, 1);
     g.position.set(x, groundH(x, z), z); scene.add(g);
     const q = { id: this.nextId++, kind: 'part', part, x, z, g, beacon, mark, t: Math.random() * 6, glintT: Math.random() * 3, found: false, spotted: false, by: null };
@@ -5945,8 +6207,8 @@ function syncRobotModel(r, dt) {
   const f = r.health / r.maxHealth, up = r.state !== 'down';
   md.back.visible = up; md.fill.visible = up && f > 0;
   if (f > 0) { md.fill.scale.x = md.barW * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
-  const icon = mode === 'repair' ? ({ parts: '🔩', home: '🏠' }[r.repairBy.repair?.kind] || '🔧') : mode === 'down' ? (r.downT > ROBOT.warnTime ? '💤' : '⚠️')
-    : r.state === 'glitched' && T.hot(r) ? '❗' : r.state === 'ally' && mode === 'scout' ? '🔍' : null;
+  const icon = mode === 'repair' ? ({ parts: 'bolt', home: 'home' }[r.repairBy.repair?.kind] || 'wrench') : mode === 'down' ? (r.downT > ROBOT.warnTime ? 'sleep' : 'warn')
+    : r.state === 'glitched' && T.hot(r) ? 'alert' : r.state === 'ally' && mode === 'scout' ? 'search' : null;
   md.icon.visible = !!icon;
   if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = md.iconY + Math.sin(r.t * 6) * 0.15; }
 }
@@ -6728,7 +6990,7 @@ const FixUI = {
 // title / pause screen, behind a ~2 s hold.
 // ===========================================================================
 // each stage's look: a colour AND a shape (○ ◐ ● ★), plus a pattern in the CSS (dashed, striped, solid, glowing)
-const STAGE_LOOK = { new: { icon: '○', name: 'New' }, learning: { icon: '◐', name: 'Learning' }, known: { icon: '●', name: 'Known' }, mastered: { icon: '★', name: 'Mastered' } };
+const STAGE_LOOK = { new: { icon: '○', ic: 'new', name: 'New' }, learning: { icon: '◐', ic: 'learning', name: 'Learning' }, known: { icon: '●', ic: 'known', name: 'Known' }, mastered: { icon: '★', ic: 'mastered', name: 'Mastered' } };
 // hold: how long the parent button is held to open the view (ms); slowest / days: what the parent view lists;
 // cheer: how long the table cheer stays up (ms)
 const PARENT = { hold: 2000, slowest: 10, days: 14, cheer: 5000 };
@@ -6979,7 +7241,7 @@ function buildHud() {
   const el = $('speed');
   for (let i = 0; i < SPEED_BARS; i++) { const b = document.createElement('i'); b.style.height = (14 + i * 5) + 'px'; el.appendChild(b); }
   // one slot per weapon, keys 1-5; a locked one wears a 🔒, the rail gun a ring that fills as it charges
-  WEAPONS.forEach((w, i) => { const d = document.createElement('button'); d.className = 'wpn'; d.dataset.w = w; d.setAttribute('aria-label', w); d.innerHTML = `${WEAPON[w].icon}<small>${i + 1}</small>${WEAPON[w].locked ? '<span class="lk">🔒</span>' : ''}${w === 'rail' ? '<span class="chg"></span>' : ''}`; $('weapons').appendChild(d); });
+  WEAPONS.forEach((w, i) => { const d = document.createElement('button'); d.className = 'wpn'; d.dataset.w = w; d.setAttribute('aria-label', w); d.innerHTML = `${icon(WEAPON[w].ic)}<small>${i + 1}</small>${WEAPON[w].locked ? `<span class="lk">${icon('lock')}</span>` : ''}${w === 'rail' ? '<span class="chg"></span>' : ''}`; $('weapons').appendChild(d); });
 }
 function updateHud() {
   const h = Game.humans[0]; if (!h) return;
@@ -7010,7 +7272,7 @@ function updateHud() {
   $('foundN').textContent = `${Hidden.list.filter((q) => q.found).length}/${Hidden.list.length}`;
   // a hidden part just picked up: +1 and its icon drop out of the 🔩 count
   for (const id of updateHud.partPop || []) {
-    const pop = document.createElement('span'); pop.className = 'pop'; pop.textContent = `+1 ${PARTS[id].icon}`;
+    const pop = document.createElement('span'); pop.className = 'pop'; pop.innerHTML = `+1 ${icon(PARTS[id].ic)}`;
     pop.addEventListener('animationend', () => pop.remove()); $('partsBox').append(pop);
     while ($('partsBox').querySelectorAll('.pop').length > 4) $('partsBox').querySelector('.pop').remove();
   }
@@ -7026,7 +7288,9 @@ function updateHud() {
     for (const r of Game.squad) {
       const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : '') + (r.gold ? ' gold' : '');
       if (r !== goHome) { d.style.borderColor = r.glowColor; d.style.boxShadow = `0 0 10px ${r.glowColor}`; }
-      const b = document.createElement('b'); b.textContent = r === goHome ? '🏠' : ROBOT_TYPES[r.type].icon; d.append(b, r.name + (r.gold && r !== goHome ? ' 🌟' : '')); el.append(d);
+      const b = document.createElement('b'); b.innerHTML = icon(r === goHome ? 'home' : ROBOT_TYPES[r.type].ic); d.append(b, r.name);
+      if (r.gold && r !== goHome) d.insertAdjacentHTML('beforeend', icon('goldstar'));   // 🌟 after the name
+      el.append(d);
     }
   }
   // the prompt sits beside the downed robot on screen
@@ -7053,7 +7317,7 @@ function updateHud() {
     const v = h.healPop[src];
     if (v < (src === 'ally' ? 5 : 1) && !(v > 0 && m.health >= m.maxHealth)) continue;   // a squadmate's trickle shows every 5
     h.healPop[src] = 0; if (Math.round(v) < 1) continue;
-    const pop = document.createElement('span'); pop.className = 'pop'; pop.textContent = `+${Math.round(v)} ${HEAL_ICON[src]}`;
+    const pop = document.createElement('span'); pop.className = 'pop'; pop.innerHTML = `+${Math.round(v)} ${icon(HEAL_IC[src])}`;
     pop.addEventListener('animationend', () => pop.remove());
     hb.append(pop); updateHud.healAt = now;
     while (hb.querySelectorAll('.pop').length > 6) hb.querySelector('.pop').remove();   // no pile-up if animations never run
@@ -7064,7 +7328,8 @@ function updateHud() {
   if (down) {
     const ov = $('downOv');
     ov.style.setProperty('--p', clamp(1 - Math.min(m.downT / PLAYER.downTime, 1 - m.health / (m.maxHealth * PLAYER.wakeHealth)), 0, 1).toFixed(3));
-    $('downIco').textContent = m.downT > PLAYER.warnTime ? '💤' : '⚠️';
+    const di = m.downT > PLAYER.warnTime ? 'sleep' : 'warn', de = $('downIco');   // 💤, then ⚠️ just before the reboot (redrawn only when it changes)
+    if (de.dataset.k !== di) { de.dataset.k = di; de.innerHTML = icon(di); }
     ov.classList.toggle('beam', !!h.beam);
   }
 }
@@ -7080,15 +7345,16 @@ function updateHud() {
 // HTML layer that carries the counts, the icons and the buttons.
 // ===========================================================================
 const GARAGE_TABS = [
-  { id: 'trophies', icon: '🏆', name: 'Trophies' },
-  { id: 'mech', icon: '🦾', name: 'Mech' },
-  { id: 'squad', icon: '🤖', name: 'Squad' },
-  { id: 'paint', icon: '🎨', name: 'Paint' },
-  { id: 'body', icon: '🦿', name: 'Body' },   // B1: each section's realism tier; B2: the leg shapes to pick
+  { id: 'trophies', icon: '🏆', ic: 'trophy', name: 'Trophies' },
+  { id: 'mech', icon: '🦾', ic: 'mech', name: 'Mech' },
+  { id: 'squad', icon: '🤖', ic: 'robot', name: 'Squad' },
+  { id: 'paint', icon: '🎨', ic: 'paint', name: 'Paint' },
+  { id: 'body', icon: '🦿', ic: 'legs', name: 'Body' },   // B1: each section's realism tier; B2: the leg shapes to pick
 ];
 const GARAGE = { bg: '#1b2034', lift: 1.2, spin: 0.45, pieceSpin: 0.7, ghost: '#0b0e18', rim: '#6f7a9c' };
 // where a trophy came from, as an icon: the robot type's own, or 🔍 for a part hidden in the meadow
 const sourceIcon = (src) => (src === 'meadow' ? '🔍' : ROBOT_TYPES[src]?.icon ?? '❓');
+const sourceIc = (src) => (src === 'meadow' ? 'search' : ROBOT_TYPES[src]?.ic ?? 'question');   // I1: the same, as an icon name
 const Garage = {
   on: false, from: null, tab: 'trophies', loose: blankGarage(), t: 0, liftT: 0, drawn: {}, scene: null, cur: 0,   // cur: the 🦾 card picked by keys / pad
   cheering: null, cheerT: null,   // G4: the advanced parts the garage is cheering now
@@ -7734,6 +8000,8 @@ const Adv = {
 };
 
 function render(dt) {
+  // I1: a frame drawn with a sprite showing an icon not drawn yet (never: the boot preloads them before one can show)
+  if (iconTex.pending) { let b = 0; scene.traverseVisible((o) => { if (o.isSprite && o.material.map?.userData?.drawn === false) b = 1; }); iconTex.blank += b; }
   const W = innerWidth, H = innerHeight;
   for (const m of Game.mechs) syncMechModel(m);
   for (const r of Game.robots) syncRobotModel(r, dt);
@@ -7971,7 +8239,46 @@ function robotState(r) {
 }
 window.__rb = {
   Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS,
+  ICONS, icon, icText,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
+  // ---- I1: the icon set ----
+  // every icon's name (the sprite's symbols); iconOf(emoji) = the icon an emoji alias stands for (null if none)
+  icons() { return Object.keys(ICONS); },
+  iconOf(e) { return ICON_ALIAS[e] ?? null; },
+  // the contact sheet over everything: every icon at 16, 24 and 48 px, on dark and on light, and the parts on their own
+  // colour. Toggles (or on = true / false); a click on it closes it
+  iconSheet(on) { return Icons.sheet(on); },
+  // the icon names every data table uses (fx strings' {names} too), the world sprites' (world), and missing = any of
+  // them with no icon, unused = icons no table names (the HUD's and later slices' own)
+  iconUses() {
+    const fx = (s) => (String(s ?? '').match(/\{(\w+)\}/g) || []).map((x) => x.slice(1, -1)), V = (o) => Object.values(o);
+    const u = {
+      WEAPON: V(WEAPON).map((W) => W.ic), PARTS: V(PARTS).map((P) => P.ic), AREA_IC: V(AREA_IC), HEAL_IC: V(HEAL_IC), UPGRADES: UPGRADES.flatMap((U) => fx(U.fxIc)),
+      ADVANCED: ADVANCED.flatMap((A) => [A.ic, ...fx(A.fxIc)]), LEG_SHAPES: LEG_SHAPES.map((S) => S.ic), BODY_SHAPES: V(BODY_SHAPES).flat().map((S) => S.ic),
+      SQUAD_JOB: V(SQUAD_JOB).flatMap((J) => fx(J.fxIc)), DECALS: DECALS.map((D) => D.ic), PUZZLES: V(PUZZLES).map((P) => P.ic), CHAIN: V(CHAIN.tiles).map((T) => T.ic),
+      SYMPTOMS: V(SYMPTOMS).map((S) => S.ic), emblems: PILOTS.map((P) => P.emblemIc), CHILDREN: CHILDREN.map((C) => C.ic), BODY_SECTIONS: BODY_SECTIONS.map((S) => S.ic),
+      ROBOT_TYPES: V(ROBOT_TYPES).map((T) => T.ic), STAGE_LOOK: V(STAGE_LOOK).map((S) => S.ic), GARAGE_TABS: GARAGE_TABS.map((T) => T.ic),
+      sourceIc: ['meadow', ...Object.keys(ROBOT_TYPES), 'nowhere'].map(sourceIc), world: WORLD_ICONS.slice(),
+    };
+    const all = new Set(V(u).flat());
+    return { uses: u, missing: [...all].filter((n) => !ICONS[n]), unused: Object.keys(ICONS).filter((n) => !all.has(n)) };
+  },
+  // the world sprites' textures: made (icon names, one texture each), pending = not drawn yet, blank = frames rendered
+  // with a sprite showing an icon not drawn yet (0), drawn = how many are drawn
+  iconTextures() { const C = iconTex.cache || new Map(); return { made: [...C.keys()], drawn: [...C.values()].filter((t) => t.userData.drawn).length, pending: iconTex.pending, blank: iconTex.blank }; },
+  // how many pictographic characters (emoji, and ✔ ✖ ⌫ ➜ ▶ ◀ ▲ ▼ ○ ◐ ● ★) show under selector (the whole page by default):
+  // in the visible text and in CSS ::before / ::after content. list = true gives each one ({ ch, in }) instead of the count
+  emojiLeft(sel = 'body', list = false) {
+    const re = /\p{Extended_Pictographic}|[✔✖⌫➜▶◀▲▼○◐●★]/gu, found = [];
+    const tag = (el) => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).join('.') : '');
+    for (const root of document.querySelectorAll(sel)) for (const el of [root, ...root.querySelectorAll('*')]) {
+      if (el.closest('#iconSprite, script, style, title')) continue;
+      if (!(el.checkVisibility ? el.checkVisibility({ visibilityProperty: true }) : el.getClientRects().length)) continue;
+      for (const nd of el.childNodes) if (nd.nodeType === 3) for (const m of nd.data.matchAll(re)) found.push({ ch: m[0], in: tag(el) });
+      for (const ps of ['::before', '::after']) { const c = getComputedStyle(el, ps).content; if (c && c !== 'none' && c !== 'normal') for (const m of c.matchAll(re)) found.push({ ch: m[0], in: tag(el) + ps }); }
+    }
+    return list ? found : found.length;
+  },
   // pick player 0's pilot (an id or a name from PILOTS, any case, or an index) and start, as a tap on
   // their tile does: the title goes, and (outside manual mode) the robots come out. Again mid-game it
   // swaps the pilot and carries on.
@@ -8389,6 +8696,7 @@ window.__rb = {
 // ===========================================================================
 // Boot
 // ===========================================================================
+Icons.mount();            // I1: the icon sprite, and the page's icon placeholders drawn
 Meadow.build();
 Dust.init();
 Sparks.init();
@@ -8413,6 +8721,7 @@ document.fonts?.ready.then(() => { pilotFace.cache?.clear(); Title.build(); $('w
 Game.state = 'play';
 setPause(true);           // waits on the title screen for a pilot; hooks can still step
 Game.paused = false;      // ...but the sim runs, so the mech idles in the meadow
+iconTex.preload();         // I1: every world icon drawn now, long before a sprite can show one (iconTex.blank counts any that did)
 $('loading').remove();
 requestAnimationFrame(frame);
 </script>
