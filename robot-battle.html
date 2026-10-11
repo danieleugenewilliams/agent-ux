@@ -554,6 +554,38 @@
   .pconfirm { display: none; position: absolute; inset: 0; z-index: 2; border-radius: 20px; background: rgba(20,24,42,.97); flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px; text-align: center; font-size: 19px; }
   .pconfirm.on { display: flex; }
   .pconfirm .big { font-size: 56px; }
+  /* #69: back up and restore, at the foot of the parent view, and the restore summary over it */
+  .pbak { margin-top: 14px; padding-top: 12px; border-top: 2px solid rgba(255,255,255,.18); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .pbak h3 { margin: 0; font: 900 16px 'Asap', sans-serif; color: var(--cyan); letter-spacing: .3px; }
+  .pbak .pact { flex: 1 1 auto; }
+  .pbak p { flex: 1 1 100%; margin: 0; font-size: 14px; opacity: .75; }
+  .pbtn.bak { background: #c06bff; color: #fff; }
+  .pbtn .ic { font-size: 1.15em; }
+  .pbakmsg { flex: 1 1 100%; font-size: 15px; display: flex; gap: 6px; align-items: center; min-width: 0; overflow-wrap: anywhere; }
+  .pbakmsg:empty { display: none; }
+  .pbakmsg.bad { color: #ff8a96; }
+  .prestore { display: none; position: absolute; inset: 0; z-index: 3; border-radius: 20px; background: #161a2c; overflow-y: auto; padding: 14px 16px 16px; flex-direction: column; gap: 10px; font-size: 16px; }
+  .prestore.on { display: flex; }
+  .prestore h3 { margin: 0; font: 900 20px 'Asap', sans-serif; display: flex; align-items: center; gap: 8px; overflow-wrap: anywhere; min-width: 0; }
+  .prestore .meta { font-size: 14px; opacity: .75; margin-top: -6px; }
+  .prestore .why { font-size: 18px; color: #ff8a96; }
+  .rkid { flex: none; border: 3px solid var(--c, #fff); border-radius: 16px; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+  .rkid.cur { box-shadow: 0 0 0 3px #fff; }
+  .rkid .who { display: flex; align-items: center; gap: 8px; font-size: 19px; color: var(--c, #fff); }
+  .rkid .who .ic { font-size: 28px; }
+  .rtab { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); gap: 2px 8px; font-size: 14px; align-items: center; }
+  .rtab .h { opacity: .65; font-size: 12px; text-align: right; }
+  .rtab .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .rtab .n.res { color: var(--yellow); font-weight: 900; }
+  .rtab .n.lower { color: #ff8a96; }
+  .rtab .lb { display: flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; overflow: hidden; }
+  .rchoice { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rchoice button { flex: 1 1 0; min-width: 96px; min-height: 44px; border-radius: 22px; border: 3px solid var(--ink); background: rgba(255,255,255,.12); color: #fff; font: 800 14px 'Asap', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 2px 8px; }
+  .rchoice button[aria-pressed="true"] { background: var(--cyan); color: var(--ink); }
+  .rkid .warn { font-size: 13px; color: #ff8a96; }
+  .rkid .note { font-size: 14px; opacity: .75; }
+  .prestore .pact { justify-content: center; margin-top: 4px; flex: none; }
+  .pbtn.go { background: var(--green); color: var(--ink); }
   @media (max-width: 560px) { #parent .top { font-size: 26px; } .ptab { font-size: 16px; padding: 0 10px 0 6px; } .pslow { grid-template-columns: 1fr; } }
   /* ---------- GARAGE (G1): the bay over the game canvas, which draws the lift and the trophies in their boxes.
      The layer is see-through where the 3D shows; everything else of the game is hidden while it's open ---------- */
@@ -959,6 +991,9 @@
     <div class="top"><span>👪</span><div class="ptabs" id="pTabs"></div><button class="x" id="parentX" aria-label="Close">✖</button></div>
     <div id="pBody"></div>
     <div class="pconfirm" id="pConfirm"></div>
+    <!-- #69: restore from a backup file: the summary per child and the choice, or why the file can't be used -->
+    <div class="prestore" id="pRestore" role="dialog" aria-label="Restore from a backup"></div>
+    <input type="file" id="pFile" accept=".json,application/json" hidden>
   </div>
 </div>
 
@@ -1986,6 +2021,266 @@ const Facts = {
       current: { kind: st.kind ?? null, facts: fs.length, known: fs.filter((f) => ['known', 'mastered'].includes(this.stage(f.key))).length, answered: fs.filter((f) => this.rec.facts[f.key]?.n > 0).length },
       now: this.now(), day: this.day(), today: this.rec.practice[this.date()] || 0,
     };
+  },
+};
+
+// ===========================================================================
+// Storage D1 (#69): back up and restore. Backup is plain data and rules: no DOM, and it reads no live game state
+// (everything comes in as arguments), so D4's import into the server can use validate / merge / plan as they are.
+// Only Backup.apply writes to storage, and only after a choice: the parent view's ✔ Restore, or __rb.restore with one.
+// A backup file: { app: 'robot-battle', format: 1, exported: ISO time, device: a short label, data: { key: value } }.
+// data holds every robotbattle.* key in storage (the key without the prefix, the value parsed). On main today that's
+// facts.<child> (each child's record: the fact tracker, the garage with its trophies, upgrades, paint, unlocks and body)
+// and the settings child (who played last) and pilot (the last pilot). The squad, the bag and the meadow aren't saved
+// by the game, so they aren't in a backup. Guest is never in one: facts.guest is dropped, and so is child = 'guest'.
+// ===========================================================================
+// rise: the counts (Backup.count) that only ever go up with play, so a restore that lowers one says so. (Known and
+// Learning aren't among them: a fact moving on to Mastered leaves them.)
+const BACKUP = { app: 'robot-battle', format: 1, prefix: 'robotbattle.', maxBytes: 5e6, choices: ['device', 'backup', 'best'],
+  rise: ['mastered', 'answered', 'step', 'parts', 'upgrades', 'unlocks', 'shapes', 'minutes'] };
+// keys that would reach an object's prototype rather than be its own (a hand-edited file could carry one)
+const ownKeys = (o) => (o && typeof o === 'object' ? Object.keys(o).filter((k) => k !== '__proto__' && k !== 'constructor' && k !== 'prototype') : []);
+const isObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+// the same value, whatever order its keys are in
+const canon = (v) => (Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : isObj(v) ? '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v) ?? 'null');
+const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const Backup = {
+  // the child a facts.<id> key belongs to (Guest included, so the caller can drop it); null for any other key
+  kidOf(key) { const m = /^facts\.(.+)$/.exec(key); return m ? CHILDREN.find((C) => C.id === m[1]) || { id: m[1], unknown: true } : null; },
+  // a key Guest owns: its record, or the who-played-last setting when that was Guest
+  guestKey(key, v) { return this.kidOf(key)?.guest || (key === 'child' && !!childOf(v)?.guest); },
+  // the export object from a storage snapshot ({ key without the prefix: raw string }). A value that won't parse is left
+  // out (the game reads it as nothing too). meta: { exported, device }
+  make(raw, meta = {}) {
+    const data = {};
+    for (const k of ownKeys(raw).sort()) {
+      let v; try { v = JSON.parse(raw[k]); } catch (e) { continue; }
+      if (this.guestKey(k, v)) continue;
+      data[k] = v;
+    }
+    return { app: BACKUP.app, format: BACKUP.format, exported: meta.exported ?? null, device: meta.device ?? null, data };
+  },
+  // why child C's record r can't be restored (null: it can). Deeper than Facts.valid: every fact entry has a stage, and
+  // the parts the merge reads are the shape it expects. A fact key the game doesn't ask (say a ×12 from some older
+  // version) is kept and carried along, as the game itself keeps it; only a key that would reach the prototype is refused.
+  checkRec(r, C) {
+    if (!isObj(r)) return `${C.name}'s record is empty`;
+    if (r.v !== 1) return `${C.name}'s record is a version this game doesn't know (v ${r.v})`;
+    if (!Facts.valid(r, C)) return `${C.name}'s record is damaged`;
+    for (const k of Object.keys(r.facts)) {
+      const e = r.facts[k];
+      if (!ownKeys({ [k]: 1 }).length) return `${C.name}'s record has a damaged fact (${k})`;
+      if (!isObj(e) || !STAGES.includes(e.s)) return `${C.name}'s record has a damaged fact (${String(k).slice(0, 20)})`;
+      for (const a of ['ms', 'hist', 'days']) if (e[a] != null && !Array.isArray(e[a])) return `${C.name}'s record has a damaged fact (${k})`;
+      for (const n of ['n', 'right', 'last', 'due']) if (e[n] != null && !Number.isFinite(e[n])) return `${C.name}'s record has a damaged fact (${k})`;
+    }
+    if (!r.inPlay.every((k) => typeof k === 'string')) return `${C.name}'s record is damaged`;
+    if (r.opened != null && !Array.isArray(r.opened)) return `${C.name}'s record is damaged`;
+    for (const f of ['practice', 'cheered', 'hints', 'fixMs', 'puzzles', 'garage']) if (r[f] != null && !isObj(r[f])) return `${C.name}'s record is damaged`;
+    const g = r.garage;
+    if (g) {
+      for (const f of ['trophies', 'upgrades', 'body']) if (g[f] != null && !isObj(g[f])) return `${C.name}'s garage is damaged`;
+      for (const f of ['unlocks', 'fresh']) if (g[f] != null && !Array.isArray(g[f])) return `${C.name}'s garage is damaged`;
+      if (g.paint != null && !isObj(g.paint)) return `${C.name}'s garage is damaged`;
+      for (const k of ownKeys(g.trophies)) if (!isObj(g.trophies[k]) || !Number.isFinite(g.trophies[k].n ?? 0)) return `${C.name}'s garage is damaged`;
+    }
+    return null;
+  },
+  // check a backup (the file's text, or the object) before anything is written: { ok, why, kids: { id: record },
+  // settings: { child, pilot }, skipped: [keys this game doesn't restore], meta: { exported, device } }. Any problem refuses
+  // the whole file: a record that can't be read is never half-restored.
+  validate(input) {
+    const no = (why) => ({ ok: false, why });
+    let obj = input;
+    if (typeof input === 'string') {
+      if (input.length > BACKUP.maxBytes) return no("it's far too big to be a Robot Battle backup");
+      try { obj = JSON.parse(input); } catch (e) { return no("it isn't a backup file (it can't be read)"); }
+    }
+    if (!isObj(obj)) return no("it isn't a backup file");
+    if (obj.app !== BACKUP.app) return no("it isn't a Robot Battle backup");
+    if (!Number.isInteger(obj.format) || obj.format < 1) return no("it doesn't say which backup format it is");
+    if (obj.format > BACKUP.format) return no(`a newer version of the game made it (format ${obj.format}); this game reads format ${BACKUP.format}`);
+    if (!isObj(obj.data)) return no('it has no progress in it');
+    const kids = {}, settings = {}, skipped = [];
+    for (const k of Object.keys(obj.data)) {
+      const v = obj.data[k], K = this.kidOf(k);
+      if (this.guestKey(k, v)) continue;                       // Guest's: never restored
+      if (K?.unknown) return no(`it has a record for "${String(K.id).slice(0, 20)}", who isn't in this game`);
+      if (K) { const why = this.checkRec(v, K); if (why) return no(why); kids[K.id] = v; }
+      else if (k === 'child') { if (typeof v !== 'string' || !childOf(v)) return no('its last player is damaged'); settings.child = v; }
+      else if (k === 'pilot') { if (typeof v !== 'string') return no('its last pilot is damaged'); settings.pilot = v; }
+      else skipped.push(k);
+    }
+    if (!Object.keys(kids).length) return no("it has nobody's progress in it");
+    return { ok: true, kids, settings, skipped, meta: { exported: typeof obj.exported === 'string' ? obj.exported : null, device: typeof obj.device === 'string' ? obj.device : null, format: obj.format } };
+  },
+  // "keep the best" of two records of one child: dev (this device's) and bak (the backup's), both passing checkRec.
+  // Never lowers anything either side has. Pure: a new record; neither input is changed. merge(r, r) is r.
+  //   facts     every fact either has. On both: the stronger stage wins (a tie: the later answered); its entry comes whole
+  //             (its stage, streak, fast days, review box and due date belong together), then last answered = the later,
+  //             answers n = the more, and right = the right count of the entry with more answers (so right ≤ n)
+  //   step      the higher; opened = every step's opening, the earliest of each
+  //   inPlay    this device's New facts in play, then the backup's, at most FACT.newMax (more if the device already has more)
+  //   practice  each day's minutes: the more (never added: a backup restored twice mustn't count twice)
+  //   fixMs     each day's fix times: the longer list
+  //   cheered, hints  every one either has, the earliest time
+  //   puzzles   the one further along (higher seq), whole
+  //   created   the earlier; v, child, ladder, wiring, last: this device's (wiring is a setting, not progress)
+  //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
+  //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
+  //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
+  //             if this device has none)
+  //   anything else (a field a later slice adds): this device's, the backup's where this device has none
+  merge(dev, bak) {
+    const out = clone(dev), b = clone(bak);
+    for (const k of ownKeys(b)) if (out[k] === undefined) out[k] = b[k];
+    // facts
+    // (this device's record passed only Facts.valid, as the game loads it: an odd part of it is kept or outvoted, never thrown)
+    const rank = (e) => STAGES.indexOf(e.s), F = {}, arr = (a) => (Array.isArray(a) ? a : []);
+    for (const k of new Set([...ownKeys(dev.facts), ...ownKeys(bak.facts)])) {
+      const x = dev.facts[k], y = bak.facts[k];
+      if (!isObj(x) || !isObj(y)) { F[k] = clone(isObj(y) && !isObj(x) ? y : x ?? y); continue; }
+      const win = rank(y) > rank(x) || (rank(y) === rank(x) && num(y.last) > num(x.last)) ? y : x, e = clone(win);
+      if (x.last != null || y.last != null) e.last = Math.max(num(x.last), num(y.last));
+      const more = num(y.n) > num(x.n) ? y : x;
+      if (x.n != null || y.n != null) { e.n = num(more.n); e.right = num(more.right); }
+      F[k] = e;
+    }
+    out.facts = F;
+    // the ladder
+    const steps = LADDERS[out.ladder].length;
+    out.step = clamp(Math.max(dev.step, bak.ladder === dev.ladder ? bak.step : 1), 1, steps);
+    const op = new Map();
+    for (const o of [...arr(dev.opened), ...arr(bak.opened)]) if (isObj(o) && Number.isInteger(o.step) && (!op.has(o.step) || num(o.at) < num(op.get(o.step).at))) op.set(o.step, clone(o));
+    out.opened = [...op.values()].sort((p, q) => p.step - q.step);
+    const ip = [...dev.inPlay]; for (const k of bak.inPlay.filter((q) => typeof q === 'string')) if (!ip.includes(k) && ip.length < FACT.newMax) ip.push(k);
+    out.inPlay = ip;
+    // by the day, and by the name
+    const byKey = (p, q, pick) => {
+      const P = isObj(p) ? p : {}, Q = isObj(q) ? q : {}, o = {};
+      for (const k of new Set([...ownKeys(P), ...ownKeys(Q)])) o[k] = k in P && k in Q ? pick(P[k], Q[k]) : clone(k in P ? P[k] : Q[k]);
+      return o;
+    };
+    if (dev.practice || bak.practice) out.practice = byKey(dev.practice, bak.practice, (p, q) => Math.max(num(p), num(q)));
+    if (dev.fixMs || bak.fixMs) out.fixMs = byKey(dev.fixMs, bak.fixMs, (p, q) => clone((Array.isArray(q) ? q.length : 0) > (Array.isArray(p) ? p.length : 0) ? q : p));
+    for (const f of ['cheered', 'hints']) if (dev[f] || bak[f]) out[f] = byKey(dev[f], bak[f], (p, q) => Math.min(num(p), num(q)));
+    if (dev.puzzles || bak.puzzles) out.puzzles = clone(num(bak.puzzles?.seq) > num(dev.puzzles?.seq) ? bak.puzzles : dev.puzzles);
+    if (dev.created != null && bak.created != null) out.created = Math.min(num(dev.created), num(bak.created));
+    // the garage
+    const gd = isObj(dev.garage) ? dev.garage : blankGarage(), gb = isObj(bak.garage) ? bak.garage : blankGarage(), g = out.garage = clone(gd);
+    for (const k of ownKeys(gb)) if (g[k] === undefined) g[k] = clone(gb[k]);
+    g.trophies = byKey(gd.trophies, gb.trophies, (p, q) => {
+      if (!isObj(p) || !isObj(q)) return clone(isObj(p) ? p : q);
+      const t = clone(p); t.n = Math.max(num(p.n), num(q.n));
+      t.from = byKey(p.from, q.from, (u, w) => Math.max(num(u), num(w)));
+      return t;
+    });
+    g.upgrades = byKey(gd.upgrades, gb.upgrades, (p, q) => Math.max(num(p), num(q)));
+    g.paint = clone(gd.paint ?? gb.paint ?? null);
+    const und = arr(gd.unlocks), unb = arr(gb.unlocks);
+    g.unlocks = [...new Set([...und, ...unb])];
+    g.fresh = g.unlocks.filter((id) => (!und.includes(id) || arr(gd.fresh).includes(id)) && (!unb.includes(id) || arr(gb.fresh).includes(id)));
+    if (isObj(gd.body) || isObj(gb.body)) {
+      g.body = clone(isObj(gd.body) ? gd.body : gb.body);
+      g.body.unlocked = [...new Set([...arr(gd.body?.unlocked), ...arr(gb.body?.unlocked)])];
+    }
+    // the advanced parts the merged facts have earned (Facts.latch's rule: picking the child would latch them anyway, and
+    // the summary should show them now), waiting for their cheer
+    const n = this.count(out).mastered;
+    for (const A of ADVANCED) if (n >= A.at && !g.unlocks.includes(A.id)) { g.unlocks.push(A.id); g.fresh.push(A.id); }
+    return fillGarage(out);
+  },
+  // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
+  count(r) {
+    if (!r) return null;
+    const goal = Facts.goal(r), st = Object.fromEntries(STAGES.map((s) => [s, 0]));
+    goal.forEach((k) => st[r.facts[k]?.s ?? 'new']++);
+    const g = r.garage || {};
+    return {
+      mastered: st.mastered, known: st.known, learning: st.learning, goal: goal.size, answered: ownKeys(r.facts).filter((k) => num(r.facts[k]?.n) > 0).length,
+      step: r.step, unlocks: Array.isArray(g.unlocks) ? g.unlocks.length : 0, shapes: Array.isArray(g.body?.unlocked) ? g.body.unlocked.length : 0,
+      parts: ownKeys(g.trophies).reduce((t, k) => t + num(g.trophies[k]?.n), 0), upgrades: ownKeys(g.upgrades).reduce((t, k) => t + num(g.upgrades[k]), 0),
+      minutes: Math.round(ownKeys(r.practice).reduce((t, k) => t + num(r.practice[k]), 0) / 6e3) / 10,
+    };
+  },
+  // a choice per child: 'device' (keep this device's), 'backup' (use the backup's) or 'best' (keep the best). choices is
+  // one of those for everyone, or { childId: choice }; a child left out gets 'best'
+  choiceFor(choices, id) { const c = typeof choices === 'string' ? choices : isObj(choices) ? choices[id] : null; return BACKUP.choices.includes(c) ? c : c == null ? 'best' : null; },
+  // the writes a restore would make, and a summary per child. v = validate()'s result; dev = this device's
+  // { kids: { id: record or null }, settings: { child, pilot } }. Pure: nothing is written. A setting is only filled
+  // in where this device has none (it's this device's choice, not progress). Only what changes is written.
+  plan(v, choices, dev) {
+    if (!v?.ok) return { ok: false, why: v?.why ?? 'nothing to restore' };
+    const writes = [], kids = [];
+    for (const C of CHILDREN.filter((q) => !q.guest)) {
+      const bak = v.kids[C.id] ?? null, here = dev.kids[C.id] ?? null;
+      if (!bak && !here) continue;
+      const choice = this.choiceFor(choices, C.id);
+      if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
+      const res = !bak || choice === 'device' ? here : choice === 'backup' || !here ? bak : this.merge(here, bak);
+      const write = !!bak && canon(res) !== canon(here);
+      if (write) writes.push({ key: 'facts.' + C.id, value: res });
+      const a = this.count(here), z = this.count(res);
+      const lower = a && z ? BACKUP.rise.filter((k) => z[k] < a[k]) : [];
+      kids.push({ child: C.id, name: C.name, choice, inBackup: !!bak, write, device: a, backup: this.count(bak), result: z, lower });
+    }
+    for (const k of ['child', 'pilot']) if (v.settings[k] != null && dev.settings[k] == null) writes.push({ key: k, value: v.settings[k] });
+    return { ok: true, writes, summary: { kids, settings: { ...v.settings }, skipped: [...v.skipped], meta: { ...v.meta }, writes: writes.map((w) => w.key) } };
+  },
+  // ---- the parts that touch the browser (D4 has its own) ----
+  // every robotbattle.* key in storage, raw: { key without the prefix: string }
+  raw() {
+    const out = {};
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith(BACKUP.prefix)) out[k.slice(BACKUP.prefix.length)] = localStorage.getItem(k); } } catch (e) {}
+    return out;
+  },
+  // this device's side of a restore: each child's saved record (null only if there's none, or the game itself wouldn't
+  // load it: a record the game plays from every day is never treated as missing)
+  device() {
+    const kids = {};
+    for (const C of CHILDREN.filter((q) => !q.guest)) { const r = store.get('facts.' + C.id, null); kids[C.id] = Facts.valid(r, C) ? r : null; }
+    return { kids, settings: { child: store.get('child', null), pilot: store.get('pilot', null) } };
+  },
+  // a short name for this device and browser, for the file
+  deviceName() {
+    const ua = navigator.userAgent || '';
+    const dev = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android'
+      : /CrOS/.test(ua) ? 'Chromebook' : /Mac/.test(ua) ? 'Mac' : /Win/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : 'device';
+    const br = /Edg\//.test(ua) ? 'Edge' : /Firefox\/|FxiOS/.test(ua) ? 'Firefox' : /Chrome\/|CriOS/.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'browser';
+    return dev + ' · ' + br;
+  },
+  // the backup of this device, now (whoever is playing saved first)
+  now() { Facts.save(); return this.make(this.raw(), { exported: new Date().toISOString(), device: this.deviceName() }); },
+  // the file's name: robot-battle-backup-<today's date>.json (the real date, not the tracker's test clock)
+  fileName() { return `robot-battle-backup-${Facts.date(Date.now())}.json`; },
+  // write every change, or none: each key's old value is kept first, and if any write fails (storage full or blocked)
+  // the ones already made are put back. Then each is read back to be sure.
+  apply(writes) {
+    const old = [];
+    try {
+      for (const w of writes) { const k = BACKUP.prefix + w.key; old.push([k, localStorage.getItem(k)]); localStorage.setItem(k, JSON.stringify(w.value)); }
+      for (const w of writes) if (localStorage.getItem(BACKUP.prefix + w.key) !== JSON.stringify(w.value)) throw new Error('read back differs');
+    } catch (e) {
+      try { for (const [k, v] of old.reverse()) { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } } catch (e2) {}
+      return { ok: false, why: "this browser wouldn't save it (storage is full or turned off), so nothing was changed" };
+    }
+    return { ok: true };
+  },
+  // check, plan and (with a choice) write a restore: __rb.restore and the parent view's ✔ both come here. choices left
+  // out = a preview: the summary, and nothing is written. Whoever is playing is reloaded from what was written.
+  restore(input, choices, write = choices != null) {
+    const v = this.validate(input);
+    if (!v.ok) return { ok: false, why: v.why, summary: null };
+    Facts.save();
+    const p = this.plan(v, choices, this.device());
+    if (!p.ok) return { ok: false, why: p.why, summary: null };
+    if (!write) return { ok: true, preview: true, summary: p.summary };
+    const res = this.apply(p.writes);
+    if (!res.ok) return { ok: false, why: res.why, summary: p.summary };
+    const C = Facts.child;
+    if (C && !C.guest && p.writes.some((w) => w.key === 'facts.' + C.id)) { Facts.load(C); applyUpgrades({ swap: true }); }
+    return { ok: true, summary: p.summary };
   },
 };
 
@@ -7175,6 +7470,8 @@ const Progress = {
     $('pTabs').addEventListener('click', (e) => { const b = e.target.closest('.ptab'); if (b) this.act('tab', b.dataset.k); });
     $('pBody').addEventListener('click', (e) => {
       const c = e.target.closest('.cell'); if (c && c.dataset.a) { this.psel = [+c.dataset.a, +c.dataset.b]; this.drawParent(); return; }
+      // #69: back up / restore (in the tap itself: Safari keeps a download, and opens a file picker, only from a tap)
+      const k = e.target.closest('[data-bk]'); if (k) { BackupUI.act(k.dataset.bk); return; }
       const b = e.target.closest('[data-act]'); if (b) this.act(b.dataset.act, this.tab);
     });
     $('pConfirm').addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (b) this.act(b.dataset.act, this.tab); });
@@ -7222,7 +7519,7 @@ const Progress = {
   close() {
     const m = this.mode, from = this.from; if (!m) return false;
     this.holdStop();
-    this.mode = this.from = null; this.confirm = false; this.psel = null;
+    this.mode = this.from = null; this.confirm = false; this.psel = null; BackupUI.reset();
     $('grid').classList.remove('on'); $('parent').classList.remove('on'); $('pConfirm').classList.remove('on'); $('parentPanel').classList.remove('locked');
     if (m === 'grid' && from === 'hud') startPlay(); else Title.draw();
     if (!Game.manual) Sfx.click();
@@ -7233,6 +7530,7 @@ const Progress = {
   // focused parent-view button (so it clicks)
   key(e) {
     if (e.code === 'Tab' || (this.mode === 'parent' && e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
+    if (this.mode === 'parent' && BackupUI.open) { BackupUI.key(e); return 'used'; }   // #69: the restore summary has the keys
     if (e.code === 'Escape') { if (this.confirm) this.act('cancel', this.tab); else this.close(); return 'used'; }
     if (this.mode === 'grid') {
       if (e.code === 'KeyT') { if (!e.repeat) this.close(); return 'used'; }
@@ -7245,6 +7543,7 @@ const Progress = {
   // confirm B keeps the child
   pad(pad) {
     if (!pad) return;
+    if (this.mode === 'parent' && BackupUI.open) { BackupUI.pad(pad); return; }   // #69: the restore summary has the pad
     if (this.mode === 'grid' && (pad.upP || pad.downP || pad.leftP || pad.rightP)) this.move((pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0));
     if (pad.bP || pad.startP || (this.mode === 'grid' && pad.yP)) { if (this.confirm) this.act('cancel', this.tab); else this.close(); }
   },
@@ -7334,10 +7633,12 @@ const Progress = {
       + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
       + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">⏭ Open step ${D.next.step}: ${D.next.name}</button>` : '<button class="pbtn step off" data-act="step" disabled>✔ Every step is open</button>'}`
-      + `<button class="pbtn reset" data-act="reset">🗑️ Reset ${D.name}</button></div></div></div>`;
+      + `<button class="pbtn reset" data-act="reset">🗑️ Reset ${D.name}</button></div></div></div>`
+      + BackupUI.html();   // #69: back up and restore (every child, not just this tab's)
     const cf = $('pConfirm'); cf.classList.toggle('on', this.confirm); $('parentPanel').classList.toggle('locked', this.confirm);
     if (this.confirm) cf.innerHTML = `<span class="big">🗑️${childOf(this.tab).icon}</span><span>Reset <b>${D.name}</b>? Every fact goes back to New (⭐ ${D.mastery.mastered}/${D.mastery.goal}, step ${D.step}), with the minutes and the cheers. This can't be undone.</span>`
       + `<div class="pact"><button class="pbtn keep" data-act="cancel">✖ Keep</button><button class="pbtn reset" data-act="confirm">🗑️ Reset ${D.name}</button></div>`;
+    BackupUI.draw();   // #69: the restore summary over it, when it's up
   },
   // the parent view's buttons (and __rb.parentDo): 'tab' (show child c), 'step' (open their next step),
   // 'reset' (ask), 'confirm' (reset them, once asked), 'cancel' (don't)
@@ -7356,6 +7657,169 @@ const Progress = {
     return res;
   },
 };
+
+// #69: back up and restore, in the parent view (so behind its hold). ⬇ Back up downloads every child's progress as
+// robot-battle-backup-<date>.json; ⬆ Restore picks a file, checks it (Backup.validate) and shows, per child, what this
+// device has, what the backup has and what the choice makes of them: keep this device / use the backup / keep the best
+// (the default). Nothing is written until ✔ Restore. A file that can't be used says why and changes nothing.
+// Keys: Tab / Enter on the buttons; in the summary ↑ ↓ pick a child, ← → their choice, Enter restores, Esc cancels.
+// Pad: the same on the d-pad, A restores (OK on a refused file), B cancels. Picking the file needs a tap or a key: no
+// browser opens a file chooser from a gamepad.
+const RESTORE_CHOICE = [
+  { id: 'device', ic: 'home', name: 'Keep this device' },
+  { id: 'backup', ic: 'up', name: 'Use backup' },
+  { id: 'best', ic: 'star', name: 'Keep the best' },
+];
+// the summary's rows: a count from Backup.count, its icon and its word
+const RESTORE_ROWS = [
+  { k: 'mastered', ic: 'mastered', name: 'Mastered' }, { k: 'known', ic: 'known', name: 'Known' }, { k: 'answered', ic: 'check', name: 'Facts tried' },
+  { k: 'step', ic: 'arrow', name: 'Step' }, { k: 'parts', ic: 'bolt', name: 'Parts found' }, { k: 'upgrades', ic: 'upgrade', name: 'Upgrades' },
+  { k: 'unlocks', ic: 'sparkle', name: 'Unlocks' }, { k: 'shapes', ic: 'legs', name: 'Leg shapes' }, { k: 'minutes', ic: 'timer', name: 'Minutes' },
+];
+const BackupUI = {
+  open: false, text: null, name: null, why: null, sum: null, choices: {}, cur: 0, msg: null, last: null,
+  init() {
+    $('pFile').addEventListener('change', (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) this.pick(f); });
+    $('pRestore').addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('[data-bk]'); if (b) this.act(b.dataset.bk, b.dataset.k); });
+  },
+  // the buttons: 'backup' (download), 'restore' (pick a file), 'choose' (k = 'child:choice'), 'confirm', 'cancel'
+  act(what, k) {
+    if (Progress.mode !== 'parent') return { ok: false, why: 'parent view closed' };
+    if (!Game.manual) Sfx.click();
+    if (what === 'backup') return this.download();
+    if (what === 'restore') { $('pFile').click(); return { ok: true, picking: true }; }
+    if (what === 'choose') { const [id, c] = String(k).split(':'); return this.choose(id, c); }
+    if (what === 'confirm') return this.confirm();
+    if (what === 'cancel') { this.reset(); Progress.drawParent(); return { ok: true }; }
+    return { ok: false, why: 'no such button' };
+  },
+  // ⬇ Back up: made and downloaded inside the tap (a Blob link with the download attribute: Safari on iPhone and iPad
+  // saves it to Files, desktop browsers to Downloads). The link's URL is let go a minute later, not straight away.
+  download() {
+    const obj = Backup.now(), text = JSON.stringify(obj, null, 1), name = Backup.fileName();
+    const kids = Object.keys(obj.data).filter((k) => Backup.kidOf(k)).map((k) => Backup.kidOf(k).id);
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })), a = document.createElement('a');
+      a.href = url; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60e3);
+      this.msg = { ok: true, text: kids.length ? `Saved ${name}: ${kids.map((id) => childOf(id).name).join(' and ')}.` : `Saved ${name}. Nobody has progress on this device yet.` };
+    } catch (e) { this.msg = { ok: false, text: "This browser wouldn't save the file." }; }
+    this.last = { name, bytes: text.length, kids };
+    Progress.drawParent();
+    return { ok: this.msg.ok, name, bytes: text.length, kids, backup: obj };
+  },
+  // a file picked: read it (a little past the size limit, so a huge one is refused, not loaded) and show the summary
+  pick(file) {
+    const part = file.slice(0, BACKUP.maxBytes + 1);
+    const read = part.text ? part.text() : new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.onerror = no; fr.readAsText(part); });
+    return read.then((t) => this.load(t, file.name), () => this.load(null, file.name));
+  },
+  // open the summary for a backup's text (null: it couldn't be read). A preview: nothing is written
+  load(text, name = 'backup') {
+    if (Progress.mode !== 'parent') return { ok: false, why: 'parent view closed' };
+    this.open = true; this.text = text; this.name = String(name); this.choices = {}; this.cur = 0; this.msg = null;
+    const p = text == null ? { ok: false, why: "it couldn't be read" } : Backup.restore(text);
+    this.why = p.ok ? null : p.why; this.sum = p.ok ? p.summary : null;
+    Progress.confirm = false; $('parentPanel').scrollTop = 0;   // (the summary covers the panel from its top)
+    Progress.drawParent();
+    return { ok: p.ok, why: this.why, summary: this.sum };
+  },
+  // the children the summary asks about (the ones in the backup)
+  asked() { return this.sum ? this.sum.kids.filter((q) => q.inBackup) : []; },
+  choose(id, c) {
+    if (!this.open || !this.sum || !RESTORE_CHOICE.some((q) => q.id === c) || !this.asked().some((q) => q.child === id)) return { ok: false, why: 'no such choice' };
+    this.choices[id] = c;
+    const p = Backup.restore(this.text, this.choices, false);   // the summary again, for the new choice (still nothing written)
+    if (p.ok) this.sum = p.summary;
+    this.cur = this.asked().findIndex((q) => q.child === id);
+    Progress.drawParent();
+    return { ok: true, choices: { ...this.choices } };
+  },
+  // ✔ Restore: the only write. A file refused, or storage that won't take it, leaves the summary up and says why
+  confirm() {
+    if (!this.open || !this.sum) return { ok: false, why: this.why || 'nothing to restore' };
+    const choices = Object.fromEntries(this.asked().map((q) => [q.child, this.choices[q.child] ?? 'best']));
+    const res = Backup.restore(this.text, choices, true);
+    if (!res.ok) { this.why = res.why; this.sum = null; Progress.drawParent(); return res; }
+    const done = res.summary.kids.filter((q) => q.inBackup);
+    this.reset();
+    this.msg = { ok: true, text: `Restored from ${res.summary.meta.exported ? res.summary.meta.exported.slice(0, 10) : 'the backup'}: ` + done.map((q) => `${q.name} (${RESTORE_CHOICE.find((c) => c.id === q.choice).name.toLowerCase()})`).join(', ') + '.' };
+    Progress.drawParent(); Progress.drawBadge(); Title.draw();
+    return res;
+  },
+  reset() { this.open = false; this.text = this.sum = this.why = null; this.choices = {}; this.cur = 0; this.msg = null; },
+  // the section at the foot of the parent view
+  html() {
+    const m = this.msg;
+    return `<div class="pbak" id="pBak"><h3>Backup</h3><div class="pact"><button class="pbtn bak" data-bk="backup">${icon('down', { label: 'download' })} Back up</button>`
+      + `<button class="pbtn bak" data-bk="restore">${icon('up', { label: 'load' })} Restore</button></div>`
+      + `<p>Saves ${this.kidNames()}'s progress to a file, or loads one back. Guest's is never saved.</p>`
+      + `<div class="pbakmsg${m && !m.ok ? ' bad' : ''}" id="pBakMsg">${m ? icon(m.ok ? 'check' : 'warn') + `<span>${esc(m.text)}</span>` : ''}</div></div>`;
+  },
+  kidNames() { return Progress.kids().map((C) => C.name).join(' and '); },
+  // the summary over the parent view (or why the file can't be used)
+  draw() {
+    const el = $('pRestore'); if (!el) return;
+    el.classList.toggle('on', this.open); $('pBody').inert = this.open; $('parentPanel').classList.toggle('locked', this.open || Progress.confirm);
+    if (!this.open) { el.textContent = ''; return; }
+    if (!this.sum) {
+      el.innerHTML = `<h3>${icon('warn')}<span>That file can't be restored</span></h3><div class="meta">${esc(this.name)}</div>`
+        + `<div class="why">Because ${esc(this.why)}.</div><div>Nothing was changed.</div>`
+        + `<div class="pact"><button class="pbtn keep" data-bk="cancel">${icon('check', { label: 'OK' })} OK</button></div>`;
+      return;
+    }
+    const S = this.sum, at = S.meta.exported ? new Date(S.meta.exported) : null;
+    const when = at && !isNaN(at) ? at.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'an unknown time';
+    let h = `<h3>${icon('up')}<span>Restore ${esc(this.name)}</span></h3><div class="meta">Made ${esc(when)}${S.meta.device ? ' on ' + esc(S.meta.device) : ''}. Nothing changes until you tap Restore.</div>`;
+    const asked = this.asked();
+    for (const q of S.kids) {
+      const C = childOf(q.child), k = asked.indexOf(q);
+      h += `<div class="rkid${k === this.cur && asked.length > 1 ? ' cur' : ''}" style="--c:${C.hex}" data-child="${C.id}"><div class="who">${icon(C.ic)}<b>${C.name}</b></div>`;
+      if (!q.inBackup) { h += `<div class="note">Not in this backup: ${C.name}'s progress here stays as it is.</div></div>`; continue; }
+      h += `<div class="rtab"><span></span><span class="h">This device</span><span class="h">Backup</span><span class="h">After</span>`;
+      for (const R of RESTORE_ROWS) {
+        const d = q.device?.[R.k], b = q.backup?.[R.k], z = q.result?.[R.k];
+        h += `<span class="lb">${icon(R.ic)}${R.name}</span><span class="n">${d ?? '–'}</span><span class="n">${b ?? '–'}</span><span class="n res${q.lower.includes(R.k) ? ' lower' : ''}" data-k="${R.k}">${z ?? '–'}</span>`;
+      }
+      h += `</div><div class="rchoice">` + RESTORE_CHOICE.map((c) => `<button data-bk="choose" data-k="${C.id}:${c.id}" aria-pressed="${q.choice === c.id}">${icon(c.ic)}${c.name}</button>`).join('') + '</div>';
+      if (q.lower.length) h += `<div class="warn">${icon('warn')} This lowers ${C.name}'s ${q.lower.map((k) => RESTORE_ROWS.find((R) => R.k === k)?.name.toLowerCase() ?? k).join(', ')}.</div>`;
+      h += '</div>';
+    }
+    h += `<div class="pact"><button class="pbtn keep" data-bk="cancel">${icon('cross', { label: 'cancel' })} Cancel</button><button class="pbtn go" data-bk="confirm">${icon('check', { label: 'restore' })} Restore</button></div>`;
+    el.innerHTML = h;
+  },
+  // keys while the summary is up (Tab, and Enter / Space on a focused button, stay the browser's)
+  key(e) {
+    if (e.code === 'Escape') { this.act('cancel'); return; }
+    if (e.repeat) return;
+    if (e.code === 'Enter') { this.act(this.sum ? 'confirm' : 'cancel'); return; }
+    const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.code];
+    if (d) this.nudge(...d);
+  },
+  pad(pad) {
+    if (pad.bP || pad.startP) { this.act('cancel'); return; }
+    if (pad.aP) { this.act(this.sum ? 'confirm' : 'cancel'); return; }
+    if (pad.upP || pad.downP || pad.leftP || pad.rightP) this.nudge((pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0));
+  },
+  // ↑ ↓ move between the children; ← → change that child's choice
+  nudge(dx, dy) {
+    const asked = this.asked(); if (!asked.length) return;
+    if (dy) { this.cur = (this.cur + dy + asked.length) % asked.length; Progress.drawParent(); }
+    if (dx) { const q = asked[this.cur], i = RESTORE_CHOICE.findIndex((c) => c.id === q.choice); this.choose(q.child, RESTORE_CHOICE[(i + dx + RESTORE_CHOICE.length) % RESTORE_CHOICE.length].id); }
+    $('pRestore').querySelector('.rkid.cur, .rkid')?.scrollIntoView?.({ block: 'nearest' });
+  },
+  // what's showing (for __rb.backupView)
+  view() {
+    const el = $('pRestore');
+    return {
+      open: this.open, name: this.name, why: this.why, choices: this.sum ? Object.fromEntries(this.asked().map((q) => [q.child, q.choice])) : null, cur: this.cur,
+      summary: this.sum, msg: this.msg, last: this.last, shown: el.classList.contains('on'), text: this.open ? el.innerText : null,
+      after: this.sum ? Object.fromEntries([...el.querySelectorAll('.rkid[data-child]')].map((k) => [k.dataset.child, Object.fromEntries([...k.querySelectorAll('.res[data-k]')].map((n) => [n.dataset.k, n.textContent]))])) : null,
+    };
+  },
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // HUD: speed bars and legs-vs-torso compass
 const SPEED_BARS = 8;
@@ -8486,6 +8950,20 @@ window.__rb = {
   },
   // press a button in the open parent view: 'tab' | 'step' | 'reset' | 'confirm' | 'cancel', on child (the tab shown if left out)
   parentDo(what, child) { const res = Progress.act(what, child); return { ...res, view: this.parent() }; },
+  // ---- storage D1 (#69): back up and restore ----
+  // the backup of this device as an object, the same as the file ⬇ Back up downloads: { app, format, exported, device, data }
+  backup() { return Backup.now(); },
+  // restore a backup (the object, or a file's text). choice: 'best' | 'device' | 'backup' for every child, or
+  // { orion: …, apollo: … } (a child left out: 'best'). No choice = a preview: the summary, and nothing is written.
+  // Returns { ok, why?, preview?, summary: { kids: [{ child, choice, inBackup, write, device, backup, result, lower }],
+  // settings, skipped, meta, writes } } (summary null when the file is refused)
+  restore(obj, choice) { const res = Backup.restore(obj, choice); if (Progress.mode === 'parent') Progress.drawParent(); return res; },
+  // the pure parts, for D4 and the checks: validate(text or object), merge(device record, backup record), count(record)
+  backupLib: { validate: (o) => Backup.validate(o), merge: (a, b) => Backup.merge(a, b), count: (r) => Backup.count(r), make: (raw, meta) => Backup.make(raw, meta) },
+  // the parent view's backup section, as its buttons do: 'backup' (download) | 'restore' (opens the file picker) | 'choose'
+  // (k = 'child:choice') | 'confirm' | 'cancel'; load(text, name) stands in for picking a file. Returns the view
+  backupDo(what, k) { const res = what === 'load' ? BackupUI.load(...k) : BackupUI.act(what, k); return { res: res?.backup ? { ...res, backup: undefined } : res, view: BackupUI.view() }; },
+  backupView() { return BackupUI.view(); },
   // the table cheer: what's showing now, and the tables that have cheered for whoever is playing
   cheer() { return { showing: Progress.cheering ? { ...Progress.cheering, tables: [...Progress.cheering.tables] } : null, on: $('cheer').classList.contains('on'), cheered: Facts.rec ? { ...(Facts.rec.cheered || {}) } : null }; },
   // ---- the garage (G1) ----
@@ -8870,6 +9348,7 @@ spawnPlayer(0, 0, 0, 0);
 buildHud();
 FixUI.init();
 Progress.init();
+BackupUI.init();
 Garage.init();
 applyUpgrades();          // G2: nobody picked yet, so a bare mech (levels all 0)
 onResize();
