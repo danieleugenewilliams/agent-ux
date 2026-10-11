@@ -725,6 +725,10 @@
   @media (max-width: 760px) { #clear .garb { width: 60px; height: 60px; font-size: 28px; } }
   /* a phone: the clear screen's row (three counts, 🔧, ▶) tightens so the banner stays inside the screen */
   @media (max-width: 560px) { #clear .row { gap: 6px; } #clear .n { padding: 4px 6px; gap: 3px; } #clear .garb { width: 52px; height: 52px; font-size: 24px; } #nextB { width: 66px; height: 66px; font-size: 30px; margin-left: 2px; } }
+  /* #59: beside a powered-down squadmate on the clear screen its 🔧 / 🔩 prompt comes first, as G and pad X do: the banner
+     dims and its buttons let taps through (on a phone on its side the prompt sits over them). Enter / pad A still go on */
+  body:has(#prompt.on) #clear .banner { opacity: .45; }
+  body:has(#prompt.on) #clear.on button { pointer-events: none; }
   @media (max-width: 560px) {
     #start .garb { width: 60px; height: 60px; font-size: 28px; }
     .gbay { padding: 8px 8px 10px; gap: 8px; }
