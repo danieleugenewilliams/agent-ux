@@ -86,6 +86,10 @@
   #hud .parts { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 18px; background: rgba(20,24,42,.6); font-size: 30px; font-weight: 900; }
   #hud .mate { display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 8px 12px; border-radius: 18px; background: rgba(20,24,42,.6); border: 3px solid var(--cyan); box-shadow: 0 0 10px rgba(63,240,255,.5); font-size: 18px; font-weight: 800; }
   #hud .mate b { font-size: 26px; }
+  #hud .mate { position: relative; }   /* #59: its energy bar along the bottom edge; dark while it's powered down */
+  #hud .mate .mhp { position: absolute; left: 14px; right: 14px; bottom: 3px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
+  #hud .mate .mhp b { display: block; height: 100%; width: 100%; border-radius: 3px; background: var(--green); font-size: 0; }
+  #hud .mate.down { opacity: .7; background: rgba(10,12,20,.8); filter: grayscale(.6); }
   #hud .bagb { position: relative; width: 62px; height: 62px; border-radius: 50%; border: 4px solid var(--ink); background: var(--yellow); font-size: 32px; cursor: pointer; box-shadow: 0 5px 0 var(--ink); }
   #hud .bagb small, .panel .ok small { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
   /* ---------- PROMPT beside a downed robot: Fix or Take parts ---------- */
@@ -156,10 +160,14 @@
     text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink); animation: rise 1.3s ease-out forwards; }
   @keyframes rise { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-56px); opacity: 0; } }
   #mend .panel { border-color: var(--green); box-shadow: 0 0 30px rgba(62,224,122,.45); }
-  .needs { display: flex; justify-content: center; gap: 26px; }
+  .needs { display: flex; justify-content: center; gap: 26px; flex-wrap: wrap; }
   .need { display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .need .area { font-size: 40px; line-height: 1; }
   .need .dmg { width: 88px; height: 14px; border-radius: 7px; background: rgba(255,255,255,.18); overflow: hidden; }
+  #mendTiles:has(.need.mate) { max-height: calc(100dvh - 150px); overflow-y: auto; padding: 10px 6px; }   /* #59: room for every squadmate's areas */
+  .need.mate { position: relative; }   /* #59: a squadmate's area: its robot icon in its glow colour */
+  .need.mate .who { position: absolute; left: -6px; top: -8px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: rgba(20,24,42,.85); border: 3px solid var(--cyan); }
+  .need.mate .who svg, .need.mate .who img { width: 22px; height: 22px; }
   .need .dmg b { display: block; height: 100%; border-radius: 7px; background: #ff4d5e; box-shadow: 0 0 8px #ff4d5e; }
   .needs.bad { animation: shake .3s; }
   .tile .n.zero { background: #ff4d5e; color: #fff; }
@@ -1205,6 +1213,12 @@ const SHAPE_SVG = {
 // a squadmate's steady glow level (in its own colour); color: the fallback for its name label
 // energy: a fixed robot comes back with this × its robot type's energy (a Charger squadmate: 150)
 const ALLY = { glow: 2.6, color: '#3ff0ff', energy: 1.5 };
+// #59: glitched robots hit squadmates the way they hit a player's mech (the same hits, in the same damage areas).
+// At 0 a squadmate powers down where it stands and a rescue clock starts: `time` seconds (the clock holds while
+// someone is fixing it). Fix it with the Quick Fix and it's back in its place with `rescue` × its energy, its
+// name and upgrades kept. Take its parts, or let the clock run out, and it's destroyed: gone from the squad for good.
+// hurt: under this fraction of its energy it spits sparks like a glitched robot (the hurt look, with its health bar).
+const MATE_DOWN = { time: 30, rescue: 0.5, hurt: 0.5 };
 // Math wiring (the child's Quick Fix setting): each plug is a fact the tracker picks, each port an answer.
 // A right answer quicker than FACT.fast (3 s) throws `sparks` extra gold sparks. A repair whose every fact
 // was right first time, under FACT.fast on average, is a fast repair: the robot comes back gold (its glow
@@ -3776,7 +3790,8 @@ class CamRig {
 const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null,
   wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0, fast: 0 },
   // P3-1: every fix this session (board open to reboot, with its slot counts), and the last one
-  fixes: [], lastFix: null };
+  fixes: [], lastFix: null,
+  lost: [] };   // #59: squadmates destroyed this session (destroyMate)
 // The start screen is the title (pick a pilot) until a pilot is picked, then the pause screen (▶)
 function setPause(on) {
   Game.paused = on;
@@ -4047,6 +4062,11 @@ const Bullets = {
           if (m.state === 'down') continue;            // a powered-down mech is left alone
           const t = sweep(m.pos.x, m.pos.y + MECH_HIT.y, m.pos.z, MECH_HIT.r, best);
           if (t != null) { best = t; hit = m; at = q.clone(); }
+        }
+        for (const r of Game.squad) {                  // #59: and a squadmate in the way takes the round
+          if (r.state !== 'ally') continue;
+          const T = ROBOT_TYPES[r.type], t = sweep(r.pos.x, r.pos.y + T.hitY, r.pos.z, T.hitR, best);
+          if (t != null) { best = t; hit = r; at = q.clone(); }
         }
         if (hit) { shotMech(hit, b, at); this.list.splice(k, 1); continue; }
       } else {
@@ -4527,6 +4547,7 @@ function hitRobot(r, dmg, w, dx, dz, at) {
 // r.harm: the damage it has taken since it last booted, by weapon (sets its faults when it goes down)
 function hurtRobot(r, amount, w) {
   if (r.state === 'down') return false;
+  if (r.state === 'ally') { hurtMech(r, amount, w); return true; }   // #59: a squadmate takes it in its damage areas
   const dealt = Math.min(Math.max(0, amount), r.health);
   r.health = Math.max(0, r.health - amount); r.lastHitBy = w;
   r.harm[w] = (r.harm[w] || 0) + dealt;
@@ -4543,7 +4564,7 @@ function shockRobot(r, amount) {
   powerDown(r, 'em');
   return true;
 }
-// A glitched Sniper's round reaches a player's mech: sparks off the plating, then the hit
+// A glitched Sniper's round reaches a player's mech (#59: or a squadmate): sparks off the plating, then the hit
 function shotMech(m, b, at) {
   const L = Math.hypot(b.v.x, b.v.z) || 1, bx = -b.v.x / L, bz = -b.v.z / L;
   Sparks.spray(at.x, at.y, at.z, 14, SPARK_HOT, 9, bx, bz);
@@ -4557,8 +4578,10 @@ function shotMech(m, b, at) {
 // A player's mech takes a hit. `how` (a HIT_AREAS key) shares the damage out over
 // the areas it lands in: a plain hit hurts the hull, a ram the hull and the legs.
 // A powered-down mech takes no more. At 0 it powers down.
+// #59: a squadmate (m.type set) is hurt the same way, in the same areas, and flashes as it's hit; at 0 it powers
+// down too (mateDown). Only a running squadmate ('ally') can be hurt here.
 function hurtMech(m, amount, how = 'hit') {
-  if (m.state === 'down') return 0;
+  if (m.state === 'down' || (m.type && m.state !== 'ally')) return 0;
   // G4 shield emitter: the bubble takes the hit whole while it has hits left (ADV.shield a wave), then it's gone till the next wave
   if (m.shield > 0 && amount > 0) {
     m.shield--; m.blocked = (m.blocked || 0) + 1; m.shieldHit = 0.4;
@@ -4572,8 +4595,54 @@ function hurtMech(m, amount, how = 'hit') {
   split.forEach(([a, w], i) => { const d = i === split.length - 1 ? left : Math.min(left, Math.round(dealt * w)); m.damage[a] += d; left -= d; });
   m.health = Math.max(0, m.health - dealt); m.hitsTaken++;
   if (m.human) { Game.hurtFlash = 1; m.human.rig.kick(1.2); }
-  if (m.health <= 0) powerDownMech(m);
+  if (m.type) { m.hitFlash = 1; m.lastHitBy = how; m.harm[how] = (m.harm[how] || 0) + dealt; }   // (its harm sets the fix board's faults)
+  if (m.health <= 0) (m.type ? mateDown(m) : powerDownMech(m));
   return dealt;
+}
+// #59: an enemy's hit on a squadmate's (or a mech's) head height, for its sparks
+const bodyTop = (b) => b.pos.y + (b.type ? ROBOT_TYPES[b.type].hitY : 5);
+// #59: a squadmate at 0 powers down where it stands (the same board a beaten robot leaves), and its rescue clock starts
+function mateDown(r) {
+  powerDown(r);
+  r.downT = MATE_DOWN.time; r.mateDowns = (r.mateDowns || 0) + 1;
+  Waves.check();
+}
+// #59: rescued. Its Quick Fix is done: back in its place in the squad with MATE_DOWN.rescue of its energy (mended across
+// its damage areas), keeping its name, upgrades and gold
+function rescueMate(r) {
+  r.state = 'ally'; r.harm = {}; r.shock = 0; r.faults = null; r.beatenBy = null; r.board = null;
+  healMech(r, Math.round(r.maxHealth * MATE_DOWN.rescue) - r.health, 'reboot');
+  r.ai = { think: 0, mode: 'follow', slot: Game.squad.indexOf(r) };
+  r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
+  r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow;
+  r.rescues = (r.rescues || 0) + 1;
+  Sparks.burst(r.pos.x, r.pos.y + 3.5, r.pos.z, 50, SPARK_ZAP, 9);
+  if (!Game.manual) Sfx.fixed();
+  Waves.check();
+}
+// #59: a squadmate is destroyed, gone for good: its rescue clock ran out (how 'time') or its parts were taken
+// ('parts'). It leaves the squad and the meadow, the ones left close up their places, and Game.lost keeps a note.
+// The only other way a squadmate leaves the squad is sendHome (sent home to make room: not destroyed, but gone too).
+function destroyMate(r, how) {
+  if (!Game.squad.includes(r)) return false;
+  Game.lost.push({ id: r.id, name: r.name, type: r.type, how, wave: Game.wave, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 } });
+  if (r.repairBy) cancelRepair(r.repairBy);
+  Game.squad.splice(Game.squad.indexOf(r), 1);
+  Game.squad.forEach((q, k) => { q.ai.slot = k; });
+  // a player still being asked who goes home has room now: no one goes, and the new robot's wiring opens (as chooseHome)
+  for (const h of Game.humans) {
+    const rp = h.repair; if (rp?.kind !== 'home' || Game.squad.length >= REPAIR.squadMax) continue;
+    rp.kind = 'fix'; rp.home = null; startBoard(rp.r);
+    if (h.idx === 0) { FixUI.homeWarn = null; FixUI.openWires(rp.r); }
+  }
+  if (how === 'time') {
+    Sparks.burst(r.pos.x, r.pos.y + 2.5, r.pos.z, 45, SPARK_HOT, 8);
+    Impacts.chip(new V3(r.pos.x, r.pos.y + 2, r.pos.z), 10, [r.glowColor, '#2d3446'], 7, 0, 0, 0.25);
+    removeRobot(r);
+    if (!Game.manual) Sfx.salvage();
+    Waves.check();
+  }
+  return true;
 }
 // Mend up to `amount` health from source `src` ('parts' | 'ally' | 'kit' | 'reboot').
 // With an `area` only that area is mended; without one every damaged area is mended
@@ -4621,11 +4690,16 @@ function rebootMech(m) {
 // Self-repair: spend parts from the bag on the player's own mech. Each part mends up
 // to HEAL.part in the area its `fixes` names (G2: UPGRADE.mend more a wiring-harness level).
 // Every check runs before anything changes, so a refusal leaves health and the bag as they were.
-function repairSelf(h, picks) {
-  const m = h?.mech; if (!m) return { ok: false, why: 'no player' };
-  if (m.state === 'down') return { ok: false, why: 'powered down' };
+// #59: with `mate`, the same parts mend that squadmate's areas instead (the player does the mending, so the mech's
+// wiring harness counts). A powered-down squadmate needs its Quick Fix (a rescue) first: refused here.
+function repairSelf(h, picks, mate) {
+  const me = h?.mech; if (!me) return { ok: false, why: 'no player' };
+  if (me.state === 'down') return { ok: false, why: 'powered down' };
+  if (mate !== undefined && !Game.squad.includes(mate)) return { ok: false, why: 'not in squad' };
+  if (mate && mate.state !== 'ally') return { ok: false, why: 'mate powered down' };
+  const m = mate || me;
   if (!Array.isArray(picks) || !picks.length) return { ok: false, why: 'pick a part' };
-  const need = { ...m.damage }, left = { ...Game.bag }, mend = {}, per = mendPer(m);
+  const need = { ...m.damage }, left = { ...Game.bag }, mend = {}, per = mendPer(me);
   let room = m.maxHealth - m.health;   // (B2: no part is spent past full health, which a leg swap can leave short of the areas)
   for (const id of picks) {
     const P = PARTS[id];
@@ -4639,7 +4713,7 @@ function repairSelf(h, picks) {
   for (const id of picks) { Game.bag[id]--; if (!Game.bag[id]) delete Game.bag[id]; }
   let mended = 0;
   for (const [a, amt] of Object.entries(mend)) mended += healMech(m, amt, 'parts', a);
-  Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 30, SPARK_MEND, 7);
+  Sparks.burst(m.pos.x, bodyTop(m), m.pos.z, 30, SPARK_MEND, 7);
   if (!Game.manual) Sfx.mendParts();
   return { ok: true, used: picks.slice(), mended: Math.round(mended * 1000) / 1000 };
 }
@@ -4925,6 +4999,16 @@ function nearestPlayer(r) {
   }
   return best;
 }
+// #59: what a glitched robot goes for: the nearest running player's mech or running squadmate. A Charger or a Bouncer
+// can't reach a drone in the air (ground: true leaves flying squadmates out). With no squad it's nearestPlayer.
+function nearestFoe(r, ground = false) {
+  let best = nearestPlayer(r), bd = best ? Math.hypot(best.pos.x - r.pos.x, best.pos.z - r.pos.z) : Infinity;
+  for (const q of Game.squad) {
+    if (q.state !== 'ally' || (ground && ROBOT_TYPES[q.type].flies)) continue;
+    const d = Math.hypot(q.pos.x - r.pos.x, q.pos.z - r.pos.z); if (d < bd) { bd = d; best = q; }
+  }
+  return best;
+}
 
 // The Charger's brain. It thinks at 20 Hz and only writes input fields:
 // stalk (close in, or back off for a run-up) -> windup (stop, paw, glare)
@@ -4964,7 +5048,7 @@ function roam(r, dt, pace = 0.45) {
 }
 
 function chargerAI(r, dt) {
-  const ai = r.ai, inp = r.input, S = r.spec, tgt = nearestPlayer(r);
+  const ai = r.ai, inp = r.input, S = r.spec, tgt = nearestFoe(r, true);
   inp.boost = false;
   if (!engaged(r, tgt)) { roam(r, dt); return; }
   if (ai.mode === 'roam') { ai.mode = 'stalk'; ai.t = 0.6; }
@@ -5053,7 +5137,7 @@ function allyRams() {
 // can aim back over its shoulder while it walks off.
 // ---------------------------------------------------------------------------
 function sniperAI(r, dt) {
-  const ai = r.ai, inp = r.input, T = ROBOT_TYPES.sniper, tgt = nearestPlayer(r);
+  const ai = r.ai, inp = r.input, T = ROBOT_TYPES.sniper, tgt = nearestFoe(r);
   inp.boost = false;
   ai.gunT = (ai.gunT || 0) - dt;
   if (!engaged(r, tgt)) { ai.aimT = 0; roam(r, dt); return; }
@@ -5122,7 +5206,7 @@ function allySniper(r, dt) {
 // circle the player and take turns diving in to zap, two at most at once.
 // ---------------------------------------------------------------------------
 function droneAI(r, dt) {
-  const ai = r.ai, inp = r.input, T = ROBOT_TYPES.drone, sw = Game.swarms[r.swarm], tgt = nearestPlayer(r);
+  const ai = r.ai, inp = r.input, T = ROBOT_TYPES.drone, sw = Game.swarms[r.swarm], tgt = nearestFoe(r);
   inp.boost = false; inp.aimYaw = r.legHeading;
   if (engaged(r, tgt)) sw.seen = Game.ticks;
   const mates = Game.robots.filter((q) => q.swarm === r.swarm && q.state === 'glitched');
@@ -5137,7 +5221,7 @@ function droneAI(r, dt) {
   if (ai.mode === 'dive') {
     ai.t -= dt;
     const d = steer(r, tgt.pos.x, tgt.pos.z, 1);
-    if (d < MECH.radius + T.zapReach) { droneZap(r, tgt); ai.mode = 'orbit'; ai.diveT = 2.5 + Math.random() * 3.5; }
+    if (d < (tgt.type ? tgt.spec.radius : MECH.radius) + T.zapReach) { droneZap(r, tgt); ai.mode = 'orbit'; ai.diveT = 2.5 + Math.random() * 3.5; }
     else if (ai.t <= 0) { ai.mode = 'orbit'; ai.diveT = 1.5; }
     return;
   }
@@ -5146,11 +5230,11 @@ function droneAI(r, dt) {
   steer(r, tgt.pos.x + Math.cos(a) * T.orbit, tgt.pos.z + Math.sin(a) * T.orbit, 1, 5);
   if (ai.diveT <= 0 && mates.filter((q) => q.ai.mode === 'dive').length < 2) { ai.mode = 'dive'; ai.t = 4; }
 }
-// A zap: a little damage in the mech's power and wiring
+// A zap: a little damage in the power and wiring of a mech (#59: or a squadmate)
 function droneZap(r, m) {
   hurtMech(m, ROBOT_HITS.zap.dmg, 'zap');
   r.zaps = (r.zaps || 0) + 1;
-  Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 14, SPARK_ZAP, 6);
+  Sparks.burst(m.pos.x, bodyTop(m), m.pos.z, 14, SPARK_ZAP, 6);
   Sparks.burst(r.pos.x, r.pos.y, r.pos.z, 6, SPARK_ZAP, 3);
   if (!Game.manual) Sfx.droneZap(1);
 }
@@ -5230,9 +5314,9 @@ function bouncePlan(r, goal, pick, max) {
   }
   return plan;
 }
-// The end of a glitched chain: the nearest player's head if it's in reach, else a random spot
+// The end of a glitched chain: the nearest player's head (#59: or a squadmate's) if it's in reach, else a random spot
 function bounceFinish(r) {
-  const m = nearestPlayer(r);
+  const m = nearestFoe(r, true);
   if (m && flatDist(r, m) < ROBOT_TYPES.bouncer.jump.reach + 6) return { body: m };
   const a = Math.random() * Math.PI * 2; return { x: r.pos.x + Math.cos(a) * 8, z: r.pos.z + Math.sin(a) * 8 };
 }
@@ -5286,7 +5370,9 @@ function bounceLand(r) {
   // the hop off a stomped mech always comes down on the ground (A.last): the stomp ended the chain,
   // so landing on a robot or a mech there is no new bounce and no second stomp
   // a running player's mech under a glitched Bouncer: a stomp
-  const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius)) : null;
+  // (#59: or a running squadmate on the ground under it: a stomp too)
+  const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius))
+    || Game.squad.find((q) => q.state === 'ally' && !q.air && !ROBOT_TYPES[q.type].flies && under(q, q.spec.radius)) : null;
   if (m) return bounceStomp(r, m, A);
   // another robot: spring off its head
   const q = A.last ? null : Game.robots.find((o) => o !== r && !o.air && ROBOT_TYPES[o.type].top != null && under(o, o.spec.radius));
@@ -5312,7 +5398,7 @@ function bounceOff(r, q, A) {
 function bounceStomp(r, m, A) {
   const S = ROBOT_HITS.stomp, dmg = S.dmg + S.combo * Math.min(r.bounces, 4);
   hurtMech(m, dmg, 'stomp'); r.stomps++; r.lastStomp = dmg;
-  Sparks.burst(m.pos.x, m.pos.y + 7.8, m.pos.z, 30, SPARK_HOT, 8);
+  Sparks.burst(m.pos.x, landY(m, m.pos), m.pos.z, 30, SPARK_HOT, 8);
   if (!Game.manual) Sfx.whack(1);
   // it springs off the mech's head to the ground beyond
   const a = Math.atan2(m.pos.z - A.from.z, m.pos.x - A.from.x) + (Math.random() - 0.5);
@@ -5328,13 +5414,13 @@ function bouncerAI(r, dt) {
     if (ai.t > 0) return;
     if (ai.mode === 'crouch') {
       r.bounces = 0;
-      const plan = bouncePlan(r, nearestPlayer(r), () => true, 3);
+      const plan = bouncePlan(r, nearestFoe(r, true), () => true, 3);
       hop(r, plan.shift() || bounceFinish(r), plan);
       return;
     }
     ai.mode = 'stalk'; ai.t = 0.6 + Math.random() * 0.8;
   }
-  const tgt = nearestPlayer(r);
+  const tgt = nearestFoe(r, true);
   if (!engaged(r, tgt)) { roam(r, dt); return; }
   if (ai.mode !== 'stalk') ai.mode = 'stalk';
   const dist = steer(r, tgt.pos.x, tgt.pos.z, 1);
@@ -5668,7 +5754,8 @@ function chooseFor(h, r, choice, name, picks) {
   if (choice !== 'fix') return { ok: false, why: 'fix or parts' };
   if (h.repair) cancelRepair(h);
   const typed = typeof name === 'string' && name.trim() !== '';
-  h.repair = { r, kind: 'fix', name: typed ? name.trim().slice(0, 12) : randomName(), askName: !typed, home: null };
+  const mate = Game.squad.includes(r);                  // #59: a powered-down squadmate: a rescue (it keeps its name, its place)
+  h.repair = { r, kind: 'fix', name: mate ? r.name : typed ? name.trim().slice(0, 12) : randomName(), askName: !typed && !mate, home: null, rescue: mate };
   r.repairBy = h; r.wires.link.fill(-1);
   // math wiring: the tracker picks the board's facts the first time it's opened (leaving and coming back
   // keeps them); colour wiring has none
@@ -5677,7 +5764,7 @@ function chooseFor(h, r, choice, name, picks) {
   dealPuzzles(r);                                        // P3-1: the board's puzzles, dealt the first time it opens
   startBoard(r);
   // the squad is full: first ask which squadmate goes home (kind 'home'; the robot's clock holds)
-  if (Game.squad.length >= REPAIR.squadMax) {
+  if (Game.squad.length >= REPAIR.squadMax && !mate) {
     h.repair.kind = 'home'; h.repair.cur = 0;
     if (h.idx === 0) FixUI.openHome(r);
     return { ok: true, ask: 'home' };
@@ -5814,13 +5901,17 @@ function fixRobot(h, r) {
     wrong: B?.puzzles?.reduce((s, q) => s + q.wrong, 0) ?? 0, wiring: W.facts ? 'math' : 'colour', wave: Game.wave, band: B?.band ?? null, target: B?.target ?? null, at: now };
   Game.fixes.push(Game.lastFix);
   if (B) Facts.addFix(Game.lastFix.ms);                  // #48: a ramp fix's time, in the child's record (wave 0 writes nothing)
-  if (rp.home) sendHome(rp.home);                        // the squad was full: the one picked goes home now
+  if (Game.squad.includes(r)) { rescueMate(r); if (h.idx === 0) FixUI.close(); return; }   // #59: a rescued squadmate
+  // the squad was full: the one picked goes home now (#59: unless the squad has lost one since, a downed squadmate's clock
+  // running out mid-fix, so there's room already)
+  if (rp.home && Game.squad.length >= REPAIR.squadMax) sendHome(rp.home);
   // a fast math repair: it comes back gold, with more health, and the wave's clear screen gets a 🌟
   r.gold = fastRepair(r.wires);
   // a squadmate is tougher than the glitched robot it was: ALLY.energy × its type's energy (not the wave's toughened one)
   r.maxHealth = Math.round(ROBOT_TYPES[r.type].health * ALLY.energy);
   if (r.gold) { r.maxHealth = Math.round(r.maxHealth * MATHFIX.health); setGlowColor(r, MATHFIX.gold); Game.waveStats.fast++; }
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
+  r.harm = {}; for (const a of AREAS) r.damage[a] = 0;   // #59: no damage yet (its harm as a squadmate sets the board if it powers down)
   r.upg = { plating: 0, job: 0 };                        // G3: its own garage upgrades start at none
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
   r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
@@ -5868,6 +5959,7 @@ function takeParts(h, r, picks) {
   // a part that `unlocks` a weapon (the Sniper's 🔭 scope: the rail gun) makes it selectable
   const unlocked = picks.map((id) => PARTS[id].unlocks).filter((w) => w && WEAPON[w] && !Game.unlocked.has(w));
   for (const w of unlocked) unlockWeapon(w);
+  destroyMate(r, 'parts');                               // #59: a powered-down squadmate taken apart is destroyed (gone for good)
   removeRobot(r);
   Game.waveStats.taken++; Waves.check();
   Sparks.burst(r.pos.x, r.pos.y + 2.5, r.pos.z, 45, SPARK_HOT, 8);
@@ -5952,7 +6044,7 @@ function robotTick(r, dt) {
   if (r.state === 'down') {
     r.input.throttle = r.input.turn = 0; r.input.boost = false;
     if (!r.repairBy) r.downT -= dt;          // the clock holds while someone is fixing it
-    if (r.downT <= 0) reboot(r);
+    if (r.downT <= 0) { if (Game.squad.includes(r)) { destroyMate(r, 'time'); return; } reboot(r); }   // (#59: a squadmate nobody rescued is gone)
   }
   // a Bouncer mid-hop moves itself along its arc; everything else walks (or flies) like a mech
   if (!T.move?.(r, dt)) {
@@ -5966,26 +6058,28 @@ function robotTick(r, dt) {
     r.shock = Math.max(0, r.shock - ROBOT.shockFade * dt);
     if (Math.random() < r.shock / ROBOT.shockMax * 0.5) Sparks.burst(r.pos.x + (Math.random() - 0.5) * 2, r.pos.y + ROBOT_TYPES[r.type].hitY + (Math.random() - 0.5) * 2, r.pos.z + (Math.random() - 0.5) * 2, 2, SPARK_ZAP, 3);
   }
-  // sparks: a glitched robot spits them often, a downed one now and then
+  // sparks: a glitched robot spits them often, a downed one now and then (#59: and a hurt squadmate, under
+  // MATE_DOWN.hurt of its energy, spits hot ones as often as a glitched robot)
   r.sparkT -= dt;
   if (r.sparkT <= 0) {
-    const g = r.state === 'glitched', h = r.legHeading, [bw, bd, by, br] = T.sparkBox, sn = T.sparkN ?? 1;
-    r.sparkT = g ? 0.2 + Math.random() * 0.7 : 0.8 + Math.random() * 1.6;
+    const g = r.state === 'glitched', hurt = r.state === 'ally' && r.health < r.maxHealth * MATE_DOWN.hurt, h = r.legHeading, [bw, bd, by, br] = T.sparkBox, sn = T.sparkN ?? 1;
+    r.sparkT = g || hurt ? 0.2 + Math.random() * 0.7 : 0.8 + Math.random() * 1.6;
     const lx = (Math.random() - 0.5) * bw, lz = (Math.random() - 0.5) * bd, y = r.pos.y + by + Math.random() * br;
-    Sparks.burst(r.pos.x + lx * Math.cos(h) + lz * Math.sin(h), y, r.pos.z - lx * Math.sin(h) + lz * Math.cos(h), Math.max(1, Math.round((g ? 4 + Math.floor(Math.random() * 6) : r.gold ? 5 : 2) * sn)), r.gold ? SPARK_GLINT : g && Math.random() < 0.5 ? SPARK_ZAP : SPARK_HOT, g ? 6 : 3);
+    Sparks.burst(r.pos.x + lx * Math.cos(h) + lz * Math.sin(h), y, r.pos.z - lx * Math.sin(h) + lz * Math.cos(h), Math.max(1, Math.round((g || hurt ? 4 + Math.floor(Math.random() * 6) : r.gold ? 5 : 2) * sn)), r.gold && !hurt ? SPARK_GLINT : g && Math.random() < 0.5 ? SPARK_ZAP : SPARK_HOT, g || hurt ? 6 : 3);
     const k = loud(r.pos); if (g && k > 0) Sfx.zap(k);
   }
   r.hitFlash = Math.max(0, r.hitFlash - dt * 6);
 }
 
 // A charging robot that reaches a mech rams it. Checked before the bodies are
-// pushed apart, with a reach past that separation distance.
+// pushed apart, with a reach past that separation distance. (#59: a squadmate on the ground gets rammed too.)
 function rams() {
   for (const r of Game.robots) {
     if (r.state !== 'glitched' || r.ai.mode !== 'charge' || r.speed < 5) continue;
-    for (const h of Game.humans) {
-      const m = h.mech, dx = m.pos.x - r.pos.x, dz = m.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
-      if (m.state === 'down' || d > MECH.radius + r.spec.radius + 0.6) continue;
+    for (const m of [...Game.humans.map((h) => h.mech), ...Game.squad]) {
+      if (m.type && (m.state !== 'ally' || m.air || ROBOT_TYPES[m.type].flies)) continue;
+      const dx = m.pos.x - r.pos.x, dz = m.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
+      if (m.state === 'down' || d > (m.type ? m.spec.radius : MECH.radius) + r.spec.radius + 0.6) continue;
       const k = clamp(r.speed / r.spec.boostSpeed, 0, 1);
       hurtMech(m, Math.round(10 + 10 * k), 'ram');
       const kb = m.fx?.push ?? 1;   // (B2: × the leg shape's knock-back)
@@ -6392,7 +6486,7 @@ function tick(dt) {
     if (m.state === 'down') { m.input.throttle = m.input.turn = 0; m.input.attack = false; m.input.boost = false; m.input.aimYaw = m.torsoYaw; m.input.aimPitch = m.aimPitch; }
     mechTick(m, dt); combatTick(m, dt);
   }
-  for (const r of Game.robots) robotTick(r, dt);
+  for (const r of [...Game.robots]) robotTick(r, dt);   // (a copy: #59 a squadmate can be destroyed in its tick)
   Bullets.tick(dt);
   rams();
   allyRams();
@@ -6903,23 +6997,36 @@ const FixUI = {
     if (!Game.manual) Sfx.click();
     return this.mode === 'mend';
   },
-  // the part ids the mend panel offers: one per damaged area, the part that fixes it
-  mendIds() { const m = Game.humans[0]?.mech; return m ? AREAS.filter((a) => hurtIn(m, a) && partFor(a)).map(partFor) : []; },
+  // the part ids the mend panel offers: one per damaged area, the part that fixes it. #59: then each running
+  // squadmate's damaged areas, as 'part@id' (the same parts mend a squadmate: repairSelf with a mate)
+  mendIds() {
+    const m = Game.humans[0]?.mech; if (!m) return [];
+    const mine = AREAS.filter((a) => hurtIn(m, a) && partFor(a)).map(partFor);
+    const mates = Game.squad.filter((r) => r.state === 'ally').flatMap((r) => AREAS.filter((a) => hurtIn(r, a) && partFor(a)).map((a) => partFor(a) + '@' + r.id));
+    return mine.concat(mates);
+  },
   // each damaged area: its icon, how hurt it is, and the part that fixes it with how many the bag has
+  // (#59: a squadmate's areas carry its robot icon and are edged in its glow colour)
   drawMend() {
     if (this.mode !== 'mend') return;
     const m = Game.humans[0].mech, pad = padConnected(), ids = this.mendIds();
-    const key = JSON.stringify([AREAS.map((a) => Math.round(m.damage[a])), Math.round(m.maxHealth - m.health), Game.bag, pad && this.mendCur]); if (key === this.mendKey) return; this.mendKey = key;
+    const mates = Game.squad.filter((r) => r.state === 'ally').map((r) => [r.id, AREAS.map((a) => Math.round(r.damage[a]))]);
+    const key = JSON.stringify([AREAS.map((a) => Math.round(m.damage[a])), Math.round(m.maxHealth - m.health), Game.bag, pad && this.mendCur, ...(mates.length ? [mates] : [])]); if (key === this.mendKey) return; this.mendKey = key;
     if (!ids.length) { $('mendTiles').innerHTML = '<div class="empty">❤️✔</div>'; return; }
-    $('mendTiles').innerHTML = ids.map((id, i) => {
-      const a = PARTS[id].fixes, n = Game.bag[id] || 0, f = clamp(m.damage[a] / m.maxHealth, 0, 1);
-      return `<div class="need" data-area="${a}"><span class="area">${AREA_ICON[a]}</span><div class="dmg"><b style="width:${(f * 100).toFixed(1)}%"></b></div>`
-        + this.tile(id, (n ? '' : 'dim') + (pad && i === this.mendCur % ids.length ? ' cur' : '')).replace('</button>', `<b class="n${n ? '' : ' zero'}">×${n}</b></button>`) + '</div>';
+    $('mendTiles').innerHTML = ids.map((key, i) => {
+      const [id, who] = key.split('@'), b = who ? Game.squad.find((r) => r.id === +who) : m;
+      const a = PARTS[id].fixes, n = Game.bag[id] || 0, f = clamp(b.damage[a] / b.maxHealth, 0, 1);
+      const tag = who ? `<span class="who" style="border-color:${b.glowColor}">${icon(ROBOT_TYPES[b.type].ic)}</span>` : '';
+      return `<div class="need${who ? ' mate' : ''}" data-area="${a}"${who ? ` data-who="${who}"` : ''}>${tag}<span class="area">${AREA_ICON[a]}</span><div class="dmg"><b style="width:${(f * 100).toFixed(1)}%"></b></div>`
+        + this.tile(id, (n ? '' : 'dim') + (pad && i === this.mendCur % ids.length ? ' cur' : '')).replace('</button>', `<b class="n${n ? '' : ' zero'}">×${n}</b></button>`).replace(`data-part="${id}"`, `data-part="${key}"`) + '</div>';
     }).join('');
+    if (pad && mates.length) $('mendTiles').querySelector('.tile.cur')?.scrollIntoView?.({ block: 'nearest' });   // (#59: a long list scrolls to the pad's pick)
   },
   // tap a part in the mend panel: use one on its area, or buzz and shake if the bag hasn't got it
-  useMend(h, id) {
-    const res = repairSelf(h, [id]);
+  // (#59: 'part@id' uses it on that squadmate)
+  useMend(h, key) {
+    const [id, who] = String(key).split('@');
+    const res = who ? repairSelf(h, [id], Game.squad.find((r) => r.id === +who) || null) : repairSelf(h, [id]);
     if (!res.ok) { if (!Game.manual) Sfx.buzz(); const b = $('mendTiles'); b.classList.remove('bad'); void b.offsetWidth; b.classList.add('bad'); }
     this.drawMend();
     return res;
@@ -7287,17 +7394,26 @@ function updateHud() {
   Waves.draw();          // the 🌊 wave number, and the clear screen
   // each squadmate's tag is edged in its glow colour, to match it in the meadow
   // (the squadmate picked to go home wears a 🏠 until the new robot's fix is done)
-  const goHome = h.repair?.home, sk = Game.squad.map((r) => r.id + ':' + r.name).join('|') + '/' + (goHome?.id ?? '');
+  // #59: under the name, its energy bar. Powered down, the tag goes dark with a sleep icon, a warning one as its
+  // rescue clock runs out
+  const downIc = (r) => (r.state !== 'down' ? null : r.downT > ROBOT.warnTime ? 'sleep' : 'warn');
+  const goHome = h.repair?.home, sk = Game.squad.map((r) => r.id + ':' + r.name + ':' + (downIc(r) ?? '')).join('|') + '/' + (goHome?.id ?? '');
   if (sk !== updateHud.squadKey) {
     updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
     for (const r of Game.squad) {
-      const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : '') + (r.gold ? ' gold' : '');
-      if (r !== goHome) { d.style.borderColor = r.glowColor; d.style.boxShadow = `0 0 10px ${r.glowColor}`; }
-      const b = document.createElement('b'); b.innerHTML = icon(r === goHome ? 'home' : ROBOT_TYPES[r.type].ic); d.append(b, r.name);
+      const dn = downIc(r);
+      const d = document.createElement('div'); d.className = 'mate' + (r === goHome ? ' home' : '') + (r.gold ? ' gold' : '') + (dn ? ' down' : '');
+      if (r !== goHome) { d.style.borderColor = r.glowColor; d.style.boxShadow = dn ? 'none' : `0 0 10px ${r.glowColor}`; }
+      const b = document.createElement('b'); b.innerHTML = icon(r === goHome ? 'home' : dn || ROBOT_TYPES[r.type].ic); d.append(b, r.name);
       if (r.gold && r !== goHome) d.insertAdjacentHTML('beforeend', icon('goldstar'));   // 🌟 after the name
+      d.insertAdjacentHTML('beforeend', '<i class="mhp"><b></b></i>');
       el.append(d);
     }
   }
+  Game.squad.forEach((r, k) => {   // (#59: the bars follow every hit and mend without redrawing the tags)
+    const f = clamp(r.health / r.maxHealth, 0, 1), bar = $('squad').children[k]?.querySelector('.mhp b'); if (!bar) return;
+    bar.style.width = (f * 100).toFixed(1) + '%'; bar.style.background = f > 0.5 ? 'var(--green)' : f > 0.25 ? 'var(--yellow)' : '#ff4d5e';
+  });
   // the prompt sits beside the downed robot on screen
   const pr = !h.repair && !Game.paused && promptRobot(h), pe = $('prompt');
   let shown = false;
@@ -7310,10 +7426,10 @@ function updateHud() {
     }
   }
   pe.classList.toggle('on', shown);
-  $('pFix').classList.toggle('full', Game.squad.length >= REPAIR.squadMax);   // still works: it asks who goes home 🏠
+  $('pFix').classList.toggle('full', Game.squad.length >= REPAIR.squadMax && !Game.squad.includes(pr));   // still works: it asks who goes home 🏠 (#59: not for a downed squadmate: that fix is a rescue)
   // getting hearts back: the 🔧 button pulses when the bag has a part for a damaged area,
   // each heal floats up from the bar as +N with its source's icon, and the bar flashes
-  const ids = AREAS.filter((a) => hurtIn(m, a)).map(partFor).filter(Boolean), down = m.state === 'down';
+  const ids = FixUI.mendIds().map((k) => k.split('@')[0]), down = m.state === 'down';   // (#59: squadmates' areas too)
   $('mendBtn').classList.toggle('off', down || !ids.length);
   $('mendBtn').classList.toggle('ready', !down && ids.some((id) => Game.bag[id] > 0));
   $('jumpBtn').classList.toggle('on', (m.upg?.spring || 0) > 0); $('jumpBtn').classList.toggle('air', (!!m.hop && !(m.adv?.jets && !m.hop.jet)) || down);   // (G4: lit in the air while the jets' jump is left)
@@ -7573,7 +7689,8 @@ const Garage = {
     }
     Game.bag[part] = have - SQUAD_UP.cost; if (!Game.bag[part]) delete Game.bag[part];
     r.upg[U.id] = lv + 1;
-    if (U.id === 'plating') { const max = squadEnergy(r), d = max - r.maxHealth; r.maxHealth = max; r.health = clamp(r.health + d, 1, max); }
+    // (#59: a powered-down squadmate stays at 0: the new energy goes on as hull damage, so its areas still add up to max)
+    if (U.id === 'plating') { const max = squadEnergy(r), d = max - r.maxHealth; r.maxHealth = max; if (r.state === 'down') r.damage.hull += d; else r.health = clamp(r.health + d, 1, max); }
     if (this.on) { const i = this.squadOptions().findIndex((o) => o.id === r.id && o.up === U.id); if (i >= 0) this.scur = i; this.draw(); this.flash(null, 'got', `.scard[data-id="${r.id}"]`); }
     if (!Game.manual) { Sfx.mendParts(); Sfx.tone(523, 0.12, 'square', 0.06, 784, 0.32); }
     return { ok: true, id: r.id, up: U.id, level: lv + 1, part, spent: SQUAD_UP.cost, left: Game.bag[part] || 0, effects: squadEffects(r) };
@@ -8483,6 +8600,21 @@ window.__rb = {
   // open or close the 🔧 mend panel (as its button does); returns whether it's open
   mend() { return FixUI.toggleMend(); },
   // setup only: hurt a robot without a weapon hit (doesn't count as a hit)
+  // #59 setup only: hurt squadmate id the way an enemy's hit does (how: a HIT_AREAS key: 'hit', 'ram', 'snipe', 'zap', 'stomp')
+  hurtMate(id, amount, how = 'hit') {
+    const r = Game.squad.find((q) => q.id === id); if (!r) return null;
+    hurtMech(r, amount, how);
+    return this.state().squad.find((q) => q.id === id) ?? null;
+  },
+  // #59: player i spends parts from the bag on squadmate id (picks = part ids), the same path as tapping its row in
+  // the 🔧 panel. Refused like repair(), and while the squadmate is powered down (that needs its Quick Fix)
+  repairMate(id, picks, i = 0) {
+    const h = Game.humans[i]; if (!h) return null;
+    const res = repairSelf(h, picks, Game.squad.find((q) => q.id === id) ?? null);
+    return { ...res, mate: this.state().squad.find((q) => q.id === id) ?? null, bag: { ...Game.bag }, parts: Game.parts };
+  },
+  // #59: tap a row in the open 🔧 panel, as a click does: 'armour' for your mech, 'armour@<id>' for a squadmate
+  mendTap(key) { return FixUI.useMend(Game.humans[0], key); },
   damage(id, amount, weapon = 'setup') {
     const r = Game.robots.find((q) => q.id === id); if (!r) return null;
     hurtRobot(r, amount, weapon);
@@ -8626,7 +8758,14 @@ window.__rb = {
       // G3: type, health / maxHealth, its garage upgrades (plating, job) and what they do (effects: maxHealth, job =
       // { what: ram | range | scout | chain, value }), its mode, and rams = squadmate Charger rams landed (lastRam = the last's damage)
       squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null,
-        type: r.type, health: r.health, maxHealth: r.maxHealth, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, effects: squadEffects(r), mode: r.ai.mode, rams: r.rams || 0, lastRam: r.lastRam ?? null })),
+        type: r.type, health: r.health, maxHealth: r.maxHealth, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, effects: squadEffects(r), mode: r.ai.mode, rams: r.rams || 0, lastRam: r.lastRam ?? null,
+        // #59: its damage by area, hits taken as a squadmate, powered down (down) with its rescue clock (rescueIn, s),
+        // times powered down and rescued, the areas worth a part (needs, as players' needs), and its chip as drawn
+        damage: Object.fromEntries(AREAS.map((a) => [a, r3(r.damage[a])])), hitsTaken: r.hitsTaken, down: r.state === 'down', rescueIn: r.state === 'down' ? r3(r.downT) : null,
+        downs: r.mateDowns || 0, rescues: r.rescues || 0,
+        needs: r.state === 'ally' ? AREAS.filter((a) => hurtIn(r, a)).map((a) => ({ area: a, part: partFor(a) ?? null, have: Game.bag[partFor(a)] || 0 })) : [],
+        chip: (() => { const c = $('squad').children[Game.squad.indexOf(r)]; return c ? { bar: parseFloat(c.querySelector('.mhp b')?.style.width) || 0, down: c.classList.contains('down'), icon: c.querySelector('b svg')?.dataset.icon ?? null } : null; })() })),
+      lost: Game.lost.map((q) => ({ ...q, upgrades: { ...q.upgrades } })),   // #59: squadmates destroyed this session ({ id, name, type, how: 'time' | 'parts', wave, upgrades })
       parts: Game.parts,                                  // total parts collected (the HUD's 🔩)
       bag: { ...Game.bag },                               // parts collected, by kind: { armour: 2, ram: 1 }
       takeMax: REPAIR.takeMax,
