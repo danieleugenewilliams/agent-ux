@@ -4629,6 +4629,12 @@ function destroyMate(r, how) {
   if (r.repairBy) cancelRepair(r.repairBy);
   Game.squad.splice(Game.squad.indexOf(r), 1);
   Game.squad.forEach((q, k) => { q.ai.slot = k; });
+  // a player still being asked who goes home has room now: no one goes, and the new robot's wiring opens (as chooseHome)
+  for (const h of Game.humans) {
+    const rp = h.repair; if (rp?.kind !== 'home' || Game.squad.length >= REPAIR.squadMax) continue;
+    rp.kind = 'fix'; rp.home = null; startBoard(rp.r);
+    if (h.idx === 0) { FixUI.homeWarn = null; FixUI.openWires(rp.r); }
+  }
   if (how === 'time') {
     Sparks.burst(r.pos.x, r.pos.y + 2.5, r.pos.z, 45, SPARK_HOT, 8);
     Impacts.chip(new V3(r.pos.x, r.pos.y + 2, r.pos.z), 10, [r.glowColor, '#2d3446'], 7, 0, 0, 0.25);
