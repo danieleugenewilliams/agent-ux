@@ -4599,7 +4599,11 @@ const hurtIn = (m, a) => m.damage[a] >= 0.5 && m.maxHealth - m.health >= 0.5;
 const partFor = (area) => Object.keys(PARTS).find((id) => PARTS[id].fixes === area);
 // 0 hearts: the mech powers down like a robot. Its lights go out, its controls do
 // nothing, any repair it was doing is dropped and glitched robots leave it be.
+// At 0 the areas hold exactly max: damage a leg swap or a child switch (#68) carried past max is let go here, or the
+// reboot would mend only part of it and the next swap or switch would read the rest as lost health.
 function powerDownMech(m) {
+  let over = AREAS.reduce((t, k) => t + m.damage[k], 0) - m.maxHealth;
+  for (const k of AREAS) { const cut = Math.min(m.damage[k], Math.max(0, over)); m.damage[k] -= cut; over -= cut; }
   m.state = 'down'; m.downT = PLAYER.downTime; m.downs++;
   m.input.throttle = m.input.turn = 0; m.input.attack = false; m.swing = null; m.burstN = 0; m.charge = null;
   const h = m.human;
