@@ -205,7 +205,9 @@
   .hwarn { display: none; margin-top: 14px; padding: 6px 14px; border-radius: 14px; background: #ff4d5e; color: #fff; font: 900 24px 'Asap', sans-serif; text-align: center; box-shadow: 0 4px 0 var(--ink); }
   .hwarn.on { display: block; }
   #hud .mate.home { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255,216,61,.7); opacity: .75; }
-  #hud .prompt .pfix.full::after { content: '🏠'; position: absolute; left: -10px; top: -10px; font-size: 22px; }
+  /* I1: the 🏠 badge on a full squad's fix button is the home icon (it was this rule's ::after emoji) */
+  #hud .prompt .pfix .hm { display: none; position: absolute; left: -10px; top: -10px; font-size: 22px; line-height: 1; }
+  #hud .prompt .pfix.full .hm { display: block; }
   /* ---------- TITLE: pick your pilot (a tap starts the game); PAUSE: ▶ carries on as the same pilot ---------- */
   #start .pilots { display: none; margin: 26px auto 0; flex-wrap: wrap; justify-content: center; gap: 16px; width: min(1000px, 94vw); }
   #start.title .pilots { display: flex; }
@@ -847,7 +849,7 @@
   </div>
   <div class="right"><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
   <div class="prompt" id="prompt">
-    <button class="pfix" id="pFix" aria-label="Fix"><i data-ic="wrench"></i><small>F</small></button>
+    <button class="pfix" id="pFix" aria-label="Fix"><i data-ic="wrench"></i><small>F</small><span class="hm"><i data-ic="home"></i></span></button>
     <button class="pparts" id="pParts" aria-label="Take parts"><i data-ic="bolt"></i><small>G</small></button>
   </div>
 </div>
