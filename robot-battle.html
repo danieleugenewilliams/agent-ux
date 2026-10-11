@@ -1044,7 +1044,8 @@ const PARTS = {
   spring:  { icon: '➰', hex: '#9f7bff', fixes: null },        // the Bouncer's coil spring
 };
 // Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
-// always maxHealth minus the damage in every area, so every heal mends areas too.
+// always maxHealth minus the damage in every area, so every heal mends areas too
+// (B2: except after a leg swap onto a smaller shape, which can leave more damage than that: see applyUpgrades).
 //  - parts: fast. One part mends up to `part` health in the area its `fixes` names.
 //  - ally: slower. A squadmate within allyRange mends allyRate health a second while
 //    no glitched robot is within safeRange (a powered-down mech is mended regardless).
@@ -3177,7 +3178,10 @@ function upgradeLook(md) {
 // B2: and whoever is playing's leg shape: the model is rebuilt with it if it's not on already (swapModel), and its trade-off
 // (m.fx, shapeFx) goes into the stats: energy added after the armour cap, and top speed, acceleration and leg turn in the
 // mech's own spec (the base mech × the shape × the motors). The kick, the jump, walking damage and knock-back read m.fx.
-function applyUpgrades() {
+// A leg swap (opts.swap, from Shapes.equip) keeps the damage taken: the areas stay as they are and health is max minus
+// it, never below 1 (so a round trip gives back the same health, and a swap never powers the mech down). On a smaller
+// shape near 0 the areas can then hold more than max − health; hurtIn and repairSelf only offer what health has room for.
+function applyUpgrades(opts = {}) {
   const h = Game.humans[0], m = h?.mech; if (!m) return null;
   const shape = Shapes.rec().legs;
   if (m.model.legShape !== shape) swapModel(h, shape);
@@ -3190,6 +3194,7 @@ function applyUpgrades() {
   if (d) {
     m.maxHealth = max;
     if (m.state === 'down') m.damage.hull = Math.max(0, m.damage.hull + d);
+    else if (opts.swap) m.health = Math.max(1, max - AREAS.reduce((t, k) => t + m.damage[k], 0));
     else {
       m.health = clamp(m.health + d, 1, max);
       // a fall in energy (a child with less armour) takes it from the areas, so health is still max minus the damage
@@ -3244,7 +3249,7 @@ const Shapes = {
     }
     const b = this.rec(), was = b[section];
     b[section] = S.id; Facts.save();
-    applyUpgrades();
+    applyUpgrades({ swap: section === 'legs' });
     if (Garage.on) { Garage.dress(); Garage.draw(); Garage.flash(null, 'got', `.lcard[data-shape="${S.id}"]`); }
     if (!Game.manual && was !== S.id) { Sfx.mendParts(); Sfx.tone(392, 0.12, 'square', 0.06, 784, 0.25); }
     return { ok: true, section, shape: S.id, was };
@@ -4338,8 +4343,9 @@ function healMech(m, amount, src, area) {
 }
 // what one part mends on mech m (G2: the wiring harness adds UPGRADE.mend a level)
 const mendPer = (m) => HEAL.part + UPGRADE.mend * (m?.upg?.wiring || 0);
-// The areas with damage worth a part (a sliver left by a squadmate's mending isn't)
-const hurtIn = (m, a) => m.damage[a] >= 0.5;
+// The areas with damage worth a part (a sliver left by a squadmate's mending isn't), while health has room for it
+// (B2: after a leg swap a smaller shape can be at full health with damage still in the areas; it's mended on a bigger one)
+const hurtIn = (m, a) => m.damage[a] >= 0.5 && m.maxHealth - m.health >= 0.5;
 const partFor = (area) => Object.keys(PARTS).find((id) => PARTS[id].fixes === area);
 // 0 hearts: the mech powers down like a robot. Its lights go out, its controls do
 // nothing, any repair it was doing is dropped and glitched robots leave it be.
@@ -4366,14 +4372,15 @@ function repairSelf(h, picks) {
   if (m.state === 'down') return { ok: false, why: 'powered down' };
   if (!Array.isArray(picks) || !picks.length) return { ok: false, why: 'pick a part' };
   const need = { ...m.damage }, left = { ...Game.bag }, mend = {}, per = mendPer(m);
+  let room = m.maxHealth - m.health;   // (B2: no part is spent past full health, which a leg swap can leave short of the areas)
   for (const id of picks) {
     const P = PARTS[id];
     if (!P) return { ok: false, why: 'no such part', part: id };
     if (!(left[id] > 0)) return { ok: false, why: 'not in bag', part: id };
     if (!P.fixes) return { ok: false, why: 'fixes nothing', part: id };
-    if (!(need[P.fixes] >= 0.5)) return { ok: false, why: 'not damaged', part: id, area: P.fixes };
-    const amt = Math.min(per, need[P.fixes]);
-    need[P.fixes] -= amt; left[id]--; mend[P.fixes] = (mend[P.fixes] || 0) + amt;
+    if (!(need[P.fixes] >= 0.5) || !(room >= 0.5)) return { ok: false, why: 'not damaged', part: id, area: P.fixes };
+    const amt = Math.min(per, need[P.fixes], room);
+    need[P.fixes] -= amt; room -= amt; left[id]--; mend[P.fixes] = (mend[P.fixes] || 0) + amt;
   }
   for (const id of picks) { Game.bag[id]--; if (!Game.bag[id]) delete Game.bag[id]; }
   let mended = 0;
@@ -6635,7 +6642,7 @@ const FixUI = {
   drawMend() {
     if (this.mode !== 'mend') return;
     const m = Game.humans[0].mech, pad = padConnected(), ids = this.mendIds();
-    const key = JSON.stringify([AREAS.map((a) => Math.round(m.damage[a])), Game.bag, pad && this.mendCur]); if (key === this.mendKey) return; this.mendKey = key;
+    const key = JSON.stringify([AREAS.map((a) => Math.round(m.damage[a])), Math.round(m.maxHealth - m.health), Game.bag, pad && this.mendCur]); if (key === this.mendKey) return; this.mendKey = key;
     if (!ids.length) { $('mendTiles').innerHTML = '<div class="empty">❤️✔</div>'; return; }
     $('mendTiles').innerHTML = ids.map((id, i) => {
       const a = PARTS[id].fixes, n = Game.bag[id] || 0, f = clamp(m.damage[a] / m.maxHealth, 0, 1);
