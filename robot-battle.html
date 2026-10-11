@@ -2061,16 +2061,17 @@ const Backup = {
     }
     return { app: BACKUP.app, format: BACKUP.format, exported: meta.exported ?? null, device: meta.device ?? null, data };
   },
-  // why child C's record r can't be restored (null: it can). Deeper than Facts.valid: every fact key is a real fact, every
-  // entry has a stage, and the parts the merge reads are the shape it expects
+  // why child C's record r can't be restored (null: it can). Deeper than Facts.valid: every fact entry has a stage, and
+  // the parts the merge reads are the shape it expects. A fact key the game doesn't ask (say a ×12 from some older
+  // version) is kept and carried along, as the game itself keeps it; only a key that would reach the prototype is refused.
   checkRec(r, C) {
     if (!isObj(r)) return `${C.name}'s record is empty`;
     if (r.v !== 1) return `${C.name}'s record is a version this game doesn't know (v ${r.v})`;
     if (!Facts.valid(r, C)) return `${C.name}'s record is damaged`;
     for (const k of Object.keys(r.facts)) {
       const e = r.facts[k];
-      if (factOf(k)?.key !== k) return `${C.name}'s record has a fact the game doesn't know (${String(k).slice(0, 20)})`;
-      if (!isObj(e) || !STAGES.includes(e.s)) return `${C.name}'s record has a damaged fact (${k})`;
+      if (!ownKeys({ [k]: 1 }).length) return `${C.name}'s record has a damaged fact (${k})`;
+      if (!isObj(e) || !STAGES.includes(e.s)) return `${C.name}'s record has a damaged fact (${String(k).slice(0, 20)})`;
       for (const a of ['ms', 'hist', 'days']) if (e[a] != null && !Array.isArray(e[a])) return `${C.name}'s record has a damaged fact (${k})`;
       for (const n of ['n', 'right', 'last', 'due']) if (e[n] != null && !Number.isFinite(e[n])) return `${C.name}'s record has a damaged fact (${k})`;
     }
@@ -2135,10 +2136,11 @@ const Backup = {
     const out = clone(dev), b = clone(bak);
     for (const k of ownKeys(b)) if (out[k] === undefined) out[k] = b[k];
     // facts
-    const rank = (e) => STAGES.indexOf(e.s), F = {};
-    for (const k of new Set([...Object.keys(dev.facts), ...Object.keys(bak.facts)])) {
+    // (this device's record passed only Facts.valid, as the game loads it: an odd part of it is kept or outvoted, never thrown)
+    const rank = (e) => STAGES.indexOf(e.s), F = {}, arr = (a) => (Array.isArray(a) ? a : []);
+    for (const k of new Set([...ownKeys(dev.facts), ...ownKeys(bak.facts)])) {
       const x = dev.facts[k], y = bak.facts[k];
-      if (!x || !y) { F[k] = clone(x || y); continue; }
+      if (!isObj(x) || !isObj(y)) { F[k] = clone(isObj(y) && !isObj(x) ? y : x ?? y); continue; }
       const win = rank(y) > rank(x) || (rank(y) === rank(x) && num(y.last) > num(x.last)) ? y : x, e = clone(win);
       if (x.last != null || y.last != null) e.last = Math.max(num(x.last), num(y.last));
       const more = num(y.n) > num(x.n) ? y : x;
@@ -2150,33 +2152,38 @@ const Backup = {
     const steps = LADDERS[out.ladder].length;
     out.step = clamp(Math.max(dev.step, bak.ladder === dev.ladder ? bak.step : 1), 1, steps);
     const op = new Map();
-    for (const o of [...(dev.opened || []), ...(bak.opened || [])]) if (isObj(o) && Number.isInteger(o.step) && (!op.has(o.step) || num(o.at) < num(op.get(o.step).at))) op.set(o.step, clone(o));
+    for (const o of [...arr(dev.opened), ...arr(bak.opened)]) if (isObj(o) && Number.isInteger(o.step) && (!op.has(o.step) || num(o.at) < num(op.get(o.step).at))) op.set(o.step, clone(o));
     out.opened = [...op.values()].sort((p, q) => p.step - q.step);
-    const ip = [...dev.inPlay]; for (const k of bak.inPlay) if (!ip.includes(k) && ip.length < FACT.newMax) ip.push(k);
+    const ip = [...dev.inPlay]; for (const k of bak.inPlay.filter((q) => typeof q === 'string')) if (!ip.includes(k) && ip.length < FACT.newMax) ip.push(k);
     out.inPlay = ip;
     // by the day, and by the name
-    const byKey = (p, q, pick) => { const o = {}; for (const k of new Set([...ownKeys(p), ...ownKeys(q)])) o[k] = k in (p || {}) && k in (q || {}) ? pick(p[k], q[k]) : clone((p && k in p) ? p[k] : q[k]); return o; };
+    const byKey = (p, q, pick) => {
+      const P = isObj(p) ? p : {}, Q = isObj(q) ? q : {}, o = {};
+      for (const k of new Set([...ownKeys(P), ...ownKeys(Q)])) o[k] = k in P && k in Q ? pick(P[k], Q[k]) : clone(k in P ? P[k] : Q[k]);
+      return o;
+    };
     if (dev.practice || bak.practice) out.practice = byKey(dev.practice, bak.practice, (p, q) => Math.max(num(p), num(q)));
     if (dev.fixMs || bak.fixMs) out.fixMs = byKey(dev.fixMs, bak.fixMs, (p, q) => clone((Array.isArray(q) ? q.length : 0) > (Array.isArray(p) ? p.length : 0) ? q : p));
     for (const f of ['cheered', 'hints']) if (dev[f] || bak[f]) out[f] = byKey(dev[f], bak[f], (p, q) => Math.min(num(p), num(q)));
     if (dev.puzzles || bak.puzzles) out.puzzles = clone(num(bak.puzzles?.seq) > num(dev.puzzles?.seq) ? bak.puzzles : dev.puzzles);
     if (dev.created != null && bak.created != null) out.created = Math.min(num(dev.created), num(bak.created));
     // the garage
-    const gd = dev.garage || blankGarage(), gb = bak.garage || blankGarage(), g = out.garage = clone(gd);
+    const gd = isObj(dev.garage) ? dev.garage : blankGarage(), gb = isObj(bak.garage) ? bak.garage : blankGarage(), g = out.garage = clone(gd);
     for (const k of ownKeys(gb)) if (g[k] === undefined) g[k] = clone(gb[k]);
     g.trophies = byKey(gd.trophies, gb.trophies, (p, q) => {
+      if (!isObj(p) || !isObj(q)) return clone(isObj(p) ? p : q);
       const t = clone(p); t.n = Math.max(num(p.n), num(q.n));
       t.from = byKey(p.from, q.from, (u, w) => Math.max(num(u), num(w)));
       return t;
     });
     g.upgrades = byKey(gd.upgrades, gb.upgrades, (p, q) => Math.max(num(p), num(q)));
     g.paint = clone(gd.paint ?? gb.paint ?? null);
-    const und = gd.unlocks || [], unb = gb.unlocks || [];
+    const und = arr(gd.unlocks), unb = arr(gb.unlocks);
     g.unlocks = [...new Set([...und, ...unb])];
-    g.fresh = g.unlocks.filter((id) => (!und.includes(id) || (gd.fresh || []).includes(id)) && (!unb.includes(id) || (gb.fresh || []).includes(id)));
-    if (gd.body || gb.body) {
-      g.body = clone(gd.body || gb.body);
-      g.body.unlocked = [...new Set([...(gd.body?.unlocked || []), ...(gb.body?.unlocked || [])])];
+    g.fresh = g.unlocks.filter((id) => (!und.includes(id) || arr(gd.fresh).includes(id)) && (!unb.includes(id) || arr(gb.fresh).includes(id)));
+    if (isObj(gd.body) || isObj(gb.body)) {
+      g.body = clone(isObj(gd.body) ? gd.body : gb.body);
+      g.body.unlocked = [...new Set([...arr(gd.body?.unlocked), ...arr(gb.body?.unlocked)])];
     }
     // the advanced parts the merged facts have earned (Facts.latch's rule: picking the child would latch them anyway, and
     // the summary should show them now), waiting for their cheer
@@ -2191,8 +2198,8 @@ const Backup = {
     goal.forEach((k) => st[r.facts[k]?.s ?? 'new']++);
     const g = r.garage || {};
     return {
-      mastered: st.mastered, known: st.known, learning: st.learning, goal: goal.size, answered: Object.values(r.facts).filter((e) => num(e.n) > 0).length,
-      step: r.step, unlocks: (g.unlocks || []).length, shapes: (g.body?.unlocked || []).length,
+      mastered: st.mastered, known: st.known, learning: st.learning, goal: goal.size, answered: ownKeys(r.facts).filter((k) => num(r.facts[k]?.n) > 0).length,
+      step: r.step, unlocks: Array.isArray(g.unlocks) ? g.unlocks.length : 0, shapes: Array.isArray(g.body?.unlocked) ? g.body.unlocked.length : 0,
       parts: ownKeys(g.trophies).reduce((t, k) => t + num(g.trophies[k]?.n), 0), upgrades: ownKeys(g.upgrades).reduce((t, k) => t + num(g.upgrades[k]), 0),
       minutes: Math.round(ownKeys(r.practice).reduce((t, k) => t + num(r.practice[k]), 0) / 6e3) / 10,
     };
@@ -2228,10 +2235,11 @@ const Backup = {
     try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith(BACKUP.prefix)) out[k.slice(BACKUP.prefix.length)] = localStorage.getItem(k); } } catch (e) {}
     return out;
   },
-  // this device's side of a restore: each child's saved record (null if there's none or it can't be read)
+  // this device's side of a restore: each child's saved record (null only if there's none, or the game itself wouldn't
+  // load it: a record the game plays from every day is never treated as missing)
   device() {
     const kids = {};
-    for (const C of CHILDREN.filter((q) => !q.guest)) { const r = store.get('facts.' + C.id, null); kids[C.id] = Facts.valid(r, C) && !this.checkRec(r, C) ? r : null; }
+    for (const C of CHILDREN.filter((q) => !q.guest)) { const r = store.get('facts.' + C.id, null); kids[C.id] = Facts.valid(r, C) ? r : null; }
     return { kids, settings: { child: store.get('child', null), pilot: store.get('pilot', null) } };
   },
   // a short name for this device and browser, for the file
