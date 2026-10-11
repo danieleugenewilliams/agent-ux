@@ -660,6 +660,19 @@
   .decal { border-radius: 12px; background: #5b6178; font-size: 24px; display: flex; align-items: center; justify-content: center; }
   .decal img { width: 34px; height: 34px; pointer-events: none; }
   .swatch.on, .decal.on { outline: 4px solid #fff; outline-offset: 2px; transform: scale(1.1); }
+  /* B1: the 🦿 Body tab. A row per section: its icon, its tier as pips (part colour for upgrades, yellow for mastery),
+     the tier's name, and the icons that raise it (🔢 lit, with its +1 / +2, once mastery adds to every section) */
+  .gwall.body { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+  .brow { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 8px 12px; border-radius: 18px; border: 4px solid color-mix(in srgb, var(--pc) 70%, transparent); background: rgba(20,24,42,.7); }
+  .brow .pips { flex: none; display: flex; gap: 6px; }
+  .brow .pips i { width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--ink); background: rgba(255,255,255,.18); }
+  .brow .pips i.on { background: var(--pc); box-shadow: 0 0 10px var(--pc); }
+  .brow .pips i.bonus { background: var(--yellow); box-shadow: 0 0 10px rgba(255,216,61,.8); }
+  .brow .bname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 900 20px 'Asap', sans-serif; color: #fff; text-shadow: 2px 2px 0 var(--ink); }
+  .braise { flex: none; display: flex; align-items: center; gap: 4px; font-size: 26px; line-height: 1; }
+  .bmath { position: relative; opacity: .4; filter: grayscale(1); }
+  .bmath.on { opacity: 1; filter: none; }
+  .bmath small { position: absolute; right: -6px; bottom: -6px; padding: 0 3px; border-radius: 6px; background: var(--yellow); color: var(--ink); font: 900 12px 'Asap', sans-serif; }
   /* the 🔧 buttons: under ⭐ on the pause screen, beside ▶ on the clear screen */
   #start .rcol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .garb { position: relative; display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; padding: 0; border-radius: 50%; border: 5px solid var(--ink); background: var(--cyan); font-size: 36px; cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
@@ -697,6 +710,15 @@
     .prow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 24px; } .plab small { font-size: 10px; }
     .psw { gap: 5px; } .swatch, .decal { width: 36px; height: 36px; border-width: 3px; } .decal img { width: 26px; height: 26px; }
+    .gwall.body { gap: 6px; justify-content: flex-start; }
+    .brow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
+    .brow .pips { gap: 3px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
+    .brow .bname { font-size: 14px; } .braise { font-size: 20px; gap: 2px; }
+  }
+  /* a narrow phone upright: five tabs across, so the bar sheds the 🔧 and the tabs their padding */
+  @media (max-width: 430px) {
+    .gtop .gt { display: none; } .gtabs { gap: 4px; } .gtab { padding: 2px 1px; border-width: 3px; border-radius: 14px; } .gtab small { font-size: 10px; letter-spacing: -.2px; }
+    #garageX { width: 48px; height: 48px; font-size: 22px; }
   }
   /* a phone on its side: a slimmer top bar, the lift narrower */
   @media (max-height: 460px) and (min-width: 600px) {
@@ -724,6 +746,10 @@
     .prow { gap: 6px; padding: 3px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 22px; } .plab small { font-size: 10px; }
     .psw { gap: 5px; } .swatch, .decal { width: 32px; height: 32px; border-width: 3px; } .decal img { width: 24px; height: 24px; }
+    .gwall.body { gap: 5px; }
+    .brow { gap: 8px; padding: 2px 8px; border-width: 3px; border-radius: 14px; }
+    .brow .pips { gap: 4px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
+    .brow .bname { font-size: 15px; } .braise { font-size: 20px; }
   }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
 </style>
@@ -885,7 +911,8 @@
 <!-- GARAGE (G1): the bay. The player's mech on a lift, four tabs, and the trophy wall: each part type on a shelf as a
      3D piece (drawn on the game canvas under this layer, in each slot's box) with how many were found and the icons of
      the robots they came from; a type never found is a dark outline. G2: 🦾 Mech has a card per upgrade (bought with
-     parts from the bag). G4: under the trophies, a shelf of the five advanced parts that facts Mastered unlock -->
+     parts from the bag). G4: under the trophies, a shelf of the five advanced parts that facts Mastered unlock. B1: 🦿 Body shows
+     each section's realism tier -->
 <div id="garage" class="screen">
   <div class="gbay">
     <div class="gtop"><span class="gt">🔧</span><div class="gtabs" id="gTabs"></div><button class="x" id="garageX" aria-label="Close">✖</button></div>
@@ -2220,9 +2247,11 @@ function buildMech(paint = PAINT) {
   hull.scale.set(2.0, 1.25, 1.65); hull.position.y = 0.75; hull.castShadow = true; torso.add(hull);
   const chest = rbox(2.6, 1.3, 0.7, 0.3, paint.trim); chest.position.set(0, 0.35, -1.25); chest.rotation.x = -0.25; torso.add(chest);
   const back = rbox(2.8, 1.6, 1.1, 0.35, paint.frame, metal); back.position.set(0, 0.9, 1.15); torso.add(back);
+  back.userData.core = 'back';   // B1: the back plate, stacks and vents are the core section (not the torso's)
   for (const s of [-1, 1]) {   // exhaust stacks
     const stack = cyl(0.22, 0.28, 1.6, paint.dark, metal, 12); stack.position.set(s * 0.8, 1.9, 1.45); stack.rotation.x = 0.15; torso.add(stack);
     const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.05, 12), glowMat('#ff6a2a', 2.2)); vent.position.set(s * 0.8, 2.7, 1.57); torso.add(vent);
+    stack.userData.core = 'stack'; vent.userData.core = 'vent';
   }
   // Cockpit: a bubble canopy at the front with a glowing visor
   const cockpit = new THREE.Group(); cockpit.position.set(0, 1.35, -1.0); torso.add(cockpit);
@@ -2356,7 +2385,7 @@ function paintMech(md, p, pilot = Game.pilot) {
       md.frameMats = new Map();
       md.root.traverse((o) => {
         const M = o.isMesh && o.material;
-        if (!M?.color || o.userData.painted || o.userData.upgrade || o.userData.decal || (M.emissive && M.emissive.getHex() && M.emissiveIntensity > 0)) return;
+        if (!M?.color || o.userData.painted || o.userData.upgrade || o.userData.decal || o.userData.bodyX || (M.emissive && M.emissive.getHex() && M.emissiveIntensity > 0 && !M.userData.tierGlow)) return;   // (B1: a tier-4 seam glow is still frame)
         if (![PAINT.frame, PAINT.dark].includes('#' + M.color.getHexString())) return;
         let c = md.frameMats.get(M);
         if (!c) {
@@ -2382,6 +2411,7 @@ function paintMech(md, p, pilot = Game.pilot) {
   if (on) { const t = decalTex(p.decal, p.trim, pilot?.emblem ?? '⭐'); if (D.mat.map !== t) { D.mat.map = t; D.mat.needsUpdate = true; } }
   for (const q of D.planes) q.visible = on;
   md.paintNow = { ...p };
+  if (md === Game.humans[0]?.mech?.model) Body.dress(md);   // B1: the realism tiers go on over the paint and finish
   return md.paintNow;
 }
 // G4: a soft studio room, prefiltered once, for the mirror finishes (and the trophy wall's chrome and gold) to reflect.
@@ -2400,6 +2430,327 @@ function paintLook(md) {
     finish: md.finish ?? null, metalness: b0 ? r3(b0.metalness) : null, roughness: b0 ? r3(b0.roughness) : null, mirror: !!b0?.envMap,
     frame: md.frameMats?.size ? [...new Set([...md.frameMats.values()].map((c) => '#' + c.color.getHexString()))] : null };   // G4: the frame's colours once gold has touched it
 }
+
+// ===========================================================================
+// B1 body shop: realism tiers. Each of the mech's four sections has a tier, 0–4:
+//   tier = upgrade points + mastery bonus, capped at 4
+//   upgrade points (0–3) = 3 × the G2 levels bought in that section ÷ the levels possible there, rounded down
+//   mastery bonus (0–2, every section) = +1 with G4's 🚀 jump jets (18 Mastered), +2 with its 🛡️ shield emitter (36).
+//     Counted from the kept unlocks, so a fact slipping back never lowers a tier; Guest earns none.
+// What each tier adds (each keeps everything below it):
+//   0 Toy           the mech as built: no maps, no reflections
+//   1 Metal         reflections (G4's room map, advEnv), a brushed roughness map on the frame, panel seams in a normal map
+//   2 Bolted        bolt and rivet heads along the plate edges, a stencilled part number and hazard chevrons (normal and
+//                   roughness maps), and clear-coat on the paint (its materials become MeshPhysicalMaterial)
+//   3 Worn          edge wear (chips on paint, dull scuffs on chrome and gold), grime in the seams (an ao map), stronger
+//                   reflections
+//   4 Battle-ready  glowing seams and status lights in the section's part colour (paint) and heat glowing up the
+//                   exhaust stacks (core), and small extras (pistons, cable bundles). Steady: they join md.lights, so a
+//                   power-down darkens them with the rest
+// Only player 0's mech, and only its own materials: its body meshes each wear their own copy since buildMech, and an
+// upgrade piece (which wears the shared mat() cache) gets this mech's own copy from tier 1. The maps are canvases drawn
+// once in grey (they never tint colour), cached by section, tier and quality, and shared by every mech that uses them.
+// A mesh's section is where it sits (so the 🐏 ram plates on the feet are legs). Body tiers aren't saved: they're worked
+// out from the saved upgrades and unlocks.
+const BODY_SECTIONS = [
+  { id: 'legs', icon: '🦿', name: 'Legs', ups: ['motor', 'spring'], hex: PARTS.motor.hex },
+  { id: 'torso', icon: '🤖', name: 'Torso', ups: ['armour'], hex: PARTS.armour.hex },
+  { id: 'arms', icon: '💪', name: 'Arms', ups: ['ram'], hex: PARTS.ram.hex },
+  { id: 'core', icon: '⚡', name: 'Core', ups: ['battery', 'wiring'], hex: PARTS.battery.hex },
+];
+// names: the tiers' names; env: reflection strength by tier (1 = as built, no map); fin: chrome / gold's 1.6, times this
+// by tier; normal: the normal map's strength; cc / ccRough: the paint's clear-coat; seam / heat: the tier-4 glows;
+// size: map size (px) by quality; bonus: the G4 unlocks that raise every section, and by how much
+const BODY = { names: ['Toy', 'Metal', 'Bolted', 'Worn', 'Battle-ready'], max: 4, points: 3, env: [1, 0.35, 0.45, 0.65, 0.65], fin: [1, 1, 1.1, 1.25, 1.25],
+  normal: [1, 0.55, 0.75, 0.9, 0.9], cc: 0.45, ccRough: 0.2, seam: 1.6, heat: 1.8, size: { full: 512, lite: 256 }, bonus: [['shield', 2], ['jets', 1]] };
+// each section's panels: where its seams cross the plate (fractions of the square), its seed and its stencil
+const BODY_PANEL = { legs: { v: [0.5], h: [0.62], seed: 11, code: 'RB-L2' }, torso: { v: [0.34, 0.66], h: [0.5], seed: 23, code: 'RB-T4' },
+  arms: { v: [], h: [0.4, 0.75], seed: 37, code: 'RB-A2' }, core: { v: [0.2, 0.4, 0.6, 0.8], h: [], seed: 53, code: 'RB-C5' } };
+const Body = {
+  mode: 'auto', q: null, preview: null, cache: new Map(), made: 0, twin: new WeakMap(), src: new WeakMap(),
+  // ---- the rule
+  points(g = Garage.rec()) {
+    const lv = upLevels(g), max = Object.fromEntries(UPGRADES.map((U) => [U.id, U.max]));
+    return Object.fromEntries(BODY_SECTIONS.map((S) => [S.id, Math.floor(BODY.points * S.ups.reduce((t, id) => t + lv[id], 0) / S.ups.reduce((t, id) => t + max[id], 0))]));
+  },
+  bonus() { return BODY.bonus.find(([id]) => Garage.has(id))?.[1] ?? 0; },
+  // the tiers on the mech now: the rule's, or every section at previewTier's n
+  tiers() {
+    const p = this.points(), b = this.bonus();
+    return Object.fromEntries(BODY_SECTIONS.map((S) => [S.id, this.preview ?? Math.min(BODY.max, p[S.id] + b)]));
+  },
+  // ---- quality: 'auto' picks lite on a coarse pointer or a screen under 900 px wide (once, so turning a phone round
+  // doesn't redraw every map), 'full' or 'lite' otherwise
+  quality() {
+    if (this.q) return this.q;
+    let coarse = false; try { coarse = matchMedia('(pointer: coarse)').matches; } catch (e) {}
+    return (this.q = this.mode !== 'auto' ? this.mode : coarse || innerWidth < 900 ? 'lite' : 'full');
+  },
+  setQuality(q) {
+    if (!['full', 'lite', 'auto'].includes(q)) return { ok: false, why: "'full', 'lite' or 'auto'" };
+    this.mode = q; this.q = null; this.refresh();
+    return { ok: true, mode: this.mode, quality: this.quality() };
+  },
+  // setup and screenshots only (never saved): every section at tier n, or null for the rule's tiers again
+  setPreview(n) {
+    if (n != null && !(Number.isInteger(n) && n >= 0 && n <= BODY.max)) return { ok: false, why: 'a tier 0–4, or null' };
+    this.preview = n ?? null; this.refresh();
+    return { ok: true, preview: this.preview, tiers: this.tiers() };
+  },
+  // put the tiers on player 0's mech again (and on the lift's copy, if the garage is open)
+  refresh() {
+    const md = Game.humans[0]?.mech?.model; if (md) this.dress(md);
+    if (Garage.on) { Garage.dress(); Garage.draw(); }
+  },
+  // ---- the maps. tex() makes each once per quality (made counts them)
+  tex(key, draw) {
+    const k = key + ':' + this.quality(); if (this.cache.has(k)) return this.cache.get(k);
+    const S = BODY.size[this.quality()], c = document.createElement('canvas'); c.width = c.height = S;
+    const t = draw(c, S, S / 256); this.made++; this.cache.set(k, t);
+    return t;
+  },
+  rnd(seed) { let s = seed; return () => ((s = (s * 16807) % 2147483647) / 2147483647); },
+  // the height of a section's plate (grey; lighter = raised): seams from tier 1, bolts, stencil and chevrons from 2, wear
+  // from 3 (chips, or scratches on a mirror finish)
+  height(g, S, u, sec, lv, scratch) {
+    const P = BODY_PANEL[sec], e = 7 * u, line = (x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
+    g.fillStyle = '#808080'; g.fillRect(0, 0, S, S);
+    g.strokeStyle = '#2a2a2a'; g.lineWidth = 3 * u;
+    g.strokeRect(e, e, S - 2 * e, S - 2 * e);
+    for (const x of P.v) line(x * S, e, x * S, S - e);
+    for (const y of P.h) line(e, y * S, S - e, y * S);
+    if (lv >= 2) {
+      const bolt = (x, y) => { const r = 4.5 * u, gr = g.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r); gr.addColorStop(0, '#f0f0f0'); gr.addColorStop(1, '#909090'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); };
+      const b = 16 * u;
+      for (let x = b; x <= S - b + 1; x += 24 * u) { bolt(x, b); bolt(x, S - b); }
+      for (let y = b + 24 * u; y < S - b; y += 24 * u) { bolt(b, y); bolt(S - b, y); }
+      for (const x of P.v) for (let y = b + 12 * u; y < S - b; y += 36 * u) { bolt(x * S - 9 * u, y); bolt(x * S + 9 * u, y); }
+      // the stencilled part number (raised a little) and a band of hazard chevrons along the bottom
+      g.fillStyle = '#a8a8a8'; g.font = `900 ${22 * u}px sans-serif`; g.textBaseline = 'top'; g.fillText(P.code, 26 * u, 26 * u);
+      g.fillStyle = '#9c9c9c'; this.chevrons(g, S, u);
+    }
+    if (lv >= 3) {
+      const w = this.rnd(P.seed * 7);
+      if (scratch) { g.strokeStyle = '#6e6e6e'; g.lineWidth = 1.2 * u; for (let i = 0; i < 26; i++) { const x = w() * S, y = w() * S, a = w() * Math.PI, L = (10 + w() * 40) * u; line(x, y, x + Math.cos(a) * L, y + Math.sin(a) * L); } }
+      else {
+        g.fillStyle = '#585858';
+        for (let i = 0; i < 34; i++) {
+          const [x, y] = this.edgeSpot(w, S, u), r = (2 + w() * 6) * u;
+          g.beginPath(); for (let k = 0; k < 7; k++) { const a = (k / 7) * Math.PI * 2, rr = r * (0.6 + w() * 0.6); g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill();
+        }
+      }
+    }
+  },
+  chevrons(g, S, u) { for (let x = 24 * u; x < S - 40 * u; x += 28 * u) { g.beginPath(); g.moveTo(x, S - 26 * u); g.lineTo(x + 14 * u, S - 26 * u); g.lineTo(x + 28 * u, S - 46 * u); g.lineTo(x + 14 * u, S - 46 * u); g.closePath(); g.fill(); } },
+  // a spot for a chip: mostly near a plate edge (where paint wears first), sometimes anywhere
+  edgeSpot(w, S, u) {
+    if (w() > 0.7) return [w() * S, w() * S];
+    const side = Math.floor(w() * 4), t = w() * S, d = 9 * u + w() * 18 * u;
+    return [[t, S - d, t, d][side], [d, t, S - d, t][side]];
+  },
+  // a section's normal map at level lv (1–3), from its height
+  normal(sec, lv, scratch) {
+    return this.tex(`n:${sec}:${lv}${lv >= 3 && scratch ? 's' : ''}`, (c, S, u) => {
+      const h = document.createElement('canvas'); h.width = h.height = S; const hg = h.getContext('2d', { willReadFrequently: true });
+      this.height(hg, S, u, sec, lv, scratch);
+      const d = hg.getImageData(0, 0, S, S).data, g = c.getContext('2d'), out = g.createImageData(S, S), o = out.data, k = 3.2 / u;
+      const H = (x, y) => d[((clamp(y, 0, S - 1) * S) + clamp(x, 0, S - 1)) * 4] / 255;
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const nx = -(H(x + 1, y) - H(x - 1, y)) * k, ny = (H(x, y + 1) - H(x, y - 1)) * k, l = Math.hypot(nx, ny, 1), i = (y * S + x) * 4;
+        o[i] = (nx / l * 0.5 + 0.5) * 255; o[i + 1] = (ny / l * 0.5 + 0.5) * 255; o[i + 2] = (1 / l * 0.5 + 0.5) * 255; o[i + 3] = 255;
+      }
+      g.putImageData(out, 0, 0);
+      const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
+    });
+  },
+  // a section's roughness (green) and grime (red, read as an ao map) in one map, for kind 'frame' (brushed, from tier
+  // 1), 'paint' (the stencil glossy from tier 2, chips to shiny bare metal from 3) or 'chrome' (chrome and gold: the
+  // stencil from 2, dull scuffs from 3). null where that kind has none yet
+  rough(sec, t, kind) {
+    const lv = t >= 3 ? 3 : kind === 'frame' ? (t >= 1 ? 1 : 0) : t >= 2 ? 2 : 0;
+    if (!lv) return null;
+    return this.tex(`r:${sec}:${kind}:${lv}`, (c, S, u) => {
+      const P = BODY_PANEL[sec], w = this.rnd(P.seed * 13 + lv), e = 7 * u;
+      const layer = () => { const q = document.createElement('canvas'); q.width = q.height = S; return q.getContext('2d', { willReadFrequently: true }); };
+      const rg = layer(), ag = layer(), line = (g, x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
+      rg.fillStyle = kind === 'frame' ? '#cdcdcd' : kind === 'chrome' && lv >= 3 ? '#b4b4b4' : '#ffffff'; rg.fillRect(0, 0, S, S);
+      if (kind === 'frame') for (let y = 0; y < S; y += 1.5 * u) { const v = 170 + Math.floor(w() * 70); rg.strokeStyle = `rgb(${v},${v},${v})`; rg.lineWidth = u; line(rg, 0, y, S, y + (w() - 0.5) * 4 * u); }
+      if (kind !== 'frame') {
+        rg.fillStyle = '#969696'; rg.font = `900 ${22 * u}px sans-serif`; rg.textBaseline = 'top'; rg.fillText(P.code, 26 * u, 26 * u);
+        this.chevrons(rg, S, u);
+      }
+      ag.fillStyle = '#ffffff'; ag.fillRect(0, 0, S, S);
+      if (lv >= 3) {
+        if (kind === 'paint') { rg.fillStyle = '#3c3c3c'; for (let i = 0; i < 34; i++) { const [x, y] = this.edgeSpot(w, S, u); rg.beginPath(); rg.arc(x, y, (2 + w() * 6) * u, 0, Math.PI * 2); rg.fill(); } }
+        else { rg.strokeStyle = '#ffffff'; rg.lineWidth = 1.5 * u; for (let i = 0; i < 40; i++) { const x = w() * S, y = w() * S, a = w() * Math.PI, L = (8 + w() * 36) * u; line(rg, x, y, x + Math.cos(a) * L, y + Math.sin(a) * L); } }
+        // grime: dark in the seams and creeping up from the bottom
+        ag.strokeStyle = '#6c6c6c'; ag.lineWidth = 7 * u; ag.filter = `blur(${3 * u}px)`;
+        ag.strokeRect(e, e, S - 2 * e, S - 2 * e); for (const x of P.v) line(ag, x * S, 0, x * S, S); for (const y of P.h) line(ag, 0, y * S, S, y * S);
+        ag.filter = 'none';
+        const gr = ag.createLinearGradient(0, S, 0, S * 0.7); gr.addColorStop(0, 'rgba(90,90,90,0.8)'); gr.addColorStop(1, 'rgba(90,90,90,0)'); ag.fillStyle = gr; ag.fillRect(0, S * 0.7, S, S * 0.3);
+      }
+      const r = rg.getImageData(0, 0, S, S).data, a = ag.getImageData(0, 0, S, S).data, g = c.getContext('2d'), out = g.createImageData(S, S), o = out.data;
+      for (let i = 0; i < o.length; i += 4) { o[i] = a[i]; o[i + 1] = r[i]; o[i + 2] = 255; o[i + 3] = 255; }
+      g.putImageData(out, 0, 0);
+      return new THREE.CanvasTexture(c);
+    });
+  },
+  // the tier-4 glow masks (white glows, black doesn't): a section's seams and three status lights, or a stack's heat
+  mask(sec) {
+    return this.tex(`m:${sec}`, (c, S, u) => {
+      const P = BODY_PANEL[sec], g = c.getContext('2d'), e = 7 * u, line = (x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
+      g.fillStyle = '#000'; g.fillRect(0, 0, S, S);
+      g.strokeStyle = '#fff'; g.lineWidth = 2 * u; g.strokeRect(e, e, S - 2 * e, S - 2 * e);
+      for (const x of P.v) line(x * S, e, x * S, S - e);
+      for (const y of P.h) line(e, y * S, S - e, y * S);
+      g.fillStyle = '#fff'; for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(S - 30 * u - i * 16 * u, 30 * u, 5 * u, 0, Math.PI * 2); g.fill(); }
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+    });
+  },
+  heat() {
+    return this.tex('m:heat', (c, S) => {
+      const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, S);
+      gr.addColorStop(0, '#fff'); gr.addColorStop(0.45, '#555'); gr.addColorStop(0.75, '#000'); g.fillStyle = gr; g.fillRect(0, 0, S, S);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+    });
+  },
+  // where mesh o sits: 'legs' | 'torso' | 'arms' | 'core', or null (on the root: the shield bubble)
+  secOf(md, o) {
+    if (o.userData.sec !== undefined) return o.userData.sec;
+    let s = null;
+    if (o.userData.core || ['cell', 'cable', 'jet', 'flame'].includes(o.userData.upgrade)) s = 'core';
+    else for (let q = o; q && q !== md.root; q = q.parent) {
+      if (md.arms.some((A) => A.shoulder === q)) { s = 'arms'; break; }
+      if (q === md.pelvis) { s = 'legs'; break; }
+      if (q === md.torso) { s = 'torso'; break; }
+    }
+    return (o.userData.sec = s);
+  },
+  // a painted mesh's material as MeshPhysicalMaterial (clear-coat, tier 2+) or back to the very MeshStandardMaterial it
+  // had (below 2). The swap carries over what paint, finish and power-down set, and moves the mech's references to it
+  // (its paint roles and lights), so paint still recolours it and a power-down still darkens it
+  paintClass(md, o, phys) {
+    const M = o.material; if (!!M.isMeshPhysicalMaterial === phys) return M;
+    let N = this.twin.get(M);
+    if (!N) { N = phys ? new THREE.MeshPhysicalMaterial() : new THREE.MeshStandardMaterial(); this.twin.set(M, N); this.twin.set(N, M); }
+    N.color.copy(M.color); N.roughness = M.roughness; N.metalness = M.metalness; N.emissive.copy(M.emissive); N.emissiveIntensity = M.emissiveIntensity;
+    N.envMap = M.envMap; N.envMapIntensity = M.envMapIntensity; N.userData = { ...M.userData }; N.needsUpdate = true;
+    if (!phys) { N.normalMap = N.roughnessMap = N.aoMap = N.emissiveMap = null; N.normalScale.setScalar(1); }
+    o.material = N;
+    for (const R of Object.values(md.paintMats)) for (const [k, v] of R) if (v === M) R.set(k, N);
+    for (const L of md.lights) if (L.mat === M) L.mat = N;
+    return N;
+  },
+  // the tiers on model md (player 0's): every section's materials as its tier says, the tier-4 lights and extras
+  dress(md) {
+    if (!md?.paintMats) return null;
+    const T = this.tiers(), fin = md.finish ?? null, glowNow = Game.humans[0]?.mech?.glow ?? 1;
+    md.lights = md.lights.filter((L) => !L.tier);
+    for (const x of md.tierX || []) x.removeFromParent();
+    md.tierX = []; md.pieceMats ||= new Map();
+    const gilt = fin === 'gold' && md.frameMats ? new Set(md.frameMats.values()) : null;
+    const set = (M, k, v) => { if (M[k] !== v) { M[k] = v; M.needsUpdate = true; } };
+    const meshes = []; md.root.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    for (const o of meshes) {
+      const sec = this.secOf(md, o); if (!sec || o.userData.decal || o.userData.bodyX) continue;
+      let M = o.material; if (!M?.isMeshStandardMaterial || M.transparent) continue;
+      const t = T[sec], painted = !!o.userData.painted;
+      if (!painted && M.emissive.getHex() && !M.userData.tierGlow) continue;   // its own glow (a visor, a vent, a cell): as built
+      // an upgrade piece wears the shared mat() cache: as built at tier 0, this mech's own copy (one per section) above
+      if (o.userData.upgrade) {
+        const src = this.src.get(o) ?? M;
+        if (!t) { if (o.material !== src) o.material = src; continue; }
+        this.src.set(o, src);
+        const k = src.uuid + sec; let c = md.pieceMats.get(k);
+        if (!c) { c = src.clone(); md.pieceMats.set(k, c); }
+        o.material = M = c;
+      }
+      if (painted) M = this.paintClass(md, o, t >= 2);
+      const finOn = painted ? !!fin : !!gilt?.has(M), kind = painted ? (fin ? 'chrome' : 'paint') : 'frame';
+      set(M, 'envMap', t || finOn ? advEnv() : null);
+      M.envMapIntensity = finOn ? 1.6 * BODY.fin[t] : t ? BODY.env[t] : 1;
+      set(M, 'normalMap', t ? this.normal(sec, Math.min(t, 3), painted && !!fin) : null);
+      M.normalScale.setScalar(t ? BODY.normal[t] : 1);
+      const rm = this.rough(sec, t, kind);
+      set(M, 'roughnessMap', rm); set(M, 'aoMap', t >= 3 ? rm : null);
+      if (M.isMeshPhysicalMaterial) { M.clearcoat = BODY.cc; M.clearcoatRoughness = BODY.ccRough; }
+      // tier 4: the paint's seams and status lights glow in the section's colour; heat glows up the exhaust stacks
+      const glow = t === 4 && (painted || ['back', 'stack'].includes(o.userData.core)) ? (o.userData.core === 'stack' ? 'heat' : 'seam') : null;
+      if (glow) {
+        const k = glow === 'heat' ? BODY.heat : BODY.seam, S = BODY_SECTIONS.find((q) => q.id === sec);
+        M.userData.tierGlow = glow; M.emissive.set(glow === 'heat' ? '#ff6a2a' : S.hex); set(M, 'emissiveMap', glow === 'heat' ? this.heat() : this.mask(sec));
+        M.emissiveIntensity = k * glowNow; md.lights.push({ mat: M, k, tier: true, sec });
+      } else if (M.userData.tierGlow) {
+        delete M.userData.tierGlow; M.emissive.set(0); set(M, 'emissiveMap', null); M.emissiveIntensity = glowNow;
+      }
+    }
+    // tier 4's extras: an exposed piston up each thigh, a cable bundle down each arm, a hydraulic ram each side of the
+    // torso, a bundle across the back
+    const X = this.extras(), put = (sec, parent, geo, m, x, y, z, rx = 0, rz = 0) => {
+      const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.rotation.set(rx, 0, rz); o.castShadow = true; o.receiveShadow = true;
+      o.userData.bodyX = sec; o.userData.sec = sec; parent.add(o); md.tierX.push(o); return o;
+    };
+    if (Object.values(T).includes(4)) {
+      md.xMats ||= { steel: new THREE.MeshStandardMaterial({ color: '#c9ced8', metalness: 0.9, roughness: 0.25 }), cable: new THREE.MeshStandardMaterial({ color: '#232838', metalness: 0.2, roughness: 0.6 }) };
+      for (const m of Object.values(md.xMats)) set(m, 'envMap', advEnv());
+    }
+    if (T.legs === 4) for (const L of md.legs) put('legs', L.hip, X.piston, md.xMats.steel, L.s * 0.48, -1.0, 0.42, 0.06);
+    if (T.arms === 4) for (const A of md.arms) put('arms', A.arm, X.armCable, md.xMats.cable, A.s * 0.3, 0, 0);
+    if (T.torso === 4) for (const s of [-1, 1]) put('torso', md.torso, X.ram, md.xMats.steel, s * 1.55, 0.2, -0.55, 0, s * 0.35);
+    if (T.core === 4) put('core', md.torso, X.backCable, md.xMats.cable, 0, 0, 0);
+    md.tierNow = { tiers: T, quality: this.quality() };
+    return T;
+  },
+  // the extras' geometry, made once and shared
+  extras() {
+    if (this.xGeo) return this.xGeo;
+    const tube = (pts, r, n) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new V3(...p))), n, r, 6);
+    return (this.xGeo = {
+      piston: new THREE.CylinderGeometry(0.09, 0.09, 1.5, 10),
+      armCable: tube([[0, -0.05, 0.3], [0.12, -0.45, 0.4], [0.08, -0.85, 0.32], [0, -1.05, 0.15]], 0.1, 20),
+      ram: new THREE.CylinderGeometry(0.11, 0.13, 1.3, 10),
+      backCable: tube([[-1.1, 1.65, 1.5], [-0.5, 1.75, 1.78], [0.5, 1.75, 1.78], [1.1, 1.65, 1.5]], 0.11, 24),
+    });
+  },
+  // ---- what the mech shows, read back from its materials: per section, whether every dressed material has a normal map,
+  // every frame one a roughness map, ao and reflections; the paint's (or, where the section has none, the frame's)
+  // reflection strength, clear-coat and colour; how many tier-4 glows it has and how many are lit now; its extras
+  look(md) {
+    if (!md?.paintMats) return null;
+    const out = Object.fromEntries(BODY_SECTIONS.map((S) => [S.id, { mats: [], paint: null, frame: null }]));
+    md.root.traverse((o) => {
+      if (!o.isMesh || o.userData.decal || o.userData.bodyX) return;
+      const sec = this.secOf(md, o), M = o.material; if (!sec || !M?.isMeshStandardMaterial || M.transparent) return;
+      if (!o.userData.painted && M.emissive.getHex() && !M.userData.tierGlow) return;
+      const B = out[sec]; B.mats.push({ M, painted: !!o.userData.painted });
+      if (o.userData.paint === 'body' && !B.paint) B.paint = M; else if (!o.userData.painted && !o.userData.upgrade && !B.frame) B.frame = M;
+    });
+    return Object.fromEntries(BODY_SECTIONS.map((S) => {
+      const B = out[S.id], rep = B.paint || B.frame, all = (f) => B.mats.length > 0 && B.mats.every(f), lights = md.lights.filter((L) => L.tier && L.sec === S.id);
+      return [S.id, { normalMap: all((x) => !!x.M.normalMap), roughnessMap: all((x) => x.painted || !!x.M.roughnessMap), paintRough: B.paint ? !!B.paint.roughnessMap : null, aoMap: all((x) => !!x.M.aoMap),
+        envMap: all((x) => !!x.M.envMap), envMapIntensity: rep ? r3(rep.envMapIntensity) : null, clearcoat: B.paint ? (B.paint.isMeshPhysicalMaterial ? r3(B.paint.clearcoat) : 0) : null,
+        physical: B.paint ? !!B.paint.isMeshPhysicalMaterial : null, lit: lights.filter((L) => L.mat.emissiveIntensity > 0.1).length, glows: lights.length,
+        color: rep ? '#' + rep.color.getHexString() : null, frame: B.frame ? '#' + B.frame.color.getHexString() : null,
+        size: rep?.normalMap?.image?.width ?? null, extras: (md.tierX || []).filter((o) => o.userData.bodyX === S.id && o.parent).length, meshes: B.mats.length }];
+    }));
+  },
+  // what model md costs to draw: one call per visible mesh (per material group), and its triangles
+  cost(md) {
+    let calls = 0, triangles = 0;
+    const walk = (o) => {
+      if (!o.visible) return;
+      if (o.isMesh) { const g = o.geometry, n = g.index ? g.index.count : g.attributes.position.count; calls += Array.isArray(o.material) ? g.groups.length : 1; triangles += Math.round(n / 3); }
+      for (const c of o.children) walk(c);
+    };
+    if (md) walk(md.root);
+    return { calls, triangles };
+  },
+  status(md = Game.humans[0]?.mech?.model) {
+    const T = this.tiers();
+    return { tiers: T, points: this.points(), bonus: this.bonus(), names: Object.fromEntries(Object.entries(T).map(([k, t]) => [k, BODY.names[t]])),
+      quality: this.quality(), mode: this.mode, preview: this.preview, size: BODY.size[this.quality()], mats: this.look(md), cost: this.cost(md) };
+  },
+};
 
 // G2: each upgrade shows on the mech, in its part's colour, more of it at each level:
 //   armour  thicker plates (the thigh, shin and skirt plates grow) and a violet plate bolted on per level
@@ -6343,7 +6694,7 @@ function updateHud() {
 // there too); the world is paused while it's open, and ✖, Esc, G, pad B (or Start)
 // closes it: back to the pause screen, or from the clear screen straight back to the
 // running meadow. 🏆 Trophies, 🦾 Mech (G2: upgrades bought with parts from the bag), 🤖 Squad
-// (G3: each squadmate's own upgrades) and 🎨 Paint (G3: free colours and a decal). G4: the trophy wall's advanced shelf, and a cheer for new unlocks. The 3D (the lift, a piece per part type) is drawn by the game's
+// (G3: each squadmate's own upgrades), 🎨 Paint (G3: free colours and a decal) and 🦿 Body (B1: each section's realism tier). G4: the trophy wall's advanced shelf, and a cheer for new unlocks. The 3D (the lift, a piece per part type) is drawn by the game's
 // own renderer into each box's rectangle while the garage is open, under a see-through
 // HTML layer that carries the counts, the icons and the buttons.
 // ===========================================================================
@@ -6352,6 +6703,7 @@ const GARAGE_TABS = [
   { id: 'mech', icon: '🦾', name: 'Mech' },
   { id: 'squad', icon: '🤖', name: 'Squad' },
   { id: 'paint', icon: '🎨', name: 'Paint' },
+  { id: 'body', icon: '🦿', name: 'Body' },   // B1: each section's realism tier (read-only)
 ];
 const GARAGE = { bg: '#1b2034', lift: 1.2, spin: 0.45, pieceSpin: 0.7, ghost: '#0b0e18', rim: '#6f7a9c' };
 // where a trophy came from, as an icon: the robot type's own, or 🔍 for a part hidden in the meadow
@@ -6420,18 +6772,19 @@ const Garage = {
     return { ok: true, tab: T.id, locked: !!T.locked };
   },
   step(d) { const i = GARAGE_TABS.findIndex((x) => x.id === this.tab), n = GARAGE_TABS.length; return this.setTab(GARAGE_TABS[(i + d + n) % n].id); },
-  // keys while it's open go to it alone: Esc / G close, ◀ ▶ (A D, Q E) or 1–4 pick a tab; on 🦾, ▲ ▼ (W S) move
+  // keys while it's open go to it alone: Esc / G close, ◀ ▶ (A D, Q E) or 1–5 pick a tab; on 🦾, ▲ ▼ (W S) move
   // between the upgrades and Enter / Space buys the one picked. Tab, and Enter / Space on a focused button, stay
   // the browser's (so they click)
   key(e) {
     if (e.code === 'Tab' || (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
     if (e.repeat) return 'used';
-    if (this.tab !== 'trophies' && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
-    else if (this.tab !== 'trophies' && (e.code === 'Enter' || e.code === 'Space')) this.act();
+    const picks = !['trophies', 'body'].includes(this.tab);   // (the 🏆 wall and the 🦿 tiers have nothing to pick)
+    if (picks && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
+    else if (picks && (e.code === 'Enter' || e.code === 'Space')) this.act();
     else if (e.code === 'Escape' || e.code === 'KeyG') this.close();
     else if (['ArrowLeft', 'KeyA', 'KeyQ'].includes(e.code)) this.step(-1);
     else if (['ArrowRight', 'KeyD', 'KeyE'].includes(e.code)) this.step(1);
-    else { const d = /^Digit([1-4])$/.exec(e.code); if (d) this.setTab(+d[1] - 1); }
+    else { const d = /^Digit([1-5])$/.exec(e.code); if (d) this.setTab(+d[1] - 1); }
     return 'used';
   },
   // the gamepad: ◀ ▶ or LB / RB pick a tab; on 🦾 / 🤖, ▲ ▼ move between the upgrades and A buys; on 🎨, ▲ ▼ pick
@@ -6439,7 +6792,7 @@ const Garage = {
   pad(pad) {
     if (!pad) return;
     if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
-    if (this.tab !== 'trophies') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
+    if (!['trophies', 'body'].includes(this.tab)) { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
     if (pad.bP || pad.xP || pad.startP) this.close();
   },
   // move the pick d on (reading order, round the end): the 🦾 card, the 🤖 button or the 🎨 row
@@ -6585,7 +6938,7 @@ const Garage = {
     if (!this.on) return;
     $('gTabs').innerHTML = GARAGE_TABS.map((T) => `<button class="gtab${T.id === this.tab ? ' on' : ''}${T.locked ? ' locked' : ''}" data-t="${T.id}" aria-label="${T.name}${T.locked ? ': coming soon' : ''}">${T.icon}<small>${T.name}</small>${T.locked ? '<i class="lk">🔒</i>' : ''}</button>`).join('');
     const T = GARAGE_TABS.find((x) => x.id === this.tab);
-    for (const c of ['trophies', 'mech', 'squad', 'paint']) $('gWall').classList.toggle(c, T.id === c);
+    for (const c of ['trophies', 'mech', 'squad', 'paint', 'body']) $('gWall').classList.toggle(c, T.id === c);
     if (T.locked) $('gWall').innerHTML = `<div class="glock" data-tab="${T.id}"><span class="big">🔒</span><span class="ti">${T.icon}</span><b>coming soon</b></div>`;
     else if (T.id === 'mech') {
       // a card per upgrade: the part (3D), what a level does, pips, cost × part, the bag's count, the buy button
@@ -6627,6 +6980,17 @@ const Garage = {
       const sw = (id) => PALETTE.map((c, k) => `<button class="swatch${p[id] === c ? ' on' : ''}" data-row="${id}" data-v="${k}" style="--sc:${c}" aria-label="${id} colour ${k + 1}"></button>`).join('');
       const dec = DECALS.map((D) => `<button class="decal${p.decal === D.id ? ' on' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}">${D.id === 'none' ? D.icon : `<img alt="" src="${decalTex(D.id, p.trim, em).image.toDataURL()}">`}</button>`).join('');
       $('gWall').innerHTML = row(0, 'body', '🤖', 'Body', sw('body')) + row(1, 'trim', '✨', 'Trim', sw('trim')) + row(2, 'decal', '🏷️', 'Decal', dec);
+    } else if (T.id === 'body') {
+      // B1: a row per section: its icon, its tier as 0–4 pips (lit by upgrades in its part colour, by mastery in yellow),
+      // the tier's name, and what raises it (its upgrades' part icons, and 🔢 for facts mastered, with the bonus it gives)
+      const B = Body.status();
+      $('gWall').innerHTML = BODY_SECTIONS.map((S) => {
+        const t = B.tiers[S.id], up = Math.min(B.points[S.id], t);
+        const pips = Array.from({ length: BODY.max }, (_, k) => `<i class="${k < up ? 'on' : k < t ? 'on bonus' : ''}"></i>`).join('');
+        return `<div class="brow" data-sec="${S.id}" data-tier="${t}" style="--pc:${S.hex}" aria-label="${S.name}: tier ${t} of ${BODY.max}, ${BODY.names[t]}">`
+          + `<span class="plab">${S.icon}<small>${S.name}</small></span><span class="pips">${pips}</span><b class="bname">${BODY.names[t]}</b>`
+          + `<span class="braise">${S.ups.map((id) => PARTS[id].icon).join('')}<span class="bmath${B.bonus ? ' on' : ''}">🔢${B.bonus ? `<small>+${B.bonus}</small>` : ''}</span></span></div>`;
+      }).join('');
     } else {
       const tr = this.trophies();
       $('gWall').innerHTML = Object.keys(PARTS).map((id) => {
@@ -6678,8 +7042,12 @@ const Garage = {
     const advanced = Object.fromEntries([...$('gWall').querySelectorAll('.aslot')].map((el) => [el.dataset.adv, { got: el.dataset.got === '1', at: +el.dataset.at,
       mile: el.querySelector('.amile')?.textContent ?? null, words: el.querySelector('.awords')?.textContent ?? null, fx: el.querySelector('.afx')?.textContent ?? null,
       icon: el.querySelector('.aic').textContent, next: el.classList.contains('next'), bar: el.querySelector('.abar i')?.style.width ?? null, new: el.classList.contains('new'), drawn: this.drawn['adv:' + el.dataset.adv] ?? null }]));
+    // B1: the 🦿 rows as shown: tier (pips lit), how many pips, how many lit by mastery, the name and the raising icons
+    const brows = [...$('gWall').querySelectorAll('.brow')];
+    const body = brows.length ? Object.fromEntries(brows.map((el) => [el.dataset.sec, { tier: +el.dataset.tier, pips: el.querySelectorAll('.pips i.on').length, of: el.querySelectorAll('.pips i').length,
+      bonus: el.querySelectorAll('.pips i.bonus').length, name: el.querySelector('.bname').textContent, raise: el.querySelector('.braise').textContent }])) : null;
     const ch = $('gCheer');
-    return { tab: this.tab, lock: lock ? { tab: lock.dataset.tab, text: lock.textContent } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? ch.querySelector('.gch')?.textContent ?? '' : null, empty: !!$('gWall').querySelector('.sempty'), paint, lift: this.drawn.lift ?? null,
+    return { tab: this.tab, body, lock: lock ? { tab: lock.dataset.tab, text: lock.textContent } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? ch.querySelector('.gch')?.textContent ?? '' : null, empty: !!$('gWall').querySelector('.sempty'), paint, lift: this.drawn.lift ?? null,
       tabs: [...$('gTabs').children].map((b) => b.dataset.t + (b.classList.contains('on') ? '*' : '') + (b.classList.contains('locked') ? '🔒' : '')) };
   },
   status() {
@@ -7289,6 +7657,12 @@ window.__rb = {
     const C = childOf(child); if (!C) return null;
     const r = Facts.peek(C); return { child: C.id, unlocks: r.garage.unlocks.slice(), fresh: r.garage.fresh.slice(), mastered: Facts.mastery(C).mastered };
   },
+  // ---- B1: the body shop's realism tiers ----
+  // the map quality: 'full' (512 px maps), 'lite' (256 px) or 'auto' (lite on a coarse pointer or a screen under 900 px
+  // wide); left out, just reads it. Returns the mode, the quality it gives and player 0's body (state().players[0].body)
+  quality(q) { const res = q == null ? { ok: true, mode: Body.mode, quality: Body.quality() } : Body.setQuality(q); return { ...res, body: this.state().players[0]?.body ?? null }; },
+  // setup and screenshots only, never saved: every section at tier n (0–4), or null for the tiers the rule gives
+  previewTier(n) { const res = Body.setPreview(n); return { ...res, body: this.state().players[0]?.body ?? null }; },
   // player i's mech jumps, as C / L / a stick pressed in do (refused without spring legs, powered down, or in the air;
   // G4: in the air with jump jets, once more: jet: true)
   jump(i = 0) { return { ...jumpMech(Game.humans[i]), player: this.state().players[i] ?? null }; },
@@ -7481,6 +7855,10 @@ window.__rb = {
           // G3: the paint on this mech, read back from its model: body / trim = the colours on its role materials, meshes
           // = how many wear each, decal = the one showing ('none' if none), decals = how many squares show it, and where
           paint: paintLook(m.model),
+          // B1 (player 0): tiers by section, upgrade points, mastery bonus, the tiers' names, quality (mode 'auto' | 'full' |
+          // 'lite', and the map size it gives), previewTier's override, and the model read back: mats per section
+          // (Body.look) and cost = its draw calls and triangles
+          body: h.idx === 0 ? Body.status(m.model) : null,
         };
       }),
       robots: Game.robots.map(robotState),
@@ -7548,6 +7926,7 @@ window.__rb = {
       // G2: garage.upgrades = whoever is playing's upgrade levels (saved in their record), garage.offer = what each next level needs
       garage: Garage.status(),
       unlocks: Garage.advStatus(),                        // G4: whoever is playing's advanced parts (Garage.advStatus)
+      textures: Body.made,                                // B1: the canvas textures made for the body's maps so far
       upgrades: Garage.levels(),                          // G2: whoever is playing's upgrade levels, by id
       upgradeRules: { ...UPGRADE, jump: [...UPGRADE.jump], list: UPGRADES.map((U) => ({ id: U.id, name: U.name, max: U.max, part: U.id })) },
       waveRules: { ...WAVE, next: Waves.list(Game.wave + 1), nextTough: r3(Waves.tough(Game.wave + 1)) },
