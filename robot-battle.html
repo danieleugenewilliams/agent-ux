@@ -16,7 +16,12 @@
   /* I1: an icon from the sprite (icon()): sized by the font, like the emoji it replaces. It sits 0.15em below the baseline;
      its margins (0.15em over, 0.16em under, the margin box 0.31em under the baseline) give the line the height an emoji
      glyph gave it (1em up, 0.31em down), so swapping an emoji for an icon moves nothing */
-  .ic { width: 1em; height: 1em; margin: 0.15em 0 0.16em; vertical-align: -0.31em; pointer-events: none; flex: none; overflow: visible; }
+  .ic { width: 1em; height: 1em; margin: 0.15em 0 0.16em; vertical-align: -0.31em; pointer-events: none; flex: none; overflow: visible; color: #fff; }
+  /* #85: the UI symbols (✔ ✖ ▶ ...) fill with .ic's color: white, but ink on a light button or key cap (white, cyan, green,
+     yellow, orange) and the icon sheet's light panel, where white read only as its outline. ⌫'s cross-out is cut in the
+     button's own colour */
+  :is(.pbtn:is(.keep, .step, .go), #go, #nextB, #nextB small, .entry .pad :is(.ok, .del), #pickOk, #nameOk, .lcard .lon, .ucard .ukey, #iconSheet .light .isz) > .ic { color: var(--ink); }
+  .entry .pad .del > .ic { --ic-cut: var(--yellow); }
   /* __rb.iconSheet(): every icon at 16, 24 and 48 px, on the dark HUD, a light panel, and (parts) their own colour */
   #iconSheet { position: fixed; inset: 0; overflow: auto; z-index: 1000; background: #0b0e18; }
   #iconSheet .ish { display: flex; flex-wrap: wrap; gap: 6px 4px; padding: 10px 12px; }
@@ -302,6 +307,7 @@
   #nextB:active { transform: translateY(5px); box-shadow: 0 3px 0 var(--ink); }
   @keyframes nextPulse { 0%,100% { box-shadow: 0 8px 0 var(--ink), 0 0 18px rgba(255,138,31,.5); } 50% { box-shadow: 0 8px 0 var(--ink), 0 0 42px rgba(255,138,31,.95); } }
   #nextB small { position: absolute; right: -8px; bottom: -8px; width: 28px; height: 28px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 17px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  #nextB small > .ic { margin: 0; vertical-align: top; transform: none; }   /* (#85: the Enter key, ↵ as text before) */
   #clear .confetti i, #cheer .confetti i { position: fixed; top: -24px; width: 11px; height: 17px; border-radius: 3px; animation: confetti 3s linear forwards; }
   @keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(110vh) rotate(900deg); opacity: .8; } }
   @media (max-width: 760px) { #clear .banner { top: 168px; padding: 8px 14px 12px; } #clear .head, #clear .head .rb-title, #clear .stars { font-size: 30px; } #clear .n { font-size: 22px; padding: 4px 8px; } #nextB { width: 74px; height: 74px; font-size: 34px; } }
@@ -500,6 +506,7 @@
     #start .gridb { height: 60px; padding: 0 14px; font-size: 22px; gap: 5px; }
     #start #go { width: 112px; height: 112px; font-size: 50px; }
   }
+  #start .gridb > .ic { border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 .12em var(--ink); }   /* #85: the ⭐ on an ink disc (gold on the yellow badge was faint) */
   #start .gridb small { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
   /* the parent button: hold it ~2 s (the ring fills) so the boys don't wander in */
   #parentB { display: none; position: fixed; left: 16px; bottom: 16px; width: 62px; height: 62px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); background: rgba(20,24,42,.8); font-size: 28px; cursor: pointer;
@@ -953,7 +960,7 @@
   <div class="banner">
     <div class="head"><span><i data-ic="trophy"></i></span><span class="rb-title">CLEARED!</span></div>
     <div class="stars" id="clearStars"><i><i data-ic="star"></i></i><i><i data-ic="star"></i></i><i><i data-ic="star"></i></i><i class="bonus" id="clearBonus" aria-label="Fast repair"><i data-ic="goldstar"></i></i></div>
-    <div class="row"><span class="n" aria-label="Fixed"><i data-ic="wrench"></i><b id="clearFixed">0</b></span><span class="n" aria-label="Taken apart"><i data-ic="bolt"></i><b id="clearTaken">0</b></span><span class="n" aria-label="Hidden parts found"><i data-ic="search"></i><b id="clearFound">0</b></span><button class="garb" id="garageC" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button><button id="nextB" aria-label="Next wave"><i data-ic="play"></i><small>↵</small></button></div>
+    <div class="row"><span class="n" aria-label="Fixed"><i data-ic="wrench"></i><b id="clearFixed">0</b></span><span class="n" aria-label="Taken apart"><i data-ic="bolt"></i><b id="clearTaken">0</b></span><span class="n" aria-label="Hidden parts found"><i data-ic="search"></i><b id="clearFound">0</b></span><button class="garb" id="garageC" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button><button id="nextB" aria-label="Next wave"><i data-ic="play"></i><small><i data-ic="enter"></i></small></button></div>
   </div>
   <div class="confetti" id="confetti"></div>
 </div>
@@ -1474,7 +1481,9 @@ const flame = (c1, c2) => pa('M12 2.4 C13.2 6.6 18.6 8.6 18.6 14.6 C18.6 18.6 15
 // a pair of mech legs mid-stride (🦿, the Walker, 🔍's limp: x = a crack drawn over it)
 const legs2 = (x) => re(6.4, 2.4, 11.2, 4.6, 1.8, G('dark')) + ln('M9.4 6.6 L7.4 12.2 L6.8 17.6 M14.6 6.6 L16.6 12.2 L17.2 17.6', G('steel'), 3.6)
   + re(2.4, 17.2, 7.8, 4.2, 1.4, G('dark')) + re(13.8, 17.2, 7.8, 4.2, 1.4, G('dark')) + ci(7.4, 12.2, 2.2, G('orange')) + ci(16.6, 12.2, 2.2, G('orange')) + x;
-const UI = '#fff';   // the UI symbols (✔ ✖ ▶ ...) are white, so they read on a coloured button and a dark panel alike
+// the UI symbols (✔ ✖ ▶ ...) draw in the svg's CSS color: white (.ic), so they read on a coloured button and a dark
+// panel alike, and ink on a light one (#85)
+const UI = 'currentColor';
 const ICONS = {
   // ---- the HUD and the world's sprites ----
   energy: ['energy', ['❤️', '❤'], pa(HEART, G('red')) + hl('M5.2 9 C5.2 7.2 6.4 6 8 6')],
@@ -1620,7 +1629,7 @@ const ICONS = {
   up: ['up', ['▲'], pa('M12 4.4 L20.6 18.6 L3.4 18.6 Z', UI)],
   down: ['down', ['▼', '⬇', '⬇️'], pa('M12 19.6 L20.6 5.4 L3.4 5.4 Z', UI)],
   arrow: ['to', ['➜', '→'], ln('M3.4 12 L13.4 12', UI, 3.2, 'butt') + pa('M12.6 5 L21 12 L12.6 19 Z', UI)],
-  erase: ['delete', ['⌫'], pa('M8.4 4.6 L21.4 4.6 L21.4 19.4 L8.4 19.4 L2.4 12 Z', UI) + `<path d="M11.6 9 L17.6 15 M17.6 9 L11.6 15" fill="none"/>`],
+  erase: ['delete', ['⌫'], pa('M8.4 4.6 L21.4 4.6 L21.4 19.4 L8.4 19.4 L2.4 12 Z', UI) + `<path d="M11.6 9 L17.6 15 M17.6 9 L11.6 15" fill="none" style="stroke: var(--ic-cut, ${INK})"/>`],
   plus: ['add', ['➕'], ln('M12 4.6 L12 19.4 M4.6 12 L19.4 12', UI, 3.2)],
   enter: ['enter', ['↵'], ln('M19 4 L19 13 L9 13', UI, 2.8) + pa('M10 7.4 L3.6 13 L10 18.6 Z', UI)],
   skip: ['skip', ['⏭', '⏭️'], pa('M3 5 L11.6 12 L3 19 Z', UI) + pa('M10.6 5 L19.2 12 L10.6 19 Z', UI) + re(18.6, 5, 2.6, 14, 0.8, UI)],
@@ -1660,11 +1669,11 @@ const icText = (str) => String(str).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<
 // I2: icText backwards, for the hooks: an element's text with each icon in it as {name} (null for no element)
 const icRead = (el) => { if (!el) return null; let out = ''; for (const nd of el.childNodes) out += nd.nodeType === 3 ? nd.data : nd.nodeType !== 1 ? '' : nd.matches('svg.ic') ? `{${nd.dataset.icon}}` : icRead(nd); return out; };
 // one icon as a standalone SVG (its own gradients, a fixed size): for a canvas
-const iconFile = (n, px = 128) => `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24"><defs>${ICON_DEFS}</defs>${iconSvg(n)}</svg>`;
+const iconFile = (n, px = 128, ui = '#fff') => `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24" color="${ui}"><defs>${ICON_DEFS}</defs>${iconSvg(n)}</svg>`;
 
 const ICON_CSS = ['check', 'up', 'down'];
-// an icon as a CSS url() of its standalone SVG (cached), for a mask or a background
-const iconURL = (n) => ((iconURL.c ||= {})[n] ||= `url('data:image/svg+xml,${encodeURIComponent(iconFile(n, 48)).replace(/'/g, '%27')}')`);
+// an icon as a CSS url() of its standalone SVG (cached), for a mask or a background. ui: the UI symbols' colour
+const iconURL = (n, ui = '#fff') => ((iconURL.c ||= {})[n + ui] ||= `url('data:image/svg+xml,${encodeURIComponent(iconFile(n, 48, ui)).replace(/'/g, '%27')}')`);
 // the sprite (one hidden <svg>: the gradients and a <symbol> per icon), and every [data-ic] placeholder in the page drawn.
 // Hidden by size, not display: none, which would stop its gradients painting where they're used.
 const Icons = {
@@ -1673,8 +1682,8 @@ const Icons = {
       + Object.keys(ICONS).map((n) => `<symbol id="i-${n}" viewBox="0 0 24 24">${iconSvg(n)}</symbol>`).join('') + '</svg>');
     for (const el of document.querySelectorAll('[data-ic]')) el.outerHTML = icon(el.dataset.ic, el.dataset.label ? { label: el.dataset.label } : {});
     // I3: the icons CSS draws in ::before / ::after (the ✔ on a picked tile and a done slot, the dial's ▲ ▼) as data URLs
-    // of the same SVG, in --ic-<name> on :root
-    for (const n of ICON_CSS) document.documentElement.style.setProperty('--ic-' + n, iconURL(n));
+    // of the same SVG, in --ic-<name> on :root. In ink (#85): the ✔ sits on a green disc, and a mask ignores the colour
+    for (const n of ICON_CSS) document.documentElement.style.setProperty('--ic-' + n, iconURL(n, ICON_INK));
   },
   // the contact sheet: every icon at 16, 24 and 48 px, on the dark HUD, on a light panel, and (parts) on its own colour.
   // Toggles; returns whether it's open and how many icons it shows
