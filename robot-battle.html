@@ -545,6 +545,7 @@
   .pchart .bar { fill: var(--orange); } .pchart .bar.today { fill: var(--cyan); }
   .pchart text { fill: #fff; font: 800 10px 'Asap', sans-serif; text-anchor: middle; }
   .pchart text.dim { fill: rgba(255,255,255,.55); }
+  .pchart .todayDot { fill: #fff; }   /* I4: today's mark (was a ● glyph) */
   .pact { display: flex; flex-wrap: wrap; gap: 10px; }
   .pbtn { position: relative; min-height: 50px; padding: 6px 16px; line-height: 1.15; border-radius: 25px; border: 4px solid var(--ink); font: 900 17px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
   .pbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
@@ -612,6 +613,17 @@
   :where(#mend) .empty > .ic + .ic { margin: 0 -.16em 0 0; vertical-align: -.15em; }   /* (the ✔ after the ❤️ was a text glyph: narrower than an emoji, and its line only the text's height) */
   :where(#home) .hwarn > .ic[data-icon="arrow"] { margin-inline: -.035em; } :where(#home) .hwarn > .ic[data-icon="cross"] { margin-inline: -.12em; }   /* (➜ and ✖ were text glyphs, .93em and .76em wide) */
   .board .plug .fixb > .ic { width: 1em; height: 1em; margin: 0 var(--mx); vertical-align: top; }
+  /* I4: the clear, fact grid, cheer and parent screens size their icons the way I2's garage does (the room the emoji took,
+     drawn a fifth bigger; :where() so a screen's own rules still win), with only the side margins where a line was 1em
+     tall. The title and pause screens, and the parent view's buttons (D1's already had icons), take .ic's own size, which
+     already matched there; text glyphs that were narrower than an icon (◀ ✖ ⏭ ⏱) get a small negative side margin */
+  :where(#clear, #grid, #parent :is(.top, .psum, .pconfirm > span), #cheer) .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
+    margin: max(.15em, min(calc(.15em + 3.5px), calc(23px - .85em))) var(--mx) calc(.16em + 1px); vertical-align: calc(-.31em - 1px); }
+  :where(#clear, #grid, #parent, #cheer) :is(.head > span, .stars > i, .face, .kface, .cell) > .ic { margin: 0 var(--mx); vertical-align: top; }
+  :where(#kidB) .back > .ic { margin-inline: -.075em; }
+  :where(#grid, #parent) .ginfo .ic[data-icon="timer"] { margin-inline: -.1em; }
+  :where(#pConfirm) .pbtn.keep > .ic { margin-inline: -.18em; } :where(#parent) .pbtn.step > .ic { margin: 0 -.08em; vertical-align: -.2em; }
+  :where(#grid, #parent) .cell.s-new > .ic { opacity: .6; }   /* (New's ○ was a dim grey) */
   .gbay { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 16px; }
   .gtop { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 8px solid transparent;
     border-image: repeating-linear-gradient(-45deg, var(--yellow) 0 14px, var(--ink) 14px 28px) 8; }
@@ -877,33 +889,35 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="loading">🤖</div>
+<!-- I4: the robot icon, copied in as it stands (its gradients renamed ld-): the icon sprite is only put in once three.js has
+     loaded, and this shows until then -->
+<div id="loading"><svg class="ic" data-icon="robot" role="img" aria-label="Loading" viewBox="0 0 24 24"><defs><linearGradient id="ld-rbg-red" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a96"/><stop offset="1" stop-color="#e0283c"/></linearGradient><linearGradient id="ld-rbg-dark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9aa4b8"/><stop offset="1" stop-color="#4a5368"/></linearGradient><linearGradient id="ld-rbg-steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f7fb"/><stop offset="1" stop-color="#8b95aa"/></linearGradient></defs><g stroke="#14182a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3.4 L12 5.6" fill="none" stroke-width="5.4" stroke-linecap="round"/><path d="M12 3.4 L12 5.6" fill="none" stroke="#6a7388" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="2.8" r="1.5" fill="url(#ld-rbg-red)"/><rect x="1.8" y="10" width="2.6" height="5.4" rx="1" fill="url(#ld-rbg-dark)"/><rect x="19.6" y="10" width="2.6" height="5.4" rx="1" fill="url(#ld-rbg-dark)"/><rect x="4" y="5.6" width="16" height="14.4" rx="4" fill="url(#ld-rbg-steel)"/><rect x="6.6" y="9" width="10.8" height="5" rx="2.5" fill="#14182a" stroke="none"/><circle cx="9.6" cy="11.5" r="1.5" fill="#3ff0ff" stroke="none"/><circle cx="14.4" cy="11.5" r="1.5" fill="#3ff0ff" stroke="none"/><rect x="9" y="16.2" width="6" height="1.6" rx="0.8" fill="#4a5368" stroke="none"/><path d="M6 9 L6 13.4" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="1.6"/></g></svg></div>
 
 <!-- START: the title screen (tap a pilot to play) and the pause screen (▶ carries on); then the mouse aims (pointer lock) -->
 <div id="start" class="screen on title who">
   <div class="wrap">
     <div class="logo rb-title">ROBOT <span>BATTLE</span></div>
     <!-- WHO'S PLAYING: one big tile per child (their progress is theirs, whoever they pilot); a tap goes on to the pilots -->
-    <div class="ask">🎮 Who's playing?</div>
+    <div class="ask"><i data-ic="pad"></i> Who's playing?</div>
     <div class="kids" id="kids"></div>
     <!-- who's playing (◀ picks again, on the title) and the Quick Fix setting: 🔢 math wiring or 🌈 colour wiring -->
-    <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><button class="chip" id="wireB" aria-label="Math or colour wiring"><i data-w="math">🔢</i><i data-w="colour">🌈</i></button></div>
+    <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><button class="chip" id="wireB" aria-label="Math or colour wiring"><i data-w="math"><i data-ic="math"></i></i><i data-w="colour"><i data-ic="colours"></i></i></button></div>
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
-    <div class="resume"><div class="who" id="who"></div><div class="rcol"><button class="gridb" id="gridB" aria-label="My facts">⭐<b id="gridN"></b><small>T</small></button><button class="garb" id="garageB" aria-label="Garage">🔧<small>G</small></button></div><button id="go" aria-label="Play">▶</button></div>
+    <div class="resume"><div class="who" id="who"></div><div class="rcol"><button class="gridb" id="gridB" aria-label="My facts"><i data-ic="star"></i><b id="gridN"></b><small>T</small></button><button class="garb" id="garageB" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button></div><button id="go" aria-label="Play"><i data-ic="play"></i></button></div>
     <div class="keys">
       <div class="hint"><div class="keyset">
         <div class="key e"></div><div class="key">W</div><div class="key e"></div>
         <div class="key">A</div><div class="key">S</div><div class="key">D</div>
-      </div><small>🦿</small></div>
-      <div class="hint">🖱️<small>🎯</small></div>
+      </div><small><i data-ic="legs"></i></small></div>
+      <div class="hint"><i data-ic="mouse"></i><small><i data-ic="aim"></i></small></div>
       <div class="hint"><div class="keyset" style="grid-template-columns: repeat(5, 40px)">
         <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">4</div><div class="key">5</div>
-      </div><small>🔫👊🦶🧲☄️</small></div>
-      <div class="hint"><div class="key wide">␣</div><small>💥</small></div>
-      <div class="hint"><div class="key">R</div><small>🔧❤️</small></div>
-      <div class="hint">🎮</div>
+      </div><small><i data-ic="gun"></i><i data-ic="punch"></i><i data-ic="boot"></i><i data-ic="em"></i><i data-ic="rail"></i></small></div>
+      <div class="hint"><div class="key wide"><i data-ic="space"></i></div><small><i data-ic="smash"></i></small></div>
+      <div class="hint"><div class="key">R</div><small><i data-ic="wrench"></i><i data-ic="energy"></i></small></div>
+      <div class="hint"><i data-ic="pad"></i></div>
     </div>
   </div>
 </div>
@@ -937,9 +951,9 @@
 <!-- QUICK FIX: drag each plug to the port with the same colour and shape -->
 <div id="clear" class="screen">
   <div class="banner">
-    <div class="head"><span>🏆</span><span class="rb-title">CLEARED!</span></div>
-    <div class="stars" id="clearStars"><i>⭐</i><i>⭐</i><i>⭐</i><i class="bonus" id="clearBonus" aria-label="Fast repair">🌟</i></div>
-    <div class="row"><span class="n" aria-label="Fixed">🔧<b id="clearFixed">0</b></span><span class="n" aria-label="Taken apart">🔩<b id="clearTaken">0</b></span><span class="n" aria-label="Hidden parts found">🔍<b id="clearFound">0</b></span><button class="garb" id="garageC" aria-label="Garage">🔧<small>G</small></button><button id="nextB" aria-label="Next wave">▶<small>↵</small></button></div>
+    <div class="head"><span><i data-ic="trophy"></i></span><span class="rb-title">CLEARED!</span></div>
+    <div class="stars" id="clearStars"><i><i data-ic="star"></i></i><i><i data-ic="star"></i></i><i><i data-ic="star"></i></i><i class="bonus" id="clearBonus" aria-label="Fast repair"><i data-ic="goldstar"></i></i></div>
+    <div class="row"><span class="n" aria-label="Fixed"><i data-ic="wrench"></i><b id="clearFixed">0</b></span><span class="n" aria-label="Taken apart"><i data-ic="bolt"></i><b id="clearTaken">0</b></span><span class="n" aria-label="Hidden parts found"><i data-ic="search"></i><b id="clearFound">0</b></span><button class="garb" id="garageC" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button><button id="nextB" aria-label="Next wave"><i data-ic="play"></i><small>↵</small></button></div>
   </div>
   <div class="confetti" id="confetti"></div>
 </div>
@@ -1004,7 +1018,7 @@
 <!-- MY FACTS: the child's 9×9 grid, a cell per fact (7 × 8 and 8 × 7 light up together); tap one for its typical time -->
 <div id="grid" class="screen">
   <div class="panel">
-    <div class="top"><span class="gt"><b class="kface" id="gridFace"></b>⭐ <b id="gridCount"></b></span><button class="x" id="gridX" aria-label="Close">✖</button></div>
+    <div class="top"><span class="gt"><b class="kface" id="gridFace"></b><i data-ic="star"></i> <b id="gridCount"></b></span><button class="x" id="gridX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div class="fgrid" id="gridCells"></div>
     <div class="ginfo" id="gridInfo"></div>
     <div class="legend" id="gridLegend"></div>
@@ -1017,7 +1031,7 @@
 <!-- PARENT VIEW: per child, the grid, the 10 slowest facts, minutes a day, open the next step, reset (behind a confirm) -->
 <div id="parent" class="screen">
   <div class="panel" id="parentPanel">
-    <div class="top"><span>👪</span><div class="ptabs" id="pTabs"></div><button class="x" id="parentX" aria-label="Close">✖</button></div>
+    <div class="top"><span><i data-ic="family"></i></span><div class="ptabs" id="pTabs"></div><button class="x" id="parentX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div id="pBody"></div>
     <div class="pconfirm" id="pConfirm"></div>
     <!-- #69: restore from a backup file: the summary per child and the choice, or why the file can't be used -->
@@ -1077,17 +1091,17 @@ const MECH_HEALTH = 150;
 // The cannon fires short bursts while fire is held: `burst` rounds `cool` apart,
 // then a `rest`. That keeps the old 10 dmg / 0.16 s rate (62.5 a second).
 const WEAPON = {
-  gun:   { icon: '🔫', ic: 'gun', dmg: 10, cool: 0.075, burst: 3, rest: 0.33, speed: 280, range: 95, push: 0.8 },
-  punch: { icon: '👊', ic: 'punch', dmg: 22, cool: 0.55, strike: 0.16, dur: 0.5, reach: 3.4, arc: 0.85, push: 6 },
-  kick:  { icon: '🦶', ic: 'boot', dmg: 34, cool: 0.9, strike: 0.32, dur: 0.85, reach: 3.2, arc: 0.7, push: 12 },
+  gun:   { ic: 'gun', dmg: 10, cool: 0.075, burst: 3, rest: 0.33, speed: 280, range: 95, push: 0.8 },
+  punch: { ic: 'punch', dmg: 22, cool: 0.55, strike: 0.16, dur: 0.5, reach: 3.4, arc: 0.85, push: 6 },
+  kick:  { ic: 'boot', dmg: 34, cool: 0.9, strike: 0.32, dur: 0.85, reach: 3.2, arc: 0.7, push: 12 },
   // The electromagnetic pulse (a starting weapon, from the left-arm pod): a crackling ball that
   // does little damage but loads `shock` into a robot's electronics. At ROBOT.shockMax it shuts
   // down mostly intact. Shock drains at ROBOT.shockFade a second, so it takes hits close together.
-  em:    { icon: '🧲', ic: 'em', dmg: 4, cool: 0.5, speed: 90, range: 55, push: 0.4, shock: 40 },
+  em:    { ic: 'em', dmg: 4, cool: 0.5, speed: 90, range: 55, push: 0.4, shock: 40 },
   // The rail gun (locked until a part that `unlocks: 'rail'` is taken): fire starts a `charge`,
   // then one long straight shot that passes through every robot along it (`range` metres, or
   // until it meets the ground, a rock or a tree), then `cool`.
-  rail:  { icon: '☄️', ic: 'rail', dmg: 60, cool: 1.6, charge: 0.8, range: 140, push: 3, locked: true },
+  rail:  { ic: 'rail', dmg: 60, cool: 1.6, charge: 0.8, range: 140, push: 3, locked: true },
 };
 const WEAPONS = ['gun', 'punch', 'kick', 'em', 'rail'];
 const AIM_ASSIST = 0.2;      // rad: the cannon locks onto a robot this close to the torso aim
@@ -1148,13 +1162,11 @@ const PARTS = {
 //  - kit: fastest. Walking onto a kit mends `kit` health at once; it's used up.
 //    `kits` lie tucked beside trees; a robot drops one the first time it's beaten.
 const AREAS = ['hull', 'legs', 'power', 'wiring'];
-const AREA_ICON = { hull: '🤖', legs: '🦿', power: '⚡', wiring: '〰️' };
-const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };   // I1: each area's icon (AREA_ICON's emoji: until I2)
+const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };   // I1: each area's icon
 // where each kind of hit lands: a Sniper's round on the hull, a drone's zap in the power and
 // wiring (so 🔋 and 🔌 have something to mend), a Bouncer's stomp mostly in the legs
 const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 } };
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
-const HEAL_ICON = { parts: '🔧', ally: '🤖', kit: '🧰', reboot: '🔌' };
 const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
 // from the bag (the same bag self-repair spends), and each shows on the mech. id = the part it costs.
@@ -1163,12 +1175,12 @@ const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' }
 //   spring  ➰ level 1 adds a jump, level 2 higher      ram    🐏 the kick does 25% more damage a level
 // fx = what a level does, as an icon (shown on its card). Saved per child in rec.garage.upgrades.
 const UPGRADES = [
-  { id: 'armour', name: 'Armour plating', max: 4, fx: '❤️+25', fxIc: '{energy}+25', alias: ['armor', 'plating', 'energy'] },
-  { id: 'motor', name: 'Leg motors', max: 3, fx: '💨+8%', fxIc: '{speed}+8%', alias: ['motors', 'legs', 'speed'] },
-  { id: 'battery', name: 'Power cells', max: 3, fx: '⏱️+10%', fxIc: '{timer}+10%', alias: ['cells', 'power', 'recharge'] },
-  { id: 'wiring', name: 'Wiring harness', max: 2, fx: '🔧+10', fxIc: '{wrench}+10', alias: ['harness', 'mend'] },
-  { id: 'spring', name: 'Spring legs', max: 2, fx: '⤴️', fxIc: '{jump}', alias: ['springs', 'jump'] },
-  { id: 'ram', name: 'Ram plate', max: 2, fx: '🦶+25%', fxIc: '{boot}+25%', alias: ['ramplate', 'kick'] },
+  { id: 'armour', name: 'Armour plating', max: 4, fxIc: '{energy}+25', alias: ['armor', 'plating', 'energy'] },
+  { id: 'motor', name: 'Leg motors', max: 3, fxIc: '{speed}+8%', alias: ['motors', 'legs', 'speed'] },
+  { id: 'battery', name: 'Power cells', max: 3, fxIc: '{timer}+10%', alias: ['cells', 'power', 'recharge'] },
+  { id: 'wiring', name: 'Wiring harness', max: 2, fxIc: '{wrench}+10', alias: ['harness', 'mend'] },
+  { id: 'spring', name: 'Spring legs', max: 2, fxIc: '{jump}', alias: ['springs', 'jump'] },
+  { id: 'ram', name: 'Ram plate', max: 2, fxIc: '{boot}+25%', alias: ['ramplate', 'kick'] },
 ];
 // jump: how high each spring level jumps (m; level 0 can't); gravity pulls the mech back down (m/s²). #46: gravity was
 // 22; lighter, the same heights hang longer, so a running jump carries the mech further (level 1 over a fence: #46)
@@ -1185,11 +1197,11 @@ const upgradeOf = (n) => { const s = String(n ?? '').toLowerCase(); return UPGRA
 //   gold   👑  gold: the whole mech turns gold, and squadmates glow gold
 // toast: how long the in-play toast stays (ms); cheer: how long the garage's cheer stays (ms)
 const ADVANCED = [
-  { id: 'chrome', icon: '✨', ic: 'sparkle', name: 'Chrome plating', at: 9, hex: '#dfe7f2', fx: '❤️+25', fxIc: '{energy}+25' },
-  { id: 'jets', icon: '🚀', ic: 'rocket', name: 'Jump jets', at: 18, hex: '#ff6a2a', fx: '⤴️⤴️', fxIc: '{jump}{jump}' },
-  { id: 'fusion', icon: '⚡', ic: 'fusion', name: 'Fusion core', at: 27, hex: '#3ff0ff', fx: '⏱️+20%', fxIc: '{timer}+20%' },
-  { id: 'shield', icon: '🛡️', ic: 'shield', name: 'Shield emitter', at: 36, hex: '#56B4E9', fx: '🫧×3', fxIc: '{bubble}×3' },
-  { id: 'gold', icon: '👑', ic: 'crown', name: 'Gold plating', at: 45, hex: '#ffc21a', fx: '👑', fxIc: '{crown}' },
+  { id: 'chrome', icon: '✨', ic: 'sparkle', name: 'Chrome plating', at: 9, hex: '#dfe7f2', fxIc: '{energy}+25' },
+  { id: 'jets', icon: '🚀', ic: 'rocket', name: 'Jump jets', at: 18, hex: '#ff6a2a', fxIc: '{jump}{jump}' },
+  { id: 'fusion', icon: '⚡', ic: 'fusion', name: 'Fusion core', at: 27, hex: '#3ff0ff', fxIc: '{timer}+20%' },
+  { id: 'shield', icon: '🛡️', ic: 'shield', name: 'Shield emitter', at: 36, hex: '#56B4E9', fxIc: '{bubble}×3' },
+  { id: 'gold', icon: '👑', ic: 'crown', name: 'Gold plating', at: 45, hex: '#ffc21a', fxIc: '{crown}' },
 ];
 const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', goldFrame: '#b8860b', toast: 3500, cheer: 4500 };
 const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || null; };
@@ -1241,10 +1253,10 @@ const SQUAD_UPS = [
 ];
 // each type's job: the part its boost costs and what a level does, as an icon
 const SQUAD_JOB = {
-  charger: { part: 'ram', fx: '💥+25%', fxIc: '{smash}+25%', what: 'ram' },
-  sniper: { part: 'scope', fx: '🎯+25%', fxIc: '{aim}+25%', what: 'range' },
-  drone: { part: 'rotor', fx: '📡+25%', fxIc: '{radar}+25%', what: 'scout' },
-  bouncer: { part: 'spring', fx: '🔗+1', fxIc: '{link}+1', what: 'chain' },
+  charger: { part: 'ram', fxIc: '{smash}+25%', what: 'ram' },
+  sniper: { part: 'scope', fxIc: '{aim}+25%', what: 'range' },
+  drone: { part: 'rotor', fxIc: '{radar}+25%', what: 'scout' },
+  bouncer: { part: 'spring', fxIc: '{link}+1', what: 'chain' },
 };
 const squadUpOf = (n) => { const s = String(n ?? '').toLowerCase(); return SQUAD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s || U.alias.includes(s)) || null; };
 const squadPart = (r, id) => (id === 'plating' ? 'armour' : SQUAD_JOB[r.type].part);
@@ -1322,12 +1334,12 @@ const PACE = [
 // Which fills a slot: on a 🧲 board the first slot is 🧠; every other slot takes 🔥 or 🔍, the one this child saw least
 // recently (a tie: 🔥 if wires burnt, else 🔍), never one twice. segs / tiles: the wave-1 sizes (PACE's sizes rule).
 const PUZZLES = {
-  break: { icon: '🔥', ic: 'flame', name: 'Find the break', segs: 4 },
-  part: { icon: '🔍', ic: 'search', name: 'What broke?', tiles: 3 },
-  chain: { icon: '🧠', ic: 'brain', name: 'Sense, think, act', tiles: 3 },
+  break: { ic: 'flame', name: 'Find the break', segs: 4 },
+  part: { ic: 'search', name: 'What broke?', tiles: 3 },
+  chain: { ic: 'brain', name: 'Sense, think, act', tiles: 3 },
 };
 // 🧠's tiles (not parts: they never go in the bag). order = the chain, sensor first; decoy = the extra tile from wave 5
-const CHAIN = { tiles: { sensor: { icon: '👁️', ic: 'eye', hex: '#4fc3ff' }, controller: { icon: '🧠', ic: 'brain', hex: '#ff7ad9' }, motor: { icon: '⚙️', ic: 'motor', hex: '#ff8a1f' }, shield: { icon: '🛡️', ic: 'armour', hex: '#8a5cff' } },
+const CHAIN = { tiles: { sensor: { ic: 'eye', hex: '#4fc3ff' }, controller: { ic: 'brain', hex: '#ff7ad9' }, motor: { ic: 'motor', hex: '#ff8a1f' }, shield: { ic: 'armour', hex: '#8a5cff' } },
   order: ['sensor', 'controller', 'motor'], decoy: 'shield' };
 // glow: how long (ms) the right answer glows after a wrong tap; done: how long a solved card shows before the board;
 // hint: the first-time hint's length (ms): a hand taps the right answer once, the first time a child meets a type (#48)
@@ -1341,10 +1353,10 @@ function median(a) { if (!a?.length) return null; const b = [...a].sort((x, y) =
 // Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
 // else (setup damage, an electromagnet) leaves its wiring sparking.
 const SYMPTOMS = {
-  limp: { icon: '🦵', ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram'] },
-  holes: { icon: '🕳️', ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe'] },
-  drained: { icon: '🪫', ic: 'drained', parts: ['battery', 'wiring'], by: ['rail'] },
-  sparks: { icon: '⚡', ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em'] },
+  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram'] },
+  holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe'] },
+  drained: { ic: 'drained', parts: ['battery', 'wiring'], by: ['rail'] },
+  sparks: { ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em'] },
 };
 const symptomOf = (how) => Object.keys(SYMPTOMS).find((k) => SYMPTOMS[k].by.includes(how)) || 'sparks';
 // a decoy port (math wiring, from wave 1): W.ports holds DECOY + k, and W.decoys[k] is the answer it shows
@@ -1356,12 +1368,12 @@ const ROBOT_NAMES = ['Bolt', 'Sprocket', 'Rusty', 'Zippy', 'Clank', 'Gizmo', 'Sp
 // an emblem under it), drawn by pilotFace(). The colour and emblem are placeholders the family
 // can swap here. Picking one on the title screen starts the game.
 const PILOTS = [
-  { id: 'othello', name: 'Othello', hex: '#ff4d5e', emblem: '⭐', emblemIc: 'star' },
-  { id: 'korra',   name: 'Korra',   hex: '#a77bff', emblem: '🔥', emblemIc: 'flame' },
-  { id: 'beau',    name: 'Beau',    hex: '#4f9dff', emblem: '💎', emblemIc: 'gem' },
-  { id: 'sneezy',  name: 'Sneezy',  hex: '#3ee07a', emblem: '🌀', emblemIc: 'swirl' },
-  { id: 'nala',    name: 'Nala',    hex: '#ff5fa2', emblem: '🌙', emblemIc: 'moon' },
-  { id: 'thunder', name: 'Thunder', hex: '#ffd83d', emblem: '⚡', emblemIc: 'power' },
+  { id: 'othello', name: 'Othello', hex: '#ff4d5e', emblemIc: 'star' },
+  { id: 'korra',   name: 'Korra',   hex: '#a77bff', emblemIc: 'flame' },
+  { id: 'beau',    name: 'Beau',    hex: '#4f9dff', emblemIc: 'gem' },
+  { id: 'sneezy',  name: 'Sneezy',  hex: '#3ee07a', emblemIc: 'swirl' },
+  { id: 'nala',    name: 'Nala',    hex: '#ff5fa2', emblemIc: 'moon' },
+  { id: 'thunder', name: 'Thunder', hex: '#ffd83d', emblemIc: 'power' },
 ];
 // a pilot by id or name (any case), or by index
 const pilotOf = (p) => (Number.isInteger(p) ? PILOTS[p] : PILOTS.find((q) => q.id === String(p).toLowerCase() || q.name.toLowerCase() === String(p).toLowerCase())) || null;
@@ -1624,6 +1636,8 @@ const ICONS = {
   dice: ['random', ['🎲'], re(3, 3, 18, 18, 4, '#f4f7fb') + [[8, 8], [16, 8], [12, 12], [8, 16], [16, 16]].map(([x, y]) => cn(x, y, 1.6, INK)).join('')],
   tag: ['name', ['🏷️', '🏷'], pa('M2.8 4 Q2.8 2.8 4 2.8 L11.6 2.8 L21.2 12.4 L12.4 21.2 L2.8 11.6 Z', G('yellow')) + ci(7.6, 7.6, 1.8, INK) + hl('M5 10.4 L10.8 16.2')],
   swap: ['swap', ['🔄'], ln('M5 10 A7.4 7.4 0 0 1 17.6 7', G('cyan'), 2.4, 'butt') + pa('M15.4 3.2 L21 7.4 L15 10 Z', G('cyan')) + ln('M19 14 A7.4 7.4 0 0 1 6.4 17', G('cyan'), 2.4, 'butt') + pa('M8.6 20.8 L3 16.6 L9 14 Z', G('cyan'))],
+  // I4: the space bar (the title's key hint): a long key cap, steel, with its lit edge
+  space: ['space', ['␣'], re(2.2, 8.4, 19.6, 7.6, 2.6, G('steel')) + hl('M4.8 10.8 L19.2 10.8')],
   stick: ['stick', ['🕹️', '🕹'], re(3, 16, 18, 5.6, 1.6, G('dark')) + ln('M12 16 L12 9', G('steel'), 1.8) + ci(12, 6.4, 4, G('red')) + hl('M10.2 5.4 C10.4 4.6 11 4.1 11.8 4')],
 };
 return { ICONS, ICON_GRADS, ICON_DEFS };
@@ -1699,9 +1713,9 @@ const srange = (a, b) => a + (b - a) * srand();
 // Guest saves nothing. icon and hex are placeholders the family can swap here. wiring:
 // each child's default Quick Fix setting ('math' or 'colour'), which they can change.
 const CHILDREN = [
-  { id: 'orion',  name: 'Orion',  hex: '#3fb4ff', icon: '🏹', ic: 'bow', ladder: 'orion',  wiring: 'math' },
-  { id: 'apollo', name: 'Apollo', hex: '#ff8a1f', icon: '☀️', ic: 'sun', ladder: 'apollo', wiring: 'math' },
-  { id: 'guest',  name: 'Guest',  hex: '#c9d2e3', icon: '🙂', ic: 'smile', ladder: 'apollo', wiring: 'colour', guest: true },
+  { id: 'orion',  name: 'Orion',  hex: '#3fb4ff', ic: 'bow', ladder: 'orion',  wiring: 'math' },
+  { id: 'apollo', name: 'Apollo', hex: '#ff8a1f', ic: 'sun', ladder: 'apollo', wiring: 'math' },
+  { id: 'guest',  name: 'Guest',  hex: '#c9d2e3', ic: 'smile', ladder: 'apollo', wiring: 'colour', guest: true },
 ];
 const childOf = (c) => (CHILDREN.includes(c) ? c : Number.isInteger(c) ? CHILDREN[c] : CHILDREN.find((q) => q.id === String(c).toLowerCase() || q.name.toLowerCase() === String(c).toLowerCase())) || null;
 // fast: an answer under this (ms) counts toward Known and Mastered; slow: a Mastered fact answered
@@ -3289,6 +3303,14 @@ function adoptPaint(md) {
     o.material = c; o.userData.painted = true;
   });
 }
+// I4: draw icon image img at (x, y), s px square, on canvas context g inside an ink outline w px thick: its silhouette in
+// ink, stamped round a ring under it. The emblem decal and the pilots' portraits use it, so their emblem reads on any colour
+function inkOutline(g, img, x, y, s, w) {
+  const o = document.createElement('canvas'); o.width = o.height = s + 2 * w; const q = o.getContext('2d');
+  for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; q.drawImage(img, w + Math.cos(a) * w, w + Math.sin(a) * w, s, s); }
+  q.globalCompositeOperation = 'source-in'; q.fillStyle = ICON_INK; q.fillRect(0, 0, o.width, o.height);
+  g.drawImage(o, x - w, y - w); g.drawImage(img, x, y, s, s);
+}
 // a decal's picture: drawn once per kind, trim colour and emblem, on a see-through square
 function decalTex(kind, trim, emblem, body = trim) {
   decalTex.cache ||= new Map();
@@ -3310,8 +3332,15 @@ function decalTex(kind, trim, emblem, body = trim) {
     g.beginPath(); g.arc(128, 128, 116, 0, Math.PI * 2); g.fillStyle = body; g.fill(); g.lineWidth = 12; g.stroke();   // (#82: the body colour, for contrast with the emblem)
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-  // I2: the emblem is the pilot's emblem icon (emblem = an ICONS name), drawn in once its SVG has loaded (no emoji glyph)
-  if (kind === 'emblem') { const img = new Image(); img.onload = () => { g.drawImage(img, 48, 48, 160, 160); t.needsUpdate = true; }; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconFile(ICONS[emblem] ? emblem : 'star', 160)); }
+  // I2: the emblem is the pilot's emblem icon (emblem = an ICONS name), drawn from its SVG (no emoji glyph). I4: through
+  // the one rasterise path (iconImage), now if it has loaded and otherwise once it has; and inside a thick ink outline, so
+  // it reads on every body colour (a gold star on a yellow badge too, #83)
+  if (kind === 'emblem') {
+    const name = ICONS[emblem] ? emblem : 'star', img = iconImage(name);
+    t.userData = { emblem: name, drawn: false };
+    const draw = () => { inkOutline(g, img, 48, 48, 160, 9); t.needsUpdate = true; t.userData.drawn = true; };
+    if (iconLoaded(img)) draw(); else img.ready.then((ok) => ok && draw());
+  }
   decalTex.cache.set(key, t);
   return t;
 }
@@ -3406,10 +3435,10 @@ function paintLook(md) {
 // A mesh's section is where it sits (so the 🐏 ram plates on the feet are legs). Body tiers aren't saved: they're worked
 // out from the saved upgrades and unlocks.
 const BODY_SECTIONS = [
-  { id: 'legs', icon: '🦿', ic: 'legs', name: 'Legs', ups: ['motor', 'spring'], hex: PARTS.motor.hex },
-  { id: 'torso', icon: '🤖', ic: 'torso', name: 'Torso', ups: ['armour'], hex: PARTS.armour.hex },
-  { id: 'arms', icon: '💪', ic: 'arm', name: 'Arms', ups: ['ram'], hex: PARTS.ram.hex },
-  { id: 'core', icon: '⚡', ic: 'core', name: 'Core', ups: ['battery', 'wiring'], hex: PARTS.battery.hex },   // (I2: its own icon; fusion has the core in rings)
+  { id: 'legs', ic: 'legs', name: 'Legs', ups: ['motor', 'spring'], hex: PARTS.motor.hex },
+  { id: 'torso', ic: 'torso', name: 'Torso', ups: ['armour'], hex: PARTS.armour.hex },
+  { id: 'arms', ic: 'arm', name: 'Arms', ups: ['ram'], hex: PARTS.ram.hex },
+  { id: 'core', ic: 'core', name: 'Core', ups: ['battery', 'wiring'], hex: PARTS.battery.hex },   // (I2: its own icon; fusion has the core in rings)
 ];
 // names: the tiers' names; env: reflection strength by tier (1 = as built, no map); fin: chrome / gold's 1.6, times this
 // by tier; normal: the normal map's strength; cc / ccRough: the paint's clear-coat; seam / heat: the tier-4 glows;
@@ -3947,10 +3976,17 @@ function pilotFace(P) {
   g.fillStyle = 'rgba(160,240,255,.22)'; g.beginPath(); g.roundRect(46, 94, 70, 20, 10); g.fill();
   g.font = '900 84px "Titan One", "Asap", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.shadowColor = P.hex; g.shadowBlur = 18; g.fillStyle = P.hex; g.fillText(P.name[0], 128, 136); g.shadowBlur = 0;
-  g.font = '50px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.fillText(P.emblem, 128, 214);
+  // I4: the emblem is the pilot's emblem icon, from its SVG through iconImage (no emoji font). If it hasn't loaded yet the
+  // portrait goes without, and every portrait is drawn again once it has (pilotFace.refresh)
+  const img = iconImage(P.emblemIc); c.emblem = { icon: P.emblemIc, drawn: iconLoaded(img) };
+  if (c.emblem.drawn) inkOutline(g, img, 100, 186, 56, 4);
+  else if (!(pilotFace.wait ||= new Set()).has(P.emblemIc)) { pilotFace.wait.add(P.emblemIc); img.ready.then(() => { pilotFace.wait.delete(P.emblemIc); pilotFace.refresh(); }); }
   pilotFace.cache.set(P.id, c);
   return c;
 }
+// draw every portrait again (the title's tiles, the pause screen's, the HUD's and the one on the mech's back): once the web
+// font has loaded (the initials) and once an emblem's icon has (I4)
+pilotFace.refresh = () => { pilotFace.cache?.clear(); Title.build(); $('who').dataset.p = ''; Title.draw(); if (Game.pilot) setPilot(Game.humans[0], Game.pilot); updateHud.pilotKey = null; };
 // Put pilot P in player h's mech: a helmeted pilot in the cockpit, the canopy and the turret ring
 // lit in their colour (the mech's own cloned materials), and their portrait on the back of the torso,
 // where the chase camera sees it.
@@ -4192,7 +4228,7 @@ const Title = {
   build() {
     const last = pilotOf(store.get('pilot', '')); this.cur = last ? PILOTS.indexOf(last) : 0;
     const kid = childOf(store.get('child', '')); this.kid = kid ? CHILDREN.indexOf(kid) : 0;
-    $('kids').innerHTML = CHILDREN.map((C) => `<button class="pilot kid" data-k="${C.id}" aria-label="${C.name}" style="--c:${C.hex}"><b class="face">${C.icon}</b><span>${C.name}</span></button>`).join('');
+    $('kids').innerHTML = CHILDREN.map((C) => `<button class="pilot kid" data-k="${C.id}" aria-label="${C.name}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${C.name}</span></button>`).join('');
     $('pilots').innerHTML = PILOTS.map((P) => `<button class="pilot" data-p="${P.id}" aria-label="${P.name}" style="--c:${P.hex}"><img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span></button>`).join('');
     this.draw();
   },
@@ -4205,7 +4241,7 @@ const Title = {
     const P = Game.pilot, who = $('who');
     if (P && who.dataset.p !== P.id) { who.dataset.p = P.id; who.style.setProperty('--c', P.hex); who.innerHTML = `<img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span>`; }
     const kb = $('kidB');
-    if (C && kb.dataset.k !== C.id) { kb.dataset.k = C.id; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">◀</span><b class="face">${C.icon}</b><span>${C.name}</span>`; }
+    if (C && kb.dataset.k !== C.id) { kb.dataset.k = C.id; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">${icon('back')}</span><b class="face">${icon(C.ic)}</b><span>${C.name}</span>`; }
     [...$('wireB').children].forEach((i) => i.classList.toggle('on', i.dataset.w === wiringMode()));
     Progress.drawBadge();
     $('parentB').classList.toggle('on', this.on);   // the parent button: title / pause screen only
@@ -5105,26 +5141,40 @@ function repairSelf(h, picks, mate) {
 // I1: a world sprite's picture: icon `name` (an ICONS name; anything else throws) rasterised to a canvas (its SVG as a data
 // URL -> an Image -> the canvas), one CanvasTexture per icon, cached. The texture is made at once and drawn when the image
 // has loaded, so every icon a sprite can show (WORLD_ICONS) is loaded at boot (iconTex.preload), while no sprite shows yet;
-// pending = icons not drawn yet, blank = frames rendered with a sprite showing one of those
+// pending = icon images not loaded yet, blank = frames rendered with a sprite showing one of those
 const WORLD_ICONS = ['sleep', 'warn', 'alert', 'bolt', 'home', 'wrench', 'search', 'kit', ...Object.values(PARTS).map((P) => P.ic)];
+// I4: the one rasterise path. Icon `name`'s standalone SVG as an Image, loaded once and cached; img.ready resolves (to the
+// image, or null if it failed) once it has loaded. iconTex, the emblem decal (decalTex) and the pilots' portraits
+// (pilotFace) all draw from it, so no picture in the game is a font glyph
+function iconImage(name) {
+  const C = iconImage.cache ||= new Map();
+  if (!C.has(name)) {
+    if (!ICONS[name]) throw new Error('no such icon: ' + name);
+    const img = new Image(); iconTex.pending++;
+    img.ready = new Promise((res) => {
+      img.onload = () => { iconTex.pending--; res(img); };
+      img.onerror = () => { iconTex.pending--; console.error('icon failed to draw: ' + name); res(null); };
+    });
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconFile(name, 256));
+    C.set(name, img);
+  }
+  return C.get(name);
+}
+// is icon image img loaded (so it can be drawn now)?
+const iconLoaded = (img) => img.complete && img.naturalWidth > 0;
 function iconTex(name) {
   const C = iconTex.cache ||= new Map();
   if (!C.has(name)) {
-    if (!ICONS[name]) throw new Error('no such icon: ' + name);
+    const img = iconImage(name);   // (throws on a name that isn't an icon)
     const c = document.createElement('canvas'); c.width = c.height = 128;
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.userData = { icon: name, drawn: false };
-    const img = new Image(); iconTex.pending++;
-    t.userData.ready = new Promise((res) => {
-      img.onload = () => { c.getContext('2d').drawImage(img, 10, 10, 108, 108); t.needsUpdate = true; t.userData.drawn = true; iconTex.pending--; res(); };
-      img.onerror = () => { iconTex.pending--; console.error('icon failed to draw: ' + name); res(); };
-    });
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(iconFile(name, 108));
+    t.userData.ready = img.ready.then((ok) => { if (!ok) return; c.getContext('2d').drawImage(img, 10, 10, 108, 108); t.needsUpdate = true; t.userData.drawn = true; });
     C.set(name, t);
   }
   return C.get(name);
 }
 iconTex.pending = 0; iconTex.blank = 0;
-iconTex.preload = () => Promise.all(WORLD_ICONS.map((n) => iconTex(n).userData.ready));
+iconTex.preload = () => Promise.all([...WORLD_ICONS.map((n) => iconTex(n).userData.ready), ...PILOTS.map((P) => iconImage(P.emblemIc).ready)]);   // (I4: and the pilots' emblems)
 
 // The Charger: a low, four-legged battering ram with one wide visor eye.
 function buildCharger(paint) {
@@ -5263,7 +5313,7 @@ function buildBouncer(paint) {
 // it walks (a drone holds its height); flicker(r, dt, hot) its own glitched glow; flies; swarm.
 const ROBOT_TYPES = {
   charger: {
-    icon: '🐏', ic: 'charger', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
+    ic: 'charger', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
     spec: { topSpeed: 6.5, backSpeed: 5, accel: 4.5, brake: 8, boostSpeed: 17, boostAccel: 18, legTurn: 2.4, torsoTurn: 4, stride: 1.6, radius: 2.0 },
     paint: { armour: '#8a5cff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
     build: buildCharger, ai: chargerAI, ally: allyCharger, pose: chargerPose,
@@ -5276,7 +5326,7 @@ const ROBOT_TYPES = {
   // Keeps its distance and shoots: backs off inside keep[0], closes in past keep[1].
   // A shot is `gun.aim` seconds of laser on the target, then one round.
   sniper: {
-    icon: '🔭', ic: 'sniper', health: 70, hitY: 5.3, hitR: 1.8, top: 6.4, beamY: 5.6,
+    ic: 'sniper', health: 70, hitY: 5.3, hitR: 1.8, top: 6.4, beamY: 5.6,
     spec: { topSpeed: 6.2, backSpeed: 2.5, accel: 3.2, brake: 6, legTurn: 2.2, torsoTurn: 3.0, stride: 2.8, radius: 1.5 },
     paint: { armour: '#2e9f86', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', stripe: '#ffd83d', glow: '#ff2f5b' },
     build: buildSniper, ai: sniperAI, ally: allySniper, pose: sniperPose, flicker: stutterGlow,
@@ -5290,7 +5340,7 @@ const ROBOT_TYPES = {
   // Small flyers that come as a swarm of `swarm`. They circle a player at `orbit` metres and
   // take turns diving in to zap (at most two at once). The whole swarm drops one repair kit.
   drone: {
-    icon: '🐝', ic: 'drone', health: 20, hitY: 0, hitR: 1.0, top: null, beamY: 0.2, flies: true, alt: 5.2, swarm: 6,
+    ic: 'drone', health: 20, hitY: 0, hitR: 1.0, top: null, beamY: 0.2, flies: true, alt: 5.2, swarm: 6,
     spec: { topSpeed: 9, backSpeed: 4, accel: 9, brake: 10, legTurn: 3.6, torsoTurn: 6, stride: 50, radius: 0.7 },
     paint: { armour: '#ffd83d', frame: '#3a4152', dark: '#14182a', glow: '#ff2f5b' },
     build: buildDrone, ai: droneAI, ally: allyDrone, pose: dronePose, tick: droneFly,
@@ -5304,7 +5354,7 @@ const ROBOT_TYPES = {
   // jump: reach (how far it jumps at a player), hop (how far between springboards), foot (landing slop),
   // crouch/land (seconds), wild (chance a glitched hop goes off at random), miss (how far off a glitched hop lands).
   bouncer: {
-    icon: '🦘', ic: 'bouncer', health: 70, hitY: 2.6, hitR: 1.7, top: 4.1, beamY: 3.0,
+    ic: 'bouncer', health: 70, hitY: 2.6, hitR: 1.7, top: 4.1, beamY: 3.0,
     spec: { topSpeed: 4.5, backSpeed: 2, accel: 4, brake: 6, legTurn: 2.5, torsoTurn: 4, stride: 2.4, radius: 1.4 },
     paint: { armour: '#4f7dff', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', glow: '#ff2f5b' },
     build: buildBouncer, ai: bouncerAI, ally: allyBouncer, pose: bouncerPose, move: bouncerFly,
@@ -7485,7 +7535,7 @@ const FixUI = {
 // title / pause screen, behind a ~2 s hold.
 // ===========================================================================
 // each stage's look: a colour AND a shape (○ ◐ ● ★), plus a pattern in the CSS (dashed, striped, solid, glowing)
-const STAGE_LOOK = { new: { icon: '○', ic: 'new', name: 'New' }, learning: { icon: '◐', ic: 'learning', name: 'Learning' }, known: { icon: '●', ic: 'known', name: 'Known' }, mastered: { icon: '★', ic: 'mastered', name: 'Mastered' } };
+const STAGE_LOOK = { new: { ic: 'new', name: 'New' }, learning: { ic: 'learning', name: 'Learning' }, known: { ic: 'known', name: 'Known' }, mastered: { ic: 'mastered', name: 'Mastered' } };
 // hold: how long the parent button is held to open the view (ms); slowest / days: what the parent view lists;
 // cheer: how long the table cheer stays up (ms)
 const PARENT = { hold: 2000, slowest: 10, days: 14, cheer: 5000 };
@@ -7514,7 +7564,7 @@ function gridHTML(rec, o = {}) {
     const a = TABLES[i];
     h += `<i class="hd${done.has(a) ? ' done' : ''}">${a}</i>` + row.map((s, j) => {
       const b = TABLES[j], cls = (is(o.sel, a, b) ? ' sel' : is(o.sel, b, a) ? ' twin' : '') + (is(o.cur, a, b) ? ' cur' : '');
-      return `<button class="cell s-${s}${cls}" data-a="${a}" data-b="${b}" data-s="${s}" aria-label="${a} × ${b}: ${STAGE_LOOK[s].name}">${STAGE_LOOK[s].icon}</button>`;
+      return `<button class="cell s-${s}${cls}" data-a="${a}" data-b="${b}" data-s="${s}" aria-label="${a} × ${b}: ${STAGE_LOOK[s].name}">${icon(STAGE_LOOK[s].ic)}</button>`;
     }).join('');
   });
   return h;
@@ -7523,7 +7573,7 @@ function gridHTML(rec, o = {}) {
 function legendHTML(rec) {
   const cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
   Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
-  return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${STAGE_LOOK[s].icon}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('');
+  return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('');
 }
 const Progress = {
   mode: null, from: null, sel: null, cur: null, tab: null, psel: null, confirm: false, holdT: null, cheering: null, cheerT: null, badgeKey: null,
@@ -7570,22 +7620,22 @@ const Progress = {
   drawGrid() {
     if (this.mode !== 'grid') return;
     const rec = Facts.rec, C = Game.child, ms = Facts.mastery();
-    const face = $('gridFace'); face.textContent = C.icon; face.style.setProperty('--c', C.hex);
+    const face = $('gridFace'); face.innerHTML = icon(C.ic); face.style.setProperty('--c', C.hex);
     $('gridCount').textContent = `${ms.mastered}/${ms.goal}`;
     $('gridCells').innerHTML = gridHTML(rec, { sel: this.sel, cur: this.cur });
     $('gridLegend').innerHTML = legendHTML(rec);
     // the fact picked and its typical time. No answer: the grid can be opened mid-repair, and it mustn't be a
     // times table to copy a typed plug's answer from (the parent view shows answers)
     const p = this.sel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? Facts.stage(f.key) : null;
-    $('gridInfo').innerHTML = !p ? '<span class="dim">👆 ⏱</span>'
-      : `<i class="cell s-${s}">${STAGE_LOOK[s].icon}</i><span>${p[0]} × ${p[1]}</span><span>⏱ ${secs(Facts.typical(e))}</span>`;
+    $('gridInfo').innerHTML = !p ? `<span class="dim">${icon('tap')} ${icon('timer')}</span>`
+      : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${p[0]} × ${p[1]}</span><span>${icon('timer')} ${secs(Facts.typical(e))}</span>`;
   },
   // tap a cell (as a click on it does): pick that fact
   tapCell(a, b) {
     const f = makeFact('×', a, b);
     if (this.mode !== 'grid' || !f) return null;
     this.sel = [a, b]; this.drawGrid(); if (!Game.manual) Sfx.click();
-    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: $('gridInfo').textContent };
+    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: icRead($('gridInfo')) };
   },
   // the keyboard's arrows / the d-pad move a cursor over the cells, picking each fact as it lands
   move(dx, dy) {
@@ -7639,8 +7689,8 @@ const Progress = {
     const prev = this.cheering && this.cheering.child === C?.id ? this.cheering.tables : [];
     const all = [...new Set([...prev, ...tables])];
     this.cheering = { tables: all, child: C?.id ?? null, at: Facts.now() };
-    $('cheerBanner').innerHTML = `<div class="head"><span>🏆</span><span class="rb-title">${all.map((t) => '×' + t).join(' ')}</span><span>🎉</span></div>`
-      + all.map(() => `<div class="row">${TABLES.map((n, i) => `<i class="cell s-mastered" style="animation-delay:${(0.25 + i * 0.09).toFixed(2)}s">★</i>`).join('')}</div>`).join('');
+    $('cheerBanner').innerHTML = `<div class="head"><span>${icon('trophy')}</span><span class="rb-title">${all.map((t) => '×' + t).join(' ')}</span><span>${icon('party')}</span></div>`
+      + all.map(() => `<div class="row">${TABLES.map((n, i) => `<i class="cell s-mastered" style="animation-delay:${(0.25 + i * 0.09).toFixed(2)}s">${icon('mastered')}</i>`).join('')}</div>`).join('');
     const el = $('cheer'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
     confetti($('cheerConfetti'), 80);
     const m = Game.humans[0]?.mech;
@@ -7684,7 +7734,8 @@ const Progress = {
       grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number),
     };
   },
-  // minutes a day for the last two weeks as a small bar chart (hand-drawn SVG); today's bar is blue, marked ●
+  // minutes a day for the last two weeks as a small bar chart (hand-drawn SVG); today's bar is blue, marked with a dot (I4: a
+  // circle, not a ● glyph)
   chartSVG(days) {
     const W = 280, H = 114, top = 16, base = 96, bw = 14, step = W / days.length, max = Math.max(5 * 60e3, ...days.map((d) => d.ms));
     const WD = 'SMTWTFS';
@@ -7693,29 +7744,29 @@ const Progress = {
       const x = i * step + (step - bw) / 2, h = d.ms ? Math.max(2, (d.ms / max) * (base - top)) : 0, today = i === days.length - 1;
       g += `<rect class="bar${today ? ' today' : ''}" x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="3" data-date="${d.date}" data-ms="${Math.round(d.ms)}"><title>${d.date}: ${mins(d.ms)} min</title></rect>`;
       if (d.ms) g += `<text x="${(x + bw / 2).toFixed(1)}" y="${(base - h - 4).toFixed(1)}">${mins(d.ms)}</text>`;
-      g += `<text class="${today ? '' : 'dim'}" x="${(x + bw / 2).toFixed(1)}" y="${base + 13}">${today ? '●' : WD[d.wd]}</text>`;
+      g += today ? `<circle class="todayDot" cx="${(x + bw / 2).toFixed(1)}" cy="${base + 9.5}" r="3.4"/>` : `<text class="dim" x="${(x + bw / 2).toFixed(1)}" y="${base + 13}">${WD[d.wd]}</text>`;
     });
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Minutes practised a day, last ${days.length} days">${g}</svg>`;
   },
   drawParent() {
     if (this.mode !== 'parent') return;
     const D = this.data(this.tab), rec = Facts.peek(this.tab);
-    $('pTabs').innerHTML = this.kids().map((C) => `<button class="chip ptab${C.id === this.tab ? ' on' : ''}" data-k="${C.id}" style="--c:${C.hex}"><b class="face">${C.icon}</b><span>${C.name}</span></button>`).join('');
+    $('pTabs').innerHTML = this.kids().map((C) => `<button class="chip ptab${C.id === this.tab ? ' on' : ''}" data-k="${C.id}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${C.name}</span></button>`).join('');
     const p = this.psel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? rec.facts[f.key]?.s ?? 'new' : null;
     const info = !p ? '<span class="dim">Tap a fact for its time</span>'
-      : `<i class="cell s-${s}">${STAGE_LOOK[s].icon}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`;
-    const slow = D.slowest.length ? D.slowest.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${STAGE_LOOK[q.stage].icon}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
-    $('pBody').innerHTML = `<div class="psum"><span>⭐ Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span><span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span>`
-      + `<span class="pfix" title="Today's median fix time (board open to reboot), ${D.fixMs.days[D.fixMs.days.length - 1].n} fixes">🔧⏱️ <b>${secs(D.fixMs.today)}</b> median fix</span></div>`
+      : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`;
+    const slow = D.slowest.length ? D.slowest.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${icon(STAGE_LOOK[q.stage].ic)}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
+    $('pBody').innerHTML = `<div class="psum"><span>${icon('star')} Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span><span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span>`
+      + `<span class="pfix" title="Today's median fix time (board open to reboot), ${D.fixMs.days[D.fixMs.days.length - 1].n} fixes">${icon('wrench')}${icon('timer')} <b>${secs(D.fixMs.today)}</b> median fix</span></div>`
       + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div></div>`
       + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
-      + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">⏭ Open step ${D.next.step}: ${D.next.name}</button>` : '<button class="pbtn step off" data-act="step" disabled>✔ Every step is open</button>'}`
-      + `<button class="pbtn reset" data-act="reset">🗑️ Reset ${D.name}</button></div></div></div>`
+      + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}`
+      + `<button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${D.name}</button></div></div></div>`
       + BackupUI.html();   // #69: back up and restore (every child, not just this tab's)
     const cf = $('pConfirm'); cf.classList.toggle('on', this.confirm); $('parentPanel').classList.toggle('locked', this.confirm);
-    if (this.confirm) cf.innerHTML = `<span class="big">🗑️${childOf(this.tab).icon}</span><span>Reset <b>${D.name}</b>? Every fact goes back to New (⭐ ${D.mastery.mastered}/${D.mastery.goal}, step ${D.step}), with the minutes and the cheers. This can't be undone.</span>`
-      + `<div class="pact"><button class="pbtn keep" data-act="cancel">✖ Keep</button><button class="pbtn reset" data-act="confirm">🗑️ Reset ${D.name}</button></div>`;
+    if (this.confirm) cf.innerHTML = `<span class="big">${icon('bin')}${icon(childOf(this.tab).ic)}</span><span>Reset <b>${D.name}</b>? Every fact goes back to New (${icon('star')} ${D.mastery.mastered}/${D.mastery.goal}, step ${D.step}), with the minutes and the cheers. This can't be undone.</span>`
+      + `<div class="pact"><button class="pbtn keep" data-act="cancel">${icon('cross')} Keep</button><button class="pbtn reset" data-act="confirm">${icon('bin')} Reset ${D.name}</button></div>`;
     BackupUI.draw();   // #69: the restore summary over it, when it's up
   },
   // the parent view's buttons (and __rb.parentDo): 'tab' (show child c), 'step' (open their next step),
@@ -8026,8 +8077,7 @@ const GARAGE_TABS = [
 ];
 const GARAGE = { bg: '#1b2034', lift: 1.2, spin: 0.45, pieceSpin: 0.7, ghost: '#0b0e18', rim: '#6f7a9c' };
 // where a trophy came from, as an icon: the robot type's own, or 🔍 for a part hidden in the meadow
-const sourceIcon = (src) => (src === 'meadow' ? '🔍' : ROBOT_TYPES[src]?.icon ?? '❓');
-const sourceIc = (src) => (src === 'meadow' ? 'search' : ROBOT_TYPES[src]?.ic ?? 'question');   // I1: the same, as an icon name
+const sourceIc = (src) => (src === 'meadow' ? 'search' : ROBOT_TYPES[src]?.ic ?? 'question');
 const Garage = {
   on: false, from: null, tab: 'trophies', loose: blankGarage(), t: 0, liftT: 0, drawn: {}, scene: null, cur: 0,   // cur: the 🦾 card picked by keys / pad
   cheering: null, cheerT: null,   // G4: the advanced parts the garage is cheering now
@@ -9449,7 +9499,7 @@ applyUpgrades();          // G2: nobody picked yet, so a bare mech (levels all 0
 onResize();
 Title.build();
 // the portraits' initials use the web font: draw them again once it has loaded
-document.fonts?.ready.then(() => { pilotFace.cache?.clear(); Title.build(); $('who').dataset.p = ''; Title.draw(); if (Game.pilot) setPilot(Game.humans[0], Game.pilot); updateHud.pilotKey = null; });
+document.fonts?.ready.then(() => pilotFace.refresh());
 Game.state = 'play';
 setPause(true);           // waits on the title screen for a pilot; hooks can still step
 Game.paused = false;      // ...but the sim runs, so the mech idles in the meadow
