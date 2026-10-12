@@ -113,7 +113,7 @@
   .plug.done { cursor: default; }
   .port { background: #0b0e1a; border: 7px solid; box-shadow: inset 0 0 0 4px #0b0e1a, inset 0 0 14px rgba(0,0,0,.9); }
   .port.done { box-shadow: inset 0 0 0 4px #0b0e1a, 0 0 18px currentColor; }
-  .plug svg, .port svg { width: 44px; height: 44px; }
+  .plug svg:not(.ic), .port svg:not(.ic) { width: 44px; height: 44px; }   /* (I3: a cable's shape, not an icon in a badge) */
   .board.bad { animation: shake .3s; }
   @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
   /* ---------- NAME the fixed robot (a random name is already filled in) ---------- */
@@ -131,7 +131,7 @@
   .tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; max-width: min(560px, 86vw); }
   .tile { position: relative; width: 88px; height: 88px; border-radius: 50%; border: 5px solid var(--ink); box-shadow: 0 6px 0 var(--ink); font-size: 44px; cursor: pointer; padding: 0; transition: transform .1s, filter .1s; }
   .tile.on { outline: 6px solid #fff; outline-offset: 3px; transform: scale(1.08); }
-  .tile.on::after { content: '✔'; position: absolute; right: -10px; top: -10px; width: 30px; height: 30px; border-radius: 50%; background: var(--green); border: 3px solid var(--ink); color: #fff; font-size: 17px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  .tile.on::after { content: ''; position: absolute; right: -10px; top: -10px; width: 30px; height: 30px; border-radius: 50%; background: var(--green) var(--ic-check) center / 20px no-repeat; border: 3px solid var(--ink); }   /* (I3: the check icon, was a ✔ glyph) */
   .tile.dim { filter: grayscale(.8) brightness(.55); }
   .tile.cur { box-shadow: 0 6px 0 var(--ink), 0 0 0 5px var(--yellow), 0 0 24px var(--yellow); }
   .tiles.bad { animation: shake .3s; }
@@ -193,7 +193,7 @@
   /* ---------- QUICK FIX faults: a burnt wire is charred; 🔌 from the bag swaps it, or ✂️ tap it clean ---------- */
   .panel .top .how { font-size: 30px; margin-left: 10px; opacity: .9; }
   .plug.burnt { background: #2a211c !important; border-color: #000; cursor: pointer; animation: smoke 1.2s ease-in-out infinite; }
-  .plug.burnt svg { filter: grayscale(1) brightness(.45); }
+  .plug.burnt svg:not(.ic) { filter: grayscale(1) brightness(.45); }
   .plug .fixb { position: absolute; right: -12px; top: -12px; min-width: 40px; height: 40px; padding: 0 4px; border-radius: 20px; background: #fff; border: 3px solid var(--ink); font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 1px; }
   .plug .fixb i { font: 900 16px 'Asap', sans-serif; font-style: normal; color: var(--ink); }
   .plug, .port { position: relative; }
@@ -309,7 +309,7 @@
      so the math is the only way to match; a wired port lights in its cable's colour, gold if it was answered fast ---------- */
   .board.math { width: min(560px, calc(100vw - 84px)); gap: 40px; }
   .board.math .plug { width: 168px; height: 76px; border-radius: 38px; gap: 6px; padding: 0 12px; justify-content: flex-start; }
-  .board.math .plug svg { width: 30px; height: 30px; flex: none; }
+  .board.math .plug svg:not(.ic) { width: 30px; height: 30px; flex: none; }
   .board.math .port { width: 112px; height: 76px; border-radius: 22px; border-color: rgba(255,255,255,.4); color: #fff; }
   .board.math .port.done { border-color: var(--wc); box-shadow: inset 0 0 0 4px #0b0e1a, 0 0 18px var(--wc); }
   .board.math .port.fast { border-color: var(--yellow); box-shadow: inset 0 0 0 4px #0b0e1a, 0 0 26px 4px var(--yellow); }
@@ -341,13 +341,14 @@
   .entry .val .dg { position: relative; font-style: normal; width: 48px; text-align: center; border-radius: 10px; }
   .entry .val .dg.lead { opacity: .35; }
   .entry .val .dg.cur { background: rgba(255,194,26,.25); outline: 4px solid var(--yellow); opacity: 1; }
-  .entry .val .dg.cur::before, .entry .val .dg.cur::after { position: absolute; left: 50%; transform: translateX(-50%); font-size: 20px; color: var(--yellow); line-height: 1; }
-  .entry .val .dg.cur::before { content: '▲'; top: -34px; }
-  .entry .val .dg.cur::after { content: '▼'; bottom: -34px; }
+  /* (I3: the dial's ▲ ▼ are the up and down icons as a mask, in the cursor's yellow) */
+  .entry .val .dg.cur::before, .entry .val .dg.cur::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: var(--yellow); -webkit-mask: var(--ic-m) center / contain no-repeat; mask: var(--ic-m) center / contain no-repeat; }
+  .entry .val .dg.cur::before { --ic-m: var(--ic-up); top: -34px; }
+  .entry .val .dg.cur::after { --ic-m: var(--ic-down); bottom: -34px; }
   @media (max-width: 560px) {
     .board.math { gap: 14px; }
     .board.math .plug { width: 138px; padding: 0 8px; }
-    .board.math .plug svg { width: 22px; height: 22px; }
+    .board.math .plug svg:not(.ic) { width: 22px; height: 22px; }
     .board.math .port { width: 86px; }
     .fact { font-size: 27px; } .ans { font-size: 32px; }
     .entry .q .fact, .entry .val { font-size: 40px; }
@@ -372,7 +373,7 @@
   .fslots .card:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
   @keyframes cardPulse { 0%,100% { box-shadow: 0 5px 0 var(--ink), 0 0 0 0 rgba(255,216,61,.0); } 50% { box-shadow: 0 5px 0 var(--ink), 0 0 18px 4px rgba(255,216,61,.75); } }
   .fslots .done { animation: none; filter: grayscale(.5) brightness(.75); cursor: default; }
-  .fslots .done::after { content: '✔'; position: absolute; right: -10px; top: -10px; width: 28px; height: 28px; border-radius: 50%; background: var(--green); border: 3px solid var(--ink); color: #fff; font: 900 16px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; filter: none; }
+  .fslots .done::after { content: ''; position: absolute; right: -10px; top: -10px; width: 28px; height: 28px; border-radius: 50%; background: var(--green) var(--ic-check) center / 19px no-repeat; border: 3px solid var(--ink); filter: none; }
   .fslots .card.cur, .fslots .card.open { outline: 5px dashed var(--yellow); outline-offset: 5px; }
   .fslots .card.open { background: #fff; animation: none; }
   #fix.puzzling .board { display: none; }
@@ -394,7 +395,7 @@
   .loop .miss .w { stroke: #ff4d5e; }
   .loop.lit .w, .loop.lit .lead { stroke: var(--yellow); stroke-dasharray: 16 10; animation: current .5s linear infinite; filter: drop-shadow(0 0 6px var(--yellow)); }
   @keyframes current { to { stroke-dashoffset: -26; } }
-  .loop .part { font-size: 52px; dominant-baseline: central; text-anchor: middle; pointer-events: none; }
+  .loop .part { pointer-events: none; }   /* (I3: the 🔋 and ⚙️ are <use>s of the icons, loopPart()) */
   .loop .motor { filter: grayscale(1) brightness(.6); transform-box: fill-box; transform-origin: center; }
   .loop.lit .motor { filter: none; animation: spin .6s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -411,8 +412,8 @@
   .chain { display: flex; align-items: center; gap: 4px; }
   .chain .sock { width: 56px; height: 56px; border-radius: 50%; border: 4px dashed rgba(255,255,255,.55); display: flex; align-items: center; justify-content: center; font-size: 30px; line-height: 1; }
   .chain .sock.on { border: 4px solid var(--ink); box-shadow: 0 0 14px rgba(255,216,61,.7); }
-  .chain .arr { font-size: 26px; color: rgba(255,255,255,.3); line-height: 1; }
-  .chain .arr.on { color: var(--yellow); text-shadow: 0 0 10px var(--yellow); }
+  .chain .arr { font-size: 26px; line-height: 1; opacity: .3; }   /* (I3: the arrow icon: dim until lit, then a yellow glow) */
+  .chain .arr.on { opacity: 1; filter: drop-shadow(0 0 5px var(--yellow)) drop-shadow(0 0 3px var(--yellow)); }
   .chain .bot { width: 70px; height: auto; flex: none; }
   .bot rect, .bot circle { fill: #59607a; stroke: var(--ink); stroke-width: 3; }
   .bot .eye circle { fill: #2a2f44; } .bot .eye .pupil { fill: #14182a; stroke: none; }
@@ -601,6 +602,16 @@
   #garage .ic, #advToast .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
     margin: max(.15em, min(calc(.15em + 3.5px), calc(23px - .85em))) var(--mx) calc(.16em + 1px); vertical-align: calc(-.31em - 1px); }
   #garage :is(.gtab, .tf, .aic, .gch .big, .glock .big, .glock .ti, .sic, .spart, .plab, .lic, .lfx, .braise) .ic, #advToast .ti .ic { margin: 0 var(--mx); vertical-align: top; }
+  /* I3: the Quick Fix, puzzles and repair screens size their icons the way I2's garage does (the room the emoji took, drawn
+     a fifth bigger), and where a line was 1em tall (line-height: 1, or a flex item) only the side margins stay. :where()
+     keeps these at .ic's weight, so a panel's own rules still win; #75's squadmate badge in the mend panel keeps its own */
+  :where(#fix, #picker, #bag, #mend, #home, #namer, .hand) .ic:not(:where(.who > .ic)) { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
+    margin: max(.15em, min(calc(.15em + 3.5px), calc(23px - .85em))) var(--mx) calc(.16em + 1px); vertical-align: calc(-.31em - 1px); }
+  :where(#fix, #picker, #bag, #mend, #home, #namer) :is(.sym > span, .arr, .area, .unl, .slot, .sock) > .ic, .hand > .ic { margin: 0 var(--mx); vertical-align: top; }
+  :where(#fix) .chain .arr > .ic { margin: 0 -.03em; }   /* (➜ was .94em wide) */
+  :where(#mend) .empty > .ic + .ic { margin: 0 -.16em 0 0; vertical-align: -.15em; }   /* (the ✔ after the ❤️ was a text glyph: narrower than an emoji, and its line only the text's height) */
+  :where(#home) .hwarn > .ic[data-icon="arrow"] { margin-inline: -.035em; } :where(#home) .hwarn > .ic[data-icon="cross"] { margin-inline: -.12em; }   /* (➜ and ✖ were text glyphs, .93em and .76em wide) */
+  .board .plug .fixb > .ic { width: 1em; height: 1em; margin: 0 var(--mx); vertical-align: top; }
   .gbay { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 16px; }
   .gtop { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 8px solid transparent;
     border-image: repeating-linear-gradient(-45deg, var(--yellow) 0 14px, var(--ink) 14px 28px) 8; }
@@ -729,7 +740,13 @@
   .swatch, .decal { flex: none; width: 46px; height: 46px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); cursor: pointer; box-shadow: 0 3px 0 var(--ink); }
   .swatch { background: var(--sc); }
   .decal { border-radius: 12px; background: #5b6178; font-size: 24px; display: flex; align-items: center; justify-content: center; }
-  .decal img, .decal .ic { width: 34px; height: 34px; margin: 0; pointer-events: none; }   /* (I2: a decal's swatch is its icon) */
+  .decal img, .decal .ic, .decal .dtint { width: 34px; height: 34px; margin: 0; pointer-events: none; }   /* (I2: a decal's swatch is its icon) */
+  /* #82: a decal's icon in the trim colour, so the button previews the decal: the icon in greys, and over it its own
+     silhouette (a mask of the same SVG) in the trim colour, multiplied in: the outline stays ink, the fills take the trim */
+  .decal { position: relative; isolation: isolate; }
+  .decal.tint .ic { filter: grayscale(1) brightness(1.35); }
+  .decal .dtint { position: absolute; inset: 0; margin: auto; transform: scale(1.2); background: var(--tc); mix-blend-mode: multiply; pointer-events: none;
+    -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
   .swatch.on, .decal.on { outline: 4px solid #fff; outline-offset: 2px; transform: scale(1.1); }
   /* B1: the 🦿 Body tab. A row per section: its icon, its tier as pips (part colour for upgrades, yellow for mastery),
      the tier's name, and the icons that raise it (🔢 lit, with its +1 / +2, once mastery adds to every section) */
@@ -739,7 +756,7 @@
   .lrow { flex: 1 1 0; min-height: 110px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .lcard { position: relative; min-width: 0; min-height: 0; padding: 0; border-radius: 18px; border: 4px solid color-mix(in srgb, var(--pc) 70%, transparent); background: rgba(20,24,42,.7); color: #fff; font: inherit; cursor: pointer; }
   .lcard .tv { position: absolute; inset: 4px 4px 30px 4px; pointer-events: none; }
-  .lcard .lic { position: absolute; left: 6px; top: 5px; font-size: 26px; line-height: 1; }
+  .lcard .lic { position: absolute; left: 6px; top: 5px; font-size: 39px; line-height: 1; filter: brightness(1.25) drop-shadow(0 0 3px rgba(255,255,255,.55)); }   /* (#82: 1.5x and brighter: they were 26 px, dim on the dark card) */
   .lcard .lon { position: absolute; right: 6px; top: 5px; width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--ink); background: var(--green); color: var(--ink); font: 900 16px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; }
   .lcard .lfx { position: absolute; left: 3px; right: 3px; bottom: 4px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 3px; font-size: 15px; line-height: 1; }
   .lcard .lfx i { font-style: normal; display: flex; align-items: center; gap: 1px; padding: 2px 4px; border-radius: 8px; }
@@ -800,12 +817,12 @@
     .gwall.paint { gap: 6px; justify-content: flex-start; }
     .prow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 24px; } .plab small { font-size: 10px; }
-    .psw { gap: 5px; } .swatch, .decal { width: 36px; height: 36px; border-width: 3px; } .decal img, .decal .ic { width: 26px; height: 26px; }
+    .psw { gap: 5px; } .swatch, .decal { width: 36px; height: 36px; border-width: 3px; } .decal img, .decal .ic, .decal .dtint { width: 26px; height: 26px; }
     .gwall.body { gap: 6px; justify-content: flex-start; }
     .brow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 3px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 14px; } .braise { font-size: 20px; gap: 2px; }
-    .lrow { gap: 5px; min-height: 120px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 20px; left: 4px; top: 4px; }
+    .lrow { gap: 5px; min-height: 120px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 4px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .lfx { font-size: 13px; gap: 2px; } .lcard .lfx i { padding: 1px 2px; } .lcard .lfx b { display: none; }
     .lcard .tv { bottom: 40px; } .lcard .llock { font-size: 14px; padding: 2px 5px; } .lcard .llock b { font-size: 13px; }
   }
@@ -839,12 +856,12 @@
     .gwall.paint { gap: 6px; }
     .prow { gap: 6px; padding: 3px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 22px; } .plab small { font-size: 10px; }
-    .psw { gap: 5px; } .swatch, .decal { width: 32px; height: 32px; border-width: 3px; } .decal img, .decal .ic { width: 24px; height: 24px; }
+    .psw { gap: 5px; } .swatch, .decal { width: 32px; height: 32px; border-width: 3px; } .decal img, .decal .ic, .decal .dtint { width: 24px; height: 24px; }
     .gwall.body { gap: 5px; }
     .brow { gap: 8px; padding: 2px 8px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 4px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 15px; } .braise { font-size: 20px; }
-    .lrow { gap: 6px; min-height: 0; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 20px; left: 4px; top: 3px; }
+    .lrow { gap: 6px; min-height: 0; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 3px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .tv { bottom: 22px; }
     .lcard .lfx { font-size: 13px; bottom: 2px; } .lcard .lfx i { padding: 1px 2px; } .lcard .lfx b { font-size: 10px; } .lcard .llock { font-size: 15px; } .lcard .llock b { font-size: 14px; }
     .lcard .llock { top: 32%; }   /* (I2: Tracks' seven chips take three rows here: the lock sits higher, clear of them) */
@@ -928,7 +945,7 @@
 </div>
 <div id="fix" class="screen">
   <div class="panel">
-    <div class="top"><span>🔧🤖<span class="how" id="fixHow"></span></span><button class="x" id="fixX" aria-label="Stop">✖</button></div>
+    <div class="top"><span><i data-ic="wrench"></i><i data-ic="robot"></i><span class="how" id="fixHow"></span></span><button class="x" id="fixX" aria-label="Stop"><i data-ic="cross"></i></button></div>
     <!-- P3-1 (from wave 1): the board's slots, its wires (✔ once in) and its puzzle cards; a card opens its puzzle -->
     <div class="fslots" id="fixSlots"></div>
     <!-- an open puzzle card (🔥 Find the break, 🔍 What broke?); ✖, Esc or pad B go back to the board -->
@@ -942,17 +959,17 @@
 <!-- CHOOSE PARTS: the downed robot's parts; tap up to two, ✔ takes them, the rest is scrapped -->
 <div id="picker" class="screen">
   <div class="panel">
-    <div class="top"><span>🔩🤖</span><button class="x" id="pickX" aria-label="Stop">✖</button></div>
+    <div class="top"><span><i data-ic="bolt"></i><i data-ic="robot"></i></span><button class="x" id="pickX" aria-label="Stop"><i data-ic="cross"></i></button></div>
     <div class="slots" id="slots"></div>
     <div class="tiles" id="pickTiles"></div>
-    <div class="foot"><button class="ok" id="pickOk" aria-label="Take these parts">✔<small>G</small></button></div>
+    <div class="foot"><button class="ok" id="pickOk" aria-label="Take these parts"><i data-ic="check"></i><small>G</small></button></div>
   </div>
 </div>
 
 <!-- PARTS BAG: every part collected, as icons with counts -->
 <div id="bag" class="screen">
   <div class="panel">
-    <div class="top"><span>🎒<span class="bagtotal">🔩 <b id="bagN">0</b></span></span><button class="x" id="bagX" aria-label="Close">✖</button></div>
+    <div class="top"><span><i data-ic="bag"></i><span class="bagtotal"><i data-ic="bolt"></i> <b id="bagN">0</b></span></span><button class="x" id="bagX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div class="tiles" id="bagTiles"></div>
   </div>
 </div>
@@ -960,7 +977,7 @@
 <!-- MEND: fix your own mech. Each damaged area shows the part that fixes it and how many the bag has; tap one to use it -->
 <div id="mend" class="screen">
   <div class="panel">
-    <div class="top"><span>🔧❤️</span><button class="x" id="mendX" aria-label="Close">✖</button></div>
+    <div class="top"><span><i data-ic="wrench"></i><i data-ic="energy"></i></span><button class="x" id="mendX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div class="needs" id="mendTiles"></div>
   </div>
 </div>
@@ -968,9 +985,9 @@
 <!-- SEND HOME: the squad holds 3, so fixing a 4th asks which squadmate goes home (✖ = don't fix) -->
 <div id="home" class="screen">
   <div class="panel">
-    <div class="top"><span class="new">🏠<span id="homeNew"></span></span><button class="x" id="homeX" aria-label="Cancel">✖</button></div>
+    <div class="top"><span class="new"><i data-ic="home"></i><span id="homeNew"></span></span><button class="x" id="homeX" aria-label="Cancel"><i data-ic="cross"></i></button></div>
     <div class="tiles" id="homeTiles"></div>
-    <div class="hwarn" id="homeWarn" aria-label="Its upgrades are lost if it goes home. Tap again to send it home">⚠️ 🏠 ➜ ⬆️✖ <span class="again">👆👆</span></div>
+    <div class="hwarn" id="homeWarn" aria-label="Its upgrades are lost if it goes home. Tap again to send it home"><i data-ic="warn"></i> <i data-ic="home"></i> <i data-ic="arrow"></i> <i data-ic="upgrade"></i><i data-ic="cross"></i> <span class="again"><i data-ic="tap"></i><i data-ic="tap"></i></span></div>
   </div>
 </div>
 
@@ -980,7 +997,7 @@
 <!-- NAME: the fixed robot already has a random name; typing a new one is optional -->
 <div id="namer" class="screen">
   <div class="panel">
-    <div class="row"><span class="big">🤖</span><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Name"><button id="nameDice" aria-label="Random name">🎲</button><button id="nameOk" aria-label="OK">✔</button></div>
+    <div class="row"><span class="big"><i data-ic="robot"></i></span><input id="nameIn" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Name"><button id="nameDice" aria-label="Random name"><i data-ic="dice"></i></button><button id="nameOk" aria-label="OK"><i data-ic="check"></i></button></div>
   </div>
 </div>
 
@@ -1426,6 +1443,14 @@ const starD = (cx, cy, R, r, n = 5, a0 = -90) => 'M' + Array.from({ length: n * 
 const gearD = (cx, cy, R, r, n) => { const pts = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 - Math.PI / 2, w = Math.PI / n;
   for (const [da, q] of [[-w * 0.95, r], [-w * 0.45, R], [w * 0.45, R], [w * 0.95, r]]) pts.push(f1(cx + Math.cos(a + da) * q) + ' ' + f1(cy + Math.sin(a + da) * q)); }
   return 'M' + pts.join(' L') + ' Z'; };
+// #82: digits as stroke paths (an icon has no font glyphs): [digit, cx, cy] each, 3.4 wide and 5.4 tall
+const digitsD = (list) => list.map(([n, x, y]) => {
+  const X = (d) => f1(x + d), Y = (d) => f1(y + d);
+  return ({ 1: `M${X(-1.3)} ${Y(-1.5)} L${X(0.3)} ${Y(-2.7)} L${X(0.3)} ${Y(2.7)}`,
+    2: `M${X(-1.6)} ${Y(-1.3)} C${X(-1.5)} ${Y(-3.3)} ${X(1.7)} ${Y(-3.3)} ${X(1.7)} ${Y(-1.2)} C${X(1.7)} ${Y(0.2)} ${X(-1.6)} ${Y(1.2)} ${X(-1.7)} ${Y(2.7)} L${X(1.8)} ${Y(2.7)}`,
+    3: `M${X(-1.6)} ${Y(-2.7)} L${X(1.6)} ${Y(-2.7)} L${X(-0.2)} ${Y(-0.5)} C${X(2.3)} ${Y(-0.6)} ${X(2.3)} ${Y(2.8)} ${X(-0.1)} ${Y(2.8)} C${X(-0.9)} ${Y(2.8)} ${X(-1.5)} ${Y(2.4)} ${X(-1.8)} ${Y(1.9)}`,
+    4: `M${X(0.9)} ${Y(2.7)} L${X(0.9)} ${Y(-2.7)} L${X(-1.8)} ${Y(1.1)} L${X(1.9)} ${Y(1.1)}` })[n];
+}).join(' ');
 // the shared pieces
 const HEART = 'M12 20.6 C6.2 16.8 2.6 13.4 2.6 8.9 C2.6 5.8 4.9 3.6 7.6 3.6 C9.5 3.6 11.1 4.6 12 6.3 C12.9 4.6 14.5 3.6 16.4 3.6 C19.1 3.6 21.4 5.8 21.4 8.9 C21.4 13.4 17.8 16.8 12 20.6 Z';
 const SHIELD = 'M12 2.6 L20.4 5.4 L20.4 11.4 C20.4 16.4 16.8 19.7 12 21.4 C7.2 19.7 3.6 16.4 3.6 11.4 L3.6 5.4 Z';
@@ -1566,7 +1591,8 @@ const ICONS = {
     + pa('M6 3 L18 3 L18 8.8 C18 12.6 15.4 15 12 15 C8.6 15 6 12.6 6 8.8 Z', G('gold')) + hl('M8.2 5.4 L8.2 9')],
   paint: ['paint', ['🎨'], pa('M12 2.6 C6.4 2.6 2.4 6.6 2.4 11.8 C2.4 17.4 6.6 21.4 11.6 21.4 C13.4 21.4 14.2 20.4 13.6 19 C13 17.6 13.8 16.2 15.6 16.2 L17.8 16.2 C20.2 16.2 21.6 14.6 21.6 12 C21.6 6.6 17.4 2.6 12 2.6 Z', G('steel'))
     + cn(7.2, 9.6, 1.9, '#ff4d5e') + cn(11.4, 6.6, 1.9, '#ffd83d') + cn(16.2, 7.6, 1.9, '#4f9dff') + cn(7.2, 14.6, 1.9, '#3ee07a')],
-  math: ['math wiring', ['🔢'], re(2.6, 2.6, 18.8, 18.8, 4, G('blue')) + ln('M8.4 8.4 L15.6 15.6 M15.6 8.4 L8.4 15.6', '#fff', 2.4)],
+  // (#82: a number tile, 1 2 over 3 4, drawn as strokes: the white × it was read as close)
+  math: ['math wiring', ['🔢'], re(2.6, 2.6, 18.8, 18.8, 4, G('blue')) + `<path d="${digitsD([[1, 8.3, 8.2], [2, 15.7, 8.2], [3, 8.3, 15.9], [4, 15.7, 15.9]])}" fill="none" stroke="#fff" stroke-width="1.7"/>`],
   colours: ['colour wiring', ['🌈'], ln('M3.4 19 A8.6 8.6 0 0 1 20.6 19', '#ff4d5e', 2.2, 'butt') + `<path d="M7.6 19 A4.4 4.4 0 0 1 16.4 19" fill="none" stroke="#4f9dff" stroke-width="2.2"/><path d="M5.5 19 A6.5 6.5 0 0 1 18.5 19" fill="none" stroke="#ffd83d" stroke-width="2.2"/>`],
   question: ['what?', ['❓', '❔'], ln('M8 8.2 Q8 3.6 12 3.6 Q16 3.6 16 7.6 Q16 10.2 13.4 11.4 Q12 12.2 12 14.6', G('red'), 3) + ci(12, 19.2, 2.2, G('red'))],
   // stage of a fact: ○ new, ◐ learning, ● known, ★ mastered
@@ -1622,6 +1648,9 @@ const icRead = (el) => { if (!el) return null; let out = ''; for (const nd of el
 // one icon as a standalone SVG (its own gradients, a fixed size): for a canvas
 const iconFile = (n, px = 128) => `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24"><defs>${ICON_DEFS}</defs>${iconSvg(n)}</svg>`;
 
+const ICON_CSS = ['check', 'up', 'down'];
+// an icon as a CSS url() of its standalone SVG (cached), for a mask or a background
+const iconURL = (n) => ((iconURL.c ||= {})[n] ||= `url('data:image/svg+xml,${encodeURIComponent(iconFile(n, 48)).replace(/'/g, '%27')}')`);
 // the sprite (one hidden <svg>: the gradients and a <symbol> per icon), and every [data-ic] placeholder in the page drawn.
 // Hidden by size, not display: none, which would stop its gradients painting where they're used.
 const Icons = {
@@ -1629,6 +1658,9 @@ const Icons = {
     if (!$('iconSprite')) document.body.insertAdjacentHTML('afterbegin', `<svg id="iconSprite" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>${ICON_DEFS}</defs>`
       + Object.keys(ICONS).map((n) => `<symbol id="i-${n}" viewBox="0 0 24 24">${iconSvg(n)}</symbol>`).join('') + '</svg>');
     for (const el of document.querySelectorAll('[data-ic]')) el.outerHTML = icon(el.dataset.ic, el.dataset.label ? { label: el.dataset.label } : {});
+    // I3: the icons CSS draws in ::before / ::after (the ✔ on a picked tile and a done slot, the dial's ▲ ▼) as data URLs
+    // of the same SVG, in --ic-<name> on :root
+    for (const n of ICON_CSS) document.documentElement.style.setProperty('--ic-' + n, iconURL(n));
   },
   // the contact sheet: every icon at 16, 24 and 48 px, on the dark HUD, on a light panel, and (parts) on its own colour.
   // Toggles; returns whether it's open and how many icons it shows
@@ -3258,9 +3290,9 @@ function adoptPaint(md) {
   });
 }
 // a decal's picture: drawn once per kind, trim colour and emblem, on a see-through square
-function decalTex(kind, trim, emblem) {
+function decalTex(kind, trim, emblem, body = trim) {
   decalTex.cache ||= new Map();
-  const key = kind + trim + emblem; if (decalTex.cache.has(key)) return decalTex.cache.get(key);
+  const key = kind + trim + emblem + body; if (decalTex.cache.has(key)) return decalTex.cache.get(key);
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
   g.lineJoin = 'round'; g.strokeStyle = '#14182a';
   const star = (x, y, R) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * 0.45 : R; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.lineWidth = 10; g.stroke(); g.fillStyle = trim; g.fill(); };
@@ -3275,7 +3307,7 @@ function decalTex(kind, trim, emblem) {
     // two racing stripes, corner to corner
     for (const o of [-46, 46]) { g.beginPath(); g.moveTo(-20 + o, 276); g.lineTo(40 + o, 276); g.lineTo(276 + o, 40); g.lineTo(276 + o, -20); g.closePath(); g.lineWidth = 10; g.stroke(); g.fillStyle = trim; g.fill(); }
   } else if (kind === 'emblem') {
-    g.beginPath(); g.arc(128, 128, 116, 0, Math.PI * 2); g.fillStyle = trim; g.fill(); g.lineWidth = 12; g.stroke();
+    g.beginPath(); g.arc(128, 128, 116, 0, Math.PI * 2); g.fillStyle = body; g.fill(); g.lineWidth = 12; g.stroke();   // (#82: the body colour, for contrast with the emblem)
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   // I2: the emblem is the pilot's emblem icon (emblem = an ICONS name), drawn in once its SVG has loaded (no emoji glyph)
@@ -3329,7 +3361,7 @@ function paintMech(md, p, pilot = Game.pilot) {
       const q = new THREE.Mesh(new THREE.PlaneGeometry(size, size), m); q.position.set(...pos); q.rotation.set(...rot); q.renderOrder = 2; q.userData.decal = true; parent.add(q); return q; }) };
   }
   const D = md.decals, on = p.decal !== 'none';
-  if (on) { const t = decalTex(p.decal, p.trim, pilot?.emblemIc ?? 'star'); if (D.mat.map !== t) { D.mat.map = t; D.mat.needsUpdate = true; } }
+  if (on) { const t = decalTex(p.decal, p.trim, pilot?.emblemIc ?? 'star', p.body); if (D.mat.map !== t) { D.mat.map = t; D.mat.needsUpdate = true; } }
   for (const q of D.planes) q.visible = on;
   md.paintNow = { ...p };
   if (md === Game.humans[0]?.mech?.model) Body.dress(md);   // B1: the realism tiers go on over the paint and finish
@@ -6887,7 +6919,8 @@ const FixUI = {
       const P = this.puzzleOpen(); if (P) this.answerPuzzle(this.puz.k, P.type === 'break' ? +t.dataset.a : t.dataset.a);
     });
     // the keypad for a typed plug: 1–9, ⌫ 0 ✔ (the keyboard's digits, Backspace and Enter work too)
-    $('entKeys').innerHTML = ENTRY_KEYS.map((k) => `<button data-k="${k}" class="${k === '✔' ? 'ok' : k === '⌫' ? 'del' : ''}" aria-label="${k === '⌫' ? 'Delete' : k === '✔' ? 'OK' : k}">${k}</button>`).join('');
+    // (I3: ⌫ and ✔ stay the keys' values, data-k; they're drawn as the erase and check icons)
+    $('entKeys').innerHTML = ENTRY_KEYS.map((k) => `<button data-k="${k}" class="${k === '✔' ? 'ok' : k === '⌫' ? 'del' : ''}" aria-label="${k === '⌫' ? 'Delete' : k === '✔' ? 'OK' : k}">${k === '⌫' ? icon('erase') : k === '✔' ? icon('check') : k}</button>`).join('');
     $('entKeys').addEventListener('pointerdown', (e) => { const b = e.target.closest('button'); if (b) { e.preventDefault(); this.key(b.dataset.k); } });
     $('nameOk').addEventListener('click', () => this.confirmName());
     $('nameDice').addEventListener('click', () => { if (this.r) { setRobotName(this.r, randomName()); $('nameIn').value = this.r.name; } if (!Game.manual) Sfx.click(); });
@@ -6912,12 +6945,12 @@ const FixUI = {
   show(id) { for (const p of ['fix', 'namer', 'picker', 'bag', 'mend', 'home']) $(p).classList.toggle('on', id === p); },
   // a round part tile: its icon on its colour
   // a part that unlocks a weapon wears that weapon's icon (the 🔭 scope: ☄️)
-  tile(id, cls = '') { const P = PARTS[id], u = P.unlocks && WEAPON[P.unlocks] ? `<span class="unl">${WEAPON[P.unlocks].icon}</span>` : ''; return `<button class="tile ${cls}" data-part="${id}" aria-label="${id}" style="background:${P.hex}">${P.icon}${u}</button>`; },
+  tile(id, cls = '') { const P = PARTS[id], u = P.unlocks && WEAPON[P.unlocks] ? `<span class="unl">${icon(WEAPON[P.unlocks].ic)}</span>` : ''; return `<button class="tile ${cls}" data-part="${id}" aria-label="${id}" style="background:${P.hex}">${icon(P.ic, { label: id })}${u}</button>`; },
   openWires(r) {
     this.mode = 'wires'; this.r = r; this.sel = -1; this.drag = null; this.pad = 'plug'; this.cur = 0;   // mode first, so freeing the mouse isn't a pause
     this.puz = null; this.cardCur = Math.max(0, r.board?.puzzles?.findIndex((q) => !q.done) ?? 0); this.cardKb = false; this.puzKb = false; $('fix').classList.remove('puzzling');
     // beside the 🔧🤖: what beat it (🧲 = shut down by the electromagnet, so there's little to fix)
-    $('fixHow').textContent = r.beatenBy && WEAPON[r.beatenBy] ? WEAPON[r.beatenBy].icon : '';
+    $('fixHow').innerHTML = r.beatenBy && WEAPON[r.beatenBy] ? icon(WEAPON[r.beatenBy].ic) : '';
     this.show('fix'); this.renderWires();
     if (document.pointerLockElement) document.exitPointerLock();
   },
@@ -6931,13 +6964,13 @@ const FixUI = {
     $('board').classList.toggle('math', M);
     $('plugs').innerHTML = W.plugs.map((ci, i) => {
       const typed = typedPlug(W, i) && !W.burnt[i];
-      const b = W.burnt[i] ? `<b class="fixb">${Game.bag.wiring > 0 ? PARTS.wiring.icon : M ? '🔢' : '✂️<i>' + W.scrub[i] + '</i>'}</b>` : typed ? '<b class="fixb">🔢</b>' : '';
+      const b = W.burnt[i] ? `<b class="fixb">${Game.bag.wiring > 0 ? icon(PARTS.wiring.ic) : M ? icon('math') : icon('cut') + '<i>' + W.scrub[i] + '</i>'}</b>` : typed ? `<b class="fixb">${icon('math')}</b>` : '';
       const face = M ? this.icon(ci, '#fff', '#14182a') + `<span class="fact">${factText(W.facts[i])}</span>` : this.icon(ci, '#fff', '#14182a');
       const rv = M && i === show ? `<span class="reveal">= ${W.facts[i].answer}</span>` : '';
       return `<div class="plug${W.burnt[i] ? ' burnt' : typed ? ' typed' : ''}" data-plug="${i}" data-color="${C[ci].color}" style="background:${C[ci].hex}">${face}${b}${rv}</div>`;
     }).join('');
     $('ports').innerHTML = W.ports.map((ci, j) => (M
-      ? `<div class="port" data-port="${j}" style="--wc:${C[ci]?.hex ?? '#fff'}">${portHidden(W, j) ? '<span class="ans hide">❓</span>' : `<span class="ans">${portAnswer(W, j)}</span>`}</div>`
+      ? `<div class="port" data-port="${j}" style="--wc:${C[ci]?.hex ?? '#fff'}">${portHidden(W, j) ? `<span class="ans hide">${icon('question')}</span>` : `<span class="ans">${portAnswer(W, j)}</span>`}</div>`
       : `<div class="port" data-port="${j}" data-color="${C[ci].color}" style="border-color:${C[ci].hex};color:${C[ci].hex}">${this.icon(ci, C[ci].hex, 'none')}</div>`)).join('');
     this.renderSlots();
     this.draw();
@@ -6949,7 +6982,7 @@ const FixUI = {
     if (!B?.puzzles) { el.innerHTML = ''; return; }
     const W = this.r.wires;
     el.innerHTML = W.plugs.map((ci, i) => `<span class="wchip" data-plug="${i}" style="background:${WIRE_COLORS[ci].hex}">${this.icon(ci, '#fff', '#14182a')}</span>`).join('')
-      + B.puzzles.map((P, k) => `<button class="card" data-k="${k}" aria-label="${PUZZLES[P.type].name}">${PUZZLES[P.type].icon}</button>`).join('');
+      + B.puzzles.map((P, k) => `<button class="card" data-k="${k}" aria-label="${PUZZLES[P.type].name}">${icon(PUZZLES[P.type].ic, { label: PUZZLES[P.type].name })}</button>`).join('');
   },
   // the puzzle open now (null on the board)
   puzzleOpen() { return (this.puz && this.r?.board?.puzzles?.[this.puz.k]) || null; },
@@ -6975,7 +7008,7 @@ const FixUI = {
     const box = $('puz'), at = (a) => box.querySelector(`[data-a="${a}"]`)?.getBoundingClientRect();
     const pts = (P.type === 'chain' ? P.answer : [P.answer]).map(at).filter((b) => b && b.width);
     if (!pts.length) return;
-    const el = document.createElement('div'); el.className = 'hand'; el.textContent = '👆'; el.setAttribute('aria-hidden', 'true');
+    const el = document.createElement('div'); el.className = 'hand'; el.innerHTML = icon('tap'); el.setAttribute('aria-hidden', 'true');
     document.body.appendChild(el); this.hint = { el, type: P.type, until: performance.now() + PUZZLE.hint };
     const xy = (b) => `translate(${Math.round(b.left + b.width / 2)}px, ${Math.round(b.top + b.height / 2)}px)`;
     const f = [{ transform: xy(pts[0]) + ' translate(-30%, 40%) scale(1)', opacity: 0, offset: 0 }], step = 1 / pts.length;
@@ -7021,13 +7054,13 @@ const FixUI = {
       el.innerHTML = `<svg class="loop${P.done ? ' lit' : ''}" viewBox="0 0 380 200" role="img" aria-label="${PUZZLES.break.name}">`
         + `<path class="lead" d="M${L},74 V${T} M${L},126 V${Bm} M${R},74 V${T} M${R},126 V${Bm}"/>`
         + pts.map((_, i) => seg(i)).join('')
-        + `<text class="part" x="${L}" y="100">🔋</text><text class="part motor" x="${R}" y="100">⚙️</text></svg>`;
+        + this.loopPart('battery', L) + this.loopPart('motor', R, ' motor') + '</svg>';
     } else if (P.type === 'chain') {
       // 🧠: the chain's three sockets, each filled as it is tapped right, with an arrow lighting after it, into the robot;
       // its eye, then head, then legs twitch as the arrows reach them. Below, the shuffled tiles (a used one dims).
       const n = P.answer.length, st = P.done ? n : P.step, tw = Z.tw && Z.tw.until > performance.now() ? Z.tw.step : 0;
-      const sock = (i) => `<span class="sock${i < st ? ' on' : ''}" style="${i < st ? `background:${CHAIN.tiles[P.answer[i]].hex}` : ''}">${i < st ? CHAIN.tiles[P.answer[i]].icon : ''}</span>`;
-      const arr = (i) => `<b class="arr${i < st ? ' on' : ''}">➜</b>`;
+      const sock = (i) => `<span class="sock${i < st ? ' on' : ''}" style="${i < st ? `background:${CHAIN.tiles[P.answer[i]].hex}` : ''}">${i < st ? icon(CHAIN.tiles[P.answer[i]].ic) : ''}</span>`;
+      const arr = (i) => `<b class="arr${i < st ? ' on' : ''}">${icon('arrow')}</b>`;
       const bot = `<svg class="bot${P.done ? ' on' : ''}" viewBox="0 0 80 100" role="img" aria-label="robot">`
         + `<g class="head${st >= 2 ? ' lit' : ''}${tw === 2 ? ' tw' : ''}"><rect x="14" y="6" width="52" height="36" rx="10"/><g class="eye${st >= 1 ? ' lit' : ''}${tw === 1 ? ' tw' : ''}"><circle cx="40" cy="24" r="10"/><circle class="pupil" cx="40" cy="24" r="4"/></g></g>`
         + `<rect class="body" x="20" y="46" width="40" height="28" rx="6"/>`
@@ -7036,15 +7069,18 @@ const FixUI = {
         + `<div class="tiles">${P.choices.map((id, i) => {
           const C = CHAIN.tiles[id], used = !P.done && P.answer.indexOf(id) >= 0 && P.answer.indexOf(id) < st;
           const cls = `tile${i === cur ? ' cur' : ''}${id === Z.hint ? ' hint' : ''}${id === Z.miss ? ' miss' : ''}${used || P.done ? ' used' : ''}`;
-          return `<button class="${cls}" data-a="${id}" aria-label="${id}" style="background:${C.hex}">${C.icon}</button>`;
+          return `<button class="${cls}" data-a="${id}" aria-label="${id}" style="background:${C.hex}">${icon(C.ic, { label: id })}</button>`;
         }).join('')}</div>`;
       if (tw) { const t = Z.tw; setTimeout(() => { if (this.puz === Z && Z.tw === t) { Z.tw = null; this.drawPuzzle(); } }, t.until - performance.now() + 20); }
     } else {
       const T = ROBOT_TYPES[this.r.type];
-      el.innerHTML = `<div class="sym"><span>${T.icon}</span><span class="badge${P.done ? ' ok' : ''}">${P.done ? '✔' : SYMPTOMS[P.symptom].icon}</span></div>`
+      el.innerHTML = `<div class="sym"><span>${icon(T.ic)}</span><span class="badge${P.done ? ' ok' : ''}">${icon(P.done ? 'check' : SYMPTOMS[P.symptom].ic)}</span></div>`
         + `<div class="tiles">${P.choices.map((id, i) => this.tile(id, `${i === cur ? 'cur' : ''}${id === Z.hint ? ' hint' : ''}${id === Z.miss ? ' miss' : ''}${P.done && id === P.answer ? ' on' : ''}`).replace('data-part=', `data-a="${id}" data-part=`)).join('')}</div>`;
     }
   },
+  // I3: the loop's 🔋 and ⚙️, drawn from the sprite (they were 52 px <text>): centred on (x, 100), 62 units square, as an
+  // icon in text is drawn a fifth bigger than its em. The motor's spin turns it about its own centre (transform-box)
+  loopPart(n, x, cls = '') { return `<use class="part${cls}" data-icon="${n}" href="#i-${n}" x="${x - 31}" y="69" width="62" height="62"/>`; },
   // 🔥's segments for a loop of n: [x1, y1, x2, y2] each, the top row left to right from the battery, then the bottom
   // row right to left back to it (the top gets the extra one when n is odd)
   loopPts(n, L, R, T, Bm) {
@@ -7226,7 +7262,7 @@ const FixUI = {
     this.mode = 'home'; this.r = r; this.homeKey = null; this.homeWarn = null; this.homeKb = false;   // mode first, so freeing the mouse isn't a pause
     for (const c of this.homeCodes()) keys.delete(c);   // a picker key held from before (A turning, Space firing) lets go now
     mouse.down = false;
-    $('homeNew').textContent = '❓  ➕' + ROBOT_TYPES[r.type].icon;
+    $('homeNew').innerHTML = `${icon('question')}  ${icon('plus')}${icon(ROBOT_TYPES[r.type].ic)}`;
     this.show('home'); this.drawHome();
     if (document.pointerLockElement) document.exitPointerLock();
   },
@@ -7236,8 +7272,8 @@ const FixUI = {
     const show = pad || this.homeKb;   // the cursor shows once a pad is in or a picker key has been pressed
     const key = JSON.stringify([Game.squad.map((q) => q.id + q.name + JSON.stringify(q.upg || {})), show && cur, this.homeWarn]); if (key === this.homeKey) return; this.homeKey = key;
     $('homeTiles').innerHTML = Game.squad.map((q, i) => { const n = (q.upg?.plating || 0) + (q.upg?.job || 0), warn = this.homeWarn === q.id;
-      return `<div class="homeTile"><button class="tile mate${show && i === cur % Game.squad.length ? ' cur' : ''}${warn ? ' warn' : ''}" data-id="${q.id}" data-up="${n}" aria-label="${q.name}${n ? ': has upgrades' : ''}">${ROBOT_TYPES[q.type].icon}${n ? '<span class="wb">⚠️</span>' : ''}</button><span>${q.name}</span>`
-        + `${n ? `<span class="hup">⬆️${'<i></i>'.repeat(n)}</span>` : ''}</div>`; }).join('');
+      return `<div class="homeTile"><button class="tile mate${show && i === cur % Game.squad.length ? ' cur' : ''}${warn ? ' warn' : ''}" data-id="${q.id}" data-up="${n}" aria-label="${q.name}${n ? ': has upgrades' : ''}">${icon(ROBOT_TYPES[q.type].ic, { label: q.name })}${n ? `<span class="wb">${icon('warn')}</span>` : ''}</button><span>${q.name}</span>`
+        + `${n ? `<span class="hup">${icon('upgrade')}${'<i></i>'.repeat(n)}</span>` : ''}</div>`; }).join('');
     $('homeWarn').classList.toggle('on', this.homeWarn != null);
   },
   // G3: pick who goes home, as a tap on their tile does. A squadmate with upgrades isn't sent on the first pick: that
@@ -7297,7 +7333,7 @@ const FixUI = {
       t.classList.toggle('on', on); t.classList.toggle('dim', full && !on); t.classList.toggle('cur', pad && i === rp.cur);
     });
     let slots = '';
-    for (let i = 0; i < takeMaxOf(rp.r); i++) { const id = rp.picks[i]; slots += id ? `<div class="slot full" style="background:${PARTS[id].hex}">${PARTS[id].icon}</div>` : '<div class="slot"></div>'; }
+    for (let i = 0; i < takeMaxOf(rp.r); i++) { const id = rp.picks[i]; slots += id ? `<div class="slot full" style="background:${PARTS[id].hex}">${icon(PARTS[id].ic)}</div>` : '<div class="slot"></div>'; }
     $('slots').innerHTML = slots;
     $('pickOk').classList.toggle('off', !rp.picks.length);
   },
@@ -7329,7 +7365,7 @@ const FixUI = {
     if (this.mode !== 'bag') return;
     const key = JSON.stringify(Game.bag); if (key === this.bagKey) return; this.bagKey = key;
     const have = Object.keys(PARTS).filter((id) => Game.bag[id] > 0);
-    $('bagTiles').innerHTML = have.length ? have.map((id) => this.tile(id, 'have').replace('</button>', `<b class="n">×${Game.bag[id]}</b></button>`)).join('') : '<div class="empty">🎒</div>';
+    $('bagTiles').innerHTML = have.length ? have.map((id) => this.tile(id, 'have').replace('</button>', `<b class="n">×${Game.bag[id]}</b></button>`)).join('') : `<div class="empty">${icon('bag')}</div>`;
     $('bagN').textContent = Game.parts;
   },
   // fix my mech: open it when no other panel is up (and the mech is running), close it if it's open
@@ -7359,12 +7395,12 @@ const FixUI = {
     const m = Game.humans[0].mech, pad = padConnected(), ids = this.mendIds();
     const mates = Game.squad.filter((r) => r.state === 'ally').map((r) => [r.id, AREAS.map((a) => Math.round(r.damage[a]))]);
     const key = JSON.stringify([AREAS.map((a) => Math.round(m.damage[a])), Math.round(m.maxHealth - m.health), Game.bag, pad && this.mendCur, ...(mates.length ? [mates] : [])]); if (key === this.mendKey) return; this.mendKey = key;
-    if (!ids.length) { $('mendTiles').innerHTML = '<div class="empty">❤️✔</div>'; return; }
+    if (!ids.length) { $('mendTiles').innerHTML = `<div class="empty">${icon('energy')}${icon('check')}</div>`; return; }
     $('mendTiles').innerHTML = ids.map((key, i) => {
       const [id, who] = key.split('@'), b = who ? Game.squad.find((r) => r.id === +who) : m;
       const a = PARTS[id].fixes, n = Game.bag[id] || 0, f = clamp(b.damage[a] / b.maxHealth, 0, 1);
       const tag = who ? `<span class="who" style="border-color:${b.glowColor}">${icon(ROBOT_TYPES[b.type].ic)}</span>` : '';
-      return `<div class="need${who ? ' mate' : ''}" data-area="${a}"${who ? ` data-who="${who}"` : ''}>${tag}<span class="area">${AREA_ICON[a]}</span><div class="dmg"><b style="width:${(f * 100).toFixed(1)}%"></b></div>`
+      return `<div class="need${who ? ' mate' : ''}" data-area="${a}"${who ? ` data-who="${who}"` : ''}>${tag}<span class="area">${icon(AREA_IC[a])}</span><div class="dmg"><b style="width:${(f * 100).toFixed(1)}%"></b></div>`
         + this.tile(id, (n ? '' : 'dim') + (pad && i === this.mendCur % ids.length ? ' cur' : '')).replace('</button>', `<b class="n${n ? '' : ' zero'}">×${n}</b></button>`).replace(`data-part="${id}"`, `data-part="${key}"`) + '</div>';
     }).join('');
     if (pad && mates.length) $('mendTiles').querySelector('.tile.cur')?.scrollIntoView?.({ block: 'nearest' });   // (#59: a long list scrolls to the pad's pick)
@@ -8268,7 +8304,7 @@ const Garage = {
           const f = dn ? 0 : clamp(r.health / r.maxHealth, 0, 1), bar = f > 0.5 ? 'var(--green)' : f > 0.25 ? 'var(--yellow)' : '#ff4d5e';
           return `<div class="scard${dn ? ' down' : ''}" data-id="${r.id}" style="--gc:${r.glowColor || ALLY.color}"><div class="shead" data-bar="${(f * 100).toFixed(1)}" style="--f:${(f * 100).toFixed(1)}%;--bc:${bar}"><span class="sic">${icon(ROBOT_TYPES[r.type].ic)}</span><b class="sname">${r.name}</b>`
             + (dn ? `<span class="sdown" aria-label="Powered down">${icon(r.downT > ROBOT.warnTime ? 'sleep' : 'warn')}</span>` : '')
-            + `${any ? `<span class="swarn" aria-label="Sent home, its upgrades are lost">${icon('home')}${icon('arrow')}${icon('upgrade')}${icon('cross')}</span>` : ''}<span class="shp">${icon('energy')}${r.maxHealth}</span>`
+            + `${any ? `<span class="swarn" aria-label="Sent home, its upgrades are lost">${icon('home')}${icon('arrow')}${icon('upgrade')}${icon('cross')}</span>` : ''}<span class="shp">${icon('energy')}${Math.round(dn ? 0 : r.health)} / ${r.maxHealth}</span>`
             + `</div>${rows}</div>`;
         }).join('');
     } else if (T.id === 'paint') {
@@ -8277,7 +8313,9 @@ const Garage = {
       const row = (i, id, ic, name, inner) => `<div class="prow${i === this.prow ? ' cur' : ''}" data-row="${id}"><span class="plab">${icon(ic)}<small>${name}</small></span><div class="psw">${inner}</div></div>`;
       const sw = (id) => PALETTE.map((c, k) => `<button class="swatch${p[id] === c ? ' on' : ''}" data-row="${id}" data-v="${k}" style="--sc:${c}" aria-label="${id} colour ${k + 1}"></button>`).join('');
       // I2: each decal's swatch is its icon (the mech on the lift shows it in the trim colour)
-      const dec = DECALS.map((D) => `<button class="decal${p.decal === D.id ? ' on' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}">${icon(D.ic)}</button>`).join('');
+      // (#82: tinted in the trim colour, as a preview; no decal stays as drawn)
+      const dec = DECALS.map((D) => { const t = D.id !== 'none';
+        return `<button class="decal${p.decal === D.id ? ' on' : ''}${t ? ' tint' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}" style="--tc:${p.trim}">${icon(D.ic)}${t ? `<i class="dtint" style="--m:${iconURL(D.ic)}"></i>` : ''}</button>`; }).join('');
       // (I2: body is a roller and trim a brush: 🤖 is the squad's and ✨ chrome's)
       $('gWall').innerHTML = row(0, 'body', 'roller', 'Body', sw('body')) + row(1, 'trim', 'brush', 'Trim', sw('trim')) + row(2, 'decal', 'tag', 'Decal', dec);
     } else if (T.id === 'body') {
@@ -8358,7 +8396,7 @@ const Garage = {
       cost: icRead(el.querySelector('.ucost')), have: num(el.querySelector('.uhave')), short: el.querySelector('.uhave').classList.contains('short'),
       button: b.classList.contains('max') ? 'max' : b.classList.contains('off') ? 'off' : 'buy', buttonIcon: ic(b), picked: el.classList.contains('cur') }; };
     // (#59 / I2: bar = its energy bar's fill, 0–100; downIcon = 'sleep' | 'warn' while it's powered down)
-    const squad = [...W.querySelectorAll('.scard')].map((el) => ({ id: +el.dataset.id, icon: ic(el.querySelector('.sic')), name: el.querySelector('.sname').textContent, hp: num(el.querySelector('.shp')), hpIcon: ic(el.querySelector('.shp')),
+    const squad = [...W.querySelectorAll('.scard')].map((el) => ({ id: +el.dataset.id, icon: ic(el.querySelector('.sic')), name: el.querySelector('.sname').textContent, hp: num(el.querySelector('.shp')), hpMax: +(el.querySelector('.shp').textContent.match(/\/\s*(\d+)/)?.[1] ?? NaN), hpIcon: ic(el.querySelector('.shp')),
       bar: +el.querySelector('.shead').dataset.bar, down: el.classList.contains('down'), downIcon: ic(el.querySelector('.sdown')),
       warn: el.querySelector('.swarn') ? icRead(el.querySelector('.swarn')) : null, rows: Object.fromEntries([...el.querySelectorAll('.srow')].map((r) => [r.dataset.up, rowOf(r)])) }));
     const prows = [...W.querySelectorAll('.prow')];
