@@ -9272,11 +9272,14 @@ const Garage = {
       if (pv) { e.stopPropagation(); const row = pv.dataset.row; this.prow = ['body', 'trim', 'decal'].indexOf(row); this.setPaint({ [row]: row === 'decal' ? pv.dataset.v : +pv.dataset.v }); return; }
       if (pr) { e.stopPropagation(); this.prow = ['body', 'trim', 'decal'].indexOf(pr.dataset.row); this.draw(); return; }
       // #89: on a blueprint, ◀ goes back to the cards; a part chip, plug or port tapped with the keys (Enter on a focused
-      // button: a pointer's tap comes through pointerup); a tap on a motor (port) with a plug picked links them
+      // button: a pointer's tap comes through pointerup); a tap on a motor (port) with a plug picked links them. (A click with
+      // detail 0 isn't always the keys: Chrome's touch emulation sends a tap's click with detail 0 and pointerType 'touch',
+      // and taken as the keys it put the part in on the same tap that picked it. Keys = no click count and no pointer.)
+      const keyed = e.detail === 0 && !e.pointerType;
       const bb = e.target.closest('.bback'), bpt = e.target.closest('.bpart'), bpl = e.target.closest('.bplug'), bpo = e.target.closest('.bport');
       if (bb) { e.stopPropagation(); this.closeBuild(); return; }
-      if (bpt) { e.stopPropagation(); if (e.detail === 0) { if (this.bpick === bpt.dataset.part) this.putAt(this.bpick, this.nextSpot(this.bpick)); else this.pickPart(bpt.dataset.part); } return; }
-      if (bpl) { e.stopPropagation(); if (e.detail === 0) this.pickPlug(+bpl.dataset.plug); return; }
+      if (bpt) { e.stopPropagation(); if (keyed) { if (this.bpick === bpt.dataset.part) this.putAt(this.bpick, this.nextSpot(this.bpick)); else this.pickPart(bpt.dataset.part); } return; }
+      if (bpl) { e.stopPropagation(); if (keyed) this.pickPlug(+bpl.dataset.plug); return; }
       if (bpo) { e.stopPropagation(); if (this.bsel >= 0) { const i = this.bsel; this.bsel = -1; Builds.link(this.bp, i, +bpo.dataset.port); } else { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', '.bplug:not(.in)'); } return; }
       // B2: a 🦿 leg card equips its shape (#89: a blueprint's opens it; one coming soon buzzes and shakes)
       const lc = e.target.closest('.lcard');
@@ -9289,7 +9292,8 @@ const Garage = {
     $('gWall').addEventListener('pointerdown', (e) => {
       if (!this.bp || this.bcheer || (e.pointerType === 'mouse' && e.button !== 0)) return;
       const bpt = e.target.closest('.bpart:not(.full)'), bpl = e.target.closest('.bplug:not(.in)');
-      if (bpt) { e.preventDefault(); this.dragStart(e, 'part', bpt.dataset.part, bpt); }
+      // (a part with none in the bag is refused as the keys refuse it, a buzz and a shake, instead of picked up with its spot glowing)
+      if (bpt) { e.preventDefault(); if (bpt.classList.contains('empty')) this.pickPart(bpt.dataset.part); else this.dragStart(e, 'part', bpt.dataset.part, bpt); }
       else if (bpl) { e.preventDefault(); this.dragStart(e, 'plug', +bpl.dataset.plug, bpl); }
     });
     addEventListener('pointermove', (e) => { if (this.drag) this.dragMove(e); });
