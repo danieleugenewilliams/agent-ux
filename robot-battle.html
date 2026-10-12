@@ -17,9 +17,10 @@
      its margins (0.15em over, 0.16em under, the margin box 0.31em under the baseline) give the line the height an emoji
      glyph gave it (1em up, 0.31em down), so swapping an emoji for an icon moves nothing */
   .ic { width: 1em; height: 1em; margin: 0.15em 0 0.16em; vertical-align: -0.31em; pointer-events: none; flex: none; overflow: visible; color: #fff; }
-  /* #85: the UI symbols (✔ ✖ ▶ ...) fill with .ic's color: white, but ink on a light button (white, cyan, green, yellow,
-     orange), where white read only as its outline. ⌫'s cross-out is cut in the button's own colour */
-  :is(.pbtn:is(.keep, .step, .go), #go, #nextB, #nextB small, .entry .pad :is(.ok, .del), #pickOk, #nameOk, .lcard .lon) > .ic { color: var(--ink); }
+  /* #85: the UI symbols (✔ ✖ ▶ ...) fill with .ic's color: white, but ink on a light button or key cap (white, cyan, green,
+     yellow, orange) and the icon sheet's light panel, where white read only as its outline. ⌫'s cross-out is cut in the
+     button's own colour */
+  :is(.pbtn:is(.keep, .step, .go), #go, #nextB, #nextB small, .entry .pad :is(.ok, .del), #pickOk, #nameOk, .lcard .lon, .ucard .ukey, #iconSheet .light .isz) > .ic { color: var(--ink); }
   .entry .pad .del > .ic { --ic-cut: var(--yellow); }
   /* __rb.iconSheet(): every icon at 16, 24 and 48 px, on the dark HUD, a light panel, and (parts) their own colour */
   #iconSheet { position: fixed; inset: 0; overflow: auto; z-index: 1000; background: #0b0e18; }
