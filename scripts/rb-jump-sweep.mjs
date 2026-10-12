@@ -108,8 +108,9 @@ const SWEEP = String.raw`(() => {
 const chromeBin = findChrome();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'rb-jump-sweep-'));
-const port = 9300 + Math.floor(Math.random() * 600);
-const chrome = spawn(chromeBin, ['--headless=new', `--remote-debugging-port=${port}`, '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', '--no-default-browser-check',
+// Port 0: Chrome picks a free port and writes it to DevToolsActivePort in its own profile, so a sweep never
+// attaches to another Chrome that already holds a fixed or randomly picked port (and drives that one's tab).
+const chrome = spawn(chromeBin, ['--headless=new', '--remote-debugging-port=0', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', '--no-default-browser-check',
   '--allow-file-access-from-files', '--window-size=1280,800', '--user-data-dir=' + prof, 'about:blank'], { stdio: 'ignore' });
 let ws;
 const cleanup = () => { try { ws?.close(); } catch {} try { chrome.kill('SIGKILL'); } catch {} try { fs.rmSync(prof, { recursive: true, force: true }); } catch {} };
@@ -117,7 +118,12 @@ process.on('exit', cleanup);
 for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => process.exit(130));
 
 let tgt;
-for (let i = 0; i < 75 && !tgt; i++) { try { tgt = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page'); } catch {} if (!tgt) await sleep(200); }
+let port;
+for (let i = 0; i < 75 && !tgt; i++) {
+  try { const f = fs.readFileSync(path.join(prof, 'DevToolsActivePort'), 'utf8'); if (f.includes('\n')) port = parseInt(f, 10) || undefined; } catch {}   // whole first line only
+  if (port) try { tgt = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page'); } catch {}
+  if (!tgt) await sleep(200);
+}
 if (!tgt) { console.error('Chrome did not start (' + chromeBin + ')'); process.exit(2); }
 ws = new WebSocket(tgt.webSocketDebuggerUrl); await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
 let id = 0; const pend = new Map(); let errs = [];
