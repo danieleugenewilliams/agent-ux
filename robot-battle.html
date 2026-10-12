@@ -740,7 +740,13 @@
   .swatch, .decal { flex: none; width: 46px; height: 46px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); cursor: pointer; box-shadow: 0 3px 0 var(--ink); }
   .swatch { background: var(--sc); }
   .decal { border-radius: 12px; background: #5b6178; font-size: 24px; display: flex; align-items: center; justify-content: center; }
-  .decal img, .decal .ic { width: 34px; height: 34px; margin: 0; pointer-events: none; }   /* (I2: a decal's swatch is its icon) */
+  .decal img, .decal .ic, .decal .dtint { width: 34px; height: 34px; margin: 0; pointer-events: none; }   /* (I2: a decal's swatch is its icon) */
+  /* #82: a decal's icon in the trim colour, so the button previews the decal: the icon in greys, and over it its own
+     silhouette (a mask of the same SVG) in the trim colour, multiplied in: the outline stays ink, the fills take the trim */
+  .decal { position: relative; isolation: isolate; }
+  .decal.tint .ic { filter: grayscale(1) brightness(1.35); }
+  .decal .dtint { position: absolute; inset: 0; margin: auto; transform: scale(1.2); background: var(--tc); mix-blend-mode: multiply; pointer-events: none;
+    -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
   .swatch.on, .decal.on { outline: 4px solid #fff; outline-offset: 2px; transform: scale(1.1); }
   /* B1: the 🦿 Body tab. A row per section: its icon, its tier as pips (part colour for upgrades, yellow for mastery),
      the tier's name, and the icons that raise it (🔢 lit, with its +1 / +2, once mastery adds to every section) */
@@ -750,7 +756,7 @@
   .lrow { flex: 1 1 0; min-height: 110px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .lcard { position: relative; min-width: 0; min-height: 0; padding: 0; border-radius: 18px; border: 4px solid color-mix(in srgb, var(--pc) 70%, transparent); background: rgba(20,24,42,.7); color: #fff; font: inherit; cursor: pointer; }
   .lcard .tv { position: absolute; inset: 4px 4px 30px 4px; pointer-events: none; }
-  .lcard .lic { position: absolute; left: 6px; top: 5px; font-size: 26px; line-height: 1; }
+  .lcard .lic { position: absolute; left: 6px; top: 5px; font-size: 39px; line-height: 1; filter: brightness(1.25) drop-shadow(0 0 3px rgba(255,255,255,.55)); }   /* (#82: 1.5x and brighter: they were 26 px, dim on the dark card) */
   .lcard .lon { position: absolute; right: 6px; top: 5px; width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--ink); background: var(--green); color: var(--ink); font: 900 16px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; }
   .lcard .lfx { position: absolute; left: 3px; right: 3px; bottom: 4px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 3px; font-size: 15px; line-height: 1; }
   .lcard .lfx i { font-style: normal; display: flex; align-items: center; gap: 1px; padding: 2px 4px; border-radius: 8px; }
@@ -811,12 +817,12 @@
     .gwall.paint { gap: 6px; justify-content: flex-start; }
     .prow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 24px; } .plab small { font-size: 10px; }
-    .psw { gap: 5px; } .swatch, .decal { width: 36px; height: 36px; border-width: 3px; } .decal img, .decal .ic { width: 26px; height: 26px; }
+    .psw { gap: 5px; } .swatch, .decal { width: 36px; height: 36px; border-width: 3px; } .decal img, .decal .ic, .decal .dtint { width: 26px; height: 26px; }
     .gwall.body { gap: 6px; justify-content: flex-start; }
     .brow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 3px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 14px; } .braise { font-size: 20px; gap: 2px; }
-    .lrow { gap: 5px; min-height: 120px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 20px; left: 4px; top: 4px; }
+    .lrow { gap: 5px; min-height: 120px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 4px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .lfx { font-size: 13px; gap: 2px; } .lcard .lfx i { padding: 1px 2px; } .lcard .lfx b { display: none; }
     .lcard .tv { bottom: 40px; } .lcard .llock { font-size: 14px; padding: 2px 5px; } .lcard .llock b { font-size: 13px; }
   }
@@ -850,12 +856,12 @@
     .gwall.paint { gap: 6px; }
     .prow { gap: 6px; padding: 3px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 22px; } .plab small { font-size: 10px; }
-    .psw { gap: 5px; } .swatch, .decal { width: 32px; height: 32px; border-width: 3px; } .decal img, .decal .ic { width: 24px; height: 24px; }
+    .psw { gap: 5px; } .swatch, .decal { width: 32px; height: 32px; border-width: 3px; } .decal img, .decal .ic, .decal .dtint { width: 24px; height: 24px; }
     .gwall.body { gap: 5px; }
     .brow { gap: 8px; padding: 2px 8px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 4px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 15px; } .braise { font-size: 20px; }
-    .lrow { gap: 6px; min-height: 0; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 20px; left: 4px; top: 3px; }
+    .lrow { gap: 6px; min-height: 0; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 3px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .tv { bottom: 22px; }
     .lcard .lfx { font-size: 13px; bottom: 2px; } .lcard .lfx i { padding: 1px 2px; } .lcard .lfx b { font-size: 10px; } .lcard .llock { font-size: 15px; } .lcard .llock b { font-size: 14px; }
     .lcard .llock { top: 32%; }   /* (I2: Tracks' seven chips take three rows here: the lock sits higher, clear of them) */
@@ -1437,6 +1443,14 @@ const starD = (cx, cy, R, r, n = 5, a0 = -90) => 'M' + Array.from({ length: n * 
 const gearD = (cx, cy, R, r, n) => { const pts = []; for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 - Math.PI / 2, w = Math.PI / n;
   for (const [da, q] of [[-w * 0.95, r], [-w * 0.45, R], [w * 0.45, R], [w * 0.95, r]]) pts.push(f1(cx + Math.cos(a + da) * q) + ' ' + f1(cy + Math.sin(a + da) * q)); }
   return 'M' + pts.join(' L') + ' Z'; };
+// #82: digits as stroke paths (an icon has no font glyphs): [digit, cx, cy] each, 3.4 wide and 5.4 tall
+const digitsD = (list) => list.map(([n, x, y]) => {
+  const X = (d) => f1(x + d), Y = (d) => f1(y + d);
+  return ({ 1: `M${X(-1.3)} ${Y(-1.5)} L${X(0.3)} ${Y(-2.7)} L${X(0.3)} ${Y(2.7)}`,
+    2: `M${X(-1.6)} ${Y(-1.3)} C${X(-1.5)} ${Y(-3.3)} ${X(1.7)} ${Y(-3.3)} ${X(1.7)} ${Y(-1.2)} C${X(1.7)} ${Y(0.2)} ${X(-1.6)} ${Y(1.2)} ${X(-1.7)} ${Y(2.7)} L${X(1.8)} ${Y(2.7)}`,
+    3: `M${X(-1.6)} ${Y(-2.7)} L${X(1.6)} ${Y(-2.7)} L${X(-0.2)} ${Y(-0.5)} C${X(2.3)} ${Y(-0.6)} ${X(2.3)} ${Y(2.8)} ${X(-0.1)} ${Y(2.8)} C${X(-0.9)} ${Y(2.8)} ${X(-1.5)} ${Y(2.4)} ${X(-1.8)} ${Y(1.9)}`,
+    4: `M${X(0.9)} ${Y(2.7)} L${X(0.9)} ${Y(-2.7)} L${X(-1.8)} ${Y(1.1)} L${X(1.9)} ${Y(1.1)}` })[n];
+}).join(' ');
 // the shared pieces
 const HEART = 'M12 20.6 C6.2 16.8 2.6 13.4 2.6 8.9 C2.6 5.8 4.9 3.6 7.6 3.6 C9.5 3.6 11.1 4.6 12 6.3 C12.9 4.6 14.5 3.6 16.4 3.6 C19.1 3.6 21.4 5.8 21.4 8.9 C21.4 13.4 17.8 16.8 12 20.6 Z';
 const SHIELD = 'M12 2.6 L20.4 5.4 L20.4 11.4 C20.4 16.4 16.8 19.7 12 21.4 C7.2 19.7 3.6 16.4 3.6 11.4 L3.6 5.4 Z';
@@ -1577,7 +1591,8 @@ const ICONS = {
     + pa('M6 3 L18 3 L18 8.8 C18 12.6 15.4 15 12 15 C8.6 15 6 12.6 6 8.8 Z', G('gold')) + hl('M8.2 5.4 L8.2 9')],
   paint: ['paint', ['🎨'], pa('M12 2.6 C6.4 2.6 2.4 6.6 2.4 11.8 C2.4 17.4 6.6 21.4 11.6 21.4 C13.4 21.4 14.2 20.4 13.6 19 C13 17.6 13.8 16.2 15.6 16.2 L17.8 16.2 C20.2 16.2 21.6 14.6 21.6 12 C21.6 6.6 17.4 2.6 12 2.6 Z', G('steel'))
     + cn(7.2, 9.6, 1.9, '#ff4d5e') + cn(11.4, 6.6, 1.9, '#ffd83d') + cn(16.2, 7.6, 1.9, '#4f9dff') + cn(7.2, 14.6, 1.9, '#3ee07a')],
-  math: ['math wiring', ['🔢'], re(2.6, 2.6, 18.8, 18.8, 4, G('blue')) + ln('M8.4 8.4 L15.6 15.6 M15.6 8.4 L8.4 15.6', '#fff', 2.4)],
+  // (#82: a number tile, 1 2 over 3 4, drawn as strokes: the white × it was read as close)
+  math: ['math wiring', ['🔢'], re(2.6, 2.6, 18.8, 18.8, 4, G('blue')) + `<path d="${digitsD([[1, 8.3, 8.2], [2, 15.7, 8.2], [3, 8.3, 15.9], [4, 15.7, 15.9]])}" fill="none" stroke="#fff" stroke-width="1.7"/>`],
   colours: ['colour wiring', ['🌈'], ln('M3.4 19 A8.6 8.6 0 0 1 20.6 19', '#ff4d5e', 2.2, 'butt') + `<path d="M7.6 19 A4.4 4.4 0 0 1 16.4 19" fill="none" stroke="#4f9dff" stroke-width="2.2"/><path d="M5.5 19 A6.5 6.5 0 0 1 18.5 19" fill="none" stroke="#ffd83d" stroke-width="2.2"/>`],
   question: ['what?', ['❓', '❔'], ln('M8 8.2 Q8 3.6 12 3.6 Q16 3.6 16 7.6 Q16 10.2 13.4 11.4 Q12 12.2 12 14.6', G('red'), 3) + ci(12, 19.2, 2.2, G('red'))],
   // stage of a fact: ○ new, ◐ learning, ● known, ★ mastered
@@ -1634,6 +1649,8 @@ const icRead = (el) => { if (!el) return null; let out = ''; for (const nd of el
 const iconFile = (n, px = 128) => `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24"><defs>${ICON_DEFS}</defs>${iconSvg(n)}</svg>`;
 
 const ICON_CSS = ['check', 'up', 'down'];
+// an icon as a CSS url() of its standalone SVG (cached), for a mask or a background
+const iconURL = (n) => ((iconURL.c ||= {})[n] ||= `url('data:image/svg+xml,${encodeURIComponent(iconFile(n, 48)).replace(/'/g, '%27')}')`);
 // the sprite (one hidden <svg>: the gradients and a <symbol> per icon), and every [data-ic] placeholder in the page drawn.
 // Hidden by size, not display: none, which would stop its gradients painting where they're used.
 const Icons = {
@@ -1643,7 +1660,7 @@ const Icons = {
     for (const el of document.querySelectorAll('[data-ic]')) el.outerHTML = icon(el.dataset.ic, el.dataset.label ? { label: el.dataset.label } : {});
     // I3: the icons CSS draws in ::before / ::after (the ✔ on a picked tile and a done slot, the dial's ▲ ▼) as data URLs
     // of the same SVG, in --ic-<name> on :root
-    for (const n of ICON_CSS) document.documentElement.style.setProperty('--ic-' + n, `url("data:image/svg+xml,${encodeURIComponent(iconFile(n, 48))}")`);
+    for (const n of ICON_CSS) document.documentElement.style.setProperty('--ic-' + n, iconURL(n));
   },
   // the contact sheet: every icon at 16, 24 and 48 px, on the dark HUD, on a light panel, and (parts) on its own colour.
   // Toggles; returns whether it's open and how many icons it shows
@@ -3273,9 +3290,9 @@ function adoptPaint(md) {
   });
 }
 // a decal's picture: drawn once per kind, trim colour and emblem, on a see-through square
-function decalTex(kind, trim, emblem) {
+function decalTex(kind, trim, emblem, body = trim) {
   decalTex.cache ||= new Map();
-  const key = kind + trim + emblem; if (decalTex.cache.has(key)) return decalTex.cache.get(key);
+  const key = kind + trim + emblem + body; if (decalTex.cache.has(key)) return decalTex.cache.get(key);
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
   g.lineJoin = 'round'; g.strokeStyle = '#14182a';
   const star = (x, y, R) => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * 0.45 : R; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.lineWidth = 10; g.stroke(); g.fillStyle = trim; g.fill(); };
@@ -3290,7 +3307,7 @@ function decalTex(kind, trim, emblem) {
     // two racing stripes, corner to corner
     for (const o of [-46, 46]) { g.beginPath(); g.moveTo(-20 + o, 276); g.lineTo(40 + o, 276); g.lineTo(276 + o, 40); g.lineTo(276 + o, -20); g.closePath(); g.lineWidth = 10; g.stroke(); g.fillStyle = trim; g.fill(); }
   } else if (kind === 'emblem') {
-    g.beginPath(); g.arc(128, 128, 116, 0, Math.PI * 2); g.fillStyle = trim; g.fill(); g.lineWidth = 12; g.stroke();
+    g.beginPath(); g.arc(128, 128, 116, 0, Math.PI * 2); g.fillStyle = body; g.fill(); g.lineWidth = 12; g.stroke();   // (#82: the body colour, for contrast with the emblem)
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   // I2: the emblem is the pilot's emblem icon (emblem = an ICONS name), drawn in once its SVG has loaded (no emoji glyph)
@@ -3344,7 +3361,7 @@ function paintMech(md, p, pilot = Game.pilot) {
       const q = new THREE.Mesh(new THREE.PlaneGeometry(size, size), m); q.position.set(...pos); q.rotation.set(...rot); q.renderOrder = 2; q.userData.decal = true; parent.add(q); return q; }) };
   }
   const D = md.decals, on = p.decal !== 'none';
-  if (on) { const t = decalTex(p.decal, p.trim, pilot?.emblemIc ?? 'star'); if (D.mat.map !== t) { D.mat.map = t; D.mat.needsUpdate = true; } }
+  if (on) { const t = decalTex(p.decal, p.trim, pilot?.emblemIc ?? 'star', p.body); if (D.mat.map !== t) { D.mat.map = t; D.mat.needsUpdate = true; } }
   for (const q of D.planes) q.visible = on;
   md.paintNow = { ...p };
   if (md === Game.humans[0]?.mech?.model) Body.dress(md);   // B1: the realism tiers go on over the paint and finish
@@ -8287,7 +8304,7 @@ const Garage = {
           const f = dn ? 0 : clamp(r.health / r.maxHealth, 0, 1), bar = f > 0.5 ? 'var(--green)' : f > 0.25 ? 'var(--yellow)' : '#ff4d5e';
           return `<div class="scard${dn ? ' down' : ''}" data-id="${r.id}" style="--gc:${r.glowColor || ALLY.color}"><div class="shead" data-bar="${(f * 100).toFixed(1)}" style="--f:${(f * 100).toFixed(1)}%;--bc:${bar}"><span class="sic">${icon(ROBOT_TYPES[r.type].ic)}</span><b class="sname">${r.name}</b>`
             + (dn ? `<span class="sdown" aria-label="Powered down">${icon(r.downT > ROBOT.warnTime ? 'sleep' : 'warn')}</span>` : '')
-            + `${any ? `<span class="swarn" aria-label="Sent home, its upgrades are lost">${icon('home')}${icon('arrow')}${icon('upgrade')}${icon('cross')}</span>` : ''}<span class="shp">${icon('energy')}${r.maxHealth}</span>`
+            + `${any ? `<span class="swarn" aria-label="Sent home, its upgrades are lost">${icon('home')}${icon('arrow')}${icon('upgrade')}${icon('cross')}</span>` : ''}<span class="shp">${icon('energy')}${Math.round(dn ? 0 : r.health)} / ${r.maxHealth}</span>`
             + `</div>${rows}</div>`;
         }).join('');
     } else if (T.id === 'paint') {
@@ -8296,7 +8313,9 @@ const Garage = {
       const row = (i, id, ic, name, inner) => `<div class="prow${i === this.prow ? ' cur' : ''}" data-row="${id}"><span class="plab">${icon(ic)}<small>${name}</small></span><div class="psw">${inner}</div></div>`;
       const sw = (id) => PALETTE.map((c, k) => `<button class="swatch${p[id] === c ? ' on' : ''}" data-row="${id}" data-v="${k}" style="--sc:${c}" aria-label="${id} colour ${k + 1}"></button>`).join('');
       // I2: each decal's swatch is its icon (the mech on the lift shows it in the trim colour)
-      const dec = DECALS.map((D) => `<button class="decal${p.decal === D.id ? ' on' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}">${icon(D.ic)}</button>`).join('');
+      // (#82: tinted in the trim colour, as a preview; no decal stays as drawn)
+      const dec = DECALS.map((D) => { const t = D.id !== 'none';
+        return `<button class="decal${p.decal === D.id ? ' on' : ''}${t ? ' tint' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}" style="--tc:${p.trim}">${icon(D.ic)}${t ? `<i class="dtint" style="--m:${iconURL(D.ic)}"></i>` : ''}</button>`; }).join('');
       // (I2: body is a roller and trim a brush: 🤖 is the squad's and ✨ chrome's)
       $('gWall').innerHTML = row(0, 'body', 'roller', 'Body', sw('body')) + row(1, 'trim', 'brush', 'Trim', sw('trim')) + row(2, 'decal', 'tag', 'Decal', dec);
     } else if (T.id === 'body') {
@@ -8377,7 +8396,7 @@ const Garage = {
       cost: icRead(el.querySelector('.ucost')), have: num(el.querySelector('.uhave')), short: el.querySelector('.uhave').classList.contains('short'),
       button: b.classList.contains('max') ? 'max' : b.classList.contains('off') ? 'off' : 'buy', buttonIcon: ic(b), picked: el.classList.contains('cur') }; };
     // (#59 / I2: bar = its energy bar's fill, 0–100; downIcon = 'sleep' | 'warn' while it's powered down)
-    const squad = [...W.querySelectorAll('.scard')].map((el) => ({ id: +el.dataset.id, icon: ic(el.querySelector('.sic')), name: el.querySelector('.sname').textContent, hp: num(el.querySelector('.shp')), hpIcon: ic(el.querySelector('.shp')),
+    const squad = [...W.querySelectorAll('.scard')].map((el) => ({ id: +el.dataset.id, icon: ic(el.querySelector('.sic')), name: el.querySelector('.sname').textContent, hp: num(el.querySelector('.shp')), hpMax: +(el.querySelector('.shp').textContent.match(/\/\s*(\d+)/)?.[1] ?? NaN), hpIcon: ic(el.querySelector('.shp')),
       bar: +el.querySelector('.shead').dataset.bar, down: el.classList.contains('down'), downIcon: ic(el.querySelector('.sdown')),
       warn: el.querySelector('.swarn') ? icRead(el.querySelector('.swarn')) : null, rows: Object.fromEntries([...el.querySelectorAll('.srow')].map((r) => [r.dataset.up, rowOf(r)])) }));
     const prows = [...W.querySelectorAll('.prow')];
