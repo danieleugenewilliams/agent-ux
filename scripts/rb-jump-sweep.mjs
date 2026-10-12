@@ -25,24 +25,30 @@
 //   dented  - clears where the fence lost hp after the jump started (a stomp or bump on a clean pass). Must be 0.
 //   scuffed - clears where the fence was below full hp at the end. Launching under ~3.3 m the body
 //             touches it while still on the ground and walking dents it before the jump (as in PR #54),
-//             so this is reported, not failed: 6 since PR #54.
-//   digest  - a hash of every case's outcome, to compare runs and commits.
-// Exit 0 only if every run has 680 cases, 0 shoves, 0 dented, no page errors, and all runs match.
+//             so a scuff is not a failure in itself; the count (6 since PR #54) is part of BASELINE.
+//   digest  - a hash of every case's outcome, to compare runs and commits (f62bf314 from PR #54's
+//             head 26a78f9 through f02bfbd). Informational: it is not checked.
+// Exit 0 only if every run has 680 cases, 0 shoves, 0 dented, no page errors, matches BASELINE
+// (clears / walk / stomp / scuffed), and all runs give the same outcomes.
+// If a change to jumping is meant to move the baseline, update BASELINE below in the same PR and say why.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+
+// What the sweep gives since PR #54 (#46). A clean pass that turns into a stomp moves clears and stomp.
+const BASELINE = { cases: 680, clears: 449, walk: 112, stomp: 119, scuffed: 6 };
 
 const args = process.argv.slice(2);
 let runs = 1, json = false, target = null;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--runs') runs = Math.max(1, parseInt(args[++i], 10) || 1);
   else if (args[i] === '--json') json = true;
-  else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
+  else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const repo = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 target ??= path.join(repo, 'robot-battle.html');
 const url = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve(target)).href;
 
@@ -144,13 +150,17 @@ for (let r = 0; r < runs; r++) {
     notJumped: cases.filter((c) => !c.jumped || !c.landed).length,
     maxStep: Math.max(0, ...cases.map((c) => c.maxStep)), digest: hash(JSON.stringify(cases)), errors: errs.slice(), ms: Date.now() - t0,
   };
-  res.pass = res.cases === 680 && res.shoves.length === 0 && res.dented.length === 0 && res.notJumped === 0 && res.errors.length === 0;
+  const got = { cases: res.cases, clears: res.clears, walk: by.walk || 0, stomp: by.stomp || 0, scuffed: res.scuffed };
+  res.offBaseline = Object.keys(BASELINE).filter((k) => got[k] !== BASELINE[k]).map((k) => `${k} ${got[k]} (baseline ${BASELINE[k]})`);
+  if (Object.keys(by).some((k) => !(k in BASELINE))) res.offBaseline.push('broken by ' + JSON.stringify(by));
+  res.pass = res.offBaseline.length === 0 && res.shoves.length === 0 && res.dented.length === 0 && res.notJumped === 0 && res.errors.length === 0;
   results.push(res);
   if (!json) {
     console.log(`run ${res.run}: cases ${res.cases}  clears ${res.clears}  broken ${JSON.stringify(res.broken)}  shoves ${res.shoves.length}  dented ${res.dented.length}  scuffed ${res.scuffed}  ` +
       `max step ${res.maxStep.toFixed(3)} m  digest ${res.digest}  errors ${res.errors.length}  (${(res.ms / 1000).toFixed(1)} s)  ${res.pass ? 'PASS' : 'FAIL'}`);
     for (const c of [...res.shoves, ...res.dented].slice(0, 20)) console.log('  ' + JSON.stringify(c));
     for (const e of res.errors.slice(0, 10)) console.log('  error: ' + e);
+    if (res.offBaseline.length) console.log('  off baseline: ' + res.offBaseline.join(', ') + '  (update BASELINE only if jumping was changed on purpose)');
   }
 }
 const same = results.every((r) => r.digest === results[0].digest);
