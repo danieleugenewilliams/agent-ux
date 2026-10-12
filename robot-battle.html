@@ -9010,7 +9010,11 @@ window.__rb = {
   },
   // the world sprites' textures: made (icon names, one texture each), pending = not drawn yet, blank = frames rendered
   // with a sprite showing an icon not drawn yet (0), drawn = how many are drawn
-  iconTextures() { const C = iconTex.cache || new Map(); return { made: [...C.keys()], drawn: [...C.values()].filter((t) => t.userData.drawn).length, pending: iconTex.pending, blank: iconTex.blank }; },
+  // I4: images = the icons loaded through iconImage (the one rasterise path); emblems = the emblem decals made (each one's
+  // icon, and whether it's drawn) and each pilot portrait's emblem (all from SVG: there's no emoji font in the file)
+  iconTextures() { const C = iconTex.cache || new Map(); return { made: [...C.keys()], drawn: [...C.values()].filter((t) => t.userData.drawn).length, pending: iconTex.pending, blank: iconTex.blank,
+    images: [...(iconImage.cache || new Map()).keys()],
+    emblems: { decals: [...(decalTex.cache || new Map()).values()].filter((t) => t.userData?.emblem).map((t) => ({ ...t.userData })), faces: Object.fromEntries([...(pilotFace.cache || new Map())].map(([id, c]) => [id, { ...c.emblem }])) } }; },
   // how many pictographic characters (emoji, and ✔ ✖ ⌫ ➜ ▶ ◀ ▲ ▼ ○ ◐ ● ★) show under selector (the whole page by default):
   // in the visible text and in CSS ::before / ::after content. list = true gives each one ({ ch, in }) instead of the count
   emojiLeft(sel = 'body', list = false) {
