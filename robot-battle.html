@@ -2358,7 +2358,8 @@ const Backup = {
   //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
   //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
   //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
-  //             if this device has none)
+  //             if this device has none); #89 body.builds: per shape each part's count and the step, the more;
+  //             body.trophyLatch: done if either has done it
   //   anything else (a field a later slice adds): this device's, the backup's where this device has none
   merge(dev, bak) {
     const out = clone(dev), b = clone(bak);
@@ -2412,6 +2413,12 @@ const Backup = {
     if (isObj(gd.body) || isObj(gb.body)) {
       g.body = clone(isObj(gd.body) ? gd.body : gb.body);
       g.body.unlocked = [...new Set([...arr(gd.body?.unlocked), ...arr(gb.body?.unlocked)])];
+      // #89: build projects: per shape, each part's count the more and the step the further along (parts spent on either
+      // side stay spent); the one-time trophy latch is done if either side has done it
+      const bd = isObj(gd.body?.builds) ? gd.body.builds : null, bbk = isObj(gb.body?.builds) ? gb.body.builds : null;
+      if (bd || bbk) g.body.builds = byKey(bd, bbk, (p, q) => (!isObj(p) || !isObj(q) ? clone(isObj(p) ? p : q)
+        : { parts: byKey(p.parts, q.parts, (u, w) => Math.max(num(u), num(w))), step: Math.max(num(p.step), num(q.step)) }));
+      if (gd.body?.trophyLatch || gb.body?.trophyLatch) g.body.trophyLatch = true;
     }
     // the advanced parts the merged facts have earned (Facts.latch's rule: picking the child would latch them anyway, and
     // the summary should show them now), waiting for their cheer
