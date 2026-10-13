@@ -1029,53 +1029,67 @@
     .bpf.gsz { font-size: calc(12px + 5px * var(--g)); } .gbar { font-size: 12px; } .ld { font-size: 18px; }
     .lg4 { grid-template-columns: repeat(2, 9px); gap: 2px 6px; padding: 2px 3px; } .lg4 i { width: 9px; height: 9px; } .ldp { grid-template-columns: repeat(3, 7px); gap: 2px; } .ldp i { width: 7px; height: 7px; }
   }
-  /* ---------- #94: the touch controller is showing (html.tp-showing, from the TouchPad block): the HUD makes room ----------
-     The stick rests bottom left (its ring reaches 16 + 132 px up), the buttons fan out from the bottom-right corner
-     (about 233 px each way), ⏸ sits top right; all ×1.3 on a tablet (--tpu, the TouchPad's --tp-u). */
+  /* ---------- #94 / #103: touch. html.tp-mode (from the TouchPad block) is on while touch drives the game, through the
+     pause and every panel; html.tp-showing only while the controller itself shows. The stick rests bottom left, the buttons
+     fan out from the bottom-right corner, ⏸ sits top right; all ×1.3 on a tablet (--tpu, the TouchPad's --tp-u).
+     #103, a calmer screen: up top only the health bar (the pilot's face in it), the squad as small chips, the wave chip and
+     ⏸. The weapons row (WEAPON stands in for it; a long press opens it as a picker), the speed bars, the compass, the parts
+     and trophies counts, the ⭐ and the HUD's own buttons go; the bag, the garage, the ⭐ grid and the trophies are in the
+     pause menu, which takes the pause screen's place. ---------- */
   html { --tpu: 1; }
   @media (min-width: 700px) and (min-height: 700px) { html { --tpu: 1.3; } }
   .tp-btn.dim { opacity: .45; }
   .tp-btn.ready { animation: pulse .9s ease-in-out infinite; }
-  /* its MEND, JUMP and BAG stand in for the HUD's 🔧 ⤴️ 🎒, and there are no keys to show */
-  html.tp-showing #hud .health .mendb, html.tp-showing #hud .bagb, html.tp-showing #hud small, html.tp-showing #clear small { display: none; }
-  html.tp-showing #hud .prompt.on { display: none; }   /* its FIX / PARTS stand in for the prompt's 🔧 / 🔩 (which could land on a thumb's button) */
-  html.tp-showing #hud .right { right: calc(30px + 44px * var(--tpu)); }   /* clear of ⏸ */
-  /* the left column, above the stick's resting spot: the speed bars, then ⭐ */
-  html.tp-showing #hud .speed { bottom: calc(26px + 132px * var(--tpu)); transform-origin: left bottom; }
-  html.tp-showing #hud .mastery { bottom: calc(109px + 132px * var(--tpu)); }
-  html.tp-showing #hud .compass { transform-origin: right bottom; }
-  /* sideways: the weapons row along the bottom between the thumbs, the compass and 🌊 just left of it */
-  @media (orientation: landscape) {
-    html.tp-showing #hud .compass { right: auto; left: calc(50% - 321px); bottom: 22px; }
-    html.tp-showing #hud .wave { right: auto; left: calc(50% - 321px); bottom: 150px; }
-  }
-  /* upright: a smaller weapons row; the compass and 🌊 stand over the buttons */
-  @media (orientation: portrait) {
-    html.tp-showing #hud .weapons { gap: 8px; }
-    html.tp-showing #hud .wpn { width: 50px; height: 50px; font-size: 26px; border-width: 3px; }
-    html.tp-showing #hud .compass { bottom: calc(26px + 222px * var(--tpu)); }
-    html.tp-showing #hud .wave { bottom: calc(34px + 342px * var(--tpu)); }
-  }
-  /* a phone: the speed bars and compass at 70% */
-  @media (max-width: 560px), (max-height: 460px) {
-    html.tp-showing #hud .speed, html.tp-showing #hud .compass { transform: scale(.7); }
-    html.tp-showing #hud .mastery { bottom: 219px; }
-  }
-  @media (max-width: 560px) {   /* upright: the counters are under the health panel already; 🌊 beside the compass, the weapons row over both */
-    html.tp-showing #hud .right { right: 22px; }
-    html.tp-showing #hud .wave { right: 114px; bottom: 248px; }
-    html.tp-showing #hud .weapons { bottom: 346px; }
-  }
-  @media (max-height: 460px) and (min-width: 600px) {   /* on its side: ⭐ beside the speed bars; a smaller weapons row */
-    html.tp-showing #hud .mastery { left: 183px; bottom: 158px; }
-    html.tp-showing #hud .weapons { bottom: 16px; gap: 8px; }
-    html.tp-showing #hud .wpn { width: 50px; height: 50px; font-size: 26px; border-width: 3px; }
-    html.tp-showing #hud .compass { left: calc(50% - 271px); bottom: 16px; }
-    html.tp-showing #hud .wave { left: calc(50% - 271px); bottom: 108px; }
-  }
+  html.tp-mode #hud :is(.weapons:not(.pick), .speed, .mastery, .compass, .found, .bagb, small), html.tp-mode #clear small, html.tp-mode #start small,
+  html.tp-mode #hud .health .mendb, html.tp-mode #hud .health .jumpb.on { display: none; }
+  /* the parts count goes, but a part picked up still drops its +1 from under the top row, in the middle */
+  html.tp-mode #hud .counts { position: fixed; left: 50%; top: calc(max(12px, env(safe-area-inset-top)) + 54px * var(--tpu)); width: 0; height: 0; }
+  html.tp-mode #hud #partsBox { padding: 0; background: none; font-size: 0; }
+  html.tp-mode #hud #partsBox > :not(.pop) { display: none; }
+  html.tp-mode #hud #partsBox .pop { left: -40px; top: 0; font-size: 28px; }
+  /* the health bar, with the pilot's face where the heart was */
+  html.tp-mode #hud .health { left: max(16px, env(safe-area-inset-left)); top: max(12px, env(safe-area-inset-top)); gap: 8px; padding: 5px 14px 5px 5px; border-radius: 28px; }
+  html.tp-mode #hud .health .who.on { position: static; flex-direction: row; }
+  html.tp-mode #hud .health .who span, html.tp-mode #hud .health:has(.who.on) .ico { display: none; }
+  html.tp-mode #hud .health .face { width: calc(36px * var(--tpu)); height: calc(36px * var(--tpu)); border-width: 3px; }
+  html.tp-mode #hud .health .bar, html.tp-mode #hud .health:has(.jumpb.on) .bar { width: calc(150px * var(--tpu)); height: calc(18px * var(--tpu)); }
+  /* the squad: a small chip each (its icon and energy bar; the name is over its head in the meadow), beside the health bar
+     on its side, under it upright */
+  html.tp-mode #hud .right { left: calc(55px + 186px * var(--tpu)); right: calc(max(16px, env(safe-area-inset-right)) + 96px + 44px * var(--tpu)); top: max(12px, env(safe-area-inset-top)); justify-content: flex-start; gap: 6px; }
+  html.tp-mode #hud .squad { flex-basis: auto; justify-content: flex-start; gap: 6px; }
+  html.tp-mode #hud .mate { font-size: 0; gap: 0; padding: 4px 9px 10px; border-width: 2px; }
+  html.tp-mode #hud .mate b { font-size: calc(22px * var(--tpu)); }
+  html.tp-mode #hud .mate .mhp { left: 6px; right: 6px; height: 4px; }
+  @media (orientation: portrait) { html.tp-mode #hud .right { left: max(16px, env(safe-area-inset-left)); right: 16px; top: calc(max(12px, env(safe-area-inset-top)) + 18px + 36px * var(--tpu)); } }
+  /* the wave chip, small, just left of ⏸ */
+  html.tp-mode #hud .wave { right: calc(max(16px, env(safe-area-inset-right)) + 10px + 44px * var(--tpu)); top: calc(max(12px, env(safe-area-inset-top)) + 22px * var(--tpu)); bottom: auto; translate: 0 -50%;
+    width: auto; gap: 6px; padding: 4px 12px; font-size: calc(20px * var(--tpu)); }
+  /* beside a downed robot just the 🔧, as a marker that taps go through (FIX is the button); kept clear of the thumbs */
+  html.tp-mode #hud .prompt { gap: 0; }
+  html.tp-mode #hud .prompt button { pointer-events: none; width: 56px; height: 56px; font-size: 30px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
+  html.tp-mode #hud .prompt .pparts { display: none; }
+  /* toasts stay high, clear of the thumbs: on its side, just under the top row */
+  @media (orientation: landscape) { html.tp-mode #advToast { top: calc(max(12px, env(safe-area-inset-top)) + 60px * var(--tpu)); } }
   /* WEAPON held: the weapons row opens as a picker in the middle of the screen; a tap on a slot picks it */
-  html.tp-showing #hud .weapons.pick { z-index: 5; bottom: auto; top: 50%; transform: translate(-50%, -50%); gap: 10px; padding: 14px 18px; border-radius: 26px; background: rgba(20,24,42,.88); border: 4px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
-  html.tp-showing #hud .weapons.pick .wpn { width: min(78px, 15vw); height: min(78px, 15vw); font-size: min(40px, 8vw); border-width: 4px; }
+  html.tp-mode #hud .weapons.pick { z-index: 5; bottom: auto; top: 50%; transform: translate(-50%, -50%); gap: 10px; padding: 14px 18px; border-radius: 26px; background: rgba(20,24,42,.88); border: 4px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
+  html.tp-mode #hud .weapons.pick .wpn { width: min(78px, 15vw); height: min(78px, 15vw); font-size: min(40px, 8vw); border-width: 4px; }
+  /* the pause menu (the HUD steps aside while it's up): Resume, Bag, Garage, Facts, Trophies, Sound */
+  html.tp-mode #start.on:not(.title) ~ :is(#hud, #hurt) { visibility: hidden; }
+  #start .tpmenu { display: none; margin: 20px auto 0; grid-template-columns: repeat(3, 132px); gap: 12px; justify-content: center; }
+  html.tp-mode #start:not(.title) .tpmenu { display: grid; }
+  html.tp-mode #start:not(.title) :is(.resume, .keys) { display: none; }
+  html.tp-mode body:has(#bag.on) #start .wrap { visibility: hidden; }   /* the bag opens over it */
+  #start .tm { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 88px; padding: 4px; border-radius: 22px; border: 4px solid var(--ink);
+    background: rgba(20,24,42,.85); color: #fff; font: 900 19px 'Asap', sans-serif; text-shadow: 1px 1px 0 var(--ink); cursor: pointer; box-shadow: 0 5px 0 var(--ink), inset 0 0 0 3px rgba(255,255,255,.22); -webkit-tap-highlight-color: transparent; }
+  #start .tm .ic { font-size: 34px; margin: 0; }
+  #start .tm b { position: absolute; top: 5px; right: 9px; font: 900 15px 'Asap', sans-serif; color: var(--yellow); }
+  #start .tm.go { background: var(--orange); box-shadow: 0 5px 0 var(--ink), 0 0 24px rgba(255,138,31,.55); }
+  #start .tm.off { display: none; }
+  #start .tm.muted .ic { opacity: .6; }
+  #start .tm:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  @media (orientation: portrait) { #start .tpmenu { grid-template-columns: repeat(2, min(150px, 40vw)); } }
+  @media (max-height: 460px) { html.tp-mode #start:not(.title) .logo { font-size: 34px; } html.tp-mode #start:not(.title) .kidbar { margin-top: 10px; } #start .tpmenu { margin-top: 12px; gap: 10px; } #start .tm { height: 72px; } }
+  @media (min-width: 700px) and (min-height: 700px) { #start .tpmenu { grid-template-columns: repeat(3, 170px); gap: 16px; } #start .tm { height: 110px; font-size: 22px; } #start .tm .ic { font-size: 44px; } }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1103,6 +1117,16 @@
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
     <div class="resume"><div class="who" id="who"></div><div class="rcol"><button class="gridb" id="gridB" aria-label="My facts"><i data-ic="star"></i><b id="gridN"></b><small>T</small></button><button class="garb" id="garageB" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button></div><button id="go" aria-label="Play"><i data-ic="play"></i></button></div>
+    <!-- #103: on a touch screen the pause screen is a menu instead: Resume, the bag (and its parts count), the garage, my facts
+         (⭐ mastered of the goal), the trophies (hidden parts found) and the sound on or off -->
+    <div class="tpmenu" id="tpMenu">
+      <button class="tm go" id="tmGo" aria-label="Resume"><i data-ic="play"></i><span>Resume</span></button>
+      <button class="tm" id="tmBag" aria-label="Bag"><i data-ic="bag"></i><span>Bag</span><b id="tmBagN">0</b></button>
+      <button class="tm" id="tmGarage" aria-label="Garage"><i data-ic="wrench"></i><span>Garage</span></button>
+      <button class="tm" id="tmFacts" aria-label="Facts"><i data-ic="star"></i><span>Facts</span><b id="tmFactsN"></b></button>
+      <button class="tm" id="tmTrophies" aria-label="Trophies"><i data-ic="trophy"></i><span>Trophies</span><b id="tmFoundN">0</b></button>
+      <button class="tm" id="tmSound" aria-label="Sound"><i class="snd"></i><span>Sound</span></button>
+    </div>
     <div class="keys">
       <div class="hint"><div class="keyset">
         <div class="key e"></div><div class="key">W</div><div class="key e"></div>
@@ -1287,6 +1311,8 @@ Self-contained: its CSS, DOM and logic all live in the one script element below,
 Touch mode turns on at the first touch (pointerType 'touch') or on load when (pointer: coarse) matches, and off
 on any key press, mouse press or padUsed(). Each pointerId is tracked on its own (move + buttons + look at once).
 The root element toggles `tp-showing` on <html> so a game can move HUD pieces out of the thumbs' way.
+(#103) `tp-mode` on <html> follows touch mode itself (on through pauses and panels, while the controller hides), so a game
+can keep a touch layout for its HUD and menus.
 =========================================================================== -->
 <script>
 window.TouchPad = (() => {
@@ -1368,7 +1394,7 @@ window.TouchPad = (() => {
         if (show) layout(); else releaseAll();
       }
     }
-    function setTouchMode(on) { if (S.touchMode !== on) { S.touchMode = on; refresh(); } }
+    function setTouchMode(on) { if (S.touchMode !== on) { S.touchMode = on; document.documentElement.classList.toggle('tp-mode', on); refresh(); } }
 
     function stickMove(p, x, y) {
       let dx = x - p.x0, dy = y - p.y0; const d = Math.hypot(dx, dy);
@@ -1421,7 +1447,7 @@ window.TouchPad = (() => {
     addEventListener('keydown', () => setTouchMode(false), true);
     addEventListener('blur', releaseAll);
     document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
-    try { if (matchMedia('(pointer: coarse)').matches) S.touchMode = true; } catch (err) {}
+    try { if (matchMedia('(pointer: coarse)').matches) { S.touchMode = true; document.documentElement.classList.add('tp-mode'); } } catch (err) {}
 
     return {
       poll() {
@@ -2249,6 +2275,9 @@ const ICONS = {
   play: ['go', ['▶', '▶️'], pa('M7 3.6 L20.4 12 L7 20.4 Z', UI)],
   back: ['back', ['◀', '◀️'], pa('M17 3.6 L3.6 12 L17 20.4 Z', UI)],
   pause: ['pause', ['⏸', '⏸️'], re(5.2, 3.6, 5, 16.8, 1.4, UI) + re(13.8, 3.6, 5, 16.8, 1.4, UI)],   // #94: the touch controller's pause
+  // #103: the touch pause menu's Sound row: a speaker with its sound waves, or crossed out
+  sound: ['sound on', ['🔊'], pa('M3.4 9 L7.4 9 L12.4 4.4 L12.4 19.6 L7.4 15 L3.4 15 Z', UI) + ln('M15.6 9.2 Q17.4 12 15.6 14.8 M18.2 6.6 Q21.6 12 18.2 17.4', UI, 2)],
+  mute: ['sound off', ['🔇'], pa('M3.4 9 L7.4 9 L12.4 4.4 L12.4 19.6 L7.4 15 L3.4 15 Z', UI) + ln('M15.6 9.4 L20.8 14.6 M20.8 9.4 L15.6 14.6', UI, 2.4)],
   up: ['up', ['▲'], pa('M12 4.4 L20.6 18.6 L3.4 18.6 Z', UI)],
   down: ['down', ['▼', '⬇', '⬇️'], pa('M12 19.6 L20.6 5.4 L3.4 5.4 Z', UI)],
   arrow: ['to', ['➜', '→'], ln('M3.4 12 L13.4 12', UI, 3.2, 'butt') + pa('M12.6 5 L21 12 L12.6 19 Z', UI)],
@@ -3051,11 +3080,13 @@ const glowMat = (color, k = 2.6) => mat(color, { emissive: color, emissiveIntens
 // ===========================================================================
 const Sfx = {
   ctx: null, master: null, hum: null,
+  muted: !!store.get('muted', false),   // #103: the touch pause menu's Sound row (remembered on this device)
+  setMuted(on) { this.muted = !!on; store.set('muted', this.muted); if (this.master) this.master.gain.value = this.muted ? 0 : 0.6; return this.muted; },
   unlock() {
     if (!this.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
       this.ctx = new AC();
-      this.master = this.ctx.createGain(); this.master.gain.value = 0.6; this.master.connect(this.ctx.destination);
+      this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.6; this.master.connect(this.ctx.destination);
       const len = this.ctx.sampleRate; const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate); const d = buf.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       this.noiseBuf = buf;
@@ -3258,17 +3289,18 @@ function readPad(i) {
 // #94: the on-screen touch controller (the TouchPad block above, as in Family Knockout): player 1 only, read
 // once per frame in gatherInput. Stick = throttle and leg turn, a drag on the right's empty space = torso aim,
 // FIRE (held: the rail gun charges), WEAPON (a tap cycles; a long press opens the weapons row as a picker),
-// JUMP (once spring legs are bought), FIX / PARTS (beside a downed robot), BAG, MEND, and pause.
+// JUMP (once spring legs are bought), FIX (beside a downed robot), MEND, and pause.
 // It hides while a panel (the Quick Fix, keypad, picker, bag, mend, naming), the garage or the fact grid is open.
+// #103: at most 4 buttons on the right, ever: FIRE and WEAPON always; JUMP with spring legs; and one slot shared by FIX
+// (a downed robot in reach) and MEND (the mech hurt with a part in the bag that mends it), FIX first. FIX covers the
+// parts too: leave its board without fixing and the parts choice opens. The bag lives in the pause menu.
 const touch = TouchPad.create({
   buttons: [
     { id: 'fire', label: 'FIRE', icon: icon('smash') },
     { id: 'wpn', label: 'WEAPON', icon: icon('gun'), angle: 180 },
     { id: 'jump', label: 'JUMP', icon: icon('jump'), angle: 90, hidden: true },
     { id: 'fix', label: 'FIX', icon: icon('wrench'), angle: 135, hidden: true },
-    { id: 'parts', label: 'PARTS', icon: icon('bolt'), angle: 135, ring: 146, size: 50, hidden: true },
-    { id: 'mend', label: 'MEND', icon: icon('energy'), angle: 100, ring: 145, size: 48 },
-    { id: 'bag', label: 'BAG', icon: icon('bag'), angle: 170, ring: 145, size: 48 },
+    { id: 'mend', label: 'MEND', icon: icon('energy'), angle: 135, hidden: true },   // (#103: FIX's slot, when FIX isn't there)
   ],
   pause: true, pauseIcon: icon('pause'),
   active: () => Game.state === 'play' && !!Game.pilot && !Game.paused && !Title.on && !Garage.on && !Progress.mode && !FixUI.mode && Game.humans.length > 0,
@@ -3277,15 +3309,18 @@ const touch = TouchPad.create({
 const WPN_HOLD = 0.45;   // s: a WEAPON press this long opens the picker instead of cycling
 function readTouch() {
   const t = touch.poll();
-  return { lx: t.x, ly: t.y, fireH: !!t.held.fire, wpnH: !!t.held.wpn, jumpP: !!t.pressed.jump, fixP: !!t.pressed.fix, partsP: !!t.pressed.parts,
-    mendP: !!t.pressed.mend, bagP: !!t.pressed.bag, pauseP: !!t.pressed.pause, lookDx: t.lookDx, lookDy: t.lookDy, looking: t.looking };
+  return { lx: t.x, ly: t.y, fireH: !!t.held.fire, wpnH: !!t.held.wpn, jumpP: !!t.pressed.jump, fixP: !!t.pressed.fix,
+    mendP: !!t.pressed.mend, pauseP: !!t.pressed.pause, lookDx: t.lookDx, lookDy: t.lookDy, looking: t.looking };
 }
-// the contextual buttons: JUMP once spring legs are on (as the HUD's ⤴️), FIX / PARTS while the prompt beside a
-// downed robot is up (as the HUD's 🔧 / 🔩); WEAPON wears the current weapon's icon
+// #103: the mech is hurt in an area and the bag has the part that mends it (its own areas: a squadmate's wait for the panel)
+const canMend = (m) => !!m && m.state !== 'down' && AREAS.some((a) => hurtIn(m, a) && partFor(a) && Game.bag[partFor(a)] > 0);
+// the contextual buttons: JUMP once spring legs are on (as the HUD's ⤴️), FIX while the prompt beside a downed robot is
+// up (as the HUD's 🔧), MEND in FIX's slot when there's something to mend and a part to do it; WEAPON wears the current
+// weapon's icon
 function touchButtons(h) {
   const m = h.mech, pr = !!(m && !h.repair && promptRobot(h));
   touch.setVisible('jump', (m?.upg?.spring || 0) > 0);
-  touch.setVisible('fix', pr); touch.setVisible('parts', pr);
+  touch.setVisible('fix', pr); touch.setVisible('mend', !pr && canMend(m));
   touch.setIcon('wpn', icon(WEAPON[h.weapon]?.ic || 'gun'));
 }
 // the weapons row as a picker (a long press on WEAPON): big, in the middle of the screen; a tap on a slot picks it
@@ -5511,8 +5546,10 @@ function syncMechModel(m) {
 // ===========================================================================
 // Camera rig (Family Knockout's CamRig, aimed by the torso)
 // ===========================================================================
+// #103: upright on a touch screen: the camera's distance × (1 + dist), its elevation + el (rad), its look point raised look m
+const CAM_FAR = { dist: 0.8, el: 0.18, look: 0.5 };
 class CamRig {
-  constructor(i) { this.i = i; this.cam = new THREE.PerspectiveCamera(60, 1, 0.1, 1200); this.yaw = 0; this.pitch = 0; this.dist = 15; this.target = new V3(); this.shake = 0; this.rec = 0; this.snap = true; this.t = 0; }
+  constructor(i) { this.i = i; this.cam = new THREE.PerspectiveCamera(60, 1, 0.1, 1200); this.yaw = 0; this.pitch = 0; this.dist = 15; this.target = new V3(); this.shake = 0; this.rec = 0; this.snap = true; this.t = 0; this.far = 0; this.farT = 0; }
   kick(k) { this.shake = Math.min(1.2, this.shake + k); }
   // a gun's kick: the view jolts back and up, then settles (shake is for thuds)
   recoil(k) { this.rec = Math.min(1, this.rec + k); }
@@ -5522,12 +5559,16 @@ class CamRig {
     const k = this.snap ? 1 : 1 - Math.exp(-10 * dt);
     this.target.x = lerp(this.target.x, m.pos.x, k); this.target.z = lerp(this.target.z, m.pos.z, k);
     this.target.y = lerp(this.target.y, m.pos.y + 6.2, this.snap ? 1 : 1 - Math.exp(-5 * dt));
+    // #103: a phone or tablet held upright (farT = 1): the camera eases back and up, so the mech sits lower and smaller
+    // and the meadow ahead shows; it eases in again on its side (far = 0 adds nothing: desktop is as it was)
+    this.far += (this.farT - this.far) * (this.snap ? 1 : 1 - Math.exp(-4 * dt));
     this.snap = false;
-    const yaw = m.torsoYaw, el = clamp(0.32 - m.aimPitch * 0.8, 0.02, 0.85), c = this.cam;
+    const F = this.far, dist = this.dist * (1 + CAM_FAR.dist * F);
+    const yaw = m.torsoYaw, el = clamp(0.32 - m.aimPitch * 0.8, 0.02, 0.85) + CAM_FAR.el * F, c = this.cam;
     const cp = Math.cos(el);
-    c.position.set(this.target.x + Math.sin(yaw) * cp * this.dist, this.target.y + Math.sin(el) * this.dist, this.target.z + Math.cos(yaw) * cp * this.dist);
+    c.position.set(this.target.x + Math.sin(yaw) * cp * dist, this.target.y + Math.sin(el) * dist, this.target.z + Math.cos(yaw) * cp * dist);
     const g = groundH(c.position.x, c.position.z) + 1.5; if (c.position.y < g) c.position.y = g;
-    const look = new V3(this.target.x - Math.sin(yaw) * 10, this.target.y + Math.tan(m.aimPitch) * 10, this.target.z - Math.cos(yaw) * 10);
+    const look = new V3(this.target.x - Math.sin(yaw) * 10, this.target.y + Math.tan(m.aimPitch) * 10 + CAM_FAR.look * F, this.target.z - Math.cos(yaw) * 10);
     if (this.shake > 0.001) {
       const s = this.shake * this.shake * 0.35, t = this.t * 40;
       c.position.y += Math.sin(t * 1.3) * s; c.position.x += Math.sin(t * 0.9 + 1) * s * 0.6;
@@ -5594,6 +5635,7 @@ const Title = {
     if (C && kb.dataset.k !== C.id) { kb.dataset.k = C.id; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">${icon('back')}</span><b class="face">${icon(C.ic)}</b><span>${C.name}</span>`; }
     [...$('wireB').children].forEach((i) => i.classList.toggle('on', i.dataset.w === wiringMode()));
     Progress.drawBadge();
+    drawPauseMenu();
     $('parentB').classList.toggle('on', this.on);   // the parent button: title / pause screen only
   },
   // keys and pad on the title (not in manual mode: checks use __rb.player / __rb.start)
@@ -8227,8 +8269,9 @@ function gatherInput(dt) {
     // the prompt beside a downed robot: 🔧 fix or 🔩 take parts
     const pr = !h.repair && promptRobot(h);
     if (pr) {
-      if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP) || (tpad && tpad.fixP)) chooseFor(h, pr, 'fix');
-      else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP) || (tpad && tpad.partsP)) chooseFor(h, pr, 'parts');
+      if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
+      else if (tpad && tpad.fixP) { if (chooseFor(h, pr, 'fix').ok && h.idx === 0) FixUI.thenParts = pr; }   // #103: left unfixed, the parts choice opens
+      else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
     } else if (asking && pad) {
       // who goes home: d-pad ◀ ▶ moves between squadmates, A sends that one home, B backs out
       const rp = h.repair, n = Game.squad.length;
@@ -8262,7 +8305,7 @@ function gatherInput(dt) {
     }
     if (h.idx === 0 && FixUI.mode === 'mend') FixUI.drawMend();
     // the parts bag: 🎒 key or pad Back (or B when no panel is open)
-    if (h.idx === 0 && !picking && !mending && !asking && !wiring && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && !padB && FixUI.mode !== 'wires'))) || (tpad && tpad.bagP))) FixUI.toggleBag();
+    if (h.idx === 0 && !picking && !mending && !asking && !wiring && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && !padB && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
   }
   mouse.dx = mouse.dy = 0;
   keysPressed.clear();
@@ -8837,7 +8880,7 @@ const FixUI = {
     this.drawMend();
     return res;
   },
-  close() { this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); Adv.flush(); },   // (G4: a toast held for the board)
+  close() { this.thenParts = null; this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); Adv.flush(); },   // (G4: a toast held for the board)
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
@@ -8846,8 +8889,12 @@ const FixUI = {
     if (this.mode === 'name') { this.confirmName(); return; }
     if (this.puz) { this.closePuzzle(); return; }        // ✖ / Escape in a puzzle: back to the board (P3-1)
     if (this.entry) { this.closeEntry(); return; }       // ✖ / Escape while typing: back to the board
-    if (this.mode === 'wires' || this.mode === 'parts' || this.mode === 'home') cancelRepair(Game.humans[0]);
-    this.close(); this.relock();
+    const h = Game.humans[0], then = (this.mode === 'wires' || this.mode === 'home') && touch.state.touchMode ? this.thenParts : null;
+    if (this.mode === 'wires' || this.mode === 'parts' || this.mode === 'home') cancelRepair(h);
+    this.close();
+    // #103: the touch FIX covers fix or parts: its board (or the send-home ask) left unfixed opens the robot's parts choice
+    if (then && then.state === 'down' && chooseFor(h, then, 'parts').ok) return;
+    this.relock();
   },
   confirmName() {
     if (this.mode !== 'name') return;
@@ -9397,8 +9444,16 @@ function updateHud() {
     const v = new V3(pr.pos.x, pr.pos.y + 3, pr.pos.z).project(h.rig.cam);
     if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) {
       shown = true;
-      pe.style.left = clamp((v.x * 0.5 + 0.5) * innerWidth + 70, 10, innerWidth - 190) + 'px';
-      pe.style.top = clamp((-v.y * 0.5 + 0.5) * innerHeight, 60, innerHeight - 60) + 'px';
+      let x = clamp((v.x * 0.5 + 0.5) * innerWidth + 70, 10, innerWidth - 190), y = clamp((-v.y * 0.5 + 0.5) * innerHeight, 60, innerHeight - 60);
+      // #103: on a touch screen (just the 🔧, as a marker: FIX is the button) it stays under the top row and above the thumbs
+      // (between the thumbs it may come down to the bottom; over the stick's or the buttons' corner it stays above them)
+      if (touch.state.touchMode) {
+        const u = innerWidth >= 700 && innerHeight >= 700 ? 1.3 : 1, top = Math.max($('health').getBoundingClientRect().bottom, $('squad').getBoundingClientRect().bottom) + 36;
+        x = clamp(x - 40, 10, innerWidth - 70);
+        const mid = x > 175 * u && x + 56 < innerWidth - 260 * u;
+        y = clamp(y, top, Math.max(top, mid ? innerHeight - 70 : innerHeight - 260 * u - 40));
+      }
+      pe.style.left = x + 'px'; pe.style.top = y + 'px';
     }
   }
   pe.classList.toggle('on', shown);
@@ -10651,6 +10706,7 @@ function render(dt) {
   Dust.update(dt);
   if (Garage.on) { Garage.render(dt); updateHud(); return; }   // the bay instead of the meadow (the world is paused)
   const h = Game.humans[0]; if (!h) return;
+  h.rig.farT = touch.state.touchMode && H > W ? 1 : 0;   // #103: upright on a touch screen, the camera pulls back
   h.rig.update(dt, h.mech);
   const c = h.rig.cam; c.aspect = W / H; c.updateProjectionMatrix();
   // keep the sun's shadow box on the player
@@ -10685,6 +10741,23 @@ function startPlay() {
   if (Game.humans.length === 1 && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {});   // (#94: never on a touch screen)
 }
 $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
+// #103: the touch pause menu. Each row acts on its click, which comes after the touch has ended, so the panel it opens
+// can't take the same tap. Bag opens over the menu (the world stays paused) and its ✖ comes back to it; Garage opens the
+// garage on its 🦾 Mech tab and Trophies on its 🏆 Trophies tab; Facts is the ⭐ grid; Sound turns all sound off or on.
+function drawPauseMenu() {
+  $('tmBagN').textContent = Game.parts;
+  $('tmFacts').classList.toggle('off', !$('gridB').classList.contains('on')); $('tmFactsN').textContent = $('gridN').textContent;
+  $('tmFoundN').textContent = `${Hidden.list.filter((q) => q.found).length}/${Hidden.list.length}`;
+  const k = Sfx.muted ? 'mute' : 'sound', el = $('tmSound').querySelector('.snd');
+  if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = icon(k); }
+  $('tmSound').classList.toggle('muted', Sfx.muted); $('tmSound').setAttribute('aria-pressed', String(!Sfx.muted));
+}
+$('tmGo').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
+$('tmBag').addEventListener('click', (e) => { e.stopPropagation(); if (Game.paused && Game.pilot && !FixUI.mode) FixUI.toggleBag(); });
+$('tmGarage').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); if (Garage.open('pause').ok) Garage.setTab('mech'); });
+$('tmFacts').addEventListener('click', (e) => { e.stopPropagation(); Progress.openGrid('pause'); });
+$('tmTrophies').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); if (Garage.open('pause').ok) Garage.setTab('trophies'); });
+$('tmSound').addEventListener('click', (e) => { e.stopPropagation(); Sfx.setMuted(!Sfx.muted); Sfx.unlock(); Sfx.click(); drawPauseMenu(); });
 
 // ===========================================================================
 // Waves. The meadow is cleared when no glitched or powered-down robot is left
@@ -10877,10 +10950,12 @@ window.__rb = {
   Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
   BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
+  CAM_FAR,   // (#103)
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // #94: the on-screen touch controller: { showing, touchMode, x, y (the stick, -1..1), held: [buttons held],
   // looking (a finger aiming), shown: [buttons on screen], picker (the weapon picker open) }
-  get touch() { return { ...touch.state, picker: WpnPick.on }; },
+  // #103: menu (the touch pause menu is up), muted (its Sound row is off)
+  get touch() { return { ...touch.state, picker: WpnPick.on, menu: getComputedStyle($('tpMenu')).display !== 'none' && Title.on, muted: Sfx.muted }; },
   // ---- I1: the icon set ----
   // every icon's name (the sprite's symbols); iconOf(emoji) = the icon an emoji alias stands for (null if none)
   icons() { return Object.keys(ICONS); },
