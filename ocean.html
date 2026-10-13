@@ -2616,7 +2616,7 @@ body.tp-on #tp{display:block}
     const C = { x: W - sa.r - 20 * s - size.main / 2, y: H - sa.b - 20 * s - size.main / 2 };
     const r = 104 * s, slots = { main: [0, 0], a1: [-r, 0], a2: [-r * 0.71, -r * 0.71], a3: [0, -r] };
     const rowAt = (row, col) => portrait ? [(-110 + col * 50) * s, (row === 1 ? -170 : -222) * s]
-                                         : [(-176 - col * 50) * s, (row === 1 ? 18 : -40) * s];
+                                         : [(-176 - ((row === 1 ? 2 : 1) - col) * 50) * s, (row === 1 ? 18 : -40) * s];   // rows read left to right
     let top = 0, left = 0;
     for (const b of btns) {
       const d = b.def, px = d.size === 'menu' ? size.menu : size[d.size || 'arc'];
