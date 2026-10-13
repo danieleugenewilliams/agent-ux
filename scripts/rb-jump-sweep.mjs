@@ -31,6 +31,8 @@
 // Exit 0 only if every run has 680 cases, 0 shoves, 0 dented, no page errors, matches BASELINE
 // (clears / walk / stomp / scuffed), and all runs give the same outcomes.
 // If a change to jumping is meant to move the baseline, update BASELINE below in the same PR and say why.
+// Chrome runs muted, and is killed with its temporary profile deleted however the script ends: finish, error,
+// Ctrl-C / SIGTERM, or a hard timeout of 5 minutes for the whole script (one run takes about a minute).
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -110,13 +112,44 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'rb-jump-sweep-'));
 // Port 0: Chrome picks a free port and writes it to DevToolsActivePort in its own profile, so a sweep never
 // attaches to another Chrome that already holds a fixed or randomly picked port (and drives that one's tab).
-const chrome = spawn(chromeBin, ['--headless=new', '--remote-debugging-port=0', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', '--no-default-browser-check',
-  '--allow-file-access-from-files', '--window-size=1280,800', '--user-data-dir=' + prof, 'about:blank'], { stdio: 'ignore' });
+// --mute-audio: the game plays sound, and a sweep must never be heard (#105).
+// detached: Chrome leads its own process group, so cleanup kills it and every helper process it started.
+const chrome = spawn(chromeBin, ['--headless=new', '--mute-audio', '--remote-debugging-port=0', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', '--no-default-browser-check',
+  '--allow-file-access-from-files', '--window-size=1280,800', '--user-data-dir=' + prof, 'about:blank'], { stdio: 'ignore', detached: true });
+chrome.on('error', () => {});   // a failed spawn shows up as "Chrome did not start" below
+let chromeExited = false;
+chrome.on('exit', () => { chromeExited = true; });
 let ws;
-const cleanup = () => { try { ws?.close(); } catch {} try { chrome.kill('SIGKILL'); } catch {} try { fs.rmSync(prof, { recursive: true, force: true }); } catch {} };
-process.on('exit', cleanup);
-for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => process.exit(130));
 
+// Close Chrome and delete its profile on every way out (#105): normal finish and thrown errors (the finally at
+// the bottom), SIGINT / SIGTERM, the hard timeout, and any other process.exit (the 'exit' handler, sync only).
+const HARD_TIMEOUT_MS = 5 * 60 * 1000;
+let cleaned = false;
+function killChrome() {
+  try { ws?.close(); } catch {}
+  try { process.kill(-chrome.pid, 'SIGKILL'); } catch {}   // the whole process group
+  try { chrome.kill('SIGKILL'); } catch {}
+}
+function cleanupSync() {
+  if (cleaned) return;
+  cleaned = true;
+  killChrome();
+  try { fs.rmSync(prof, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch {}
+}
+async function cleanup() {
+  if (cleaned) return;
+  killChrome();
+  for (let i = 0; i < 50 && !chromeExited && chrome.pid; i++) await sleep(20);   // let it stop writing to the profile
+  cleanupSync();
+}
+process.on('exit', cleanupSync);
+for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143]]) process.on(sig, () => { cleanup().finally(() => process.exit(code)); });
+setTimeout(() => {
+  console.error(`hard timeout: the sweep ran over ${HARD_TIMEOUT_MS / 60000} min; closing Chrome`);
+  cleanup().finally(() => process.exit(124));
+}, HARD_TIMEOUT_MS).unref();
+
+async function main() {
 let tgt;
 let port;
 for (let i = 0; i < 75 && !tgt; i++) {
@@ -124,7 +157,7 @@ for (let i = 0; i < 75 && !tgt; i++) {
   if (port) try { tgt = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page'); } catch {}
   if (!tgt) await sleep(200);
 }
-if (!tgt) { console.error('Chrome did not start (' + chromeBin + ')'); process.exit(2); }
+if (!tgt) { console.error('Chrome did not start (' + chromeBin + ')'); return 2; }
 ws = new WebSocket(tgt.webSocketDebuggerUrl); await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
 let id = 0; const pend = new Map(); let errs = [];
 ws.onmessage = (e) => {
@@ -143,10 +176,10 @@ for (let r = 0; r < runs; r++) {
   await send('Page.navigate', { url });
   let ready = false;
   for (let i = 0; i < 150 && !ready; i++) { await sleep(200); const v = await send('Runtime.evaluate', { expression: 'document.readyState === "complete" && !!window.__rb', returnByValue: true }); ready = !!v.result?.result?.value; }
-  if (!ready) { console.error('page did not load window.__rb: ' + url); process.exit(2); }
+  if (!ready) { console.error('page did not load window.__rb: ' + url); return 2; }
   const t0 = Date.now();
   const v = await send('Runtime.evaluate', { expression: SWEEP, returnByValue: true });
-  if (v.result?.exceptionDetails) { console.error('sweep threw: ' + (v.result.exceptionDetails.exception?.description || v.result.exceptionDetails.text)); process.exit(2); }
+  if (v.result?.exceptionDetails) { console.error('sweep threw: ' + (v.result.exceptionDetails.exception?.description || v.result.exceptionDetails.text)); return 2; }
   const cases = v.result?.result?.value || [];
   const by = {}; for (const c of cases) if (c.broken) by[c.by ?? '?'] = (by[c.by ?? '?'] || 0) + 1;
   const res = {
@@ -173,4 +206,11 @@ const same = results.every((r) => r.digest === results[0].digest);
 const pass = results.every((r) => r.pass) && same;
 if (json) console.log(JSON.stringify({ url, runs: results, same, pass }, null, 1));
 else console.log(`${url}\n${runs} run(s), ${same ? 'all identical' : 'RUNS DIFFER'}: ${pass ? 'PASS' : 'FAIL'}`);
-process.exit(pass ? 0 : 1);
+return pass ? 0 : 1;
+}
+
+let code = 2;
+try { code = await main(); }
+catch (e) { console.error('sweep failed: ' + (e?.stack || e?.message || e)); }
+finally { await cleanup(); }
+process.exit(code);
