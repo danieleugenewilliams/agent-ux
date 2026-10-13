@@ -8270,7 +8270,7 @@ function gatherInput(dt) {
     const pr = !h.repair && promptRobot(h);
     if (pr) {
       if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
-      else if (tpad && tpad.fixP) { if (chooseFor(h, pr, 'fix').ok && h.idx === 0) FixUI.thenParts = pr; }   // #103: left unfixed, the parts choice opens
+      else if (tpad && tpad.fixP) { if (chooseFor(h, pr, 'fix').ok && h.idx === 0 && !Game.squad.includes(pr)) FixUI.thenParts = pr; }   // #103: left unfixed, the parts choice opens (not for a downed squadmate's rescue: ✖ just closes, as on main)
       else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
     } else if (asking && pad) {
       // who goes home: d-pad ◀ ▶ moves between squadmates, A sends that one home, B backs out
