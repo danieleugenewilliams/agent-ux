@@ -982,7 +982,8 @@
     .btray { gap: 8px; } .bpart { border-width: 3px; border-radius: 14px; gap: 1px; } .bpart .bpi { font-size: 34px; } .bpart .bin { font-size: 19px; } .bpart .bbag { font-size: 14px; }
     .bhint { font-size: 18px; }
     .bspot { width: 32px; height: 32px; font-size: 14px; }
-    .lcard .lbp { font-size: 12px; padding: 2px 4px; top: 40%; } .lcard .lbp b { font-size: 11px; } .lcard .lpips { top: 5px; right: 4px; gap: 2px; } .lcard .lpips i { width: 9px; height: 9px; }
+    /* (#90: up to 4 parts in two columns, top right under the pips: clear of the icon and the trade-off chips) */
+    .lcard .lbp { font-size: 12px; padding: 2px 4px; top: 17px; left: auto; right: 4px; transform: none; display: grid; grid-template-columns: auto auto; column-gap: 5px; } .lcard .lbp b { font-size: 11px; } .lcard .lpips { top: 5px; right: 4px; gap: 2px; } .lcard .lpips i { width: 9px; height: 9px; }
     .bjob { gap: 4px 8px; } .bjt { font-size: 22px; } .bplug, .bport { border-width: 3px; border-radius: 12px; padding: 2px 6px; font-size: 18px; } .bpf { font-size: 22px; }
     .bplugs, .bports { gap: 5px; } .bplug .fact { font-size: 18px; } .bport .ans { font-size: 22px; } .wsh svg { width: 24px; height: 24px; } .bpole i { width: 14px; height: 14px; } .bpole { gap: 4px; } .bpad { font-size: 22px; }
     .bpf.gsz { font-size: calc(12px + 5px * var(--g)); } .gbar { font-size: 12px; } .ld { font-size: 18px; }
