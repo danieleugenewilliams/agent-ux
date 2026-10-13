@@ -889,9 +889,8 @@
   /* ---------- #89: build projects. A shape not built yet is a blueprint card (dashed, blueprint blue: its parts, in / needed,
      and its steps as pips); opened, the wall shows its steps and parts (or its job's board), and the lift its frame with a
      glowing spot for each part to drag on ---------- */
-  #garage :is(.bpi, .bpf, .bic, .bsteps i, .bspot, .bhint, .bjt, .bpad, .bdone, .lbp i, .bmiss, .bok, .llock.soon) .ic, #gDrag .ic { margin: 0 var(--mx); vertical-align: top; }
-  .lcard.bp, .lcard.soon { border-style: dashed; background: linear-gradient(rgba(79,157,255,.14) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, rgba(79,157,255,.14) 1px, transparent 1px) 0 0 / 14px 14px, rgba(16,30,62,.82); }
-  .lcard.soon { filter: saturate(.45); }
+  #garage :is(.bpi, .bpf, .bic, .bsteps i, .bspot, .bhint, .bjt, .bpad, .bdone, .lbp i, .bmiss, .bok, .gbar) .ic, #gDrag .ic { margin: 0 var(--mx); vertical-align: top; }
+  .lcard.bp { border-style: dashed; background: linear-gradient(rgba(79,157,255,.14) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, rgba(79,157,255,.14) 1px, transparent 1px) 0 0 / 14px 14px, rgba(16,30,62,.82); }
   .lcard .lbp { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 1px; padding: 3px 7px; border-radius: 10px; background: rgba(11,14,24,.85); font-size: 16px; line-height: 1; }
   .lcard .lbp i { font-style: normal; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
   .lcard .lbp b { font: 900 14px 'Asap', sans-serif; } .lcard .lbp i.full b { color: #7dffad; }
@@ -922,7 +921,7 @@
   .bspot { position: absolute; translate: -50% -50%; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 3px dashed var(--pc); background: rgba(11,14,24,.55); color: #fff;
     display: flex; align-items: center; justify-content: center; font-size: 18px; pointer-events: auto; touch-action: none; cursor: pointer; opacity: .4; }
   .bspot.in { display: none; }
-  .bspot.next { opacity: .95; }
+  .bspot.next { opacity: .95; z-index: 1; } /* (#90: the spot a part goes in next sits over the faint ones, so a drop finds it) */
   .bspot.glow { opacity: 1; border-style: solid; background: color-mix(in srgb, var(--pc) 45%, rgba(11,14,24,.6)); box-shadow: 0 0 18px var(--pc), 0 0 6px #fff; animation: spotPulse .8s ease-in-out infinite alternate; }
   @keyframes spotPulse { from { scale: 1; } to { scale: 1.2; } }
   #gDrag { position: fixed; display: none; pointer-events: none; z-index: 6; translate: -50% -50%; font-size: 52px; line-height: 1; filter: drop-shadow(0 0 12px var(--pc)) drop-shadow(0 4px 0 rgba(0,0,0,.5)); }
@@ -947,6 +946,18 @@
   .bpole { display: flex; flex-direction: column; gap: 8px; } .bpole i { width: 22px; height: 22px; border-radius: 5px; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.25); }
   .bpole i.at { background: var(--yellow); border-color: var(--ink); box-shadow: 0 0 12px var(--yellow); }
   .bpad { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 32px; line-height: 1; }
+  /* #90: the Tracks' and Spider's jobs: a gear sized by its level with its strength and speed bars; the Spider's legs from
+     above (front at the top; lit = this leg, ok = the one already stepping); a load as a number or dots; a battery's meter */
+  .bpf.gsz { font-size: calc(16px + 7px * var(--g)); }
+  .gbars { display: flex; flex-direction: column; gap: 2px; } .gbar { display: flex; align-items: flex-end; gap: 2px; font-size: 16px; line-height: 1; }
+  .stiff.fast i.on { background: var(--cyan); }
+  .lg4 { display: grid; grid-template-columns: repeat(2, 12px); gap: 3px 9px; padding: 3px 5px; border-radius: 7px; background: rgba(255,255,255,.08); }
+  .lg4 i { width: 12px; height: 12px; border-radius: 4px; background: rgba(255,255,255,.18); }
+  .lg4 i.on { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); } .lg4 i.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .bport.beat .lg4 { grid-template-columns: repeat(2, 16px); } .bport.beat .lg4 i { width: 16px; height: 16px; }
+  .ld { font: 900 24px 'Asap', sans-serif; color: var(--yellow); text-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
+  .ldp { display: grid; grid-template-columns: repeat(3, 9px); gap: 3px; } .ldp i { width: 9px; height: 9px; border-radius: 50%; background: var(--yellow); }
+  .ldp.meter { grid-template-columns: repeat(5, 9px); } .ldp.meter i { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); } .ldp.meter i.on { background: var(--green); border-color: var(--green); }
   .bdone { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 64px; }
   .glift.sparkle { animation: liftSparkle .8s ease-in-out 3; }
   @keyframes liftSparkle { 50% { border-color: var(--yellow); box-shadow: inset 0 0 40px rgba(0,0,0,.5), 0 0 34px rgba(255,216,61,.95); } }
@@ -961,6 +972,8 @@
     .bjob { gap: 6px; } .bjt { font-size: 24px; } .bplug, .bport { border-width: 3px; border-radius: 12px; padding: 2px 4px; gap: 4px; font-size: 18px; } .bpf { font-size: 22px; }
     .bplug .fact { font-size: 18px; } .bport .ans { font-size: 22px; } .wsh svg { width: 26px; height: 26px; } .bpole i { width: 16px; height: 16px; } .bpole { gap: 5px; } .bpad { font-size: 24px; }
     .bwire { font-size: 20px; } .stiff i { width: 6px; }
+    .bpf.gsz { font-size: calc(12px + 5px * var(--g)); } .gbar { font-size: 12px; } .ld { font-size: 18px; }
+    .lg4 { grid-template-columns: repeat(2, 9px); gap: 2px 6px; padding: 2px 3px; } .lg4 i { width: 9px; height: 9px; } .ldp { grid-template-columns: repeat(3, 7px); gap: 2px; } .ldp i { width: 7px; height: 7px; }
   }
   @media (max-height: 460px) and (min-width: 600px) {
     .gwall.body.build { gap: 6px; }
@@ -972,6 +985,8 @@
     .lcard .lbp { font-size: 12px; padding: 2px 4px; top: 40%; } .lcard .lbp b { font-size: 11px; } .lcard .lpips { top: 5px; right: 4px; gap: 2px; } .lcard .lpips i { width: 9px; height: 9px; }
     .bjob { gap: 4px 8px; } .bjt { font-size: 22px; } .bplug, .bport { border-width: 3px; border-radius: 12px; padding: 2px 6px; font-size: 18px; } .bpf { font-size: 22px; }
     .bplugs, .bports { gap: 5px; } .bplug .fact { font-size: 18px; } .bport .ans { font-size: 22px; } .wsh svg { width: 24px; height: 24px; } .bpole i { width: 14px; height: 14px; } .bpole { gap: 4px; } .bpad { font-size: 22px; }
+    .bpf.gsz { font-size: calc(12px + 5px * var(--g)); } .gbar { font-size: 12px; } .ld { font-size: 18px; }
+    .lg4 { grid-template-columns: repeat(2, 9px); gap: 2px 6px; padding: 2px 3px; } .lg4 i { width: 9px; height: 9px; } .ldp { grid-template-columns: repeat(3, 7px); gap: 2px; } .ldp i { width: 7px; height: 7px; }
   }
   /* ---------- #94: the touch controller is showing (html.tp-showing, from the TouchPad block): the HUD makes room ----------
      The stick rests bottom left (its ring reaches 16 + 132 px up), the buttons fan out from the bottom-right corner
@@ -1569,27 +1584,65 @@ const shapeFx = (id) => { const S = legShapeOf(id) || LEG_SHAPES[0]; return Obje
 // bag onto their spots on the frame on the lift; spent at once, never given back) or 'job' (a Quick Fix–style board in the
 // child's own setting, math wiring or colour wiring, with the real idea behind the shape). A wrong move on a job buzzes and
 // costs nothing. The last step done unlocks the shape and puts it on. Saved per child in rec.garage.body.builds =
-// { [shape]: { parts: { id: n }, step: k } } (n = how many of that part are in, k = steps done). Spider and Tracks have no
-// recipe yet (#90): they show as blueprints marked coming soon, and can't be opened or built.
-//   jobs: 'stiffness' = pick the spring that lands a test jump on the pad (stiffer jumps higher), `rounds` pads in a row;
-//         'mount' = wire each leg's spring to its motor
+// { [shape]: { parts: { id: n }, step: k } } (n = how many of that part are in, k = steps done). #90: the harder shapes take
+// more steps: Hopper 3, Tracks 4, Spider 5. A recipe can have more than one parts step; each adds to the parts needed.
+//   jobs (BUILD_JOBS deals and checks each board):
+//   'stiffness' = pick the spring that lands a test jump on the pad (stiffer jumps higher), `rounds` pads in a row
+//   'mount'     = wire each leg's spring to its motor
+//   'gear'      = (#90) pick the gear for a pushing test: low gear = strong and slow, high gear = fast and weak. The right
+//                 one is the fastest gear still strong enough for the load (too high a gear stalls, too low is slow)
+//   'tension'   = (#90) tighten each tread (the left, then the right) by as much as it sags: too loose slips, too tight jams
+//   'legwire'   = (#90) wire each of the 4 legs' motors to the controller
+//   'gait'      = (#90) which leg steps with this one so it never tips over: its diagonal partner (the same side tips it
+//                 sideways, the same end tips it forward or back)
+//   'balance'   = (#90) share the leg motors' load between the 2 batteries so each carries half
 const BUILDS = {
   hopper: [
     { kind: 'parts', parts: { spring: 4, motor: 2, armour: 2 } },
     { kind: 'job', job: 'stiffness', ic: 'jump' },
     { kind: 'job', job: 'mount', ic: 'wire' },
   ],
+  tracks: [
+    { kind: 'parts', parts: { ram: 6, motor: 4, armour: 2 } },
+    { kind: 'job', job: 'gear', ic: 'motor' },
+    { kind: 'parts', parts: { wiring: 2 } },
+    { kind: 'job', job: 'tension', ic: 'tracks' },
+  ],
+  spider: [
+    { kind: 'parts', parts: { motor: 6, armour: 2 } },
+    { kind: 'job', job: 'legwire', ic: 'brain' },
+    { kind: 'parts', parts: { wiring: 4, battery: 2 } },
+    { kind: 'job', job: 'gait', ic: 'walker' },
+    { kind: 'job', job: 'balance', ic: 'battery' },
+  ],
 };
 const BUILD = { rounds: 2, cheer: 3200 };
-// where each spot sits on a shape's frame, in the order its part fills them: [leg (0 left, 1 right), the leg's piece it hangs
-// on, how far out to the side, up, back]
+// where each spot sits on a shape's frame, in the order its part fills them: [leg, the leg's piece it hangs on, how far out
+// to the side, up, back]. Legs: 0 left, 1 right; the Spider's 0 front left, 1 front right, 2 back left, 3 back right (its
+// legs are each turned to point out, so "out" is along the leg on both sides)
 const BUILD_SPOTS = {
   hopper: {
     spring: [[0, 'knee', 0.9, -0.1], [1, 'knee', 0.9, -0.1], [0, 'ankle', 0.95, -0.6], [1, 'ankle', 0.95, -0.6]],
     motor: [[0, 'hip', 1.1, 0.6], [1, 'hip', 1.1, 0.6]],
     armour: [[0, 'thighPlate', 1.9, -0.3], [1, 'thighPlate', 1.9, -0.3]],
   },
+  tracks: {
+    // (#90: chosen so no two spots of one parts step overlap on the lift at 1280×800, 390×844 or 844×390)
+    ram: [[0, 'blade', 0.9, 0.2, -0.3], [1, 'blade', 0.9, 0.2, -0.3], [0, 'unit', 1.2, -0.9, -1.2], [1, 'unit', 1.2, -0.9, -1.2], [0, 'unit', 1.4, 0, -1.5], [1, 'unit', 1.4, 0, -1.5]],
+    motor: [[0, 'hip', 1.2, 0.5], [1, 'hip', 1.2, 0.5], [0, 'unit', 1.2, 0, 1.75], [1, 'unit', 1.2, 0, 1.75]],   // (the hips, then the drive wheels)
+    armour: [[0, 'hip', 1.3, -1.3, -0.4], [1, 'hip', 1.3, -1.3, -0.4]],
+    wiring: [[0, 'hip', 1.0, -1.5], [1, 'hip', 1.0, -1.5]],
+  },
+  spider: {
+    motor: [[0, 'knee', 0.5, 0.3], [1, 'knee', 0.5, 0.3], [2, 'knee', 0.5, 0.3], [3, 'knee', 0.5, 0.3], [0, 'foot', 0, 0.9, -0.4], [1, 'foot', 0, 0.9, -0.4]],   // (each leg's knee, then the front claws)
+    armour: [[2, 'knee', 0.5, -1.9], [3, 'knee', 0.5, -1.9]],
+    wiring: [[0, 'hip', 0.6, -1.0], [1, 'hip', 0.6, -1.0], [2, 'hip', 0.6, -1.0], [3, 'hip', 0.6, -1.0]],
+    battery: [[2, 'knee', 0.5, -2.6], [3, 'knee', 0.5, -2.6]],
+  },
 };
+// (#90) how far each frame is turned from straight on, on the lift (radians): the Tracks and Spider further than the Hopper,
+// so the spots on their back wheels and back legs show beside the front ones
+const BUILD_TURN = { hopper: 0.25, tracks: 0.9, spider: 0.5 };
 const buildOf = (id) => BUILDS[id] ?? null;
 // the parts a build needs in all by the end of step i (counted across its parts steps, so a later parts step adds to them)
 function buildNeed(id, upTo = Infinity) {
@@ -4381,7 +4434,8 @@ const Builds = {
   built(id) { const S = legShapeOf(id); return !!S && Shapes.open(S); },
   // the step the build is on (an index into its recipe; its length once all are done)
   stepOf(id) { const R = buildOf(id); return R ? (this.built(id) ? R.length : this.rec(id).step) : 0; },
-  // what a card needs: soon = no recipe yet (#90), built, parts in / needed in all, steps done / how many
+  // what a card needs: soon = no recipe (none since #90, when the Tracks and Spider got theirs; kept as a guard), built,
+  // parts in / needed in all, steps done / how many
   brief(id) {
     const R = buildOf(id), B = this.rec(id), built = this.built(id);
     if (!R) return { soon: true, built, parts: {}, need: {}, step: 0, steps: 0 };
@@ -4399,13 +4453,15 @@ const Builds = {
       look: this.look(S.id), saved: JSON.parse(JSON.stringify(Shapes.rec().builds[S.id] ?? null)) };
   },
   // what the lift's frame shows for shape id, from the build's state (the same rule the 3D and the spots use): per part, which
-  // spots are filled and which are ghost; wired once its first job is done; moving once its last is (and through the cheer)
+  // spots are filled and which are ghost; wired once its first job is done; moving once its last is (and through the cheer);
+  // jobs = [done, how many] (#90: the Spider has 3)
   look(id) {
     const R = buildOf(id); if (!R) return null;
     const br = this.brief(id), spots = Garage.spotList(id), filled = [], ghost = [];
     for (const sp of spots) (sp.k < (br.parts[sp.part] || 0) ? filled : ghost).push(sp.part + ':' + sp.k);
     const jobs = R.map((st, i) => (st.kind === 'job' ? i : -1)).filter((i) => i >= 0);
-    return { ghost, filled, spots: spots.length, wired: jobs.length > 0 && br.step > jobs[0], moving: br.step >= R.length, done: br.built };
+    return { ghost, filled, spots: spots.length, wired: jobs.length > 0 && br.step > jobs[0], moving: br.step >= R.length, done: br.built,
+      jobs: [jobs.filter((i) => i < br.step).length, jobs.length] };
   },
   // why shape id's build can't take n of part now (null if it can)
   refuse(id, part, n) {
@@ -4448,33 +4504,15 @@ const Builds = {
   // ---- jobs. A board is a set of plugs and ports; each plug with want >= 0 must be linked to that port (a plug with want -1
   // is a wrong choice: a spring that misses the pad). mode = the child's Quick Fix setting: in math wiring a plug shows a
   // fact and a port its answer; in colour wiring both show a wire's colour and shape. Rounds come one after another.
+  // BUILD_JOBS deals each job's boards and says what a wrong link does (#90).
   // the job for shape id's current step, made fresh if there's none for it (or it's someone else's, or another step's)
   jobFor(id) {
     const S = legShapeOf(id), R = S && buildOf(S.id); if (!R || this.built(S.id)) return null;
     const k = this.stepOf(S.id), st = R[k]; if (st?.kind !== 'job') return null;
     const who = Game.child?.id ?? null, mode = wiringMode(), J = this.job;
     if (J && J.shape === S.id && J.step === k && J.who === who && J.mode === mode) return J;
-    const rounds = st.job === 'stiffness' ? BUILD.rounds : 1, boards = [];
-    let lastPad = -1;
-    for (let r = 0; r < rounds; r++) {
-      if (st.job === 'stiffness') {
-        // three springs, soft to stiff: the stiffer one jumps higher. The pad sits at one spring's height (never the same
-        // height twice in a row); in math wiring each spring's jump height is its fact's answer (bigger for stiffer)
-        let pad; do pad = Math.floor(Math.random() * 3); while (pad === lastPad); lastPad = pad;
-        const facts = mode === 'math' ? jobFacts(3).sort((a, b) => a.answer - b.answer) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3);
-        boards.push({ plugs: [0, 1, 2].map((i) => ({ what: 'spring', stiff: i + 1, want: i === pad ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] })),
-          ports: [{ what: 'pad', height: pad + 1, answer: facts ? facts[pad].answer : null, col: cols[pad] }], links: [-1, -1, -1] });
-      } else {
-        // each leg's spring wired to its motor: in math wiring a decoy answer too; no port straight across from its own plug
-        const facts = mode === 'math' ? jobFacts(2) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 2);
-        const ports = [0, 1].map((i) => ({ what: 'motor', side: i ? 1 : -1, of: i, answer: facts ? facts[i].answer : null, col: cols[i] }));
-        if (facts) { const used = new Set(facts.map((f) => f.answer)); let d = facts[0].answer + facts[0].a; while (used.has(d)) d++; ports.push({ what: 'motor', side: 0, of: -1, answer: d, col: null }); }
-        let order = shuffle(ports.map((_, j) => j));
-        for (let t = 0; t < 30 && order.some((j, pos) => pos < 2 && j === pos); t++) order = shuffle(order);
-        const P = order.map((j) => ports[j]);
-        boards.push({ plugs: [0, 1].map((i) => ({ what: 'spring', side: i ? 1 : -1, want: P.findIndex((q) => q.of === i), fact: facts?.[i] ?? null, col: cols[i] })), ports: P, links: [-1, -1] });
-      }
-    }
+    const JD = BUILD_JOBS[st.job], rounds = JD.rounds, ctx = {}, boards = [];
+    for (let r = 0; r < rounds; r++) boards.push(JD.deal(mode, r, ctx));
     return (this.job = { shape: S.id, step: k, who, job: st.job, ic: st.ic, mode, round: 0, rounds, boards, tries: 0, miss: null, log: [] });
   },
   // why there's no job for shape id now
@@ -4486,8 +4524,9 @@ const Builds = {
     return R[this.stepOf(S.id)]?.kind === 'parts' ? 'parts first' : 'no job';
   },
   // link plug i to port j on the job's board now. Right: it goes in (clank); when every plug that's wanted is in, the round
-  // is done, and after the last round the job's step is done (saved). Wrong: a buzz and the miss shown (miss: the spring
-  // went 'over' or 'under' the pad, or the plug and port don't match): nothing is spent, try again.
+  // is done, and after the last round the job's step is done (saved). Wrong: a buzz and the miss shown (BUILD_JOBS' miss:
+  // e.g. the spring went 'over' or 'under' the pad, the gear 'stall's or is 'slow', or the plug and port don't match):
+  // nothing is spent, try again.
   link(id, i, j) {
     const J = this.jobFor(id); if (!J) return { ok: false, why: this.noJob(id) };
     const Bd = J.boards[J.round], p = Bd.plugs[i], q = Bd.ports[j];
@@ -4495,7 +4534,7 @@ const Builds = {
     if (Bd.links[i] >= 0) return { ok: false, why: 'in already', plug: i };
     J.tries++;
     if (p.want !== j) {
-      J.miss = { plug: i, port: j, how: q.what === 'pad' ? (p.stiff > q.height ? 'over' : 'under') : 'wrong' };
+      J.miss = { plug: i, port: j, how: BUILD_JOBS[J.job].miss(p, q, Bd, j) };
       J.log.push({ round: J.round, plug: i, port: j, right: false });
       if (!Game.manual) Sfx.buzz();
       if (Garage.on) { Garage.bsel = -1; Garage.draw(); Garage.flash(null, 'bad', `.bplug[data-plug="${i}"]`); }
@@ -4520,20 +4559,27 @@ const Builds = {
     const Bd = J.boards[J.round], i = Bd.plugs.findIndex((p, k) => p.want >= 0 && Bd.links[k] < 0);
     return i >= 0 ? [i, Bd.plugs[i].want] : null;
   },
-  // a wrong link on the board now (a plug and a port that don't go together), for tests
+  // a wrong link on the board now (a plug and a port that don't go together, one that shows the job's idea when the job
+  // says which: BUILD_JOBS' wrong), for tests
   wrong(id) {
     const J = this.jobFor(id); if (!J) return null;
-    const Bd = J.boards[J.round];
+    const Bd = J.boards[J.round], pick = BUILD_JOBS[J.job].wrong?.(Bd);
+    if (pick) return pick;
     for (let i = 0; i < Bd.plugs.length; i++) if (Bd.links[i] < 0) for (let j = 0; j < Bd.ports.length; j++) if (Bd.plugs[i].want !== j) return [i, j];
     return null;
   },
-  // the job board as the hooks see it (want included, so a test can answer right or wrong)
+  // the job board as the hooks see it (want included, so a test can answer right or wrong), with each job's idea (#90):
+  // stiff = the level of the 3 to pick from (a spring's stiffness, a gear's strength, a tensioner's turns), and per job
+  // strength / speed (gear), turns (tension), leg ('FL' 'FR' 'BL' 'BR'), load (a leg motor's draw); a port's height (the
+  // pad's height, the test's load, the tread's sag), leg (the one already stepping), target and load (a battery's)
   jobState() {
     const J = this.job; if (!J) return null;
-    const Bd = J.boards[J.round];
+    const Bd = J.boards[J.round], JD = BUILD_JOBS[J.job];
     return { shape: J.shape, step: J.step, job: J.job, mode: J.mode, round: J.round, rounds: J.rounds, tries: J.tries, miss: J.miss?.how ?? null,
-      plugs: Bd.plugs.map((p, i) => ({ what: p.what, stiff: p.stiff ?? null, side: p.side ?? null, fact: p.fact ? factText(p.fact) : null, colour: p.fact ? null : WIRE_COLORS[p.col].color, want: p.want, in: Bd.links[i] >= 0 })),
-      ports: Bd.ports.map((q) => ({ what: q.what, height: q.height ?? null, side: q.side ?? null, answer: q.answer, colour: q.answer != null ? null : WIRE_COLORS[q.col]?.color ?? null })) };
+      plugs: Bd.plugs.map((p, i) => ({ what: p.what, stiff: p.stiff ?? null, side: p.side ?? null, leg: LEGS4[p.leg] ?? null, load: p.load ?? null, ...(JD.idea?.(p) ?? {}),
+        fact: p.fact ? factText(p.fact) : null, colour: p.fact ? null : WIRE_COLORS[p.col]?.color ?? null, want: p.want, in: Bd.links[i] >= 0, port: Bd.links[i] })),
+      ports: Bd.ports.map((q, j) => ({ what: q.what, height: q.height ?? null, side: q.side ?? null, leg: LEGS4[q.leg] ?? null, ...(JD.ideaPort?.(q, j, Bd) ?? {}),
+        answer: q.answer ?? null, colour: q.answer != null ? null : WIRE_COLORS[q.col]?.color ?? null })) };
   },
   // the last step is done: the shape unlocks (saved straight away) and goes on, with a cheer and a sparkle. The lift keeps
   // the frame, now moving, through the cheer; then the blueprint shuts and the lift shows the mech on its new legs.
@@ -4562,6 +4608,78 @@ function jobFacts(n) {
   }
   return out;
 }
+// #90: each build job's board. deal(mode, round, ctx) deals one round's board ({ plugs, ports, links }; ctx carries between
+// rounds); rounds = how many; miss(plug, port, board, j) = what a wrong link shows (the job's idea); wrong(board) = a wrong
+// link that shows it, for the hooks (left out: any plug and port that don't go together); idea / ideaPort = the idea for
+// jobState. A plug with want -1 is never right.
+const LEGS4 = ['FL', 'FR', 'BL', 'BR'];   // the Spider's legs, as LEG_KITS.spider builds them: front left, front right, back left, back right
+const legSide = (l) => (l % 2 ? 1 : -1);
+// three plugs at levels 1, 2, 3 (soft to stiff, weak to strong, few turns to many) and one test at one of their levels
+// (never the same level twice in a row): only the plug at the test's level is right. In math wiring each plug's fact's
+// answer gets bigger with its level, and the test shows the right one's answer.
+function levelBoard(mode, ctx, what, port, extra = {}) {
+  let lv; do lv = Math.floor(Math.random() * 3); while (lv === ctx.last); ctx.last = lv;
+  const facts = mode === 'math' ? jobFacts(3).sort((a, b) => a.answer - b.answer) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3);
+  return { plugs: [0, 1, 2].map((i) => ({ what, stiff: i + 1, want: i === lv ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] })),
+    ports: [{ what: port, height: lv + 1, answer: facts ? facts[lv].answer : null, col: cols[lv], ...extra }], links: [-1, -1, -1] };
+}
+// n plugs each wired to its own port (of = whose port it is): shuffled so no port sits straight across from its own plug;
+// in math wiring a decoy answer too
+function wireBoard(mode, n, plug, port) {
+  const facts = mode === 'math' ? jobFacts(n) : null, cols = shuffle([0, 1, 2, 3]).slice(0, n);
+  const ports = Array.from({ length: n }, (_, i) => ({ ...port(i), of: i, answer: facts ? facts[i].answer : null, col: cols[i] }));
+  if (facts) { const used = new Set(facts.map((f) => f.answer)); let d = facts[0].answer + facts[0].a; while (used.has(d)) d++; ports.push({ ...port(-1), of: -1, answer: d, col: null }); }
+  let order = shuffle(ports.map((_, j) => j));
+  for (let t = 0; t < 30 && order.some((j, pos) => pos < n && j === pos); t++) order = shuffle(order);
+  const P = order.map((j) => ports[j]);
+  return { plugs: Array.from({ length: n }, (_, i) => ({ ...plug(i), want: P.findIndex((q) => q.of === i), fact: facts?.[i] ?? null, col: cols[i] })), ports: P, links: Array(n).fill(-1) };
+}
+const BUILD_JOBS = {
+  // Hopper: the spring that lands the jump on the pad (stiffer jumps higher)
+  stiffness: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'spring', 'pad'), miss: (p, q) => (p.stiff > q.height ? 'over' : 'under') },
+  // Hopper: each leg's spring to its motor
+  mount: { rounds: 1, deal: (mode) => wireBoard(mode, 2, (i) => ({ what: 'spring', side: i ? 1 : -1 }), (i) => ({ what: 'motor', side: i < 0 ? 0 : i ? 1 : -1 })), miss: () => 'wrong' },
+  // Tracks: the gear for a pushing test. A gear's strength is its level (low gear = 3, strong and slow; high gear = 1, fast
+  // and weak) and the test's load the height: the fastest gear still strong enough is the one as strong as the load. Too
+  // high a gear 'stall's against it, too low a gear is 'slow'.
+  gear: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'gear', 'load'), miss: (p, q) => (p.stiff < q.height ? 'stall' : 'slow'),
+    idea: (p) => ({ strength: p.stiff, speed: 4 - p.stiff, gear: ['high', 'mid', 'low'][p.stiff - 1] }), ideaPort: (q) => ({ load: q.height }) },
+  // Tracks: tension each tread (round 1 the left, round 2 the right) by as many turns as it sags: too few and it 'slip's,
+  // too many and it 'jam's
+  tension: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'tensioner', 'tread', { side: r ? 1 : -1 }), miss: (p, q) => (p.stiff < q.height ? 'slip' : 'jam'),
+    idea: (p) => ({ turns: p.stiff }), ideaPort: (q) => ({ sag: q.height }) },
+  // Spider: each leg's motor to the controller
+  legwire: { rounds: 1, deal: (mode) => wireBoard(mode, 4, (i) => ({ what: 'leg', leg: i }), () => ({ what: 'controller' })), miss: () => 'wrong' },
+  // Spider: one leg is stepping (the port); which leg steps with it so it never tips over? Its diagonal partner (FL with BR,
+  // FR with BL: 3 - leg). The same side tips it sideways ('tip-side'), the same end forward or back ('tip-end'). Round 2
+  // asks about the other pair.
+  gait: { rounds: BUILD.rounds,
+    deal(mode, r, ctx) {
+      const pair = r === 0 ? Math.floor(Math.random() * 2) : 1 - ctx.pair; ctx.pair = pair;   // pair 0 = FL + BR, 1 = FR + BL
+      const given = Math.random() < 0.5 ? pair : 3 - pair, partner = 3 - given, others = shuffle([0, 1, 2, 3].filter((l) => l !== given));
+      const facts = mode === 'math' ? jobFacts(3) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3), k = others.indexOf(partner);
+      return { plugs: others.map((l, i) => ({ what: 'leg', leg: l, want: l === partner ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] })),
+        ports: [{ what: 'beat', leg: given, answer: facts ? facts[k].answer : null, col: cols[k] }], links: [-1, -1, -1] };
+    },
+    miss: (p, q) => (legSide(p.leg) === legSide(q.leg) ? 'tip-side' : 'tip-end') },
+  // Spider: the 4 leg motors' loads shared between 2 batteries so each carries half. The heaviest is on battery 1 already;
+  // loads a < b < c < d with a + d = b + c, so the lightest joins it and the middle two go on battery 2 (the only way). Too
+  // much on a battery is 'over'; anything else that can't come out even is 'uneven'. In math wiring the loads are numbers
+  // to add (up to 9); in colour wiring they're dots to count (up to 6).
+  balance: { rounds: 1,
+    deal(mode) {
+      const max = mode === 'math' ? 9 : 6, sets = [];
+      for (let a = 1; a <= max; a++) for (let b = a + 1; b <= max; b++) for (let c = b + 1; c <= max; c++) { const d = b + c - a; if (d > c && d <= max) sets.push([a, b, c, d]); }
+      const [a, b, c, d] = sets[Math.floor(Math.random() * sets.length)], loads = shuffle([a, b, c, d]), half = a + d;
+      const plugs = loads.map((n, l) => ({ what: 'motor', leg: l, load: n, want: n === a || n === d ? 0 : 1, fact: null, col: null }));
+      const links = loads.map((n) => (n === d ? 0 : -1));
+      return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: half })), links };
+    },
+    miss: (p, q, Bd, j) => (BUILD_JOBS.balance.sum(Bd, j) + p.load > q.target ? 'over' : 'uneven'),
+    wrong: (Bd) => { const i = Bd.plugs.findIndex((p, k) => Bd.links[k] < 0 && p.want === 1); return i >= 0 ? [i, 0] : null; },   // (a middle one on battery 1: over)
+    sum: (Bd, j) => Bd.plugs.reduce((s, p, k) => s + (Bd.links[k] === j ? p.load : 0), 0),
+    ideaPort: (q, j, Bd) => ({ target: q.target, load: BUILD_JOBS.balance.sum(Bd, j) }) },
+};
 // what mech m's kick does: the base kick × the 🐏 ram plate's levels × the leg shape (the tracks' blade shove does the same)
 const kickDmg = (m) => WEAPON.kick.dmg * (1 + UPGRADE.kick * (m?.upg?.ram || 0)) * (m?.fx?.kick ?? 1);
 // G4 gold plating: every squadmate glows gold while whoever is playing has it; otherwise its own colour again (kept in
@@ -8860,7 +8978,7 @@ const Garage = {
     return null;
   },
   // ---- #89: build projects in the 🦿 tab. A tap (or Enter / pad A) on a card: a built shape goes on; a blueprint opens on
-  // the lift; one coming soon (no recipe yet) buzzes and shakes, as a locked card did
+  // the lift (#90: every leg shape has a recipe; one without would buzz and shake, 'coming soon', as a guard)
   cardTap(id) {
     const S = legShapeOf(id); if (!S) return { ok: false, why: 'no such shape' };
     if (Shapes.open(S)) return Shapes.equip('legs', S.id);
@@ -9011,22 +9129,46 @@ const Garage = {
       const how = pad ? `${icon('pad')}${icon(PARTS[st.parts && Object.keys(st.parts)[0]].ic)}${icon('arrow')}${icon('frame')}` : `${icon('tap')}${icon('arrow')}${icon('frame')}`;
       return head + `<div class="btray">${chips}</div><div class="bhint">${how}</div>`;
     }
-    // a job: its plugs (springs) on the left, its ports (the test pad, or the motors) on the right
+    // a job: its plugs on the left (springs, gears, tensioners, legs, leg motors), its ports on the right (the test pad, the
+    // pushing test, a tread, the motors, the controller, the leg already stepping, the batteries)
     const J = Builds.jobFor(id), Bd = J.boards[J.round], M = J.mode === 'math';
     // a plug's or port's tag: in math wiring a plug's fact or a port's answer; in colour wiring its wire's colour and shape
     const shp = (c, fill) => `<span class="wsh" style="--wc:${WIRE_COLORS[c].hex}">${FixUI.icon(c, fill, '#14182a')}</span>`;
-    const face = (p) => (p.fact ? `<span class="fact">${factText(p.fact)}</span>` : shp(p.col, '#fff'));
+    const face = (p) => (p.fact ? `<span class="fact">${factText(p.fact)}</span>` : p.col != null ? shp(p.col, '#fff') : '');
+    // (#90) level bars (1–3 lit); the Spider's 4 legs seen from above, front at the top (lit: this leg; ok: the one stepping);
+    // a load as a number (math wiring) or dots (colour wiring); a pole of 3 levels, one lit (at) or lit up to it (stack)
+    const bars = (n, cls = 'stiff') => `<span class="${cls}">${[1, 2, 3].map((s) => `<i class="${s <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+    const legs = (l, cls = 'on') => `<span class="lg4">${[0, 1, 2, 3].map((k) => `<i class="${k === l ? cls : ''}"></i>`).join('')}</span>`;
+    const load = (n) => (M ? `<b class="ld">${n}</b>` : `<span class="ldp">${'<i></i>'.repeat(n)}</span>`);
+    const pole = (h, stack) => `<span class="bpole">${[3, 2, 1].map((k) => `<i class="${(stack ? k <= h : k === h) ? 'at' : ''}"></i>`).join('')}</span>`;
+    const MISS_IC = { over: 'up', under: 'down', stall: 'down', slow: 'timer', slip: 'down', jam: 'up', 'tip-side': 'warn', 'tip-end': 'warn' };
+    const PLUG = {
+      spring: (p, i) => [PARTS.spring.hex, `spring ${i + 1}${p.stiff ? ', stiffness ' + p.stiff : ''}`,`<span class="bpf">${icon(p.side ? (p.side < 0 ? 'back' : 'play') : 'spring')}${p.side ? icon('spring') : ''}</span>${p.stiff ? bars(p.stiff) : ''}`],
+      gear: (p) => [PARTS.motor.hex, `${['high', 'middle', 'low'][p.stiff - 1]} gear: strength ${p.stiff}, speed ${4 - p.stiff}`,
+        `<span class="bpf gsz" style="--g:${p.stiff}">${icon('motor')}</span><span class="gbars"><span class="gbar">${icon('smash')}${bars(p.stiff)}</span><span class="gbar">${icon('speed')}${bars(4 - p.stiff, 'stiff fast')}</span></span>`],
+      tensioner: (p) => [PARTS.wiring.hex, `tensioner, ${p.stiff} turns`, `<span class="bpf">${icon('wrench')}</span>${bars(p.stiff)}`],
+      leg: (p) => [J.job === 'legwire' ? PARTS.motor.hex : '#ffd83d', `${LEGS4[p.leg]} leg`, `${J.job === 'legwire' ? `<span class="bpf">${icon('motor')}</span>` : ''}${legs(p.leg)}`],
+      motor: (p) => [PARTS.motor.hex, `${LEGS4[p.leg]} leg motor, load ${p.load}`, `<span class="bpf">${icon('motor')}</span>${legs(p.leg)}${load(p.load)}`],
+    };
     const plugs = Bd.plugs.map((p, i) => {
-      const inn = Bd.links[i] >= 0, bars = p.stiff ? `<span class="stiff">${[1, 2, 3].map((s) => `<i class="${s <= p.stiff ? 'on' : ''}"></i>`).join('')}</span>` : '';
-      const miss = J.miss && J.miss.plug === i ? `<span class="bmiss">${icon(J.miss.how === 'over' ? 'up' : J.miss.how === 'under' ? 'down' : 'cross')}</span>` : '';
-      return `<button class="bplug${inn ? ' in' : ''}${this.bsel === i ? ' pick' : ''}${cur === 'plug:' + i ? ' cur' : ''}" data-plug="${i}" style="--pc:${PARTS.spring.hex}" aria-label="spring ${i + 1}${p.stiff ? ', stiffness ' + p.stiff : ''}">`
-        + `<span class="bpf">${icon(p.side ? (p.side < 0 ? 'back' : 'play') : 'spring')}${p.side ? icon('spring') : ''}</span>${bars}${face(p)}${miss}${inn ? `<span class="bok">${icon('check')}</span>` : ''}</button>`;
+      const inn = Bd.links[i] >= 0, [hex, what, inner] = PLUG[p.what](p, i);
+      const miss = J.miss && J.miss.plug === i ? `<span class="bmiss">${icon(MISS_IC[J.miss.how] || 'cross')}</span>` : '';
+      return `<button class="bplug${inn ? ' in' : ''}${this.bsel === i ? ' pick' : ''}${cur === 'plug:' + i ? ' cur' : ''}" data-plug="${i}"${p.leg != null ? ` data-leg="${LEGS4[p.leg]}"` : ''}${p.load != null ? ` data-load="${p.load}"` : ''} style="--pc:${hex}" aria-label="${what}">`
+        + `${inner}${face(p)}${miss}${inn ? `<span class="bok">${icon('check')}</span>` : ''}</button>`;
     }).join('');
     const ports = Bd.ports.map((q, j) => {
       const tag = q.answer != null ? `<span class="ans">${q.answer}</span>` : q.col != null ? shp(q.col, WIRE_COLORS[q.col].hex) : '';
-      const linked = Bd.links.some((l) => l === j);
-      if (q.what === 'pad') return `<button class="bport pad${cur === 'port:' + j ? ' cur' : ''}" data-port="${j}" style="--h:${q.height}" aria-label="the test pad, height ${q.height}"><span class="bpole">${[3, 2, 1].map((h) => `<i class="${h === q.height ? 'at' : ''}"></i>`).join('')}</span><span class="bpad">${icon('aim')}${tag}</span></button>`;
-      return `<button class="bport${linked ? ' in' : ''}${cur === 'port:' + j ? ' cur' : ''}" data-port="${j}" style="--pc:${PARTS.motor.hex}" aria-label="motor ${j + 1}"><span class="bpf">${icon('motor')}</span>${tag}</button>`;
+      const linked = Bd.links.some((l) => l === j), c = cur === 'port:' + j ? ' cur' : '';
+      if (q.what === 'pad') return `<button class="bport pad${c}" data-port="${j}" style="--h:${q.height}" aria-label="the test pad, height ${q.height}">${pole(q.height)}<span class="bpad">${icon('aim')}${tag}</span></button>`;
+      if (q.what === 'load') return `<button class="bport pad load${c}" data-port="${j}" style="--h:${q.height}" aria-label="the pushing test, load ${q.height}">${pole(q.height, true)}<span class="bpad">${icon('ram')}${tag}</span></button>`;
+      if (q.what === 'tread') return `<button class="bport pad tread${c}" data-port="${j}" style="--h:${q.height}" aria-label="the ${q.side < 0 ? 'left' : 'right'} tread, sagging ${q.height}">${pole(q.height)}<span class="bpad"><span class="bpf">${icon(q.side < 0 ? 'back' : 'play')}${icon('tracks')}</span>${tag}</span></button>`;
+      if (q.what === 'beat') return `<button class="bport pad beat${c}" data-port="${j}" data-leg="${LEGS4[q.leg]}" aria-label="the ${LEGS4[q.leg]} leg is stepping: which steps with it?"><span class="bpad">${legs(q.leg, 'ok')}${icon('walker')}${tag}</span></button>`;
+      if (q.what === 'battery') {
+        const sum = BUILD_JOBS.balance.sum(Bd, j), full = sum === q.target, meter = M ? `<b class="ld">${sum}/${q.target}</b>` : `<span class="ldp meter">${Array.from({ length: q.target }, (_, k) => `<i class="${k < sum ? 'on' : ''}"></i>`).join('')}</span>`;
+        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${PARTS.battery.hex}" aria-label="battery ${j + 1}: ${sum} of ${q.target}"><span class="bpf">${icon('battery')}</span>${meter}</button>`;
+      }
+      const [ic, hex, name] = q.what === 'controller' ? ['brain', '#ff7ad9', 'controller socket'] : ['motor', PARTS.motor.hex, 'motor'];
+      return `<button class="bport${linked ? ' in' : ''}${c}" data-port="${j}" style="--pc:${hex}" aria-label="${name} ${j + 1}"><span class="bpf">${icon(ic)}</span>${tag}</button>`;
     }).join('');
     const rounds = J.rounds > 1 ? `<span class="bround">${Array.from({ length: J.rounds }, (_, r) => `<i class="${r < J.round ? 'on' : ''}"></i>`).join('')}</span>` : '';
     return head + `<div class="bjob ${J.job}${M ? ' math' : ''}" data-job="${J.job}"><div class="bjt">${icon(st.ic)}${rounds}</div><div class="bplugs">${plugs}</div><div class="bwire">${icon('arrow')}</div><div class="bports">${ports}</div></div>`;
@@ -9056,7 +9198,8 @@ const Garage = {
     const spots = this.spotList(id).map((sp) => {
       const [leg, joint, x = 0.95, y = 0, z = 0] = at[sp.part]?.[sp.k] || [0, 'hip'];
       const L = set.legs[leg % set.legs.length], parent = L[joint] || L.hip;
-      const holder = new THREE.Group(); holder.position.set(L.s * x, y, z); holder.scale.setScalar(0.42); parent.add(holder);
+      // (out to the side: away from the middle; a Spider leg's frame is already turned to point out, so its x is as given)
+      const holder = new THREE.Group(); holder.position.set(L.yaw != null ? x : L.s * x, y, z); holder.scale.setScalar(0.42); parent.add(holder);
       const lit = partPiece(sp.part), out = lit.clone(true), ms = []; out.traverse((o) => { if (o.isMesh) ms.push(o); });
       for (const o of ms) { o.material = ghost; const sh = new THREE.Mesh(o.geometry, rimMat); sh.scale.setScalar(1.09); o.add(sh); }
       const glow = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 12), halo); glow.visible = false;
@@ -9073,7 +9216,9 @@ const Garage = {
       meshes.push({ o, lit: o.material, rim, spot: best });
     }
     const box = new THREE.Box3().setFromObject(g), size = box.getSize(new V3());
-    root.position.y = -box.min.y; root.rotation.y = Math.PI - 0.25;   // (nearly from the front: both legs' spots in view, one above another)
+    // (nearly from the front: both legs' spots in view, one above another; #90: the Tracks and Spider turned further, so
+    // the spots on their back wheels and back legs aren't hidden behind the front ones)
+    root.position.y = -box.min.y; root.rotation.y = Math.PI - (BUILD_TURN[id] ?? 0.25);
     const F = this.frames[id] = { id, root, set, K, spots, meshes, ghost, y: size.y / 2, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5 + 0.2 };
     root.visible = false; this.lift.add(root);
     return F;
@@ -9287,14 +9432,14 @@ const Garage = {
       const cards = LEG_SHAPES.map((S, i) => {
         const o = L.offer[S.id], on = L.equipped.legs === S.id;
         const fx = this.legFx(S).map(([ic, up, t]) => `<i class="${up ? 'up' : 'dn'}">${icon(ic)}<b>${t}</b></i>`).join('');
-        // #89: a shape not built yet is a blueprint: its parts (icon, in / needed) and its steps as pips (lit once done); one
-        // with no recipe yet (#90) shows a 🔒 and "soon"
-        const br = o.build, soon = !o.unlocked && br?.soon;
-        const lock = o.unlocked ? '' : soon ? `<span class="llock soon">${icon('lock')}<b>soon</b></span>`
+        // #89: a shape not built yet is a blueprint: its parts (icon, in / needed) and its steps as pips (lit once done)
+        // (#90: every leg shape has its recipe now, so none shows "soon" any more)
+        const br = o.build;
+        const lock = o.unlocked ? ''
           : `<span class="lbp">${Object.keys(br.need).map((p) => `<i class="${br.parts[p] >= br.need[p] ? 'full' : ''}">${icon(PARTS[p].ic)}<b>${br.parts[p]}/${br.need[p]}</b></i>`).join('')}</span>`
             + `<span class="lpips">${Array.from({ length: br.steps }, (_, k) => `<i class="${k < br.step ? 'on' : ''}"></i>`).join('')}</span>`;
-        return `<button class="lcard${on ? ' on' : ''}${i === this.lcur ? ' cur' : ''}${o.unlocked ? '' : ' locked'}${o.unlocked ? '' : soon ? ' soon' : ' bp'}" data-shape="${S.id}" style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
-          + ` aria-label="${S.name}${o.unlocked ? (on ? ': on' : '') : soon ? ': blueprint coming soon' : `: blueprint, ${br.step} of ${br.steps} steps done`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
+        return `<button class="lcard${on ? ' on' : ''}${i === this.lcur ? ' cur' : ''}${o.unlocked ? '' : ' locked bp'}" data-shape="${S.id}" style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
+          + ` aria-label="${S.name}${o.unlocked ? (on ? ': on' : '') : `: blueprint, ${br.step} of ${br.steps} steps done`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
           + `${on ? `<span class="lon">${icon('check')}</span>` : ''}${lock}<span class="lfx">${fx}</span></button>`;
       }).join('');
       $('gWall').innerHTML = `<div class="lrow">${cards}</div>` + BODY_SECTIONS.map((S) => {
@@ -9383,7 +9528,7 @@ const Garage = {
     const legs = lcards.length ? Object.fromEntries(lcards.map((el) => [el.dataset.shape, { on: el.classList.contains('on'), tick: !!el.querySelector('.lon'), tickIcon: ic(el.querySelector('.lon')), locked: el.classList.contains('locked'),
       lock: el.querySelector('.llock') ? icRead(el.querySelector('.llock')) : null, picked: el.classList.contains('cur'), icon: ic(el.querySelector('.lic')),
       fx: [...el.querySelectorAll('.lfx i')].map((i) => i.className + ' ' + icRead(i)), drawn: this.drawn['legs:' + el.dataset.shape] ?? null,
-      // #89: a blueprint card: its parts as shown ('{spring}0/4{motor}0/2...'), its step pips (lit, of), or soon (no recipe yet)
+      // #89: a blueprint card: its parts as shown ('{spring}0/4{motor}0/2...'), its step pips (lit, of); soon is false since #90
       blueprint: el.classList.contains('bp'), soon: el.classList.contains('soon'), parts: el.querySelector('.lbp') ? icRead(el.querySelector('.lbp')) : null,
       pips: el.querySelector('.lpips') ? [el.querySelectorAll('.lpips i.on').length, el.querySelectorAll('.lpips i').length] : null }])) : null;
     // #89: the open blueprint as shown: its steps (lit, of, the current one), the part chips (in / needed and the bag's count
@@ -9398,9 +9543,11 @@ const Garage = {
         x: parseFloat(el.style.left) || null, y: parseFloat(el.style.top) || null, shown: el.style.visibility !== 'hidden' })),
       job: W.querySelector('.bjob') ? { job: W.querySelector('.bjob').dataset.job, math: W.querySelector('.bjob').classList.contains('math'),
         plugs: [...W.querySelectorAll('.bplug')].map((el) => ({ tag: el.querySelector('.fact')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, stiff: el.querySelectorAll('.stiff i.on').length || null,
-          in: el.classList.contains('in'), picked: el.classList.contains('pick'), cur: el.classList.contains('cur'), miss: ic(el.querySelector('.bmiss')) })),
-        ports: [...W.querySelectorAll('.bport')].map((el) => ({ tag: el.querySelector('.ans')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, pad: el.classList.contains('pad'), height: el.classList.contains('pad') ? +el.style.getPropertyValue('--h') : null,
-          in: el.classList.contains('in'), cur: el.classList.contains('cur') })) } : null,
+          in: el.classList.contains('in'), picked: el.classList.contains('pick'), cur: el.classList.contains('cur'), miss: ic(el.querySelector('.bmiss')),
+          leg: el.dataset.leg ?? null, load: el.dataset.load != null ? +el.dataset.load : null })),   // (#90: a Spider leg as shown, a leg motor's load)
+        ports: [...W.querySelectorAll('.bport')].map((el) => ({ tag: el.querySelector('.ans')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, pad: el.classList.contains('pad'), height: el.style.getPropertyValue('--h') ? +el.style.getPropertyValue('--h') : null,
+          in: el.classList.contains('in'), cur: el.classList.contains('cur'), leg: el.dataset.leg ?? null,   // (#90: the leg stepping; a battery's load and half)
+          load: el.dataset.sum != null ? +el.dataset.sum : null, target: el.dataset.target != null ? +el.dataset.target : null })) } : null,
       frame: this.drawn.frame ?? null };
     const ch = $('gCheer'), em = W.querySelector('.sempty');
     return { tab: this.tab, body, legs, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
@@ -9587,7 +9734,7 @@ const Garage = {
       if (bpt) { e.stopPropagation(); if (keyed) { if (this.bpick === bpt.dataset.part) this.putAt(this.bpick, this.nextSpot(this.bpick)); else this.pickPart(bpt.dataset.part); } return; }
       if (bpl) { e.stopPropagation(); if (keyed) this.pickPlug(+bpl.dataset.plug); return; }
       if (bpo) { e.stopPropagation(); if (this.bsel >= 0) { const i = this.bsel; this.bsel = -1; Builds.link(this.bp, i, +bpo.dataset.port); } else { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', '.bplug:not(.in)'); } return; }
-      // B2: a 🦿 leg card equips its shape (#89: a blueprint's opens it; one coming soon buzzes and shakes)
+      // B2: a 🦿 leg card equips its shape (#89: a blueprint's opens it)
       const lc = e.target.closest('.lcard');
       if (lc) { e.stopPropagation(); this.lcur = Math.max(0, LEG_SHAPES.findIndex((S) => S.id === lc.dataset.shape)); this.draw(); this.cardTap(lc.dataset.shape); return; }
       if (b) { e.stopPropagation(); if (!b.classList.contains('max')) this.buy(b.dataset.up); }
@@ -9961,7 +10108,7 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS,
   ICONS, icon, icText,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // #94: the on-screen touch controller: { showing, touchMode, x, y (the stick, -1..1), held: [buttons held],
@@ -10161,10 +10308,11 @@ window.__rb = {
   },
   // ---- #89: build projects ----
   // shape's build ('hopper' | 'spider' | 'tracks', or its icon or name): its recipe (each step's kind, parts or job, done,
-  // current), the parts in so far and needed in all, the step it's on, soon (no recipe yet), built, the bag, the job board
-  // now (job, with each plug's `want`), open (its blueprint open in the garage), look = what the lift's frame shows (ghost and
-  // filled spots, as 'part:k'; wired; moving) and saved = what's in the record. open: true opens its blueprint in the garage
-  // (the garage must be open), false shuts it
+  // current), the parts in so far and needed in all, the step it's on, soon (no recipe: false for all three since #90),
+  // built, the bag, the job board now (job, with each plug's `want` and the job's idea: Builds.jobState), open (its blueprint
+  // open in the garage), look = what the lift's frame shows (ghost and filled spots, as 'part:k'; wired; moving; jobs done
+  // of how many) and saved = what's in the record. open: true opens its blueprint in the garage (the garage must be open),
+  // false shuts it
   build(shape, open) {
     let res = { ok: true };
     if (open === true) res = Garage.openBuild(shape); else if (open === false) res = Garage.closeBuild();
@@ -10178,8 +10326,10 @@ window.__rb = {
     return { ...res, build: Builds.status(shape), bag: { ...Game.bag } };
   },
   // run shape's current job: answers = [plug, port] links, in order (left out: the right ones, every round, so the job is
-  // done); 'wrong' = one wrong link (nothing spent, the job stays). Stops at the job's end. Refused: 'parts first' (its
-  // parts aren't all in), 'built', 'coming soon', 'no job'. Returns each link's result and the build after
+  // done); 'wrong' = one wrong link (nothing spent, the job stays; its miss shows the job's idea: 'over' / 'under',
+  // 'stall' / 'slow', 'slip' / 'jam', 'tip-side' / 'tip-end', 'over' / 'uneven', or 'wrong'). Stops at the job's end.
+  // Refused: 'parts first' (its parts aren't all in), 'built', 'coming soon', 'no job'. Returns each link's result and the
+  // build after
   buildJob(shape, answers) {
     const S = legShapeOf(shape), J0 = S && Builds.jobFor(S.id);
     if (!J0) return { ok: false, why: Builds.noJob(shape), build: Builds.status(shape) };
