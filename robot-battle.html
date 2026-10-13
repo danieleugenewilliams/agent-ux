@@ -609,7 +609,7 @@
      and so the layout, the same) */
   #garage .ic, #advToast .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
     margin: max(.15em, min(calc(.15em + 3.5px), calc(23px - .85em))) var(--mx) calc(.16em + 1px); vertical-align: calc(-.31em - 1px); }
-  #garage :is(.gtab, .tf, .aic, .gch .big, .glock .big, .glock .ti, .sic, .spart, .plab, .lic, .lfx, .braise) .ic, #advToast .ti .ic { margin: 0 var(--mx); vertical-align: top; }
+  #garage :is(.gtab, .tf, .aic, .gch .big, .glock .big, .glock .ti, .sic, .spart, .plab, .llab, .lic, .lfx, .braise) .ic, #advToast .ti .ic { margin: 0 var(--mx); vertical-align: top; }
   /* I3: the Quick Fix, puzzles and repair screens size their icons the way I2's garage does (the room the emoji took, drawn
      a fifth bigger), and where a line was 1em tall (line-height: 1, or a flex item) only the side margins stay. :where()
      keeps these at .ic's weight, so a panel's own rules still win; #75's squadmate badge in the mend panel keeps its own */
@@ -772,7 +772,17 @@
   .gwall.body { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
   /* B2: the legs row above the tiers: a card per leg shape (its piece in 3D, its icon, its trade-off as chips, ✔ on the one
      equipped, a 🔒 with progress while locked) */
-  .lrow { flex: 1 1 0; min-height: 110px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  /* #42: a cards row per section, stacked: legs, torso, arms, each with its section's icon at its left (lit yellow while
+     the keys / pad pick is in it). Each row keeps a card's height (--rh) and grows when there's room; when the rows and the
+     tiers don't all fit, the wall scrolls up and down (the keys / pad pick is scrolled into view) */
+  .gwall.body:not(.build) { justify-content: flex-start; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 7px 7px 7px 3px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.35) transparent; }
+  .gwall.body:not(.build) > * { flex-shrink: 0; }
+  .lrow { --rh: 200px; flex: 1 0 var(--rh); min-height: var(--rh); display: grid; grid-template-columns: auto repeat(var(--n, 4), 1fr); gap: 10px; }
+  .llab { width: 46px; min-height: 0; border-radius: 12px; border: 3px solid color-mix(in srgb, var(--pc) 60%, transparent); background: color-mix(in srgb, var(--pc) 22%, rgba(20,24,42,.85)); color: #fff; font-size: 26px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .llab small { font: 900 11px 'Asap', sans-serif; color: #fff; text-shadow: 1px 1px 0 var(--ink); }
+  /* (#42: a blueprint's parts two to a line, so a row's height holds them clear of Tracks' seven chips) */
+  .lrow .lcard .lbp { display: grid; grid-template-columns: auto auto; column-gap: 7px; row-gap: 2px; }
+  .llab.on { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255,216,61,.5); }
   .lcard { position: relative; min-width: 0; min-height: 0; padding: 0; border-radius: 18px; border: 4px solid color-mix(in srgb, var(--pc) 70%, transparent); background: rgba(20,24,42,.7); color: #fff; font: inherit; cursor: pointer; }
   .lcard .tv { position: absolute; inset: 4px 4px 30px 4px; pointer-events: none; }
   .lcard .lic { position: absolute; left: 6px; top: 5px; font-size: 39px; line-height: 1; filter: brightness(1.25) drop-shadow(0 0 3px rgba(255,255,255,.55)); }   /* (#82: 1.5x and brighter: they were 26 px, dim on the dark card) */
@@ -841,7 +851,7 @@
     .brow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 3px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 14px; } .braise { font-size: 20px; gap: 2px; }
-    .lrow { gap: 5px; min-height: 120px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 4px; }
+    .lrow { --rh: 170px; gap: 5px; } .lrow .lcard .lbp { display: flex; } .lrow .lcard .lic { font-size: 24px; } .lrow .lcard .lpips { right: 3px; gap: 1px; } .lrow .lcard .lpips i { width: 7px; height: 7px; border-width: 1px; } .llab { width: 30px; font-size: 20px; border-width: 2px; border-radius: 9px; } .llab small { display: none; } .gwall.body:not(.build) { padding: 6px 5px 6px 2px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 4px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .lfx { font-size: 13px; gap: 2px; } .lcard .lfx i { padding: 1px 2px; } .lcard .lfx b { display: none; }
     .lcard .tv { bottom: 40px; } .lcard .llock { font-size: 14px; padding: 2px 5px; } .lcard .llock b { font-size: 13px; }
   }
@@ -880,9 +890,9 @@
     .brow { gap: 8px; padding: 2px 8px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 4px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 15px; } .braise { font-size: 20px; }
-    .lrow { gap: 6px; min-height: 0; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 3px; }
+    .lrow { --rh: 106px; gap: 6px; } .llab { width: 28px; font-size: 17px; border-width: 2px; border-radius: 8px; } .llab small { display: none; } .gwall.body:not(.build) { padding: 6px 5px 6px 2px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 3px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .tv { bottom: 22px; }
-    .lcard .lfx { font-size: 13px; bottom: 2px; } .lcard .lfx i { padding: 1px 2px; } .lcard .lfx b { font-size: 10px; } .lcard .llock { font-size: 15px; } .lcard .llock b { font-size: 14px; }
+    .lcard .lfx { font-size: 12px; bottom: 2px; gap: 2px 2px; } .lcard .lfx i { padding: 1px 1px; } .lcard .lfx b { font-size: 9px; }   /* (#42: a little smaller, for the section's icon beside the cards) */ .lcard .llock { font-size: 15px; } .lcard .llock b { font-size: 14px; }
     .lcard .llock { top: 32%; }   /* (I2: Tracks' seven chips take three rows here: the lock sits higher, clear of them) */
   }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
@@ -910,6 +920,16 @@
   .lcard .lmk2.bad { animation: shake .3s; }
   @media (max-width: 430px), (max-height: 460px) and (min-width: 600px) {
     .lcard .lmk2 { left: 3px; top: 37px; padding: 1px 3px; gap: 2px; font-size: 13px; border-width: 2px; } .lcard .lmk2 b { font-size: 12px; }
+    .lcard .lmk2 .mpips i { width: 5px; height: 5px; } .lcard .lmk2.tog i { font-size: 12px; min-width: 15px; padding: 2px 2px; }
+  }
+  /* #42: a tablet upright: the cards are narrow (the lift keeps its column), so Tracks' trade-off chips stack one a row.
+     The rows are taller, and a blueprint's parts sit under the icon, clear of the chips */
+  @media (orientation: portrait) and (min-width: 561px) {
+    .lrow { --rh: 300px; }
+    .lcard .lic { font-size: 30px; left: 4px; top: 4px; } .lcard .lpips { top: 5px; right: 4px; gap: 1px; } .lcard .lpips i { width: 8px; height: 8px; border-width: 1px; }
+    .lcard .lbp { top: 46px; transform: translateX(-50%); font-size: 14px; padding: 2px 5px; } .lcard .lbp b { font-size: 13px; }
+    /* (and the Spider's Mk II chip the phone's size, so it stays inside the narrow card) */
+    .lcard .lmk2 { left: 3px; padding: 1px 3px; gap: 2px; font-size: 13px; } .lcard .lmk2 b { font-size: 12px; }
     .lcard .lmk2 .mpips i { width: 5px; height: 5px; } .lcard .lmk2.tog i { font-size: 12px; min-width: 15px; padding: 2px 2px; }
   }
   .gwall.body.build { gap: 10px; }
@@ -970,6 +990,11 @@
   .lg4 i { width: 12px; height: 12px; border-radius: 4px; background: rgba(255,255,255,.18); }
   .lg4 i.on { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); } .lg4 i.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .bport.beat .lg4 { grid-template-columns: repeat(2, 16px); } .bport.beat .lg4 i { width: 16px; height: 16px; }
+  /* #42: a rotor's spin (the arrows flipped for anticlockwise), a plate's four seams (a square, the seam lit) */
+  .bpf.spin.ccw .ic:last-child { transform: scaleX(-1); }
+  .sq4 { display: inline-block; flex: none; width: 22px; height: 22px; border-radius: 3px; border: 4px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); }
+  .sq4[data-s="0"] { border-top-color: var(--hc); } .sq4[data-s="1"] { border-right-color: var(--hc); } .sq4[data-s="2"] { border-bottom-color: var(--hc); } .sq4[data-s="3"] { border-left-color: var(--hc); }
+  .sq4.on { --hc: var(--yellow); } .sq4.ok { --hc: var(--green); }
   .ld { font: 900 24px 'Asap', sans-serif; color: var(--yellow); text-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
   .ldp { display: grid; grid-template-columns: repeat(3, 9px); gap: 3px; } .ldp i { width: 9px; height: 9px; border-radius: 50%; background: var(--yellow); }
   .ldp.meter { grid-template-columns: repeat(5, 9px); } .ldp.meter i { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); } .ldp.meter i.on { background: var(--green); border-color: var(--green); }
@@ -1602,9 +1627,37 @@ const BUILD_UPS = [{ id: 'mk2', of: 'spider', icon: '🕷️', ic: 'spider', nam
 // the Spider's legs by index, as LEG_KITS.spider builds them: front left, front right, back left, back right (#91: and the
 // Mk II's middle left, middle right)
 const LEGS6 = ['FL', 'FR', 'BL', 'BR', 'ML', 'MR'];
-// the sections a shape can be picked for (B2 builds the legs; the torso and arms have today's shape only, for now)
-const BODY_SHAPES = { legs: LEG_SHAPES, torso: [{ id: 'standard', icon: '🤖', ic: 'torso', name: 'Standard' }], arms: [{ id: 'standard', icon: '💪', ic: 'arm', name: 'Standard' }] };
+// B3 (#42): the torso and arm shapes, swapped in the 🦿 tab the same way. Today's 🟠 Dome and 🔫 Cannon-and-pod stay free and
+// keep the id 'standard' (what every saved record already holds); each new one is a build project (BUILDS), and changes the
+// mech by these (energy adds, after the armour cap as the legs' does; the rest multiply). Starting values, tuned at the playtest.
+//   torso: energy   added to max energy        torsoTurn × how fast the torso swings to the aim    topSpeed × top speed
+//   arms:  punch    × the punch's damage       punchPush × the punch's knock-back
+//          gunRange × the cannon's range (and its lock-on reach)   roundSpeed × how fast its rounds fly
+//          recharge { weapon: × how fast that weapon's cooldown runs down } (the cannon 'gun', the 🧲 pod 'em')
+// part = the colour of its card (and the part the old table unlocked it with: no trophy latch for these, nothing was earned)
+const TORSO_SHAPES = [
+  { id: 'standard', icon: '🟠', ic: 'torso', name: 'Dome', part: null, need: 0, alias: ['dome'] },
+  { id: 'brute', icon: '📦', ic: 'brute', name: 'Brute', part: 'armour', need: 0, energy: 25, torsoTurn: 0.8 },
+  { id: 'wedge', icon: '🔺', ic: 'wedge', name: 'Wedge', part: 'rotor', need: 0, energy: -10, torsoTurn: 1.4, topSpeed: 1.05 },
+];
+const ARM_SHAPES = [
+  { id: 'standard', icon: '🔫', ic: 'arm', name: 'Cannon and pod', part: null, need: 0, alias: ['cannon', 'cannon-and-pod', 'cannon & pod'] },
+  { id: 'fists', icon: '🤜', ic: 'fists', name: 'Heavy fists', part: 'wiring', need: 0, punch: 1.3, punchPush: 1.5, recharge: { gun: 0.9, em: 0.9 } },
+  { id: 'barrels', icon: '🎯', ic: 'barrels', name: 'Long barrels', part: 'scope', need: 0, gunRange: 1.25, roundSpeed: 1.25, punch: 0.7 },
+];
+const TORSO_FX = { energy: 0, torsoTurn: 1, topSpeed: 1 };
+const ARM_FX = { punch: 1, punchPush: 1, gunRange: 1, roundSpeed: 1 };
+// the sections a shape can be picked for: the legs (B2), the torso and the arms (B3)
+const BODY_SHAPES = { legs: LEG_SHAPES, torso: TORSO_SHAPES, arms: ARM_SHAPES };
 const legShapeOf = (n) => { const s = String(n ?? '').toLowerCase(); return LEG_SHAPES.find((S) => S.id === s || S.icon === n || S.name.toLowerCase() === s) || null; };
+// #42: a shape of section sec by id, icon, name or alias (the legs as legShapeOf)
+const shapeOf = (sec, n) => { if (sec === 'legs') return legShapeOf(n); const s = String(n ?? '').toLowerCase();
+  return BODY_SHAPES[sec]?.find((S) => S.id === s || S.icon === n || S.name.toLowerCase() === s || S.alias?.includes(s)) || null; };
+// #42: the section a (new) shape id is for: 'legs' | 'torso' | 'arms' (the 'standard' ones are in both torso and arms: null)
+const secOfShape = (id) => (legShapeOf(id) ? 'legs' : ['torso', 'arms'].find((k) => id !== 'standard' && BODY_SHAPES[k].some((S) => S.id === id)) ?? null);
+// #42: a torso's and an arm set's trade-off, every key filled in (the arm's recharge as { gun, em, rail, punch, kick })
+const torsoFx = (id) => { const S = shapeOf('torso', id) || TORSO_SHAPES[0]; return Object.fromEntries(Object.entries(TORSO_FX).map(([k, v]) => [k, S[k] ?? v])); };
+const armFx = (id) => { const S = shapeOf('arms', id) || ARM_SHAPES[0]; return { ...Object.fromEntries(Object.entries(ARM_FX).map(([k, v]) => [k, S[k] ?? v])), recharge: Object.fromEntries(WEAPONS.map((w) => [w, S.recharge?.[w] ?? 1])) }; };
 // (#91: six = the Spider wearing its Mk II's 6 legs: SPIDER_MK2 on top)
 const shapeFx = (id, six = false) => {
   const S = legShapeOf(id) || LEG_SHAPES[0], fx = Object.fromEntries(Object.entries(SHAPE_FX).map(([k, v]) => [k, S[k] ?? v]));
@@ -1612,7 +1665,9 @@ const shapeFx = (id, six = false) => {
   return fx;
 };
 // #91: a build project by id, icon or name: a leg shape (LEG_SHAPES) or an upgrade of one (BUILD_UPS, e.g. 'mk2')
-const buildProjOf = (n) => { const s = String(n ?? '').toLowerCase(); return BUILD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s) || legShapeOf(n); };
+// #42: or a torso or arm shape (its 'standard' one is no project: it's free)
+const buildProjOf = (n) => { const s = String(n ?? '').toLowerCase(); return BUILD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s) || legShapeOf(n)
+  || [...TORSO_SHAPES, ...ARM_SHAPES].find((S) => S.part && (S.id === s || S.icon === n || S.name.toLowerCase() === s)) || null; };
 const isProj = (S) => !!S && !!(S.part || S.of);
 // #89: every new shape is a build project. A blueprint is a list of steps, done in order: 'parts' (drag these parts from the
 // bag onto their spots on the frame on the lift; spent at once, never given back) or 'job' (a Quick Fix–style board in the
@@ -1634,6 +1689,21 @@ const isProj = (S) => !!S && !!(S.part || S.of);
 //   legwire legs = which legs' motors to wire (the two new ones, ML and MR, a hip and a knee motor each)
 //   gait    tripod = the 6-leg tripod gait: front and back on one side step with the middle on the other (two partners)
 //   balance motors = how many leg motors share the 2 batteries (6)
+// #42: the torso and arm shapes, on the same system; harder shapes take more steps (Long barrels 2, Heavy fists 3, Wedge 3,
+// Brute 4). Their jobs:
+//   'sights'   = line up the sights: pick the scope whose sight line is at the target's height, so barrel and scope point
+//                along one line to it (too high a scope aims 'high', too low 'low')
+//   'pressure' = hydraulic pressure: a bigger piston pushes harder but moves slower. Pick the smallest piston strong enough
+//                for the load (too small is 'weak', too big is 'slow')
+//   'valves'   = wire each fist's two valves (push and return) to the pump
+//   'rotors'   = pair the rotors: one rotor spins one way; pick the one that spins the other way as fast, so their twists
+//                cancel and the torso doesn't turn (the same way: 'twist'; the other way but not as fast: 'drift')
+//   'trim'     = trim for a level hover: the drone leans to one side by so much; pick the trim weight that evens it (too
+//                much tips it 'over' the other way, too little leaves it 'under')
+//   'spread'   = spread the armour's weight: the plates' weights shared between the front and the back so each end carries
+//                half and the centre of mass sits over the legs (the balance job's board: 'over' / 'uneven')
+//   'weld'     = weld the plates in order: a seam is welded; weld the one across from it next, so the heat pulls both sides
+//                evenly (a seam beside it 'warp's the plate). Round 2 asks about the other pair of seams
 const BUILDS = {
   hopper: [
     { kind: 'parts', parts: { spring: 4, motor: 2, armour: 2 } },
@@ -1659,6 +1729,27 @@ const BUILDS = {
     { kind: 'parts', parts: { wiring: 4, battery: 2 } },
     { kind: 'job', job: 'gait', ic: 'walker', tripod: true },
     { kind: 'job', job: 'balance', ic: 'battery', motors: 6 },
+  ],
+  // #42: the torso and arm shapes (recipes from the issue's latest comment; starting values, tuned at the playtest)
+  barrels: [
+    { kind: 'parts', parts: { scope: 2, wiring: 2, battery: 2 } },
+    { kind: 'job', job: 'sights', ic: 'aim' },
+  ],
+  fists: [
+    { kind: 'parts', parts: { wiring: 4, motor: 4, armour: 2 } },
+    { kind: 'job', job: 'pressure', ic: 'punch' },
+    { kind: 'job', job: 'valves', ic: 'wire' },
+  ],
+  wedge: [
+    { kind: 'parts', parts: { rotor: 6, wiring: 2, motor: 2 } },
+    { kind: 'job', job: 'rotors', ic: 'rotor' },
+    { kind: 'job', job: 'trim', ic: 'drone' },
+  ],
+  brute: [
+    { kind: 'parts', parts: { armour: 6, battery: 2 } },
+    { kind: 'job', job: 'spread', ic: 'armour' },
+    { kind: 'parts', parts: { wiring: 2 } },
+    { kind: 'job', job: 'weld', ic: 'flame' },
   ],
 };
 const BUILD = { rounds: 2, cheer: 3200 };
@@ -1691,10 +1782,36 @@ const BUILD_SPOTS = {
     wiring: [[4, 'hip', 0.6, -0.6], [5, 'hip', 0.6, -0.6], [4, 'knee', 0.5, -1.0], [5, 'knee', 0.5, -1.0]],
     battery: [[4, 'knee', 0.5, -2.8], [5, 'knee', 0.5, -2.8]],
   },
+  // #42: a torso's or an arm set's spots are on a named anchor of its piece (torsoPiece / armsPiece): [anchor, x, y, z]. The
+  // torso's anchor is 'torso' (its own frame: x right, y up, z back); the arms' are 'L' and 'R', each arm's forearm (z forward
+  // along it is negative), and 'Ls' / 'Rs', the shoulders
+  brute: {
+    armour: [['torso', -1.25, 1.2, -1.45], ['torso', 1.25, 1.2, -1.45], ['torso', -1.85, 0.6, -0.4], ['torso', 1.85, 0.6, -0.4], ['torso', -1.85, 0.6, 0.9], ['torso', 1.85, 0.6, 0.9]],
+    battery: [['torso', -0.6, 2.05, 1.3], ['torso', 0.6, 2.05, 1.3]],
+    wiring: [['torso', -1.5, 1.65, 0.3], ['torso', 1.5, 1.65, 0.3]],
+  },
+  // (#42: wedge, fists and barrels chosen so no two spots of one parts step overlap on the lift at 1280×800, 390×844 or
+  // 844×390, searched over their turn on the lift too)
+  wedge: {
+    rotor: [['torso', -1.9, 0.9, 1.2], ['torso', 1.55, 1.3, 0.6], ['torso', -1.2, 1.0, -0.6], ['torso', 1.2, 1.0, -0.6], ['torso', -1.7, 0.7, -0.1], ['torso', 1.7, 0.7, -0.1]],
+    wiring: [['torso', -0.5, 2.0, 1.3], ['torso', 0.5, 2.0, 1.3]],
+    motor: [['torso', -0.4, -0.1, -1.6], ['torso', 0.4, -0.1, -1.6]],
+  },
+  fists: {
+    wiring: [['Ls', 0, -0.6, 1.2], ['Rs', 0, -0.6, 1.2], ['Ls', -0.45, -0.6, -0.8], ['Rs', 0.45, -0.6, -0.8]],   // (behind each shoulder, then up each arm's piston)
+    motor: [['Ls', -0.45, -2.5, 0.45], ['Rs', 0.45, -2.5, 0.45], ['Ls', -0.45, -1.7, -2.05], ['Rs', 0.45, -1.7, -2.05]],   // (each elbow, then each fist)
+    armour: [['Ls', 0, 1.2, -0.3], ['Rs', 0, 1.2, -0.3]],
+  },
+  barrels: {
+    scope: [['Rs', 0.3, -1.5, -3.5], ['Ls', -0.3, -1.5, -2.3]],   // (on the long barrel, and on the long 🧲 emitter)
+    wiring: [['Ls', 0, -0.4, 1.0], ['Rs', 0, -0.4, 1.0]],
+    battery: [['Ls', -0.3, -2.3, 0.3], ['Rs', 0.3, -2.2, -1.0]],
+  },
 };
 // (#90) how far each frame is turned from straight on, on the lift (radians): the Tracks and Spider further than the Hopper,
 // so the spots on their back wheels and back legs show beside the front ones
-const BUILD_TURN = { hopper: 0.25, tracks: 0.9, spider: 0.5, mk2: 0 };   // (#91: the Mk II straight on: its new legs reach out either side)
+// (#42: the torsos and arm sets a little turned, so their spots on both sides and front and back show)
+const BUILD_TURN = { hopper: 0.25, tracks: 0.9, spider: 0.5, mk2: 0, brute: 0.55, wedge: 0.7, fists: 0.65, barrels: 0.75 };   // (#91: the Mk II straight on: its new legs reach out either side)
 const buildOf = (id) => BUILDS[id] ?? null;
 // the parts a build needs in all by the end of step i (counted across its parts steps, so a later parts step adds to them)
 function buildNeed(id, upTo = Infinity) {
@@ -1712,6 +1829,8 @@ function bodyRec(g) {
   const b = g.body, un = Array.isArray(b.unlocked) ? b.unlocked : [];
   const old = !b.trophyLatch;   // #89: the one-time latch from the old trophy counts
   b.unlocked = LEG_SHAPES.filter((S) => S.part && (un.includes(S.id) || (old && (g.trophies?.[S.part]?.n || 0) >= S.need))).map((S) => S.id);
+  // #42: and the torso and arm shapes built (no trophy latch: nothing for them had been earned)
+  for (const S of [...TORSO_SHAPES, ...ARM_SHAPES]) if (S.part && un.includes(S.id)) b.unlocked.push(S.id);
   b.trophyLatch = true;
   b.builds ||= {};
   if (typeof b.builds !== 'object' || Array.isArray(b.builds)) b.builds = {};
@@ -1723,7 +1842,7 @@ function bodyRec(g) {
     B.parts = parts; B.step = clamp(Math.floor(Number(B.step) || 0), 0, R.length);
   }
   if (!LEG_SHAPES.some((S) => S.id === b.legs && (!S.part || b.unlocked.includes(S.id)))) b.legs = 'walker';
-  for (const k of ['torso', 'arms']) if (!BODY_SHAPES[k].some((S) => S.id === b[k])) b[k] = 'standard';
+  for (const k of ['torso', 'arms']) if (!BODY_SHAPES[k].some((S) => S.id === b[k] && (!S.part || b.unlocked.includes(S.id)))) b[k] = 'standard';   // (#42: built ones only)
   // #91: the Spider's legs, 4 or 6: 6 only once its Mk II is built (that build's last step done)
   b.spiderLegs = b.spiderLegs === 6 && upBuilt(b, 'mk2') ? 6 : 4;
   return b;
@@ -2034,6 +2153,19 @@ const ICONS = {
   // I2: redrawn: a mech arm flexed, shoulder pad to fist
   arm: ['arms', ['💪'], ln('M6.6 8.4 L6.6 16.4', G('steel'), 4.6) + ln('M7.6 16.6 L15 10.4', G('steel'), 4.6) + re(2, 2.4, 9, 6.6, 2.4, G('orange')) + ci(6.8, 17.2, 2.9, G('dark'))
     + re(12.6, 2.2, 9.4, 9, 3, G('steel')) + `<path d="M15.8 2.4 L15.8 5.6 M18.8 2.4 L18.8 5.6" fill="none"/>` + cn(6.8, 17.2, 1, INK) + hl('M4.2 4.4 L8.6 4.4')],
+  // #42: the torso and arm shapes' cards. 📦 Brute: a boxy armoured torso, side plates bolted on, a small cockpit on top
+  brute: ['Brute', ['📦'], re(1.6, 7.4, 3.6, 11, 1.2, G('steel')) + re(18.8, 7.4, 3.6, 11, 1.2, G('steel')) + re(4, 5.6, 16, 15, 2.4, G('purple'))
+    + re(8.4, 2, 7.2, 4.4, 1.4, G('dark')) + rn(9.8, 3.4, 4.4, 1.6, 0.8, '#3ff0ff') + rn(6.4, 15.6, 11.2, 2.6, 1, '#ffd83d')
+    + cn(6.8, 8.6, 1, INK) + cn(17.2, 8.6, 1, INK) + cn(6.8, 12.6, 1, INK) + cn(17.2, 12.6, 1, INK) + hl('M6.4 7.8 L6.4 13.6')],
+  // 🔺 Wedge: a sleek drone wedge from above, pointed ahead, a ducted rotor at each back corner
+  wedge: ['Wedge', ['🔺'], pa('M12 2.2 L19.6 18.2 L4.4 18.2 Z', G('yellow')) + ci(4.6, 18.4, 3.4, G('dark')) + ci(19.4, 18.4, 3.4, G('dark'))
+    + ln('M2.6 18.4 L6.6 18.4 M17.4 18.4 L21.4 18.4', G('steel'), 1.2) + re(10.4, 9, 3.2, 6, 1.4, G('cyan')) + hl('M11 5.4 L7.6 13')],
+  // 🤜 Heavy fists: a big hydraulic fist, its piston on top
+  fists: ['Heavy fists', ['🤜'], ln('M2.6 6.4 L9.4 6.4', G('steel'), 2) + re(1.6, 9.6, 6, 7, 1.6, G('dark')) + re(6.4, 5.8, 15, 14, 4, G('orange'))
+    + `<path d="M11.4 6 L11.4 10.6 M15.4 6 L15.4 10.6 M19.2 6.6 L19.2 10.6" fill="none"/>` + rn(7.6, 13.4, 12.6, 3, 1.2, '#ffd83d') + hl('M8.6 8 L8.6 13')],
+  // 🎯 Long barrels: a long twin barrel with a scope on top, like the Sniper's rifle
+  barrels: ['Long barrels', [], rot(-24, re(9.4, 10.2, 14, 2.4, 1, G('dark')) + re(9.4, 13.2, 14, 2.4, 1, G('dark')) + re(1.4, 9.4, 9.6, 7.4, 2.2, G('orange'))
+    + re(4, 5, 8.6, 3.2, 1.4, G('pink')) + rn(1.4, 16.4, 3.6, 4.4, 1, '#4a5368') + hl('M3 10.8 L9.4 10.8'))],
   mech: ['mech', ['🦾'], re(6.6, 13.2, 3.8, 7, 1, G('dark')) + re(13.6, 13.2, 3.8, 7, 1, G('dark')) + re(5, 19.4, 6.2, 2.4, 1, G('steel')) + re(12.8, 19.4, 6.2, 2.4, 1, G('steel')) + re(1.8, 7.2, 3.4, 6.8, 1.2, G('steel')) + re(18.8, 7.2, 3.4, 6.8, 1.2, G('steel'))
     + pa('M4.8 6.4 L19.2 6.4 L17.6 14 L6.4 14 Z', G('orange')) + re(8.4, 1.8, 7.2, 4.8, 1.4, G('steel')) + rn(9.8, 3.4, 4.4, 1.6, 0.8, '#3ff0ff') + hl('M7 8.4 L8 12')],
   // I2: the Walker walks: two mech footprints, one ahead of the other (the front-on pair of legs is 🦿's)
@@ -3464,11 +3596,235 @@ function cyl(rt, rb, h, color, opts, seg = 16) { const m = new THREE.Mesh(new TH
 function ball(r, color, opts) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 12), mat(color, opts)); m.castShadow = true; return m; }
 function capsule(r, len, color, opts) { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 12), mat(color, opts)); m.castShadow = true; return m; }
 
+// ---------------------------------------------------------------------------
+// #42 (B3): the torso pieces. Each builds its torso into the torso group (on the turret ring, which swings to the aim) and
+// returns { ringGlow, chest, back, cockpit, canopy, sock }. Every torso supplies the same sockets (sock), in the torso's own
+// frame (x right, y up, z back; s = which side, the left one mirrored):
+//   mount     the two shoulder mounts [x, y, z] (the arms hang from s × x)
+//   cockpit / canopy   the pilot sits in the cockpit (setPilot) and the canopy lights in the pilot's colour; ringGlow too
+//   badge     the back portrait badge's place [x, y, z];  decal  G3's two decal spots { x (s ×), y, z, size }
+//   chest / flank      🛡️ plates { at, rx, size };  cell  🔋 the back cells' row { y, z, gap };  cable  🔌 the shoulder loops
+//   jet       G4's jets { at, fy (the flame's y) };  core  G4's fusion core { at, ring (its ring's z) }
+//   tram / backCable   B1's tier-4 extras: the hydraulic ram each side { at, rz } and the back's cable bundle (an offset)
+// The back plate, stacks and vents carry userData.core (B1's core section), every other mesh is the torso's.
+// ---------------------------------------------------------------------------
+function turretRing(torso, paint, metal, r, gr) {
+  const ring = cyl(r, r, 0.4, paint.dark, metal, 24); ring.position.y = -0.4; torso.add(ring);
+  const ringGlow = new THREE.Mesh(new THREE.TorusGeometry(gr, 0.06, 8, 40), glowMat(paint.glow, 2)); ringGlow.rotation.x = Math.PI / 2; ringGlow.position.y = -0.4; torso.add(ringGlow);
+  return ringGlow;
+}
+// (a stack each side, the core's, with a glowing vent on top: E = { x, y, z, h, r0, r1 } the stack, { vr, vy, vz } the vent)
+function exhausts(torso, paint, metal, E) {
+  for (const s of [-1, 1]) {
+    const stack = cyl(E.r0, E.r1, E.h, paint.dark, metal, 12); stack.position.set(s * E.x, E.y, E.z); stack.rotation.x = 0.15; torso.add(stack);
+    const vent = new THREE.Mesh(new THREE.CylinderGeometry(E.vr, E.vr, 0.05, 12), glowMat('#ff6a2a', 2.2)); vent.position.set(s * E.x, E.vy, E.vz); torso.add(vent);
+    stack.userData.core = 'stack'; vent.userData.core = 'vent';
+  }
+}
+function cockpitPod(torso, paint, metal, at, sc) {   // the cowl and its bubble canopy (the pilot sits inside, setPilot)
+  const cockpit = new THREE.Group(); cockpit.position.set(...at); torso.add(cockpit);
+  const cowl = new THREE.Mesh(new THREE.SphereGeometry(0.95, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.frame, metal));
+  cowl.scale.set(...sc); cowl.castShadow = true; cockpit.add(cowl);
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 16, Math.PI * 0.15, Math.PI * 0.7, Math.PI * 0.2, Math.PI * 0.35),
+    new THREE.MeshStandardMaterial({ color: '#0b2f3a', emissive: paint.glow, emissiveIntensity: 1.6, roughness: 0.1, metalness: 0.6 }));
+  canopy.rotation.y = Math.PI; canopy.scale.set(1.15, 0.85, 1.25); canopy.position.y = 0.05; cockpit.add(canopy);
+  return { cockpit, canopy };
+}
+function antennaOn(torso, x, y, z, ty) {   // (ty: the glowing tip's height)
+  const antenna = cyl(0.03, 0.05, 1.4, '#c9ced8', { metalness: 0.9 }, 6); antenna.position.set(x, y, z); torso.add(antenna);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), glowMat('#ff3f6a', 3)); tip.position.set(x, ty, z); torso.add(tip);
+}
+const TORSO_KITS = {
+  // 🟠 today's dome, as it always was (the same meshes, in the same order, at the same places)
+  standard: {
+    sock: { mount: [2.25, 1.0, -0.1], badge: [0, 0.95, 1.72], decal: { x: 1.0, y: 0.95, z: 1.725, size: 0.68 },
+      chest: { at: [0, 0.3, -1.66], rx: -0.25, size: [2.2, 0.9, 0.3] }, flank: { at: [2.05, 0.65, 0.1], size: [0.26, 1.1, 1.7] },
+      cell: { y: 2.1, z: 1.1, gap: 0.42 }, cable: { x: 1.45, y: 1.2, z: 0.5 }, jet: { at: [0.75, -0.2, 1.85], fy: -1.35 },
+      core: { at: [0, 0.95, -1.78], ring: -1.74 }, tram: { at: [1.55, 0.2, -0.55], rz: 0.35 }, backCable: [0, 0, 0] },
+    build(torso, paint, metal) {
+      const ringGlow = turretRing(torso, paint, metal, 1.05, 1.08);
+      const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), mat(paint.armour, { roughness: 0.45, metalness: 0.25 }));
+      hull.scale.set(2.0, 1.25, 1.65); hull.position.y = 0.75; hull.castShadow = true; torso.add(hull);
+      const chest = rbox(2.6, 1.3, 0.7, 0.3, paint.trim); chest.position.set(0, 0.35, -1.25); chest.rotation.x = -0.25; torso.add(chest);
+      const back = rbox(2.8, 1.6, 1.1, 0.35, paint.frame, metal); back.position.set(0, 0.9, 1.15); torso.add(back);
+      back.userData.core = 'back';   // B1: the back plate, stacks and vents are the core section (not the torso's)
+      exhausts(torso, paint, metal, { x: 0.8, y: 1.9, z: 1.45, h: 1.6, r0: 0.22, r1: 0.28, vr: 0.16, vy: 2.7, vz: 1.57 });
+      // Cockpit: a bubble canopy at the front with a glowing visor
+      const { cockpit, canopy } = cockpitPod(torso, paint, metal, [0, 1.35, -1.0], [1.15, 0.8, 1.2]);
+      antennaOn(torso, 0.9, 2.4, 0.9, 3.1);
+      return { ringGlow, chest, back, cockpit, canopy, sock: this.sock };
+    },
+  },
+  // 📦 boxy and armoured: a heavy box hull with bolted side armour, a wide chest plate, the shoulders set wide
+  brute: {
+    sock: { mount: [2.6, 1.1, -0.1], badge: [0, 1.0, 2.02], decal: { x: 1.05, y: 1.0, z: 2.025, size: 0.68 },
+      chest: { at: [0, 0.45, -1.95], rx: -0.12, size: [2.4, 0.8, 0.3] }, flank: { at: [2.12, 0.75, 0.1], size: [0.26, 1.2, 1.9] },
+      cell: { y: 2.3, z: 1.3, gap: 0.42 }, cable: { x: 1.75, y: 1.55, z: 0.5 }, jet: { at: [0.8, -0.1, 2.2], fy: -1.25 },
+      core: { at: [0, 0.45, -2.08], ring: -2.04 }, tram: { at: [1.95, 0.3, -1.45], rz: 0.35 }, backCable: [0, 0.25, 0.3] },
+    build(torso, paint, metal) {
+      const ringGlow = turretRing(torso, paint, metal, 1.25, 1.28);
+      const hull = rbox(3.5, 2.1, 3.0, 0.32, paint.armour); hull.position.y = 0.85; torso.add(hull);
+      for (const s of [-1, 1]) { const side = rbox(0.35, 1.6, 2.4, 0.12, paint.armour); side.position.set(s * 1.85, 0.75, 0.1); torso.add(side); }
+      const chest = rbox(2.8, 1.1, 0.6, 0.25, paint.trim); chest.position.set(0, 0.45, -1.55); chest.rotation.x = -0.12; torso.add(chest);
+      const back = rbox(3.0, 1.7, 0.9, 0.3, paint.frame, metal); back.position.set(0, 1.0, 1.55); torso.add(back);
+      back.userData.core = 'back';
+      for (const s of [-1, 1]) { const bolt = rbox(0.5, 0.5, 0.2, 0.08, paint.trim); bolt.position.set(s * 1.0, 1.55, -1.52); torso.add(bolt); }   // rivet blocks above the chest
+      exhausts(torso, paint, metal, { x: 1.0, y: 2.15, z: 1.75, h: 1.6, r0: 0.24, r1: 0.3, vr: 0.18, vy: 2.95, vz: 1.87 });
+      const { cockpit, canopy } = cockpitPod(torso, paint, metal, [0, 1.92, -0.8], [1.2, 0.7, 1.15]);
+      antennaOn(torso, 1.2, 2.9, 0.9, 3.6);
+      return { ringGlow, chest, back, cockpit, canopy, sock: this.sock };
+    },
+  },
+  // 🔺 sleek, like a drone: a low wedge hull to a point at the front, a ducted rotor each side at the back, a low canopy
+  wedge: {
+    sock: { mount: [2.1, 0.75, 0.1], badge: [0, 0.85, 1.77], decal: { x: 0.92, y: 0.85, z: 1.775, size: 0.5 },
+      chest: { at: [0, 1.32, -1.25], rx: -1.45, size: [1.3, 1.0, 0.2] }, flank: { at: [1.6, 0.7, 0.4], size: [0.22, 0.7, 1.4] },
+      cell: { y: 1.85, z: 1.45, gap: 0.36 }, cable: { x: 1.3, y: 1.0, z: 0.6 }, jet: { at: [0.65, 0.1, 1.95], fy: -1.05 },
+      core: { at: [0, 1.5, -1.15], ring: -1.11 }, tram: { at: [1.25, 0.2, -0.3], rz: 0.35 }, backCable: [0, -0.1, 0] },
+    build(torso, paint, metal) {
+      const ringGlow = turretRing(torso, paint, metal, 0.95, 0.98);
+      const sh = new THREE.Shape(); sh.moveTo(0, 2.3); sh.lineTo(1.7, -0.9); sh.lineTo(1.2, -1.4); sh.lineTo(-1.2, -1.4); sh.lineTo(-1.7, -0.9); sh.closePath();
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.8, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 2 }); geo.rotateX(-Math.PI / 2);
+      const hull = new THREE.Mesh(geo, mat(paint.armour, { roughness: 0.45, metalness: 0.25 })); hull.position.y = 0.3; hull.castShadow = true; torso.add(hull);
+      const chest = rbox(0.9, 0.3, 1.8, 0.12, paint.trim); chest.position.set(0, 1.2, -0.75); torso.add(chest);   // the spine stripe up the nose
+      const back = rbox(2.4, 1.3, 0.6, 0.22, paint.frame, metal); back.position.set(0, 0.85, 1.45); torso.add(back);
+      back.userData.core = 'back';
+      for (const s of [-1, 1]) {   // a ducted rotor each side at the back
+        const duct = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.12, 8, 24), mat(paint.dark, metal)); duct.rotation.x = Math.PI / 2; duct.position.set(s * 1.55, 0.9, 1.0); duct.castShadow = true; torso.add(duct);
+        for (const a of [0, Math.PI / 2]) { const blade = rbox(1.0, 0.05, 0.16, 0.02, paint.trim); blade.position.set(s * 1.55, 0.9, 1.0); blade.rotation.y = a + 0.4; torso.add(blade); }
+      }
+      exhausts(torso, paint, metal, { x: 0.55, y: 1.6, z: 1.6, h: 1.0, r0: 0.18, r1: 0.23, vr: 0.13, vy: 2.1, vz: 1.68 });
+      const { cockpit, canopy } = cockpitPod(torso, paint, metal, [0, 1.02, -0.45], [0.95, 0.6, 1.35]);
+      antennaOn(torso, 0.7, 1.9, 1.0, 2.6);
+      return { ringGlow, chest, back, cockpit, canopy, sock: this.sock };
+    },
+  },
+};
+// #42: the arm pieces. Each builds one arm into its shoulder (s = -1 the left, 1 the right) and returns { arm (pitches with
+// the aim), fore (recoils and punches), flashes, muzzles, muzzleLight, pod }. Every arm set supplies the same sockets (sock):
+//   the right arm's gun muzzles, their flashes and the muzzle light (the rail gun's charge glow uses it too); the left arm's
+//   🧲 pod (and it's the arm that punches)
+//   plate     🛡️ the shoulder plate { at (x is s ×), size };  decal  G3's spot on top of the shoulder { x, y, z, size }
+//   cable     B1's tier-4 cable bundle down the arm [x (s ×), y, z]
+//   recoil    how far the cannon arm kicks back (z) and up (pitch) on a round;  punch  how far the punch throws (pitch, reach)
+//   gun / pod where its rounds start: the cannon's two barrels (side ± spread, out from the middle), the rail gun (side), the
+//             🧲 pod (side, on the left), each y m over the feet, 0.5 m ahead of the middle (shotSock: moved with the torso's
+//             shoulder mounts). The Cannon's are main's numbers: on the shoulder's line, so a point-blank shot still sweeps
+const ARM_KITS = {
+  // 🔫 today's twin cannon (right) and rocket pod (left), as they always were
+  standard: {
+    sock: { plate: { at: [0.25, 0.78, 0], size: [1.25, 0.3, 1.5] }, decal: { x: 0.2, y: 0.97, z: 0, size: 0.82 }, cable: [0.3, 0, 0],
+      recoil: { z: 0.55, pitch: 0.09 }, punch: { pitch: 1.45, reach: 0.9 }, gun: { side: 2.4, spread: 0.2, y: 4.4 }, pod: { side: 2.4, y: 4.4 } },
+    build(shoulder, s, paint, metal) {
+      const out = { flashes: [], muzzles: [], muzzleLight: null, pod: null };
+      const joint = ball(0.7, paint.dark, metal); shoulder.add(joint);
+      const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.95, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.armour));
+      pauldron.scale.set(1.1, 0.75, 1.25); pauldron.position.set(s * 0.2, 0.2, 0); pauldron.castShadow = true; shoulder.add(pauldron);
+      const arm = out.arm = new THREE.Group(); arm.position.set(s * 0.35, -0.55, 0); shoulder.add(arm);
+      const upper = capsule(0.32, 0.8, paint.frame, metal); upper.position.y = -0.4; arm.add(upper);
+      const fore = out.fore = new THREE.Group(); fore.position.y = -1.0; arm.add(fore);
+      fore.add(ball(0.38, paint.dark, metal));
+      if (s > 0) {
+        const housing = rbox(0.9, 0.9, 2.2, 0.25, paint.armour); housing.position.z = -0.8; fore.add(housing);
+        for (const bx of [-0.2, 0.2]) {
+          const barrel = cyl(0.13, 0.15, 1.6, '#3a4152', { metalness: 0.8, roughness: 0.3 }, 12); barrel.rotation.x = Math.PI / 2; barrel.position.set(bx, 0, -2.4); fore.add(barrel);
+          const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 6, 16), glowMat(paint.glow, 2.4)); muzzle.position.set(bx, 0, -3.2); fore.add(muzzle);
+          out.flashes.push(MuzzleFx.build(fore, bx)); out.muzzles.push(muzzle);
+        }
+        // the flash's light: always in the scene at zero, so a shot never changes the light count
+        out.muzzleLight = new THREE.PointLight('#ffc070', 0, 13, 2); out.muzzleLight.position.set(0, 0.2, -3.8); fore.add(out.muzzleLight);
+      } else {
+        const podBox = out.pod = rbox(1.1, 1.0, 1.9, 0.28, paint.armour); podBox.position.z = -0.7; fore.add(podBox);
+        for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
+          const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 12), glowMat('#ffd83d', 1.8));
+          tube.rotation.x = Math.PI / 2; tube.position.set(-0.24 + c * 0.48, -0.2 + r * 0.4, -1.66); fore.add(tube);
+        }
+      }
+      return out;
+    },
+  },
+  // 🤜 big hydraulic arms: a heavy fist on each, a piston up each upper arm; the cannon rides on the right fist, the 🧲 pod
+  // on the left
+  fists: {
+    sock: { plate: { at: [0.3, 1.0, 0], size: [1.45, 0.3, 1.7] }, decal: { x: 0.25, y: 1.19, z: 0, size: 0.9 }, cable: [0.42, 0, 0],
+      recoil: { z: 0.35, pitch: 0.06 }, punch: { pitch: 1.45, reach: 1.1 }, gun: { side: 2.7, spread: 0.25, y: 5.08 }, pod: { side: 2.7, y: 5.15 } },
+    build(shoulder, s, paint, metal) {
+      const out = { flashes: [], muzzles: [], muzzleLight: null, pod: null };
+      const joint = ball(0.82, paint.dark, metal); shoulder.add(joint);
+      const pauldron = new THREE.Mesh(new THREE.SphereGeometry(1.1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.armour));
+      pauldron.scale.set(1.15, 0.8, 1.25); pauldron.position.set(s * 0.25, 0.25, 0); pauldron.castShadow = true; shoulder.add(pauldron);
+      const arm = out.arm = new THREE.Group(); arm.position.set(s * 0.45, -0.6, 0); shoulder.add(arm);
+      const upper = capsule(0.42, 0.8, paint.frame, metal); upper.position.y = -0.45; arm.add(upper);
+      const piston = cyl(0.1, 0.1, 1.1, '#c9ced8', { metalness: 0.9, roughness: 0.2 }); piston.position.set(0, -0.5, 0.42); arm.add(piston);   // the hydraulic ram
+      const fore = out.fore = new THREE.Group(); fore.position.y = -1.1; arm.add(fore);
+      fore.add(ball(0.48, paint.dark, metal));
+      const fist = rbox(1.35, 1.25, 1.5, 0.3, paint.armour); fist.position.z = -0.95; fore.add(fist);
+      const knuckles = rbox(1.4, 0.4, 0.45, 0.15, paint.trim); knuckles.position.set(0, 0.25, -1.75); fore.add(knuckles);
+      if (s > 0) {
+        for (const bx of [-0.25, 0.25]) {
+          const barrel = cyl(0.12, 0.14, 1.4, '#3a4152', { metalness: 0.8, roughness: 0.3 }, 12); barrel.rotation.x = Math.PI / 2; barrel.position.set(bx, 0.78, -1.3); fore.add(barrel);
+          const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.04, 6, 16), glowMat(paint.glow, 2.4)); muzzle.position.set(bx, 0.78, -2.0); fore.add(muzzle);
+          out.flashes.push(MuzzleFx.build(fore, bx, -2.1, 0.78)); out.muzzles.push(muzzle);
+        }
+        out.muzzleLight = new THREE.PointLight('#ffc070', 0, 13, 2); out.muzzleLight.position.set(0, 0.95, -2.6); fore.add(out.muzzleLight);
+      } else {
+        const podBox = out.pod = rbox(0.95, 0.55, 1.0, 0.18, paint.armour); podBox.position.set(0, 0.85, -0.9); fore.add(podBox);
+        for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
+          const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.06, 12), glowMat('#ffd83d', 1.8));
+          tube.rotation.x = Math.PI / 2; tube.position.set(-0.22 + c * 0.44, 0.73 + r * 0.25, -1.42); fore.add(tube);
+        }
+      }
+      return out;
+    },
+  },
+  // 🎯 long barrels, like the Sniper: slim arms, a long twin barrel with a scope on top on the right, a long 🧲 emitter on
+  // the left
+  barrels: {
+    sock: { plate: { at: [0.2, 0.66, 0], size: [1.1, 0.26, 1.4] }, decal: { x: 0.18, y: 0.83, z: 0, size: 0.72 }, cable: [0.25, 0, 0],
+      recoil: { z: 0.75, pitch: 0.12 }, punch: { pitch: 1.45, reach: 0.8 }, gun: { side: 2.55, spread: 0.17, y: 4.5 }, pod: { side: 2.55, y: 4.5 } },
+    build(shoulder, s, paint, metal) {
+      const out = { flashes: [], muzzles: [], muzzleLight: null, pod: null };
+      const joint = ball(0.62, paint.dark, metal); shoulder.add(joint);
+      const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.85, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.armour));
+      pauldron.scale.set(1.05, 0.7, 1.2); pauldron.position.set(s * 0.18, 0.18, 0); pauldron.castShadow = true; shoulder.add(pauldron);
+      const arm = out.arm = new THREE.Group(); arm.position.set(s * 0.3, -0.5, 0); shoulder.add(arm);
+      const upper = capsule(0.28, 0.85, paint.frame, metal); upper.position.y = -0.42; arm.add(upper);
+      const fore = out.fore = new THREE.Group(); fore.position.y = -1.0; arm.add(fore);
+      fore.add(ball(0.34, paint.dark, metal));
+      if (s > 0) {
+        const housing = rbox(0.75, 0.75, 2.4, 0.22, paint.armour); housing.position.z = -0.9; fore.add(housing);
+        const scope = cyl(0.16, 0.16, 1.4, paint.trim, metal, 14); scope.rotation.x = Math.PI / 2; scope.position.set(0, 0.58, -1.2); fore.add(scope);
+        for (const bx of [-0.17, 0.17]) {
+          const barrel = cyl(0.1, 0.12, 3.0, '#3a4152', { metalness: 0.8, roughness: 0.3 }, 12); barrel.rotation.x = Math.PI / 2; barrel.position.set(bx, 0, -3.3); fore.add(barrel);
+          const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.035, 6, 16), glowMat(paint.glow, 2.4)); muzzle.position.set(bx, 0, -4.8); fore.add(muzzle);
+          out.flashes.push(MuzzleFx.build(fore, bx, -4.9)); out.muzzles.push(muzzle);
+        }
+        out.muzzleLight = new THREE.PointLight('#ffc070', 0, 13, 2); out.muzzleLight.position.set(0, 0.2, -5.4); fore.add(out.muzzleLight);
+      } else {
+        const podBox = out.pod = rbox(0.95, 0.9, 2.3, 0.25, paint.armour); podBox.position.z = -0.95; fore.add(podBox);
+        for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
+          const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.06, 12), glowMat('#ffd83d', 1.8));
+          tube.rotation.x = Math.PI / 2; tube.position.set(-0.21 + c * 0.42, -0.18 + r * 0.36, -2.12); fore.add(tube);
+        }
+      }
+      return out;
+    },
+  },
+};
+// #42: where player m's rounds start for torso tid and arm set aid: the arm set's sockets (its gun and pod), moved out and up
+// as far as the torso's shoulder mounts are from the Dome's (so the Dome and Cannon are main's numbers exactly)
+function shotSock(tid, aid) {
+  const T = (TORSO_KITS[tid] || TORSO_KITS.standard).sock, A = (ARM_KITS[aid] || ARM_KITS.standard).sock, D = TORSO_KITS.standard.sock.mount;
+  const dx = T.mount[0] - D[0], dy = T.mount[1] - D[1];
+  return { gun: dx ? A.gun.side + dx : A.gun.side, spread: A.gun.spread, y: dy ? A.gun.y + dy : A.gun.y, pod: dx ? A.pod.side + dx : A.pod.side, podY: dy ? A.pod.y + dy : A.pod.y, fwd: 0.5 };
+}
+
 // B2: the mech is built from designed pieces that plug together: a leg piece (LEG_KITS, by shape) hangs from the
 // pelvis, the torso sits on the turret ring above it, and the arms hang from the torso. The pelvis (hub, hip bar,
 // skirt) is the same on every shape, at the same height, so the torso, arms, camera, hit heights and the jump's
 // feet-clear rule (#46, worked from the simulated jump, not the model) are the same on every shape too.
-function buildMech(paint = PAINT, shape = 'walker', legN = null) {   // (#91: legN = 6 for the Spider Mk II's)
+// #42: and the torso shape (TORSO_KITS) and the arm set (ARM_KITS) are pieces too, each supplying the same sockets
+function buildMech(paint = PAINT, shape = 'walker', legN = null, torsoShape = 'standard', armShape = 'standard') {   // (#91: legN = 6 for the Spider Mk II's)
   const root = new THREE.Group();
   const body = new THREE.Group(); root.add(body);            // bobs with the gait
   const metal = { metalness: 0.55, roughness: 0.4 };
@@ -3481,58 +3837,22 @@ function buildMech(paint = PAINT, shape = 'walker', legN = null) {   // (#91: le
   const kit = LEG_KITS[shape] ? shape : 'walker', legSet = LEG_KITS[kit].build(pelvis, paint, metal, { six: kit === 'spider' && legN === 6 });
   const legs = legSet.legs;
 
-  // Torso: sits on a turret ring so it can swing round on its own
+  // Torso: sits on a turret ring so it can swing round on its own. #42: its shape's kit (TORSO_KITS) builds it, and supplies
+  // the torso sockets (T.sock: the shoulder mounts, the cockpit, the badge, decal spots, the G2 / G4 / B1 pieces' places)
   const torso = new THREE.Group(); torso.position.y = 5.0; body.add(torso);
-  const ring = cyl(1.05, 1.05, 0.4, paint.dark, metal, 24); ring.position.y = -0.4; torso.add(ring);
-  const ringGlow = new THREE.Mesh(new THREE.TorusGeometry(1.08, 0.06, 8, 40), glowMat(paint.glow, 2)); ringGlow.rotation.x = Math.PI / 2; ringGlow.position.y = -0.4; torso.add(ringGlow);
-  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), mat(paint.armour, { roughness: 0.45, metalness: 0.25 }));
-  hull.scale.set(2.0, 1.25, 1.65); hull.position.y = 0.75; hull.castShadow = true; torso.add(hull);
-  const chest = rbox(2.6, 1.3, 0.7, 0.3, paint.trim); chest.position.set(0, 0.35, -1.25); chest.rotation.x = -0.25; torso.add(chest);
-  const back = rbox(2.8, 1.6, 1.1, 0.35, paint.frame, metal); back.position.set(0, 0.9, 1.15); torso.add(back);
-  back.userData.core = 'back';   // B1: the back plate, stacks and vents are the core section (not the torso's)
-  for (const s of [-1, 1]) {   // exhaust stacks
-    const stack = cyl(0.22, 0.28, 1.6, paint.dark, metal, 12); stack.position.set(s * 0.8, 1.9, 1.45); stack.rotation.x = 0.15; torso.add(stack);
-    const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.05, 12), glowMat('#ff6a2a', 2.2)); vent.position.set(s * 0.8, 2.7, 1.57); torso.add(vent);
-    stack.userData.core = 'stack'; vent.userData.core = 'vent';
-  }
-  // Cockpit: a bubble canopy at the front with a glowing visor
-  const cockpit = new THREE.Group(); cockpit.position.set(0, 1.35, -1.0); torso.add(cockpit);
-  const cowl = new THREE.Mesh(new THREE.SphereGeometry(0.95, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.frame, metal));
-  cowl.scale.set(1.15, 0.8, 1.2); cowl.castShadow = true; cockpit.add(cowl);
-  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 16, Math.PI * 0.15, Math.PI * 0.7, Math.PI * 0.2, Math.PI * 0.35),
-    new THREE.MeshStandardMaterial({ color: '#0b2f3a', emissive: paint.glow, emissiveIntensity: 1.6, roughness: 0.1, metalness: 0.6 }));
-  canopy.rotation.y = Math.PI; canopy.scale.set(1.15, 0.85, 1.25); canopy.position.y = 0.05; cockpit.add(canopy);
-  const antenna = cyl(0.03, 0.05, 1.4, '#c9ced8', { metalness: 0.9 }, 6); antenna.position.set(0.9, 2.4, 0.9); torso.add(antenna);
-  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), glowMat('#ff3f6a', 3)); tip.position.set(0.9, 3.1, 0.9); torso.add(tip);
+  const tk = TORSO_KITS[torsoShape] ? torsoShape : 'standard', T = TORSO_KITS[tk].build(torso, paint, metal);
+  const { ringGlow, chest, back, cockpit, canopy } = T;
 
-  // Arms: shoulder pods that pitch with the aim. Right: twin cannon. Left: rocket pod.
-  const arms = [], flashes = []; let muzzleLight = null;
+  // Arms: shoulder pods that pitch with the aim, on the torso's two shoulder mounts. #42: the arm set's kit (ARM_KITS) builds
+  // each, supplying the arm sockets: the right arm's gun muzzles, flashes and muzzle light; the left arm's 🧲 pod (and its
+  // punch); the shoulder plates' and decals' places; recoil
+  const ak = ARM_KITS[armShape] ? armShape : 'standard', AK = ARM_KITS[ak];
+  const arms = [], flashes = [], muzzles = []; let muzzleLight = null, pod = null;
   for (const s of [-1, 1]) {
-    const shoulder = new THREE.Group(); shoulder.position.set(s * 2.25, 1.0, -0.1); torso.add(shoulder);
-    const pod = ball(0.7, paint.dark, metal); shoulder.add(pod);
-    const pauldron = new THREE.Mesh(new THREE.SphereGeometry(0.95, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(paint.armour));
-    pauldron.scale.set(1.1, 0.75, 1.25); pauldron.position.set(s * 0.2, 0.2, 0); pauldron.castShadow = true; shoulder.add(pauldron);
-    const arm = new THREE.Group(); arm.position.set(s * 0.35, -0.55, 0); shoulder.add(arm);
-    const upper = capsule(0.32, 0.8, paint.frame, metal); upper.position.y = -0.4; arm.add(upper);
-    const fore = new THREE.Group(); fore.position.y = -1.0; arm.add(fore);
-    fore.add(ball(0.38, paint.dark, metal));
-    if (s > 0) {
-      const housing = rbox(0.9, 0.9, 2.2, 0.25, paint.armour); housing.position.z = -0.8; fore.add(housing);
-      for (const bx of [-0.2, 0.2]) {
-        const barrel = cyl(0.13, 0.15, 1.6, '#3a4152', { metalness: 0.8, roughness: 0.3 }, 12); barrel.rotation.x = Math.PI / 2; barrel.position.set(bx, 0, -2.4); fore.add(barrel);
-        const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.04, 6, 16), glowMat(paint.glow, 2.4)); muzzle.position.set(bx, 0, -3.2); fore.add(muzzle);
-        flashes.push(MuzzleFx.build(fore, bx));
-      }
-      // the flash's light: always in the scene at zero, so a shot never changes the light count
-      muzzleLight = new THREE.PointLight('#ffc070', 0, 13, 2); muzzleLight.position.set(0, 0.2, -3.8); fore.add(muzzleLight);
-    } else {
-      const podBox = rbox(1.1, 1.0, 1.9, 0.28, paint.armour); podBox.position.z = -0.7; fore.add(podBox);
-      for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
-        const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 12), glowMat('#ffd83d', 1.8));
-        tube.rotation.x = Math.PI / 2; tube.position.set(-0.24 + c * 0.48, -0.2 + r * 0.4, -1.66); fore.add(tube);
-      }
-    }
-    arms.push({ s, shoulder, arm, fore });
+    const shoulder = new THREE.Group(); shoulder.position.set(s * T.sock.mount[0], T.sock.mount[1], T.sock.mount[2]); torso.add(shoulder);
+    const A = AK.build(shoulder, s, paint, metal);
+    flashes.push(...A.flashes); muzzles.push(...A.muzzles); if (A.muzzleLight) muzzleLight = A.muzzleLight; if (A.pod) pod = A.pod;
+    arms.push({ s, shoulder, arm: A.arm, fore: A.fore });
   }
   root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
   // B2 paint roles, on every mesh: armour, trim, frame or dark by the colour it was built in, glow if it glows. G3 paint and
@@ -3555,11 +3875,15 @@ function buildMech(paint = PAINT, shape = 'walker', legN = null) {   // (#91: le
   });
   // G3 decal sockets: flat spots on the sections the chase camera sees (each side of the pilot's badge on the back
   // plate, the top of each shoulder pauldron). [parent group, position, rotation, size]
+  // (#42: each torso's and arm set's own spots, T.sock.decal and AK.sock.decal)
+  const TD = T.sock.decal, AD = AK.sock.decal;
   const sockets = [
-    ...[-1, 1].map((s) => [torso, [s * 1.0, 0.95, 1.725], [0, 0, 0], 0.68]),
-    ...arms.map((A) => [A.shoulder, [A.s * 0.2, 0.97, 0], [-Math.PI / 2, 0, 0], 0.82]),
+    ...[-1, 1].map((s) => [torso, [s * TD.x, TD.y, TD.z], [0, 0, 0], TD.size]),
+    ...arms.map((A) => [A.shoulder, [A.s * AD.x, AD.y, AD.z], [-Math.PI / 2, 0, 0], AD.size]),
   ];
   const md = { root, body, pelvis, torso, legs, arms, flashes, muzzleLight, lights, cockpit, canopy, ringGlow, skirt, chest, back, sockets };
+  // #42: the torso and arm shapes, their sockets, and the muzzles and the 🧲 pod (for look's world positions)
+  md.torsoShape = tk; md.armShape = ak; md.tsock = T.sock; md.asock = AK.sock; md.muzzles = muzzles; md.pod = pod;
   // B2: the leg piece: its shape, the legs that carry the G2 pieces (each with its sockets), and anything its motion turns
   md.legShape = kit; md.sockLegs = legs.filter((L) => L.sock); md.treads = legSet.treads || null;
   md.legCount = legs.length;   // #91: 2 (walker, hopper, tracks), 4 (the Spider) or 6 (its Mk II)
@@ -3843,6 +4167,38 @@ function legPiece(id) {
   pelvis.position.set(-mid.x, -mid.y, -mid.z);
   return { g, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5, set, K };   // (#89: set and K, for the build frame's spots and its moving)
 }
+// #42: a torso on its own (the 🦿 cards and the build frame), the same way: the torso shape's kit on its turret ring, in the
+// paint as built, centred. set.at = its anchors for the build's spots (BUILD_SPOTS: 'torso'); K.walk swings it once it's
+// moving. No lights (a piece has none).
+function torsoPiece(id) {
+  const g = new THREE.Group(), torso = new THREE.Group(); g.add(torso);
+  (TORSO_KITS[id] || TORSO_KITS.standard).build(torso, PAINT, { metalness: 0.55, roughness: 0.4 });
+  return centrePiece(g, torso, { torso }, (md, m, k) => { torso.rotation.y = k ? Math.sin(m.phase * 0.3) * 0.6 : 0; });
+}
+// #42: an arm set on its own: both arms on a shoulder bar (a stand-in for the torso), closer together than on the mech so the
+// piece is compact on a card and on the lift. set.at: 'L' / 'R' each forearm, 'Ls' / 'Rs' each shoulder; K.walk pitches them
+// once it's moving
+const ARMS_PIECE = { half: 1.6 };
+function armsPiece(id) {
+  const g = new THREE.Group(), base = new THREE.Group(); g.add(base);
+  const metal = { metalness: 0.55, roughness: 0.4 }, AK = ARM_KITS[id] || ARM_KITS.standard, at = {}, arms = [], M = ARMS_PIECE.half;
+  const bar = capsule(0.3, 2 * M, PAINT.dark, metal); bar.rotation.z = Math.PI / 2; base.add(bar);
+  for (const s of [-1, 1]) {
+    const sh = new THREE.Group(); sh.position.set(s * M, 0, 0); base.add(sh);
+    const A = AK.build(sh, s, PAINT, metal); at[s < 0 ? 'L' : 'R'] = A.fore; at[s < 0 ? 'Ls' : 'Rs'] = sh; arms.push([s, A.arm]);
+  }
+  return centrePiece(g, base, at, (md, m, k) => { for (const [s, arm] of arms) arm.rotation.x = k ? Math.sin(m.phase * 0.5 + (s > 0 ? 0 : Math.PI)) * 0.35 : 0; });
+}
+// (a piece's lights come off; it's centred on the origin; r = a radius that holds it)
+function centrePiece(g, inner, at, walk) {
+  const lights = []; g.traverse((o) => { if (o.isLight) lights.push(o); }); for (const L of lights) L.removeFromParent();
+  g.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(g), size = box.getSize(new V3()), mid = box.getCenter(new V3());
+  inner.position.set(-mid.x, -mid.y, -mid.z);
+  return { g, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5, set: { legs: [], at }, K: { walk } };
+}
+// #42: a build project's piece: a leg shape's legs (or the Mk II's), a torso, or an arm set
+function shapePiece(id) { const sec = secOfShape(id); return sec === 'torso' ? torsoPiece(id) : sec === 'arms' ? armsPiece(id) : legPiece(id); }
 
 // G3 paint. Paint goes through materials, not meshes: a mech owns one copy of each material its painted meshes
 // use (md.paintMats[role]: source material → its copy), and paintMech sets the role's colour on those copies.
@@ -4237,9 +4593,11 @@ const Body = {
       for (const m of Object.values(md.xMats)) set(m, 'envMap', advEnv());
     }
     if (T.legs === 4) for (const L of md.sockLegs) { const P = L.sock.piston; put('legs', P.p, X.piston, md.xMats.steel, P.x, P.y, P.z, P.rx); }   // (B2: each leg shape's piston socket)
-    if (T.arms === 4) for (const A of md.arms) put('arms', A.arm, X.armCable, md.xMats.cable, A.s * 0.3, 0, 0);
-    if (T.torso === 4) for (const s of [-1, 1]) put('torso', md.torso, X.ram, md.xMats.steel, s * 1.55, 0.2, -0.55, 0, s * 0.35);
-    if (T.core === 4) put('core', md.torso, X.backCable, md.xMats.cable, 0, 0, 0);
+    // (#42: in the arm set's and the torso's own sockets)
+    const AC = md.asock.cable, TR = md.tsock.tram, BC = md.tsock.backCable;
+    if (T.arms === 4) for (const A of md.arms) put('arms', A.arm, X.armCable, md.xMats.cable, A.s * AC[0], AC[1], AC[2]);
+    if (T.torso === 4) for (const s of [-1, 1]) put('torso', md.torso, X.ram, md.xMats.steel, s * TR.at[0], TR.at[1], TR.at[2], 0, s * TR.rz);
+    if (T.core === 4) put('core', md.torso, X.backCable, md.xMats.cable, ...BC);
     md.tierNow = { tiers: T, quality: this.quality() };
     return T;
   },
@@ -4327,15 +4685,16 @@ function dressUpgrades(md, lv, adv = {}) {
     for (const o of L.motor) grow(o, 1 + 0.16 * mo);
   }
   grow(md.skirt, 1 + 0.06 * a, 1 + 0.12 * a);
-  // 🛡️ plates bolted on, one set per level
-  if (a >= 1) put('plate', md.torso, rbox(2.2, 0.9, 0.3, 0.12, hex('armour'), metal), 0, 0.3, -1.66, 'chest').rotation.x = -0.25;
+  // 🛡️ plates bolted on, one set per level (#42: in the torso's and the arm set's own sockets, md.tsock / md.asock)
+  const TS = md.tsock, AS = md.asock, C = TS.chest, F = TS.flank, P = AS.plate;
+  if (a >= 1) put('plate', md.torso, rbox(...C.size, 0.12, hex('armour'), metal), ...C.at, 'chest').rotation.x = C.rx;
   for (const s of [-1, 1]) {
     // (#91: on every socket leg on this side: one a side on the walker, hopper and tracks, and the Spider's front pair, as
     // before; the Mk II's middle pair too)
     if (a >= 2) for (const L of md.sockLegs.filter((q) => q.s === s)) at('plate', 'plate', L, rbox(0.8, 1.1, 0.24, 0.1, hex('armour'), metal)).rotation.y = L.sock.plate.ry || 0;
     const A = md.arms.find((q) => q.s === s);
-    if (a >= 3 && A) put('plate', A.shoulder, rbox(1.25, 0.3, 1.5, 0.12, hex('armour'), metal), s * 0.25, 0.78, 0, 'shoulder');
-    if (a >= 4) put('plate', md.torso, rbox(0.26, 1.1, 1.7, 0.1, hex('armour'), metal), s * 2.05, 0.65, 0.1, 'flank');
+    if (a >= 3 && A) put('plate', A.shoulder, rbox(...P.size, 0.12, hex('armour'), metal), s * P.at[0], P.at[1], P.at[2], 'shoulder');
+    if (a >= 4) put('plate', md.torso, rbox(...F.size, 0.1, hex('armour'), metal), s * F.at[0], F.at[1], F.at[2], 'flank');
   }
   // ⚙️ a motor drum in each drum socket (the hips; the tracks' drive wheels), with a glowing band
   if (mo) for (const L of md.sockLegs) {
@@ -4344,10 +4703,10 @@ function dressUpgrades(md, lv, adv = {}) {
     put('band', D.p, new THREE.Mesh(new THREE.TorusGeometry(r, 0.05, 6, 24), glow(hex('motor'), 1.6)), x, D.y, D.z, 'drum').rotation.y = Math.PI / 2;
   }
   // 🔋 glowing cells on top of the back, between the exhaust stacks
-  for (let i = 0; i < b; i++) put('cell', md.torso, new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.8, 14), glow(hex('battery'), 2.2)), (i - (b - 1) / 2) * 0.42, 2.1, 1.1);
+  for (let i = 0; i < b; i++) put('cell', md.torso, new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.8, 14), glow(hex('battery'), 2.2)), (i - (b - 1) / 2) * TS.cell.gap, TS.cell.y, TS.cell.z);
   // 🔌 cable loops over the shoulders
   for (let i = 0; i < w; i++) for (const s of [-1, 1]) {
-    put('cable', md.torso, new THREE.Mesh(new THREE.TorusGeometry(0.85 - i * 0.2, 0.08 + 0.02 * i, 8, 24, Math.PI), glow(hex('wiring'), 0.8)), s * (1.45 - i * 0.3), 1.2, 0.5).rotation.y = Math.PI / 2;
+    put('cable', md.torso, new THREE.Mesh(new THREE.TorusGeometry(0.85 - i * 0.2, 0.08 + 0.02 * i, 8, 24, Math.PI), glow(hex('wiring'), 0.8)), s * (TS.cable.x - i * 0.3), TS.cable.y, TS.cable.z).rotation.y = Math.PI / 2;
   }
   // ➰ a coil spring in each spring socket (behind the shins; the tracks' suspension)
   if (sp) for (const L of md.sockLegs) {
@@ -4363,15 +4722,17 @@ function dressUpgrades(md, lv, adv = {}) {
   // 🚀 jet nozzles on the back, a flame under each (shown while the second jump burns)
   md.flames = [];
   if (adv.jets) for (const s of [-1, 1]) {
-    put('jet', md.torso, cyl(0.26, 0.36, 0.7, '#3a4157', metal, 16), s * 0.75, -0.2, 1.85);
-    const f = put('flame', md.torso, new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.6, 14), glow(ADVANCED[1].hex, 3)), s * 0.75, -1.35, 1.85);
+    const J = TS.jet;
+    put('jet', md.torso, cyl(0.26, 0.36, 0.7, '#3a4157', metal, 16), s * J.at[0], J.at[1], J.at[2]);
+    const f = put('flame', md.torso, new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.6, 14), glow(ADVANCED[1].hex, 3)), s * J.at[0], J.fy, J.at[2]);
     f.rotation.x = Math.PI; f.visible = false; md.flames.push(f);
   }
   // ⚡ the fusion core in the chest
   md.core = null;
   if (adv.fusion) {
-    md.core = put('core', md.torso, new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 14), glow(ADVANCED[2].hex, 3.2)), 0, 0.95, -1.78);
-    put('ring', md.torso, new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.08, 8, 28), mat('#b9c0cf', metal)), 0, 0.95, -1.74);
+    const K = TS.core;
+    md.core = put('core', md.torso, new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 14), glow(ADVANCED[2].hex, 3.2)), ...K.at);
+    put('ring', md.torso, new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.08, 8, 28), mat('#b9c0cf', metal)), K.at[0], K.at[1], K.ring);
   }
   // 🛡️ the shield bubble (no shadow; syncMechModel shows it while hits are left, brighter as it blocks one)
   md.bubble = null;
@@ -4386,6 +4747,22 @@ function dressUpgrades(md, lv, adv = {}) {
 }
 // what the upgrade pieces on model md are, read back from the model: how many of each kind are on it
 // (plate, drum, band, cell, cable, spring, ram, spike), the grown scales, and the glowing pieces it lights
+// #42: the torso and arm shapes on model md, read back from the model as it stands now (its matrices updated first): the
+// shapes; the decal spots (each one's world position, on the torso or a shoulder, shown or not); the world position of each
+// muzzle, each muzzle flash, the muzzle light, the 🧲 pod, the badge and the cockpit; and for player m, where each weapon's
+// rounds would start now (gunPose at the arm set's sockets: the cannon's two barrels, the rail gun, the 🧲 pod)
+function shapeLook(md, m) {
+  if (!md?.tsock) return null;
+  md.root.updateMatrixWorld(true);
+  const v = new V3(), wp = (o) => { o.getWorldPosition(v); return [r3(v.x), r3(v.y), r3(v.z)]; }, xyz = (g) => [r3(g.from.x), r3(g.from.y), r3(g.from.z)];
+  const planes = md.decals?.planes ?? [];
+  const S = m?.shot;
+  return { torsoShape: md.torsoShape, armShape: md.armShape,
+    decalSpots: planes.length ? planes.map((q) => ({ on: q.parent === md.torso ? 'torso' : 'shoulder', at: wp(q), shown: q.visible })) : md.sockets.map(([parent, pos]) => ({ on: parent === md.torso ? 'torso' : 'shoulder', at: null, shown: false, local: pos })),
+    muzzles: md.muzzles.map(wp), flashes: md.flashes.map((f) => wp(f.g)), muzzleLight: md.muzzleLight ? wp(md.muzzleLight) : null, pod: md.pod ? wp(md.pod) : null,
+    badge: md.pilot ? wp(md.pilot.badge) : null, cockpit: wp(md.cockpit),
+    shots: m && S ? { gun: [xyz(gunPose(m, S.gun - S.spread, S.y)), xyz(gunPose(m, S.gun + S.spread, S.y))], rail: xyz(gunPose(m, S.gun, S.y)), em: xyz(gunPose(m, -S.pod, S.podY)) } : null };
+}
 function upgradeLook(md) {
   if (!md?.up) return null;
   const kinds = {}; for (const o of md.up.meshes) if (o.parent) kinds[o.userData.upgrade] = (kinds[o.userData.upgrade] || 0) + 1;
@@ -4427,13 +4804,16 @@ function feetLook(md) {
 function applyUpgrades(opts = {}) {
   const h = Game.humans[0], m = h?.mech; if (!m) return null;
   const shape = Shapes.rec().legs, legN = Shapes.legCount();   // (#91: and the Spider's legs, 4 or 6)
-  if (m.model.legShape !== shape || (shape === 'spider' && m.model.legCount !== legN)) swapModel(h, shape, legN);
+  const tsh = Shapes.rec().torso, ash = Shapes.rec().arms;      // (#42: and the torso and arm shapes)
+  if (m.model.legShape !== shape || (shape === 'spider' && m.model.legCount !== legN) || m.model.torsoShape !== tsh || m.model.armShape !== ash) swapModel(h, shape, legN, tsh, ash);
   const fx = m.fx = shapeFx(shape, shape === 'spider' && legN === 6);
+  // #42: the torso's and the arm set's trade-offs (m.tfx, m.afx), and where the arm set's rounds start (m.shot)
+  const tfx = m.tfx = torsoFx(tsh), afx = m.afx = armFx(ash); m.shot = shotSock(tsh, ash);
   const lv = m.upg = upLevels(Garage.rec());
   const adv = m.adv = Object.fromEntries(ADVANCED.map((A) => [A.id, Garage.has(A.id)]));
   const who = Game.child?.id ?? null;
   if (!adv.shield) { m.shield = 0; m.shieldFor = null; } else if (m.shieldFor !== who) { m.shield = ADV.shield; m.shieldFor = who; }
-  const max = MECH_HEALTH + UPGRADE.energy * lv.armour + (adv.chrome ? ADV.energy : 0) + fx.energy, d = max - m.maxHealth;
+  const max = MECH_HEALTH + UPGRADE.energy * lv.armour + (adv.chrome ? ADV.energy : 0) + fx.energy + tfx.energy, d = max - m.maxHealth;   // (#42: the torso's energy too)
   if (d) {
     m.maxHealth = max;
     if (m.state === 'down') m.damage.hull = Math.max(0, m.damage.hull + d);
@@ -4445,8 +4825,9 @@ function applyUpgrades(opts = {}) {
       for (const k of AREAS) { const cut = Math.min(m.damage[k], Math.max(0, over)); m.damage[k] -= cut; over -= cut; }
     }
   }
-  m.spec = lv.motor || shape !== 'walker' ? { ...MECH, topSpeed: MECH.topSpeed * (1 + UPGRADE.speed * lv.motor) * fx.topSpeed, accel: MECH.accel * fx.accel,
-    legTurn: MECH.legTurn * fx.legTurn, turnSlow: fx.turnSlow } : undefined;
+  // (#42: the torso's top speed and torso swing too)
+  m.spec = lv.motor || shape !== 'walker' || tsh !== 'standard' ? { ...MECH, topSpeed: MECH.topSpeed * (1 + UPGRADE.speed * lv.motor) * fx.topSpeed * tfx.topSpeed, accel: MECH.accel * fx.accel,
+    legTurn: MECH.legTurn * fx.legTurn, turnSlow: fx.turnSlow, torsoTurn: MECH.torsoTurn * tfx.torsoTurn } : undefined;
   dressUpgrades(m.model, lv, adv);
   m.model.finish = adv.gold ? 'gold' : adv.chrome ? 'chrome' : null;
   paintMech(m.model, Garage.paintNow());   // G3: and their paint (G4: in its finish)
@@ -4455,8 +4836,8 @@ function applyUpgrades(opts = {}) {
 }
 // B2: put leg shape `shape` on player h's mech: a whole new model (buildMech), so the paint, finish, tiers, lights and decals
 // are all made afresh for it by applyUpgrades. The 💤 sprite and the pilot move over; the old model's own geometry is freed.
-function swapModel(h, shape, legN = null) {
-  const m = h.mech, old = m.model, md = buildMech(PAINT, shape, legN);
+function swapModel(h, shape, legN = null, torsoShape = 'standard', armShape = 'standard') {   // (#42: and the torso and arms)
+  const m = h.mech, old = m.model, md = buildMech(PAINT, shape, legN, torsoShape, armShape);
   scene.remove(old.root); scene.add(md.root);
   if (old.icon) { md.root.add(old.icon); md.icon = old.icon; }
   m.model = md;
@@ -4477,10 +4858,13 @@ const Shapes = {
   open(S) { return !S.part || this.rec().unlocked.includes(S.id); },
   // (#89: have / need are the old trophy-count rule's, kept for the one-time latch; build = how far its build project has got)
   offer() { return Object.fromEntries(LEG_SHAPES.map((S) => [S.id, { unlocked: this.open(S), have: this.have(S), need: S.need, part: S.part, build: S.part ? Builds.brief(S.id) : null }])); },
+  // #42: the torso's or the arms' shapes the same way (no trophy count: built only)
+  offerOf(sec) { return sec === 'legs' ? this.offer() : Object.fromEntries(BODY_SHAPES[sec].map((S) => [S.id, { unlocked: this.open(S), part: S.part, build: S.part ? Builds.brief(S.id) : null }])); },
   // #89: builds = whoever is playing's build projects as saved ({ [shape]: { parts, step } }), trophyLatch = the one-time latch done
   // #91: mk2 = the Spider Mk II: open (its blueprint shows: the Spider is built), built, on (the Spider wears 6 legs; it
   // counts whichever legs are equipped), legs (4 or 6, as saved) and its build's brief
-  status() { const b = this.rec(); return { equipped: { legs: b.legs, torso: b.torso, arms: b.arms }, unlocked: b.unlocked.slice(), offer: this.offer(), builds: JSON.parse(JSON.stringify(b.builds)), trophyLatch: !!b.trophyLatch,
+  // #42: torso / arms = those sections' offers (offerOf)
+  status() { const b = this.rec(); return { equipped: { legs: b.legs, torso: b.torso, arms: b.arms }, unlocked: b.unlocked.slice(), offer: this.offer(), torso: this.offerOf('torso'), arms: this.offerOf('arms'), builds: JSON.parse(JSON.stringify(b.builds)), trophyLatch: !!b.trophyLatch,
     mk2: { open: this.open(legShapeOf('spider')), built: upBuilt(b, 'mk2'), on: b.spiderLegs === 6, legs: b.spiderLegs, wearing: b.legs === 'spider' ? b.spiderLegs : null, build: Builds.brief('mk2') } }; },
   // #91: how many legs the Spider wears (4, or 6 once its Mk II is built and switched on)
   legCount() { return this.rec().spiderLegs; },
@@ -4501,21 +4885,23 @@ const Shapes = {
   },
   // put shape `shape` (an id, icon or name) on section `section` ('legs' | 'torso' | 'arms'). Refused, with nothing changed:
   // why 'no such shape' (or section), or 'locked' with what unlocking it needs (have / need of its part)
+  // #42: the torso and arms too (by id, icon, name or alias: 'dome', 'cannon'); a torso or arm shape not built yet is 'locked'
+  // with its build's brief, as a leg shape is
   equip(section, shape) {
     const list = BODY_SHAPES[section];
-    const S = section === 'legs' ? legShapeOf(shape) : list?.find((q) => q.id === String(shape ?? '').toLowerCase() || q.icon === shape) ?? null;
+    const S = list ? shapeOf(section, shape) : null;
     let res = null;
     if (!list || !S) res = { ok: false, why: 'no such shape', section, shape };
-    else if (section === 'legs' && !this.open(S)) res = { ok: false, why: 'locked', section, shape: S.id, part: S.part, have: this.have(S), need: S.need, build: Builds.brief(S.id) };
+    else if (!this.open(S)) res = { ok: false, why: 'locked', section, shape: S.id, part: S.part, ...(section === 'legs' ? { have: this.have(S), need: S.need } : {}), build: Builds.brief(S.id) };
     if (res) {
       if (!Game.manual) Sfx.buzz();
-      if (S) Garage.flash(null, 'bad', `.lcard[data-shape="${S.id}"]`);
+      if (S) Garage.flash(null, 'bad', `.lcard[data-sec="${section}"][data-shape="${S.id}"]`);
       return res;
     }
     const b = this.rec(), was = b[section];
     b[section] = S.id; Facts.save();
-    applyUpgrades({ swap: section === 'legs' });
-    if (Garage.on) { Garage.dress(); Garage.draw(); Garage.flash(null, 'got', `.lcard[data-shape="${S.id}"]`); }
+    applyUpgrades({ swap: true });   // (#42: a torso swap keeps the damage taken too, as a leg swap does; arms don't change energy)
+    if (Garage.on) { Garage.dress(); Garage.draw(); Garage.flash(null, 'got', `.lcard[data-sec="${section}"][data-shape="${S.id}"]`); }
     if (!Game.manual && was !== S.id) { Sfx.mendParts(); Sfx.tone(392, 0.12, 'square', 0.06, 784, 0.25); }
     return { ok: true, section, shape: S.id, was };
   },
@@ -4700,7 +5086,7 @@ const Builds = {
     else if (!b.unlocked.includes(id)) b.unlocked.push(id);
     bodyRec(Garage.rec()); Facts.save();
     if (Garage.on) Garage.cheerBuild(id);
-    Shapes.equip('legs', U ? U.of : id);
+    Shapes.equip(U ? 'legs' : secOfShape(id) ?? 'legs', U ? U.of : id);   // (#42: a torso or arm shape goes on its own section)
     return true;
   },
 };
@@ -4835,9 +5221,62 @@ const BUILD_JOBS = {
     wrong: (Bd) => { const i = Bd.plugs.findIndex((p, k) => Bd.links[k] < 0 && p.want === 1); return i >= 0 ? [i, 0] : null; },   // (a middle one on battery 1: over)
     sum: (Bd, j) => Bd.plugs.reduce((s, p, k) => s + (Bd.links[k] === j ? p.load : 0), 0),
     ideaPort: (q, j, Bd) => ({ target: q.target, load: BUILD_JOBS.balance.sum(Bd, j) }) },
+  // #42 Long barrels: line up the sights. Three scopes, each sighting along a line at its height (1–3); the target is at one
+  // height. The right scope is the one on the target's line, so the barrel and the scope point along one line to it.
+  sights: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'scope', 'target'), miss: (p, q) => (p.stiff > q.height ? 'high' : 'low'),
+    idea: (p) => ({ line: p.stiff }), ideaPort: (q) => ({ line: q.height }) },
+  // #42 Heavy fists: hydraulic pressure. A bigger piston (1–3) pushes harder but moves slower; the load needs so much push.
+  // The right piston is the smallest strong enough (as fast as it can be): smaller is 'weak', bigger is 'slow'.
+  pressure: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'piston', 'load'), miss: (p, q) => (p.stiff < q.height ? 'weak' : 'slow'),
+    idea: (p) => ({ size: p.stiff, push: p.stiff, speed: 4 - p.stiff }), ideaPort: (q) => ({ load: q.height }) },
+  // #42 Heavy fists: wire each fist's two valves (its push valve and its return valve; left, then right) to the pump
+  valves: { rounds: 1, deal: (mode) => wireBoard(mode, 4, (i) => ({ what: 'valve', side: i % 2 ? 1 : -1, valve: i < 2 ? 'push' : 'return' }), () => ({ what: 'pump' })),
+    miss: () => 'wrong', idea: (p) => ({ valve: p.valve }) },
+  // #42 Wedge: pair the rotors. One rotor spins one way (spin 1 clockwise, -1 the other way) at a speed (1–3); of three, the
+  // right one spins the other way at the same speed, so the two twists cancel and the torso holds still. One spins the same
+  // way ('twist': both twist the torso round); one spins the other way but not as fast ('drift': it still turns, slowly).
+  // In math wiring the spinning rotor shows the right one's answer; in colour wiring the right one wears its colour.
+  rotors: { rounds: BUILD.rounds,
+    deal(mode, r, ctx) {
+      let v; do v = 1 + Math.floor(Math.random() * 3); while (v === ctx.last); ctx.last = v;
+      const d = r === 0 ? (Math.random() < 0.5 ? 1 : -1) : -ctx.dir; ctx.dir = d;
+      const v2 = [1, 2, 3].filter((x) => x !== v)[Math.floor(Math.random() * 2)];
+      const kinds = shuffle([{ spin: -d, speed: v, want: 0 }, { spin: d, speed: v, want: -1 }, { spin: -d, speed: v2, want: -1 }]);
+      const facts = mode === 'math' ? jobFacts(3) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3), k = kinds.findIndex((p) => p.want === 0);
+      return { plugs: kinds.map((p, i) => ({ what: 'rotor', ...p, fact: facts?.[i] ?? null, col: cols[i] })),
+        ports: [{ what: 'spin', spin: d, speed: v, answer: facts ? facts[k].answer : null, col: cols[k] }], links: [-1, -1, -1] };
+    },
+    miss: (p, q) => (p.spin === q.spin ? 'twist' : 'drift'), wrong: (Bd) => { const i = Bd.plugs.findIndex((p) => p.spin === Bd.ports[0].spin); return i >= 0 ? [i, 0] : null; },
+    idea: (p) => ({ spin: p.spin, speed: p.speed }), ideaPort: (q) => ({ spin: q.spin, speed: q.speed }) },
+  // #42 Wedge: trim for a level hover. The drone leans to one side by so much (1–3; round 1 the left, round 2 the right);
+  // the right trim weight (1–3) on the other side is as heavy as the lean: too heavy tips it 'over', too light leaves it 'under'
+  trim: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'trim', 'tilt', { side: r ? 1 : -1 }), miss: (p, q) => (p.stiff > q.height ? 'over' : 'under'),
+    idea: (p) => ({ weight: p.stiff }), ideaPort: (q) => ({ lean: q.height }) },
+  // #42 Brute: spread the armour's weight. Four plates' weights shared between the front and the back so each end carries
+  // half and the centre of mass sits over the legs: the balance job's board, with plates for motors and the ends for
+  // batteries (the heaviest is on the front already)
+  spread: { rounds: 1,
+    deal(mode) { const Bd = BUILD_JOBS.balance.deal(mode, 0, {}); for (const p of Bd.plugs) { p.what = 'plate'; p.plate = p.leg; delete p.leg; } for (const q of Bd.ports) q.what = 'end'; return Bd; },
+    miss: (p, q, Bd, j) => BUILD_JOBS.balance.miss(p, q, Bd, j), wrong: (Bd) => BUILD_JOBS.balance.wrong(Bd),
+    idea: (p) => ({ plate: p.plate }), ideaPort: (q, j, Bd) => ({ end: j ? 'back' : 'front', ...BUILD_JOBS.balance.ideaPort(q, j, Bd) }) },
+  // #42 Brute: weld the plates in order. A plate's four seams (0 top, 1 right, 2 bottom, 3 left); one is welded. Weld the
+  // one across from it next, so the heat pulls both sides the same: a seam beside it 'warp's the plate. Round 2 asks about
+  // the other pair (top and bottom, or left and right).
+  weld: { rounds: BUILD.rounds,
+    deal(mode, r, ctx) {
+      const pair = r === 0 ? Math.floor(Math.random() * 2) : 1 - ctx.pair; ctx.pair = pair;
+      const given = pair + (Math.random() < 0.5 ? 0 : 2), opp = (given + 2) % 4, others = shuffle([0, 1, 2, 3].filter((x) => x !== given));
+      const facts = mode === 'math' ? jobFacts(3) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3), k = others.indexOf(opp);
+      return { plugs: others.map((x, i) => ({ what: 'seam', seam: x, want: x === opp ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] })),
+        ports: [{ what: 'welded', seam: given, answer: facts ? facts[k].answer : null, col: cols[k] }], links: [-1, -1, -1] };
+    },
+    miss: () => 'warp', idea: (p) => ({ seam: SEAMS[p.seam] }), ideaPort: (q) => ({ seam: SEAMS[q.seam] }) },
 };
+const SEAMS = ['top', 'right', 'bottom', 'left'];   // (#42: a plate's seams, in order round it)
 // what mech m's kick does: the base kick × the 🐏 ram plate's levels × the leg shape (the tracks' blade shove does the same)
 const kickDmg = (m) => WEAPON.kick.dmg * (1 + UPGRADE.kick * (m?.upg?.ram || 0)) * (m?.fx?.kick ?? 1);
+// #42: what mech m's punch does: the base punch × the arm set's (Heavy fists hit harder, Long barrels softer)
+const punchDmg = (m) => (m?.afx && m.afx.punch !== 1 ? WEAPON.punch.dmg * m.afx.punch : WEAPON.punch.dmg);
 // G4 gold plating: every squadmate glows gold while whoever is playing has it; otherwise its own colour again (kept in
 // r.ownGlow). Only the glow colour: a squadmate's r.gold (a fast fix, with its extra energy) is its own and untouched.
 function squadGlow() {
@@ -4849,7 +5288,8 @@ function squadGlow() {
   }
 }
 // G2 power cells and G4's fusion core: how fast mech m's weapon cooldowns run down (1 = as built)
-const rechargeOf = (m) => 1 + UPGRADE.recharge * (m?.upg?.battery || 0) + (m?.adv?.fusion ? ADV.recharge : 0);
+// #42: w = the weapon whose cooldown it is: × the arm set's recharge for it (the Heavy fists' cannon and 🧲 pod, 10% slower)
+const rechargeOf = (m, w) => { const r = 1 + UPGRADE.recharge * (m?.upg?.battery || 0) + (m?.adv?.fusion ? ADV.recharge : 0), k = w && m?.afx?.recharge?.[w]; return k && k !== 1 ? r * k : r; };
 // G2 spring legs: player h's mech jumps (C, L, a stick pressed in, or __rb.jump). Refused without spring legs,
 // powered down, or already in the air
 function jumpMech(h) {
@@ -4909,7 +5349,7 @@ function setPilot(h, P) {
     const visor = new THREE.Mesh(new THREE.SphereGeometry(0.43, 18, 8, Math.PI * 0.65, Math.PI * 0.7, Math.PI * 0.35, Math.PI * 0.25), new THREE.MeshStandardMaterial({ color: '#0b1020', emissive: '#ffffff', emissiveIntensity: 0.6, roughness: 0.1 })); visor.position.y = 0.3; fig.add(visor);
     const shoulders = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.5, 4, 8), new THREE.MeshStandardMaterial({ roughness: 0.6 })); shoulders.rotation.z = Math.PI / 2; shoulders.position.y = -0.18; fig.add(shoulders);
     const badge = new THREE.Mesh(new THREE.CircleGeometry(0.62, 32), new THREE.MeshBasicMaterial({ transparent: true, toneMapped: false }));
-    badge.position.set(0, 0.95, 1.72); md.torso.add(badge);                                   // on the back armour, facing the camera
+    badge.position.set(...md.tsock.badge); md.torso.add(badge);                               // on the back armour, facing the camera (#42: the torso's own place)
     md.lights.push({ mat: visor.material, k: visor.material.emissiveIntensity });             // so it goes dark when the mech powers down
     md.pilot = { fig, helmet, visor, shoulders, badge };
   }
@@ -5046,8 +5486,8 @@ function syncMechModel(m) {
     if (icon) { md.icon.material.map = iconTex(icon); md.icon.position.y = 10.2 + Math.sin(Game.ticks / 10) * 0.2; }
   }
   // The cannon arm kicks back and up on each round; the flash sits on the barrel that fired
-  const R = md.arms.find((a) => a.s > 0), rc = m.recoil || 0;
-  R.fore.position.z = rc * 0.55; R.arm.rotation.x = m.aimPitch + rc * 0.09;
+  const R = md.arms.find((a) => a.s > 0), rc = m.recoil || 0, RC = md.asock.recoil;   // (#42: as far as the arm set kicks)
+  R.fore.position.z = rc * RC.z; R.arm.rotation.x = m.aimPitch + rc * RC.pitch;
   const fl = m.flash > 0 ? m.flash / MUZZLE.flash : 0;
   md.flashes.forEach((f, k) => MuzzleFx.show(f, k === (m.barrel ? 1 : 0) ? fl : 0));
   if (md.muzzleLight) md.muzzleLight.intensity = fl * MUZZLE.light + (m.charge ? 12 * m.charge.t / WEAPON.rail.charge : 0);   // the rail gun glows as it charges
@@ -5058,8 +5498,8 @@ function syncMechModel(m) {
     const W = WEAPON[sw.w];
     const e = sw.t < W.strike ? -0.35 * (sw.t / W.strike) : 1 - Math.pow(clamp((sw.t - W.strike) / (W.dur - W.strike), 0, 1), 2);
     if (sw.w === 'punch') {
-      const A = md.arms.find((a) => a.s < 0);
-      A.arm.rotation.x = m.aimPitch + e * 1.45; A.fore.position.z = -Math.max(0, e) * 0.9;
+      const A = md.arms.find((a) => a.s < 0), PU = md.asock.punch;   // (#42: as far as the arm set throws it)
+      A.arm.rotation.x = m.aimPitch + e * PU.pitch; A.fore.position.z = -Math.max(0, e) * PU.reach;
       md.torso.rotation.y += e * 0.18;
     } else K.kick(md, e);   // B2: the leg piece's kick (the tracks' blade shove)
   }
@@ -5362,9 +5802,11 @@ const Bullets = {
   // kind: 'gun' (a player's cannon) | 'em' (a player's electromagnetic pulse) | 'snipe' (a Sniper's rifle);
   // dmg defaults to the kind's
   // range: how far it flies (its kind's range if left out; G3: a squadmate Sniper's boosted rifle reaches further)
-  fire(from, dir, owner, kind = 'gun', dmg, range) {
-    const W = WEAPON[kind] || ROBOT_HITS[kind], foe = !!owner?.type && owner.state === 'glitched';
-    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(W.speed), d: 0, owner, kind, foe, spd: W.speed, range: range ?? W.range, dmg: dmg ?? W.dmg, look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
+  // speed: how fast it flies (its kind's if left out; #42: the Long barrels' rounds fly faster)
+  fire(from, dir, owner, kind = 'gun', dmg, range, speed) {
+    const W = WEAPON[kind] || ROBOT_HITS[kind], foe = !!owner?.type && owner.state === 'glitched', spd = speed ?? W.speed;
+    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(spd), d: 0, owner, kind, foe, spd, range: range ?? W.range, dmg: dmg ?? W.dmg, look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
+    if (owner?.human) owner.lastShot = { kind, from: [r3(from.x), r3(from.y), r3(from.z)], speed: spd, range: range ?? W.range, tick: Game.ticks };   // (#42: for the hooks)
     if (this.list.length > this.pool.length) this.list.shift();
   },
   tick(dt) {
@@ -5469,10 +5911,10 @@ const MuzzleFx = {
       g.fillStyle = gr; g.beginPath(); g.moveTo(14, 64); g.quadraticCurveTo(26, 20, 32, 0); g.quadraticCurveTo(38, 20, 50, 64); g.fill();
     });
   },
-  build(fore, bx) {
+  build(fore, bx, z = -3.3, y = 0) {   // (#42: at each arm set's own muzzle, z ahead and y up in the forearm)
     this.tex();
     const add = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false };
-    const g = new THREE.Group(); g.position.set(bx, 0, -3.3); g.visible = false; fore.add(g);
+    const g = new THREE.Group(); g.position.set(bx, y, z); g.visible = false; fore.add(g);
     // the star skips the depth test: from the chase camera the arm itself hides the barrel's tip,
     // so the flash has to glow past the player's own shoulder to be seen at all
     const star = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.star, color: new THREE.Color(2.4, 1.9, 1.2), ...add, depthTest: false })); g.add(star);
@@ -5692,7 +6134,7 @@ const RailFx = {
 function startAttack(m, w) {
   const W = WEAPON[w]; if (!W || m.state === 'down') return false;   // a powered-down mech can't fire
   if (!Game.unlocked.has(w)) return false;                          // a locked weapon can't fire
-  m.cool = W.cool;
+  m.cool = W.cool; m.coolW = w;   // (#42: whose cooldown it is, for its recharge)
   if (w === 'gun') {
     shoot(m);
     // held fire comes in bursts: after `burst` rounds the cannon rests
@@ -5707,7 +6149,7 @@ function startAttack(m, w) {
 }
 function combatTick(m, dt) {
   // G2 power cells: the cooldown runs down 10% faster a level
-  m.cool = Math.max(0, m.cool - dt * rechargeOf(m));   // (G4: and the fusion core's 20%)
+  m.cool = Math.max(0, m.cool - dt * rechargeOf(m, m.coolW));   // (G4: and the fusion core's 20%; #42: and the arm set's, for that weapon)
   m.flash = Math.max(0, (m.flash || 0) - dt);
   m.recoil = Math.max(0, (m.recoil || 0) - dt / MUZZLE.recoil);
   // letting go mid-burst still owes that burst's share of the rest, so tapping isn't faster than holding
@@ -5727,10 +6169,11 @@ function combatTick(m, dt) {
   }
   if (m.input.attack && m.cool <= 0 && !m.swing && !m.charge) startAttack(m, m.input.weapon);
 }
-// The cannon's shoulder, facing and side vectors (side: + right arm, - left arm)
-function gunPose(m, side = 2.4) {
+// The cannon's shoulder, facing and side vectors (side: + right arm, - left arm). #42: y = how high (each arm set's sockets,
+// m.shot: shotSock; the Cannon's are 2.4 out and 4.4 up, as ever)
+function gunPose(m, side = m.shot?.gun ?? 2.4, y = m.shot?.y ?? 4.4) {
   const yaw = m.torsoYaw, fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
-  const from = new V3(m.pos.x + rx * side + fx * 0.5, m.pos.y + 4.4, m.pos.z + rz * side + fz * 0.5);
+  const from = new V3(m.pos.x + rx * side + fx * 0.5, m.pos.y + y, m.pos.z + rz * side + fz * 0.5);
   return { from, f: new V3(fx, 0, fz), rx, rz, fx, fz, yaw };
 }
 // Where a shot from `from` goes: along the torso aim, locked onto a glitched robot close to
@@ -5761,10 +6204,12 @@ function aimDir(m, from, range, props = true) {
 }
 // The cannon sits on the right arm. The shot starts at the shoulder (so a
 // point-blank shot still sweeps through a robot in its face).
+// #42: from the arm set's barrel that fired (m.shot), as far (and its lock-on as far) and as fast as the arm set sends it
 function shoot(m) {
   m.barrel = (m.barrel || 0) ^ 1;
-  const { from, rx, rz, fx, fz } = gunPose(m, 2.4 + (m.barrel ? 0.2 : -0.2));
-  Bullets.fire(from, aimDir(m, from, WEAPON.gun.range), m);
+  const S = m.shot ?? { gun: 2.4, spread: 0.2, y: 4.4 }, A = m.afx, range = A && A.gunRange !== 1 ? WEAPON.gun.range * A.gunRange : WEAPON.gun.range;
+  const { from, rx, rz, fx, fz } = gunPose(m, S.gun + (m.barrel ? S.spread : -S.spread), S.y);
+  Bullets.fire(from, aimDir(m, from, range), m, 'gun', undefined, range, A && A.roundSpeed !== 1 ? WEAPON.gun.speed * A.roundSpeed : undefined);
   m.flash = MUZZLE.flash; m.recoil = 1;
   Impacts.eject(from, rx, rz, fx, fz);
   m.human?.rig.recoil(MUZZLE.camKick); m.human?.rig.kick(0.1);
@@ -5772,7 +6217,7 @@ function shoot(m) {
 }
 // The electromagnetic pulse leaves the left-arm pod: a crackling ball (Bullets 'em', drawn by Pulses)
 function emPulse(m) {
-  const { from } = gunPose(m, -2.4), dir = aimDir(m, from, WEAPON.em.range, false);
+  const { from } = gunPose(m, -(m.shot?.pod ?? 2.4), m.shot?.podY ?? 4.4), dir = aimDir(m, from, WEAPON.em.range, false);   // (#42: the arm set's 🧲 pod)
   Bullets.fire(from, dir, m, 'em');
   const p = from.clone().addScaledVector(dir, 2.4); Sparks.burst(p.x, p.y, p.z, 10, SPARK_ZAP, 4);
   m.human?.rig.kick(0.12);
@@ -5813,6 +6258,7 @@ function railShot(m) {
   if (land?.o && m.human) Props.hit(land.o.prop, W.dmg, 'rail', dir.x, dir.z);   // the prop that stopped it takes the shot
   RailFx.fire(from.clone().addScaledVector(dir, 3.2), end);
   Game.lastRail = { hits: hits.map((q) => q.r.id), len: Math.round(len * 10) / 10, end: land ? land.kind : 'range' };
+  if (m.human) m.lastShot = { kind: 'rail', from: [r3(from.x), r3(from.y), r3(from.z)], speed: null, range: W.range, tick: Game.ticks };   // (#42: for the hooks)
   m.flash = MUZZLE.flash * 2; m.recoil = 1;
   m.human?.rig.recoil(1); m.human?.rig.kick(0.6);
   if (!Game.manual) Sfx.rail();
@@ -5820,7 +6266,8 @@ function railShot(m) {
 function meleeStrike(m, w) {
   const W = WEAPON[w], face = w === 'kick' ? m.legHeading : m.torsoYaw;
   // G2 ram plate: the kick does 25% more a level (robots and props alike)
-  const dmg = w === 'kick' ? kickDmg(m) : W.dmg;   // (B2: × the leg shape's kick)
+  const dmg = w === 'kick' ? kickDmg(m) : w === 'punch' ? punchDmg(m) : W.dmg;   // (B2: × the leg shape's kick; #42: × the arm set's punch)
+  const push = w === 'punch' && m.afx && m.afx.punchPush !== 1 ? m.afx.punchPush : undefined;
   let any = false;
   for (const r of Game.robots) {
     if (r.state === 'ally') continue;
@@ -5828,7 +6275,7 @@ function meleeStrike(m, w) {
     if (d > MECH.radius + r.spec.radius + W.reach) continue;
     if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
     const at = new V3(r.pos.x - dx / d * r.spec.radius, r.pos.y + T.hitY * (w === 'kick' ? 0.6 : 1.1), r.pos.z - dz / d * r.spec.radius);
-    hitRobot(r, dmg, w, dx, dz, at); any = true;
+    hitRobot(r, dmg, w, dx, dz, at, push); any = true;
   }
   // and any tree, rock or fence within reach and in the arc (a prop counts once, however many circles it has)
   for (const p of Props.list) {
@@ -5849,10 +6296,12 @@ function meleeStrike(m, w) {
 // A real hit from a weapon: counts it, knocks the robot back, throws sparks, then hurts it
 // w is a WEAPON key, or a ROBOT_HITS key when a squadmate lands it ('snipe', 'stomp').
 // An electromagnetic hit also loads shock; enough shock shuts the robot down (shockRobot).
-function hitRobot(r, dmg, w, dx, dz, at) {
-  const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe' || w === 'rail';
+// (#42: pushK × its knock-back: the Heavy fists' punch)
+function hitRobot(r, dmg, w, dx, dz, at, pushK) {
+  const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe' || w === 'rail', P = pushK ? W.push * pushK : W.push;
   r.hits[w] = (r.hits[w] || 0) + 1;
-  r.push.x += dx / L * W.push; r.push.z += dz / L * W.push;
+  r.push.x += dx / L * P; r.push.z += dz / L * P;
+  r.lastPush = P;   // (#42: for the hooks)
   // a round only warms the armour a little, so a burst can't wash out the glitch flicker
   r.hitFlash = round || w === 'em' ? Math.min(0.45, r.hitFlash + 0.2) : 1;
   const k = loud(r.pos);
@@ -9051,6 +9500,7 @@ const Garage = {
     this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {}; this.cur = 0; this.scur = 0; this.prow = 0;
     this.bp = null; this.bpick = null; this.bcur = 0; this.bsel = -1;   // #89: the cards first
     this.lcur = Math.max(0, this.legOpts().indexOf(Shapes.rec().legs));   // B2: the 🦿 pick starts on the legs on now
+    $('gWall').scrollTop = 0;   // (#42: the 🦿 wall scrolls; it opens at the top)
     document.body.classList.add('garage'); $('garage').classList.add('on');
     this.build(); this.dress();
     Adv.toastStop();
@@ -9076,19 +9526,23 @@ const Garage = {
   setTab(t) {
     const T = GARAGE_TABS.find((x) => x.id === t || x.icon === t) || GARAGE_TABS[t];
     if (!T) return { ok: false, why: 'no such tab' };
-    if (this.tab !== T.id) { this.dragEnd(); this.tab = T.id; this.drawn = {}; this.draw(); if (!Game.manual) Sfx.click(); }
+    if (this.tab !== T.id) { this.dragEnd(); this.tab = T.id; this.drawn = {}; $('gWall').scrollTop = 0; this.lreveal = T.id === 'body'; this.draw(); if (!Game.manual) Sfx.click(); }   // (#42: the 🦿 wall scrolls: a tab starts at its top)
     return { ok: true, tab: T.id, locked: !!T.locked };
   },
   step(d) { const i = GARAGE_TABS.findIndex((x) => x.id === this.tab), n = GARAGE_TABS.length; return this.setTab(GARAGE_TABS[(i + d + n) % n].id); },
   // keys while it's open go to it alone: Esc / G close, ◀ ▶ (A D, Q E) or 1–5 pick a tab; on 🦾, ▲ ▼ (W S) move
-  // (B2: on 🦿, ▲ ▼ move between the leg shapes and Enter / Space equips the one picked)
+  // (B2: on 🦿, ▲ ▼ move between the leg shapes and Enter / Space equips the one picked; #42: there, ▲ ▼ go between the
+  // legs', torso's and arms' rows and ◀ ▶ (A D) along a row, so only Q E and 1–5 pick a tab)
   // between the upgrades and Enter / Space buys the one picked. Tab, and Enter / Space on a focused button, stay
   // the browser's (so they click)
   key(e) {
     if (e.code === 'Tab' || (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
     if (e.repeat) return 'used';
     const picks = this.tab !== 'trophies';   // (the 🏆 wall has nothing to pick; B2: on 🦿, the leg shapes)
-    if (picks && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
+    const rows = this.tab === 'body' && !this.bp;   // #42: the 🦿 cards are three rows: ▲ ▼ (W S) go between them, ◀ ▶ (A D) along one; Q E still pick a tab
+    if (rows && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.moveRow(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
+    else if (rows && ['ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD'].includes(e.code)) this.move(e.code === 'ArrowLeft' || e.code === 'KeyA' ? -1 : 1);
+    else if (picks && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
     else if (picks && (e.code === 'Enter' || e.code === 'Space')) this.act();
     else if (e.code === 'Escape' && this.tab === 'body' && this.bp) this.back();   // #89: Esc backs out of a blueprint a step at a time
     else if (e.code === 'Escape' || e.code === 'KeyG') this.close();
@@ -9098,12 +9552,19 @@ const Garage = {
     return 'used';
   },
   // the gamepad: ◀ ▶ or LB / RB pick a tab; on 🦾 / 🤖, ▲ ▼ move between the upgrades and A buys; on 🦿 (B2), ▲ ▼ move
-  // between the leg shapes and A equips; on 🎨, ▲ ▼ pick
+  // between the leg shapes and A equips (#42: ▲ ▼ between the rows, ◀ ▶ along one, LB / RB for a tab); on 🎨, ▲ ▼ pick
   // a row and A puts on its next colour or decal; B, X or Start closes
   pad(pad) {
     if (!pad) return;
-    if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
-    if (this.tab !== 'trophies') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
+    // #42: on the 🦿 cards ▲ ▼ go between the three rows and ◀ ▶ along one (LB / RB still pick a tab)
+    if (this.tab === 'body' && !this.bp && (pad.leftP || pad.rightP || pad.upP || pad.downP)) {
+      if (pad.upP || pad.downP) this.moveRow(pad.downP ? 1 : -1); else this.move(pad.rightP ? 1 : -1);
+      if (pad.lbP) this.step(-1); else if (pad.rbP) this.step(1);
+      if (pad.aP && this.tab === 'body') this.act();
+    } else {
+      if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
+      if (this.tab !== 'trophies') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
+    }
     if (pad.bP && this.tab === 'body' && this.bp) this.back();   // #89: B backs out of a blueprint a step at a time
     else if (pad.bP || pad.xP || pad.startP) this.close();
   },
@@ -9114,7 +9575,10 @@ const Garage = {
     if (this.tab === 'squad') { const o = this.squadOptions(); this.scur = wrap(this.scur, o.length); out = o[this.scur] ? o[this.scur].id + ':' + o[this.scur].up : null; }
     else if (this.tab === 'paint') { this.prow = wrap(this.prow, 3); out = ['body', 'trim', 'decal'][this.prow]; }
     else if (this.tab === 'body' && this.bp) { const o = this.buildOptions(); this.bcur = wrap(this.bcur, o.length); out = o[this.bcur] ?? null; }   // #89: a part chip, a plug or a port
-    else if (this.tab === 'body') { const o = this.legOpts(); this.lcur = wrap(this.lcur, o.length); out = o[this.lcur]; }   // B2: the leg card picked (#91: or the Spider's Mk II chip)
+    else if (this.tab === 'body') {   // B2: the leg card picked (#91: or the Spider's Mk II chip; #42: or a torso or arms card, along its own row)
+      const o = this.bodyOpts(), row = this.bodyRows()[this.bodyAt().r], i = row.indexOf(o[this.lcur]);
+      out = row[wrap(Math.max(0, i), row.length)]; this.lcur = Math.max(0, o.indexOf(out)); this.lreveal = true;
+    }
     else { this.cur = wrap(this.cur, UPGRADES.length); out = UPGRADES[this.cur].id; }
     this.draw(); if (!Game.manual) Sfx.click();
     return out;
@@ -9124,7 +9588,7 @@ const Garage = {
   act() {
     if (this.tab === 'mech') return this.buy(UPGRADES[this.cur].id);
     if (this.tab === 'body' && this.bp) return this.buildAct();   // #89: pick the part, then put it in its glowing spot; or a plug, then a port
-    if (this.tab === 'body') return this.cardTap(this.legOpts()[this.lcur]);   // B2: equip the leg card picked (#89: or open its blueprint; #91: or the Mk II chip)
+    if (this.tab === 'body') return this.cardTap(this.bodyOpts()[this.lcur]);   // B2: equip the leg card picked (#89: or open its blueprint; #91: or the Mk II chip; #42: or a torso or arms card)
     if (this.tab === 'squad') { const o = this.squadOptions()[this.scur]; return o ? this.squadBuy(o.id, o.up) : { ok: false, why: 'no squad' }; }
     if (this.tab === 'paint') {
       const p = this.paintNow(), row = ['body', 'trim', 'decal'][this.prow];
@@ -9136,8 +9600,11 @@ const Garage = {
   // ---- #89: build projects in the 🦿 tab. A tap (or Enter / pad A) on a card: a built shape goes on; a blueprint opens on
   // the lift (#90: every leg shape has a recipe; one without would buzz and shake, 'coming soon', as a guard)
   // #91: 'mk2' is the Spider card's Mk II chip: its blueprint until it's built, then the switch between 4 and 6 legs
+  // #42: 'torso:<id>' / 'arms:<id>' are the torso's and the arms' cards: a built (or free) one goes on, a blueprint opens
   cardTap(id) {
     if (id === 'mk2') return Builds.built('mk2') ? Shapes.setLegs() : this.openBuild('mk2');
+    const sk = /^(torso|arms):(.+)$/.exec(String(id ?? ''));
+    if (sk) { const T = shapeOf(sk[1], sk[2]); if (!T) return { ok: false, why: 'no such shape' }; return Shapes.open(T) ? Shapes.equip(sk[1], T.id) : this.openBuild(T.id); }
     const S = legShapeOf(id); if (!S) return { ok: false, why: 'no such shape' };
     if (Shapes.open(S)) return Shapes.equip('legs', S.id);
     return this.openBuild(S.id);
@@ -9145,15 +9612,50 @@ const Garage = {
   // #91: what the keys / pad step through on the 🦿 cards, in reading order: each leg shape, and once the Spider is built its
   // Mk II chip just after it
   legOpts() { return LEG_SHAPES.flatMap((S) => (S.id === 'spider' && Shapes.open(S) ? [S.id, 'mk2'] : [S.id])); },
+  // #42: everything the keys / pad step through on the 🦿 cards: the legs (legOpts, at the same places as ever), then the
+  // torso's cards ('torso:<id>') and the arms' ('arms:<id>'). The cards row shows the section of the one picked (bodySec)
+  bodyOpts() { return [...this.legOpts(), ...TORSO_SHAPES.map((S) => 'torso:' + S.id), ...ARM_SHAPES.map((S) => 'arms:' + S.id)]; },
+  optKey(sec, id) { return sec === 'legs' ? id : sec + ':' + id; },
+  // #42: the 🦿 cards as rows (legs with the Mk II chip, torso, arms), and the row and column of the pick (the Mk II chip is
+  // in the Spider's column)
+  bodyRows() { return [this.legOpts(), TORSO_SHAPES.map((S) => 'torso:' + S.id), ARM_SHAPES.map((S) => 'arms:' + S.id)]; },
+  bodyAt() {
+    const o = this.bodyOpts()[this.lcur] ?? '', r = Math.max(0, this.bodyRows().findIndex((R) => R.includes(o)));
+    return { r, c: r ? this.bodyRows()[r].indexOf(o) : Math.max(0, LEG_SHAPES.findIndex((S) => S.id === (o === 'mk2' ? 'spider' : o))) };
+  },
+  // ▲ ▼ on the 🦿 cards: the pick goes to the row above or below (round the end), in the same column (or the row's last card)
+  moveRow(d) {
+    const { r, c } = this.bodyAt(), rows = this.bodyRows(), r2 = (r + d + rows.length) % rows.length;
+    const out = r2 ? rows[r2][Math.min(c, rows[r2].length - 1)] : LEG_SHAPES[Math.min(c, LEG_SHAPES.length - 1)].id;
+    this.lcur = Math.max(0, this.bodyOpts().indexOf(out)); this.lreveal = true;
+    this.draw(); if (!Game.manual) Sfx.click();
+    return out;
+  },
+  // scroll the 🦿 wall just enough to show the row of the card the keys / pad picked (the wall scrolls when the rows and
+  // the tiers don't all fit)
+  reveal() {
+    const W = $('gWall'), c = W.querySelector('.lcard.cur, .lcard:has(.lmk2.cur)')?.closest('.lrow'); if (!c) return;
+    const w = W.getBoundingClientRect(), b = c.getBoundingClientRect(), pad = 8;
+    if (b.top < w.top + pad) W.scrollTop -= w.top + pad - b.top;
+    else if (b.bottom > w.bottom - pad) W.scrollTop += Math.min(b.bottom - w.bottom + pad, b.top - w.top - pad);
+  },
+  bodySec() { const o = this.bodyOpts()[this.lcur] ?? ''; return o.startsWith('torso:') ? 'torso' : o.startsWith('arms:') ? 'arms' : 'legs'; },
+  // #42: go to section sec's row: the pick goes to the shape it has on, scrolled into view
+  showSec(sec) {
+    if (!BODY_SHAPES[sec]) return { ok: false, why: 'no such section' };
+    this.lcur = Math.max(0, this.bodyOpts().indexOf(this.optKey(sec, Shapes.rec()[sec]))); this.lreveal = true;
+    this.draw(); if (!Game.manual) Sfx.click();
+    return { ok: true, section: sec };
+  },
   // open shape id's blueprint: its frame stands on the lift as a dark ghost, its parts and steps on the wall
   openBuild(id) {
     const S = buildProjOf(id);   // (#91: or the Mk II, once the Spider is built)
     if (!isProj(S)) return { ok: false, why: 'no such shape' };
     const no = !buildOf(S.id) ? 'coming soon' : Builds.built(S.id) ? 'built' : Builds.locked(S.id);
-    if (no) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', S.of ? `.lcard[data-shape="${S.of}"]` : `.lcard[data-shape="${S.id}"]`); return { ok: false, why: no, shape: S.id }; }
+    if (no) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', S.of ? `.lcard[data-shape="${S.of}"]` : `.lcard[data-shape="${S.id}"]`); return { ok: false, why: no, shape: S.id }; }   // (#42: ids are unique across sections)
     if (!this.on) return { ok: false, why: 'closed' };
     if (this.tab !== 'body') this.setTab('body');
-    this.lcur = Math.max(0, this.legOpts().indexOf(S.id));
+    this.lcur = Math.max(0, this.bodyOpts().indexOf(S.of ? S.id : this.optKey(secOfShape(S.id) ?? 'legs', S.id)));   // (#42: a torso or arms card too)
     this.bp = S.id; this.bpick = null; this.bcur = 0; this.bsel = -1; this.dragEnd();
     this.draw();
     if (!Game.manual) { Sfx.click(); Sfx.tone(220, 0.25, 'triangle', 0.05, 330); }
@@ -9161,7 +9663,7 @@ const Garage = {
   },
   closeBuild() {
     if (!this.bp) return { ok: false, why: 'no blueprint open' };
-    const was = this.bp; this.dragEnd(); this.bp = null; this.bpick = null; this.bsel = -1;
+    const was = this.bp; this.dragEnd(); this.bp = null; this.bpick = null; this.bsel = -1; this.lreveal = true;   // (#42: back on the cards, its card in view)
     if (this.bcheer) this.cheerBuildStop(); else { this.dress(); this.draw(); }
     if (!Game.manual) Sfx.click();
     return { ok: true, was };
@@ -9230,7 +9732,7 @@ const Garage = {
   cheerBuildStop() {
     clearTimeout(this.bcheerT); const id = this.bcheer; this.bcheer = null;
     $('gCheer').classList.remove('on'); $('gLift').classList.remove('sparkle');
-    if (this.bp === id) this.bp = null;
+    if (this.bp === id) { this.bp = null; this.lreveal = true; }   // (#42: back on the cards, the new card in view)
     if (this.on) { this.dress(); this.draw(); }
   },
   // ---- dragging (mouse and touch): a part chip onto its glowing spot on the lift, or a plug onto a port. The picture that
@@ -9304,7 +9806,11 @@ const Garage = {
     const legs = (l, cls = 'on') => `<span class="${six ? 'lg4 lg6' : 'lg4'}">${(six ? [0, 1, 4, 5, 2, 3] : [0, 1, 2, 3]).map((k) => `<i class="${k === l || (Array.isArray(l) && l.includes(k)) ? cls : ''}"></i>`).join('')}</span>`;
     const load = (n) => (M ? `<b class="ld">${n}</b>` : `<span class="ldp">${'<i></i>'.repeat(n)}</span>`);
     const pole = (h, stack) => `<span class="bpole">${[3, 2, 1].map((k) => `<i class="${(stack ? k <= h : k === h) ? 'at' : ''}"></i>`).join('')}</span>`;
-    const MISS_IC = { over: 'up', under: 'down', stall: 'down', slow: 'timer', slip: 'down', jam: 'up', 'tip-side': 'warn', 'tip-end': 'warn' };
+    const MISS_IC = { over: 'up', under: 'down', stall: 'down', slow: 'timer', slip: 'down', jam: 'up', 'tip-side': 'warn', 'tip-end': 'warn',
+      high: 'up', low: 'down', weak: 'down', twist: 'swap', drift: 'swap', warp: 'warn' };   // (#42's jobs)
+    // (#42) a rotor's spin (the turn arrows, flipped for the other way) and a plate's four seams as a square, one side lit
+    const spin = (d) => `<span class="bpf spin${d < 0 ? ' ccw' : ''}">${icon('rotor')}${icon('swap')}</span>`;
+    const seam = (k, cls = 'on') => `<span class="sq4 ${cls}" data-s="${k}"></span>`;
     const PLUG = {
       spring: (p, i) => [PARTS.spring.hex, `spring ${i + 1}${p.stiff ? ', stiffness ' + p.stiff : ''}`,`<span class="bpf">${icon(p.side ? (p.side < 0 ? 'back' : 'play') : 'spring')}${p.side ? icon('spring') : ''}</span>${p.stiff ? bars(p.stiff) : ''}`],
       gear: (p) => [PARTS.motor.hex, `${['high', 'middle', 'low'][p.stiff - 1]} gear: strength ${p.stiff}, speed ${4 - p.stiff}`,
@@ -9312,6 +9818,15 @@ const Garage = {
       tensioner: (p) => [PARTS.wiring.hex, `tensioner, ${p.stiff} turns`, `<span class="bpf">${icon('wrench')}</span>${bars(p.stiff)}`],
       leg: (p) => [J.job === 'legwire' ? PARTS.motor.hex : '#ffd83d', `${LEGS6[p.leg]} leg${p.joint ? ' ' + p.joint + ' motor' : ''}`, `${J.job === 'legwire' ? `<span class="bpf">${icon('motor')}</span>` : ''}${legs(p.leg)}`],
       motor: (p) => [PARTS.motor.hex, `${LEGS6[p.leg]} leg motor, load ${p.load}`, `<span class="bpf">${icon('motor')}</span>${legs(p.leg)}${load(p.load)}`],
+      // #42: the torso and arm shapes' jobs
+      scope: (p, i) => [PARTS.scope.hex, `scope ${i + 1}, sighting at height ${p.stiff}`, `<span class="bpf">${icon('scope')}</span>${bars(p.stiff)}`],
+      piston: (p) => ['#c9ced8', `piston size ${p.stiff}: push ${p.stiff}, speed ${4 - p.stiff}`,
+        `<span class="bpf gsz" style="--g:${p.stiff}">${icon('punch')}</span><span class="gbars"><span class="gbar">${icon('knock')}${bars(p.stiff)}</span><span class="gbar">${icon('speed')}${bars(4 - p.stiff, 'stiff fast')}</span></span>`],
+      valve: (p) => [PARTS.wiring.hex, `${p.side < 0 ? 'left' : 'right'} fist's ${p.valve} valve`, `<span class="bpf">${icon(p.side < 0 ? 'back' : 'play')}${icon(p.valve === 'push' ? 'punch' : 'swap')}</span>`],
+      rotor: (p) => [PARTS.rotor.hex, `rotor spinning ${p.spin > 0 ? 'clockwise' : 'anticlockwise'}, speed ${p.speed}`, `${spin(p.spin)}${bars(p.speed)}`],
+      trim: (p) => ['#c9ced8', `trim weight ${p.stiff}`, `<span class="bpf">${icon('armour')}</span>${bars(p.stiff)}`],
+      plate: (p) => [PARTS.armour.hex, `armour plate ${p.plate + 1}, weight ${p.load}`, `<span class="bpf">${icon('armour')}</span>${load(p.load)}`],
+      seam: (p) => ['#ff6a2a', `the ${SEAMS[p.seam]} seam`, `<span class="bpf">${icon('flame')}</span>${seam(p.seam)}`],
     };
     const plugs = Bd.plugs.map((p, i) => {
       const inn = Bd.links[i] >= 0, [hex, what, inner] = PLUG[p.what](p, i);
@@ -9327,11 +9842,17 @@ const Garage = {
       if (q.what === 'load') return `<button class="bport pad load${c}" data-port="${j}" style="--h:${q.height}" aria-label="the pushing test, load ${q.height}">${pole(q.height, true)}<span class="bpad">${icon('ram')}${tag}</span></button>`;
       if (q.what === 'tread') return `<button class="bport pad tread${c}" data-port="${j}" style="--h:${q.height}" aria-label="the ${q.side < 0 ? 'left' : 'right'} tread, sagging ${q.height}">${pole(q.height)}<span class="bpad"><span class="bpf">${icon(q.side < 0 ? 'back' : 'play')}${icon('tracks')}</span>${tag}</span></button>`;
       if (q.what === 'beat') return `<button class="bport pad beat${c}" data-port="${j}" data-leg="${LEGS6[q.leg]}" aria-label="the ${LEGS6[q.leg]} leg is stepping: which ${q.tripod ? 'two step' : 'steps'} with it?"><span class="bpad">${legs(q.leg, 'ok')}${icon('walker')}${tag}</span></button>`;
-      if (q.what === 'battery') {
+      // #42: the target's height, the spinning rotor, the drone leaning, the seam welded already
+      if (q.what === 'target') return `<button class="bport pad target${c}" data-port="${j}" style="--h:${q.height}" aria-label="the target, height ${q.height}">${pole(q.height)}<span class="bpad">${icon('aim')}${tag}</span></button>`;
+      if (q.what === 'spin') return `<button class="bport pad spin${c}" data-port="${j}" data-spin="${q.spin}" aria-label="a rotor spinning ${q.spin > 0 ? 'clockwise' : 'anticlockwise'} at speed ${q.speed}: which one pairs with it?"><span class="bpad">${spin(q.spin)}${bars(q.speed)}${tag}</span></button>`;
+      if (q.what === 'tilt') return `<button class="bport pad tilt${c}" data-port="${j}" style="--h:${q.height}" aria-label="the drone leans ${q.side < 0 ? 'left' : 'right'} by ${q.height}">${pole(q.height)}<span class="bpad"><span class="bpf">${icon(q.side < 0 ? 'back' : 'play')}${icon('drone')}</span>${tag}</span></button>`;
+      if (q.what === 'welded') return `<button class="bport pad weld${c}" data-port="${j}" data-seam="${SEAMS[q.seam]}" aria-label="the ${SEAMS[q.seam]} seam is welded: which one next?"><span class="bpad">${seam(q.seam, 'ok')}${icon('flame')}${tag}</span></button>`;
+      if (q.what === 'battery' || q.what === 'end') {   // (#42: or an end of the Brute, front or back, carrying its plates' weight)
         const sum = BUILD_JOBS.balance.sum(Bd, j), full = sum === q.target, meter = M ? `<b class="ld">${sum}/${q.target}</b>` : `<span class="ldp meter">${Array.from({ length: q.target }, (_, k) => `<i class="${k < sum ? 'on' : ''}"></i>`).join('')}</span>`;
-        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${PARTS.battery.hex}" aria-label="battery ${j + 1}: ${sum} of ${q.target}"><span class="bpf">${icon('battery')}</span>${meter}</button>`;
+        const end = q.what === 'end', what = end ? (j ? 'the back' : 'the front') : `battery ${j + 1}`;
+        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${end ? PARTS.armour.hex : PARTS.battery.hex}" aria-label="${what}: ${sum} of ${q.target}"><span class="bpf">${icon(end ? (j ? 'down' : 'up') : 'battery')}</span>${meter}</button>`;
       }
-      const [ic, hex, name] = q.what === 'controller' ? ['brain', '#ff7ad9', 'controller socket'] : ['motor', PARTS.motor.hex, 'motor'];
+      const [ic, hex, name] = q.what === 'controller' ? ['brain', '#ff7ad9', 'controller socket'] : q.what === 'pump' ? ['power', PARTS.wiring.hex, 'pump socket'] : ['motor', PARTS.motor.hex, 'motor'];
       return `<button class="bport${linked ? ' in' : ''}${c}" data-port="${j}" style="--pc:${hex}" aria-label="${name} ${j + 1}"><span class="bpf">${icon(ic)}</span>${tag}</button>`;
     }).join('');
     const rounds = J.rounds > 1 ? `<span class="bround">${Array.from({ length: J.rounds }, (_, r) => `<i class="${r < J.round ? 'on' : ''}"></i>`).join('')}</span>` : '';
@@ -9355,15 +9876,20 @@ const Garage = {
   // the part beside it goes in. Wired (its first job done): a glow round each spot. Moving (all done): the legs walk.
   frameOf(id) {
     if (this.frames[id]) return this.frames[id];
-    const { g, set, K } = legPiece(id), root = new THREE.Group(); root.add(g); root.updateMatrixWorld(true);
+    const { g, set, K } = shapePiece(id), root = new THREE.Group(); root.add(g); root.updateMatrixWorld(true);   // (#42: or a torso, or an arm set)
     const ghost = new THREE.MeshStandardMaterial({ color: GARAGE.ghost, roughness: 0.9, metalness: 0 }), rimMat = new THREE.MeshBasicMaterial({ color: GARAGE.rim, side: THREE.BackSide });
     const frameMeshes = []; g.traverse((o) => { if (o.isMesh) frameMeshes.push(o); });
     const at = BUILD_SPOTS[id] || {}, halo = new THREE.MeshBasicMaterial({ color: '#3ff0ff', transparent: true, opacity: 0.35, depthWrite: false, toneMapped: false });
     const spots = this.spotList(id).map((sp) => {
-      const [leg, joint, x = 0.95, y = 0, z = 0] = at[sp.part]?.[sp.k] || [0, 'hip'];
-      const L = set.legs[leg % set.legs.length], parent = L[joint] || L.hip;
-      // (out to the side: away from the middle; a Spider leg's frame is already turned to point out, so its x is as given)
-      const holder = new THREE.Group(); holder.position.set(L.yaw != null ? x : L.s * x, y, z); holder.scale.setScalar(0.42); parent.add(holder);
+      const A = at[sp.part]?.[sp.k] || [0, 'hip'], holder = new THREE.Group();
+      if (typeof A[0] === 'string') { const [name, x = 0, y = 0, z = 0] = A; holder.position.set(x, y, z); (set.at[name] || g).add(holder); }   // (#42: [anchor, x, y, z] on a torso or an arm set)
+      else {
+        const [leg, joint, x = 0.95, y = 0, z = 0] = A;
+        const L = set.legs[leg % set.legs.length], parent = L[joint] || L.hip;
+        // (out to the side: away from the middle; a Spider leg's frame is already turned to point out, so its x is as given)
+        holder.position.set(L.yaw != null ? x : L.s * x, y, z); parent.add(holder);
+      }
+      holder.scale.setScalar(0.42);
       const lit = partPiece(sp.part), out = lit.clone(true), ms = []; out.traverse((o) => { if (o.isMesh) ms.push(o); });
       for (const o of ms) { o.material = ghost; const sh = new THREE.Mesh(o.geometry, rimMat); sh.scale.setScalar(1.09); o.add(sh); }
       const glow = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 12), halo); glow.visible = false;
@@ -9597,8 +10123,19 @@ const Garage = {
       const B = Body.status();
       // B2: first the legs row: a card per leg shape, its piece in 3D, its trade-off as icons (green better, red worse),
       // ✔ on the one equipped, and a 🔒 with how far its part count has got until it's unlocked. A tap equips it.
-      const L = Shapes.status(), pick = this.legOpts()[this.lcur];
-      const cards = LEG_SHAPES.map((S) => {
+      // #42: then a row each for the torso's and the arms' shapes, stacked under the legs', each with its section's icon at
+      // its left (lit while the keys / pad pick is in that row); their cards are the legs' kind of card
+      const L = Shapes.status(), pick = this.bodyOpts()[this.lcur], psec = this.bodySec();
+      const lock = (br) => `<span class="lbp">${Object.keys(br.need).map((p) => `<i class="${br.parts[p] >= br.need[p] ? 'full' : ''}">${icon(PARTS[p].ic)}<b>${br.parts[p]}/${br.need[p]}</b></i>`).join('')}</span>`
+        + `<span class="lpips">${Array.from({ length: br.steps }, (_, k) => `<i class="${k < br.step ? 'on' : ''}"></i>`).join('')}</span>`;
+      const chips = (list) => list.map(([ic, up, t]) => `<i class="${up ? 'up' : 'dn'}">${icon(ic)}<b>${t}</b></i>`).join('');
+      const secCards = (sec) => BODY_SHAPES[sec].map((S) => {
+        const o = L[sec][S.id], on = L.equipped[sec] === S.id, br = o.build, key = sec + ':' + S.id;
+        return `<button class="lcard${on ? ' on' : ''}${pick === key ? ' cur' : ''}${o.unlocked ? '' : ' locked bp'}" data-sec="${sec}" data-shape="${S.id}" style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
+          + ` aria-label="${S.name}${o.unlocked ? (on ? ': on' : '') : `: blueprint, ${br.step} of ${br.steps} steps done`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
+          + `${on ? `<span class="lon">${icon('check')}</span>` : ''}${o.unlocked ? '' : lock(br)}<span class="lfx">${chips(this.secFx(sec, S))}</span></button>`;
+      }).join('');
+      const legCards = LEG_SHAPES.map((S) => {
         const o = L.offer[S.id], on = L.equipped.legs === S.id;
         // (#91: the Spider on 6 legs shows the Mk II's trade-off on top of its own)
         const six = S.id === 'spider' && L.mk2.on, fx = this.legFx(six ? { ...S, energy: (S.energy || 0) + SPIDER_MK2.energy, accel: r3((S.accel ?? 1) * SPIDER_MK2.accel) } : S)
@@ -9614,11 +10151,15 @@ const Garage = {
         const lock = o.unlocked ? ''
           : `<span class="lbp">${Object.keys(br.need).map((p) => `<i class="${br.parts[p] >= br.need[p] ? 'full' : ''}">${icon(PARTS[p].ic)}<b>${br.parts[p]}/${br.need[p]}</b></i>`).join('')}</span>`
             + `<span class="lpips">${Array.from({ length: br.steps }, (_, k) => `<i class="${k < br.step ? 'on' : ''}"></i>`).join('')}</span>`;
-        return `<button class="lcard${on ? ' on' : ''}${pick === S.id ? ' cur' : ''}${o.unlocked ? '' : ' locked bp'}" data-shape="${S.id}"${six ? ' data-legs="6"' : ''} style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
+        return `<button class="lcard${on ? ' on' : ''}${pick === S.id ? ' cur' : ''}${o.unlocked ? '' : ' locked bp'}" data-sec="legs" data-shape="${S.id}"${six ? ' data-legs="6"' : ''} style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
           + ` aria-label="${S.name}${six ? ' Mk II' : ''}${o.unlocked ? (on ? ': on' : '') : `: blueprint, ${br.step} of ${br.steps} steps done`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
           + `${on ? `<span class="lon">${icon('check')}</span>` : ''}${lock}${mk2}<span class="lfx">${fx}</span></button>`;
       }).join('');
-      $('gWall').innerHTML = `<div class="lrow">${cards}</div>` + BODY_SECTIONS.map((S) => {
+      // (every row has the legs' four columns, so a torso or arms card is a leg card's size and ▲ ▼ keep to a column)
+      const rows = ['legs', 'torso', 'arms'].map((k) => { const Q = BODY_SECTIONS.find((q) => q.id === k);
+        return `<div class="lrow" data-sec="${k}" style="--n:${LEG_SHAPES.length}"><div class="llab${k === psec ? ' on' : ''}" style="--pc:${Q.hex}" role="img" aria-label="${Q.name}">${icon(Q.ic)}<small>${Q.name}</small></div>`
+          + `${k === 'legs' ? legCards : secCards(k)}</div>`; }).join('');
+      $('gWall').innerHTML = rows + BODY_SECTIONS.map((S) => {
         const t = B.tiers[S.id], up = B.preview != null ? t : Math.min(B.points[S.id], t);   // (a previewTier forces the tier: no mastery pips)
         const pips = Array.from({ length: BODY.max }, (_, k) => `<i class="${k < up ? 'on' : k < t ? 'on bonus' : ''}"></i>`).join('');
         return `<div class="brow" data-sec="${S.id}" data-tier="${t}" style="--pc:${S.hex}" aria-label="${S.name}: tier ${t} of ${BODY.max}, ${BODY.names[t]}">`
@@ -9637,10 +10178,25 @@ const Garage = {
     const P = Game.pilot, C = Game.child, who = $('gWho');
     who.style.setProperty('--c', P?.hex || '#fff'); who.innerHTML = (C ? icon(C.ic) : '') + (P?.name ?? '');   // (I2: the child's icon, not their emoji)
     this.drawSpots();   // #89: the glowing spots over the frame on the lift (none unless a blueprint is on a parts step)
+    if (this.lreveal && T.id === 'body' && !this.bp) this.reveal();   // #42: the keys / pad pick (or the card just built) in view
+    this.lreveal = false;
   },
   // B2: a leg shape's trade-off against the walker, as [icon name, better?, how much]: energy, speed (top speed), accel (how
   // fast it gets going, I2), swap (leg turn), jump, boot (kick), smash (walking damage) and knock (the knock-back it takes,
   // I2: less is better)
+  // #42: a torso's or an arm set's the same way: energy, swap (torso swing), speed (top speed); punch (its damage), knock
+  // (its knock-back: more is better here), aim (the cannon's range), gun (its rounds' speed), timer (the cannon's and the 🧲
+  // pod's recharge)
+  secFx(sec, S) {
+    if (sec === 'legs') return this.legFx(S);
+    const out = [], pct = (v) => (v > 1 ? '+' : '−') + Math.round(Math.abs(v - 1) * 100) + '%', times = (v) => '×' + v;
+    if (S.energy) out.push(['energy', S.energy > 0, (S.energy > 0 ? '+' : '−') + Math.abs(S.energy)]);
+    for (const [k, ic, f] of [['torsoTurn', 'swap', times], ['topSpeed', 'speed', pct], ['punch', 'punch', pct], ['punchPush', 'knock', times], ['gunRange', 'aim', pct], ['roundSpeed', 'gun', pct]])
+      if (S[k] != null && S[k] !== 1) out.push([ic, S[k] > 1, f(S[k])]);
+    const rc = Object.values(S.recharge || {}).find((v) => v !== 1);
+    if (rc) out.push(['timer', rc > 1, pct(rc)]);
+    return out;
+  },
   legFx(S) {
     const out = [], pct = (v) => (v > 1 ? '+' : '−') + Math.round(Math.abs(v - 1) * 100) + '%', times = (v) => '×' + v;
     if (S.energy) out.push(['energy', S.energy > 0, (S.energy > 0 ? '+' : '−') + Math.abs(S.energy)]);
@@ -9700,7 +10256,8 @@ const Garage = {
       bonus: el.querySelectorAll('.pips i.bonus').length, name: el.querySelector('.bname').textContent, icon: ic(el.querySelector('.plab')), raise: icRead(el.querySelector('.braise')) }])) : null;
     // B2: the 🦿 leg cards as shown: equipped (✔), locked and the 🔒's progress, picked by keys / pad, the trade-off chips
     // (up / dn and their text), and drawn = the 3D piece in its box last frame ('piece', 'outline' while locked)
-    const lcards = [...W.querySelectorAll('.lcard')];
+    // (#42: the legs' cards only: the torso's and the arms' are in torso / arms, below)
+    const lcards = [...W.querySelectorAll('.lrow[data-sec="legs"] .lcard')];
     const legs = lcards.length ? Object.fromEntries(lcards.map((el) => [el.dataset.shape, { on: el.classList.contains('on'), tick: !!el.querySelector('.lon'), tickIcon: ic(el.querySelector('.lon')), locked: el.classList.contains('locked'),
       lock: el.querySelector('.llock') ? icRead(el.querySelector('.llock')) : null, picked: el.classList.contains('cur'), icon: ic(el.querySelector('.lic')),
       fx: [...el.querySelectorAll('.lfx i')].map((i) => i.className + ' ' + icRead(i)), drawn: this.drawn['legs:' + el.dataset.shape] ?? null,
@@ -9730,8 +10287,20 @@ const Garage = {
           tags: [...el.querySelectorAll('.ans')].map((a) => a.textContent), lit: [...el.querySelectorAll('.lg4 i')].map((i) => i.className).join(','),   // (#91: the tripod's two answers; its legs as drawn)
           load: el.dataset.sum != null ? +el.dataset.sum : null, target: el.dataset.target != null ? +el.dataset.target : null })) } : null,
       frame: this.drawn.frame ?? null };
+    // #42: the torso's and the arms' rows of cards as shown (all three rows show at once), each card as a leg card reads
+    // (on, tick, locked, picked, icon, fx chips, drawn, blueprint, parts, pips); rows = the rows top to bottom (section, its
+    // icon, lit = the keys / pad pick is in it, its cards in order, seen = all of it inside the wall now, which scrolls);
+    // section = the row the pick is in
+    const secCards = (k) => { const els = [...W.querySelectorAll(`.lrow[data-sec="${k}"] .lcard`)]; return els.length ? Object.fromEntries(els.map((el) => [el.dataset.shape, { on: el.classList.contains('on'), tick: !!el.querySelector('.lon'),
+      locked: el.classList.contains('locked'), picked: el.classList.contains('cur'), icon: ic(el.querySelector('.lic')), fx: [...el.querySelectorAll('.lfx i')].map((i) => i.className + ' ' + icRead(i)),
+      drawn: this.drawn[k + ':' + el.dataset.shape] ?? null, blueprint: el.classList.contains('bp'), parts: el.querySelector('.lbp') ? icRead(el.querySelector('.lbp')) : null,
+      pips: el.querySelector('.lpips') ? [el.querySelectorAll('.lpips i.on').length, el.querySelectorAll('.lpips i').length] : null }])) : null; };
+    const lrows = [...W.querySelectorAll('.lrow')], wr = W.getBoundingClientRect();
+    const rows = lrows.length ? lrows.map((el) => { const b = el.getBoundingClientRect(), l = el.querySelector('.llab');
+      return { sec: el.dataset.sec, icon: ic(l), on: l.classList.contains('on'), cards: [...el.querySelectorAll('.lcard')].map((c) => c.dataset.shape), seen: b.top >= wr.top - 1 && b.bottom <= wr.bottom + 1 }; }) : null;
+    const section = lrows.length ? this.bodySec() : null;
     const ch = $('gCheer'), em = W.querySelector('.sempty');
-    return { tab: this.tab, body, legs, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
+    return { tab: this.tab, body, legs, torso: secCards('torso'), arms: secCards('arms'), section, rows, scroll: lrows.length ? { top: Math.round(W.scrollTop), max: W.scrollHeight - W.clientHeight } : null, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
       empty: !!em, emptyText: em ? icRead(em) : null, paint, lift: this.drawn.lift ?? null, who: icRead($('gWho')),
       // (I2: each tab as { id, icon, on, locked }; it was 'id', 'id*' for the open one, with a 🔒 after a locked one)
       tabs: [...$('gTabs').children].map((b) => ({ id: b.dataset.t, icon: ic(b), on: b.classList.contains('on'), locked: b.classList.contains('locked') })) };
@@ -9747,6 +10316,8 @@ const Garage = {
       scur: this.squadOptions()[this.scur] ?? null, paint: this.paintNow(), prow: ['body', 'trim', 'decal'][this.prow],
       // #89: the blueprint open in the 🦿 tab (null: the cards), the part picked, the plug picked (-1 none), the build being cheered
       blueprint: { open: this.bp, pick: this.bpick, plug: this.bsel, cur: this.bp ? this.buildOptions()[this.bcur] ?? null : null, cheer: this.bcheer, drag: this.drag ? { kind: this.drag.kind, v: this.drag.v } : null },
+      // #42: the 🦿 card the keys / pad have picked ('walker' ... 'mk2', 'torso:<id>', 'arms:<id>') and the section showing
+      bodyPick: this.bodyOpts()[this.lcur] ?? null, bodySec: this.bodySec(),
       advanced: this.advStatus(), dom: this.dom() };   // G4: the advanced parts (advStatus)
   },
   // ---- the 3D: one scene, built once: lights, the lift (with a copy of the player's mech on it, made on
@@ -9788,12 +10359,13 @@ const Garage = {
       this.pieces['adv:' + A.id] = { holder, lit, out };
     }
     // B2: each leg shape's piece for the 🦿 cards, the same way (lit once unlocked, an outline till then), keyed 'legs:<id>'
-    for (const S of [...LEG_SHAPES, { id: 'spider6' }]) {   // (#91: and the Spider on its Mk II's 6 legs, for its card once switched on)
-      const { g: lit, r } = legPiece(S.id), out = lit.clone(true);
+    // (#42: and each torso's and arm set's, keyed 'torso:<id>' / 'arms:<id>')
+    for (const S of [...LEG_SHAPES, { id: 'spider6' }, ...TORSO_SHAPES.map((T) => ({ id: T.id, sec: 'torso' })), ...ARM_SHAPES.map((T) => ({ id: T.id, sec: 'arms' }))]) {   // (#91: and the Spider on its Mk II's 6 legs, for its card once switched on)
+      const { g: lit, r } = S.sec === 'torso' ? torsoPiece(S.id) : S.sec === 'arms' ? armsPiece(S.id) : legPiece(S.id), out = lit.clone(true);
       const meshes = []; out.traverse((o) => { if (o.isMesh) meshes.push(o); });
       for (const o of meshes) { o.material = ghost; const sh = new THREE.Mesh(o.geometry, rimMat); sh.scale.setScalar(1.06); o.add(sh); }
       const holder = new THREE.Group(); holder.add(lit, out); holder.visible = false; this.scene.add(holder);
-      this.pieces['legs:' + S.id] = { holder, lit, out, r };
+      this.pieces[(S.sec || 'legs') + ':' + S.id] = { holder, lit, out, r };
     }
   },
   // put a copy of the player's mech on the lift, as it looks now (pilot, colours)
@@ -9812,11 +10384,17 @@ const Garage = {
     this.mechBox = { y: mid.y, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5 + 0.4 };
   },
   // draw the scene into element el's box, the camera framing a ball of radius rad round (0, y, 0). false if it's off screen
-  view(el, y, rad, lookDown = 0.12) {
+  // (#42: or outside clip, a box it's cut to: the 🦿 wall, which scrolls, so a card half scrolled out draws only its inside part)
+  view(el, y, rad, lookDown = 0.12, clip = null) {
     const R = renderer, H = innerHeight, b = el.getBoundingClientRect();
     if (b.width < 4 || b.height < 4 || b.bottom <= 0 || b.top >= H) return false;
     const x = b.left, yy = H - b.bottom, cam = this.cam;
-    R.setViewport(x, yy, b.width, b.height); R.setScissor(x, yy, b.width, b.height);
+    R.setViewport(x, yy, b.width, b.height);
+    if (clip) {
+      const t = Math.max(b.top, clip.top), bt = Math.min(b.bottom, clip.bottom), l = Math.max(b.left, clip.left), r = Math.min(b.right, clip.right);
+      if (bt - t < 1 || r - l < 1) return false;
+      R.setScissor(l, H - bt, r - l, bt - t);
+    } else R.setScissor(x, yy, b.width, b.height);
     cam.aspect = b.width / b.height;
     const d = rad / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) / Math.min(1, cam.aspect);
     cam.position.set(0, y + d * lookDown, d); cam.lookAt(0, y, 0); cam.near = d / 20; cam.far = d * 4; cam.updateProjectionMatrix();
@@ -9878,13 +10456,16 @@ const Garage = {
           p.holder.visible = false;
         }
       } else if (this.tab === 'body') {
-        // B2: each leg card's shape, turning (an outline while it's locked)
+        // B2: each leg card's shape, turning (an outline while it's locked) (#42: and the torso's and arms' rows, cut to the
+        // wall's inside, which scrolls)
+        const wb = $('gWall'), wr = wb.getBoundingClientRect();
+        const clip = { left: wr.left + wb.clientLeft, top: wr.top + wb.clientTop, right: wr.left + wb.clientLeft + wb.clientWidth, bottom: wr.top + wb.clientTop + wb.clientHeight };
         for (const el of $('gWall').querySelectorAll('.lcard')) {
-          const id = el.dataset.shape, six = el.dataset.legs === '6', p = this.pieces['legs:' + (six ? 'spider6' : id)]; if (!p) continue;   // (#91)
+          const id = el.dataset.shape, sec = el.dataset.sec || 'legs', six = el.dataset.legs === '6', p = this.pieces[sec + ':' + (six ? 'spider6' : id)]; if (!p) continue;   // (#91; #42: or a torso's or an arm set's)
           const got = !el.classList.contains('locked');
           p.holder.visible = true; p.lit.visible = got; p.out.visible = !got;
           p.holder.rotation.set(0.12, 0.7 + this.t * GARAGE.pieceSpin, 0);
-          this.drawn['legs:' + id] = this.view(el.querySelector('.tv'), 0, p.r, 0.2) ? (got ? (six ? 'piece6' : 'piece') : 'outline') : null;
+          this.drawn[sec + ':' + id] = this.view(el.querySelector('.tv'), 0, p.r, 0.2, clip) ? (got ? (six ? 'piece6' : 'piece') : 'outline') : null;
           p.holder.visible = false;
         }
       }
@@ -9919,8 +10500,9 @@ const Garage = {
       // #91: the Spider's Mk II chip (inside its card, so it's looked for first): its blueprint, or the 4 / 6 legs switch
       const mk = e.target.closest('.lmk2');
       if (mk) { e.stopPropagation(); this.lcur = Math.max(0, this.legOpts().indexOf('mk2')); this.draw(); this.cardTap('mk2'); return; }
+      // #42: a torso or arms card is keyed by its section
       const lc = e.target.closest('.lcard');
-      if (lc) { e.stopPropagation(); this.lcur = Math.max(0, this.legOpts().indexOf(lc.dataset.shape)); this.draw(); this.cardTap(lc.dataset.shape); return; }
+      if (lc) { e.stopPropagation(); const key = this.optKey(lc.dataset.sec || 'legs', lc.dataset.shape); this.lcur = Math.max(0, this.bodyOpts().indexOf(key)); this.draw(); this.cardTap(key); return; }
       if (b) { e.stopPropagation(); if (!b.classList.contains('max')) this.buy(b.dataset.up); }
       else if (c) { e.stopPropagation(); this.cur = Math.max(0, UPGRADES.findIndex((U) => U.id === c.dataset.up)); this.draw(); }
     });
@@ -10293,6 +10875,7 @@ function robotState(r) {
 }
 window.__rb = {
   Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
+  BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // #94: the on-screen touch controller: { showing, touchMode, x, y (the stick, -1..1), held: [buttons held],
@@ -10482,9 +11065,10 @@ window.__rb = {
   // setup and screenshots only, never saved: every section at tier n (0–4), or null for the tiers the rule gives
   previewTier(n) { const res = Body.setPreview(n); return { ...res, body: this.state().players[0]?.body ?? null }; },
   // ---- B2: the body shop's shapes ----
-  // equip shape (an id, icon or name: 'walker' | 'hopper' | 'spider' | 'tracks' for the legs; 'standard' for the torso and
-  // arms, for now) on section ('legs' | 'torso' | 'arms'), as a tap on its card in the 🦿 tab does (free; the garage needn't
-  // be open). Refused with nothing changed: why 'no such shape', or 'locked' (with part, have, need). Left out, just reads.
+  // equip shape (an id, icon or name: 'walker' | 'hopper' | 'spider' | 'tracks' for the legs; #42: 'standard' (or 'dome') |
+  // 'brute' | 'wedge' for the torso, 'standard' (or 'cannon') | 'fists' | 'barrels' for the arms) on section ('legs' |
+  // 'torso' | 'arms'), as a tap on its card in the 🦿 tab does (free; the garage needn't be open). Refused with nothing
+  // changed: why 'no such shape', or 'locked' (with part and its build's brief; the legs' have / need too). Left out, just reads.
   // Returns what happened, state().body (equipped, unlocked, offer) and player 0's effects and look after it
   body(section, shape) {
     const res = section == null ? { ok: true } : Shapes.equip(section, shape), st = this.state(), p = st.players[0];
@@ -10733,14 +11317,23 @@ window.__rb = {
             // B2: the leg shape's: legTurn and accel (rad/s and m/s², as the legs turn and speed up now), push = × knock-back taken,
             // walkDamage = × what walking into a prop does to it, turnSlow, and the shape's own multipliers (energy added)
             legTurn: r3((m.spec || MECH).legTurn), accel: r3((m.spec || MECH).accel), turnSlow: (m.spec || MECH).turnSlow ?? 0.3, push: m.fx?.push ?? 1, walkDamage: m.fx?.walkDamage ?? 1,
-            shape: { legs: m.model?.legShape ?? 'walker', energy: m.fx?.energy ?? 0, speed: m.fx?.topSpeed ?? 1, jump: m.fx?.jump ?? 1, kick: m.fx?.kick ?? 1 } },
+            shape: { legs: m.model?.legShape ?? 'walker', energy: m.fx?.energy ?? 0, speed: m.fx?.topSpeed ?? 1, jump: m.fx?.jump ?? 1, kick: m.fx?.kick ?? 1 },
+            // #42: the torso's and the arm set's: torsoTurn (rad/s the torso swings to the aim now), punch (its damage), punchPush
+            // (the knock-back it gives), gunRange (m: the cannon's range and lock-on reach), roundSpeed (m/s its rounds fly),
+            // rechargeBy (how fast each weapon's cooldown runs down, 1 = as built: recharge × the arm set's); and the shapes' own
+            // multipliers (torso: energy added; arms: recharge by weapon)
+            torsoTurn: r3((m.spec || MECH).torsoTurn), punch: r3(punchDmg(m)), punchPush: r3(WEAPON.punch.push * (m.afx?.punchPush ?? 1)),
+            gunRange: r3(WEAPON.gun.range * (m.afx?.gunRange ?? 1)), roundSpeed: r3(WEAPON.gun.speed * (m.afx?.roundSpeed ?? 1)),
+            rechargeBy: Object.fromEntries(WEAPONS.map((w) => [w, r3(rechargeOf(m, w))])),
+            torso: { shape: m.model?.torsoShape ?? 'standard', ...(m.tfx || torsoFx('standard')) }, arms: { shape: m.model?.armShape ?? 'standard', ...(m.afx || armFx('standard')) } },
           jump: { air: !!m.hop, y: r3(m.hop ? m.hop.y : 0), peak: r3(m.hop ? m.hop.peak : 0), last: r3(m.hopPeak), jumps: m.jumps, over: m.over ? [...m.over].map((p) => p.id) : [],
             jet: !!m.hop?.jet, jetJumps: m.jetJumps || 0, flame: r3(m.jetT || 0) },   // G4: jet = this jump's mid-air jet jump is used; jetJumps = all of them; flame = burn left (s)
           // G4: the advanced parts on this mech (id: on), shield = hits it will still block this wave, blocked = hits blocked
           // so far, and what the model shows: the jets (and their flames lit now), the core, the bubble
           adv: { ...(m.adv || {}) }, shield: m.shield || 0, blocked: m.blocked || 0,
           advLook: m.model ? { jets: m.model.flames?.length || 0, flames: m.model.flames?.filter((f) => f.visible).length || 0, core: !!m.model.core?.parent, bubble: !!m.model.bubble?.visible } : null,
-          look: upgradeLook(m.model),
+          look: upgradeLook(m.model) && { ...upgradeLook(m.model), ...shapeLook(m.model, m) },   // (#42: and the torso and arms, shapeLook)
+          lastShot: m.lastShot ? { ...m.lastShot } : null,   // #42: the last round, rail shot or 🧲 round this mech fired: where it started, how fast, how far
           // G3: the paint on this mech, read back from its model: body / trim = the colours on its role materials, meshes
           // = how many wear each, decal = the one showing ('none' if none), decals = how many squares show it, and where
           paint: paintLook(m.model),
