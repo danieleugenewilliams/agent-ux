@@ -886,6 +886,171 @@
     .lcard .llock { top: 32%; }   /* (I2: Tracks' seven chips take three rows here: the lock sits higher, clear of them) */
   }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
+  /* ---------- #89: build projects. A shape not built yet is a blueprint card (dashed, blueprint blue: its parts, in / needed,
+     and its steps as pips); opened, the wall shows its steps and parts (or its job's board), and the lift its frame with a
+     glowing spot for each part to drag on ---------- */
+  #garage :is(.bpi, .bpf, .bic, .bsteps i, .bspot, .bhint, .bjt, .bpad, .bdone, .lbp i, .bmiss, .bok, .gbar) .ic, #gDrag .ic { margin: 0 var(--mx); vertical-align: top; }
+  .lcard.bp { border-style: dashed; background: linear-gradient(rgba(79,157,255,.14) 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, rgba(79,157,255,.14) 1px, transparent 1px) 0 0 / 14px 14px, rgba(16,30,62,.82); }
+  .lcard .lbp { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 1px; padding: 3px 7px; border-radius: 10px; background: rgba(11,14,24,.85); font-size: 16px; line-height: 1; }
+  .lcard .lbp i { font-style: normal; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .lcard .lbp b { font: 900 14px 'Asap', sans-serif; } .lcard .lbp i.full b { color: #7dffad; }
+  .lcard .lpips { position: absolute; right: 6px; top: 8px; display: flex; gap: 3px; }
+  .lcard .lpips i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: rgba(255,255,255,.22); }
+  .lcard .lpips i.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  /* #91: the Spider card's Mk II chip, under its icon: the Mk II's blueprint (dashed blueprint blue, 6 legs, its steps as pips),
+     then once built the switch between 4 and 6 legs (the one on lit green) */
+  .lcard .lmk2 { position: absolute; left: 6px; top: 50px; display: flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 10px; border: 2px solid var(--ink); background: rgba(11,14,24,.88); font-size: 17px; line-height: 1; cursor: pointer; }
+  .lcard .lmk2 b { font: 900 15px 'Asap', sans-serif; color: #9fd0ff; }
+  .lcard .lmk2.bp { border: 2px dashed #4f9dff; background: linear-gradient(rgba(79,157,255,.18) 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(90deg, rgba(79,157,255,.18) 1px, transparent 1px) 0 0 / 8px 8px, rgba(16,30,62,.92); }
+  .lcard .lmk2 .mpips { display: flex; gap: 2px; } .lcard .lmk2 .mpips i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.25); } .lcard .lmk2 .mpips i.on { background: var(--green); box-shadow: 0 0 4px var(--green); }
+  .lcard .lmk2.tog { padding: 2px; gap: 2px; }
+  .lcard .lmk2.tog i { font: 900 15px 'Asap', sans-serif; font-style: normal; min-width: 22px; padding: 3px 4px; border-radius: 7px; text-align: center; color: rgba(255,255,255,.6); }
+  .lcard .lmk2.tog i.on { background: var(--green); color: var(--ink); box-shadow: 0 0 8px rgba(62,224,122,.6); }
+  .lcard .lmk2.cur { outline: 3px solid var(--yellow); outline-offset: 1px; }
+  .lcard .lmk2.bad { animation: shake .3s; }
+  @media (max-width: 430px), (max-height: 460px) and (min-width: 600px) {
+    .lcard .lmk2 { left: 3px; top: 37px; padding: 1px 3px; gap: 2px; font-size: 13px; border-width: 2px; } .lcard .lmk2 b { font-size: 12px; }
+    .lcard .lmk2 .mpips i { width: 5px; height: 5px; } .lcard .lmk2.tog i { font-size: 12px; min-width: 15px; padding: 2px 2px; }
+  }
+  .gwall.body.build { gap: 10px; }
+  .bhead { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 18px; border: 4px solid rgba(79,157,255,.6); background: rgba(16,30,62,.85); }
+  .bback { flex: none; width: 50px; height: 50px; border-radius: 50%; border: 4px solid var(--ink); background: var(--yellow); color: var(--ink); font-size: 22px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); }
+  .bhead .bic { font-size: 36px; line-height: 1; display: flex; }
+  .bhead .bname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 900 24px 'Asap', sans-serif; color: #fff; text-shadow: 2px 2px 0 var(--ink); }
+  .bsteps { flex: none; display: flex; gap: 6px; }
+  .bsteps i { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--ink); background: rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; font-size: 20px; font-style: normal; opacity: .55; }
+  .bsteps i.on { background: var(--green); opacity: 1; } .bsteps i.cur { opacity: 1; outline: 3px solid var(--yellow); outline-offset: 1px; }
+  .btray { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .bpart { position: relative; min-width: 0; min-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 18px; border: 4px solid var(--pc); background: rgba(20,24,42,.82); color: #fff; font: inherit;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: grab; padding: 4px; }
+  .bpart .bpi { font-size: 50px; line-height: 1; display: flex; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--pc) 70%, transparent)); }
+  .bpart .bin { font: 900 26px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
+  .bpart .bbag { display: flex; align-items: center; gap: 2px; font: 900 18px 'Asap', sans-serif; } .bpart .bbag.short { color: #ff9aa3; }
+  .bpart.pick { box-shadow: 0 0 24px var(--pc); outline: 4px solid #fff; outline-offset: 2px; }
+  .bpart.cur { outline: 4px solid var(--yellow); outline-offset: 2px; }
+  .bpart.full { opacity: .5; cursor: default; } .bpart.empty { opacity: .6; cursor: default; }
+  .bok { position: absolute; right: 6px; top: 6px; width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--ink); background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .bpart.bad, .bplug.bad, .bport.bad, .bspot.bad { animation: shake .3s; } .bpart.got { animation: newWpn .6s; }
+  .bhint { flex: none; display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 26px; opacity: .85; }
+  .bspots { position: absolute; inset: 0; pointer-events: none; }
+  .bspot { position: absolute; translate: -50% -50%; width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 3px dashed var(--pc); background: rgba(11,14,24,.55); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; pointer-events: auto; touch-action: none; cursor: pointer; opacity: .4; }
+  .bspot.in { display: none; }
+  .bspot.next { opacity: .95; z-index: 1; } /* (#90: the spot a part goes in next sits over the faint ones, so a drop finds it) */
+  .bspot.glow { opacity: 1; border-style: solid; background: color-mix(in srgb, var(--pc) 45%, rgba(11,14,24,.6)); box-shadow: 0 0 18px var(--pc), 0 0 6px #fff; animation: spotPulse .8s ease-in-out infinite alternate; }
+  @keyframes spotPulse { from { scale: 1; } to { scale: 1.2; } }
+  #gDrag { position: fixed; display: none; pointer-events: none; z-index: 6; translate: -50% -50%; font-size: 52px; line-height: 1; filter: drop-shadow(0 0 12px var(--pc)) drop-shadow(0 4px 0 rgba(0,0,0,.5)); }
+  #gDrag.on { display: flex; } #gDrag.back { transition: left .25s ease-out, top .25s ease-out; }
+  .bjob { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 8px 12px; }
+  .bjt { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 32px; line-height: 1; }
+  .bround { display: flex; gap: 5px; } .bround i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); background: rgba(255,255,255,.22); } .bround i.on { background: var(--green); }
+  .bplugs, .bports { min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+  .bwire { align-self: center; font-size: 30px; opacity: .55; }
+  .bplug, .bport { position: relative; flex: 1 1 0; min-height: 0; max-height: 100px; touch-action: none; user-select: none; -webkit-user-select: none; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 4px 8px; border-radius: 16px; border: 4px solid var(--pc, #4f9dff); background: rgba(20,24,42,.85); color: #fff; font: 900 22px 'Asap', sans-serif; cursor: pointer; }
+  .bplug { cursor: grab; }
+  .bpf { display: flex; font-size: 30px; line-height: 1; }
+  .stiff { display: flex; align-items: flex-end; gap: 3px; } .stiff i { width: 8px; height: 10px; border-radius: 2px; background: rgba(255,255,255,.2); } .stiff i:nth-child(2) { height: 17px; } .stiff i:nth-child(3) { height: 24px; } .stiff i.on { background: var(--yellow); }
+  .wsh { display: flex; } .wsh svg { width: 34px; height: 34px; } .bplug .wsh { padding: 3px; border-radius: 10px; background: var(--wc); }
+  .bplug .fact { font: 900 24px 'Asap', sans-serif; white-space: nowrap; } .bport .ans { font: 900 28px 'Asap', sans-serif; color: var(--yellow); text-shadow: 2px 2px 0 var(--ink); }
+  .bplug.pick { outline: 4px solid #fff; outline-offset: 2px; box-shadow: 0 0 20px var(--pc); }
+  .bplug.cur, .bport.cur { outline: 4px solid var(--yellow); outline-offset: 2px; }
+  .bplug.in, .bport.in { opacity: .55; border-color: var(--green); }
+  .bmiss { position: absolute; left: -9px; top: -9px; width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--ink); background: #ff4d5e; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .bport.pad { flex: 0 1 auto; height: 100%; max-height: 150px; gap: 14px; --pc: #4f9dff; }
+  .bpole { display: flex; flex-direction: column; gap: 8px; } .bpole i { width: 22px; height: 22px; border-radius: 5px; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.25); }
+  .bpole i.at { background: var(--yellow); border-color: var(--ink); box-shadow: 0 0 12px var(--yellow); }
+  .bpad { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 32px; line-height: 1; }
+  /* #90: the Tracks' and Spider's jobs: a gear sized by its level with its strength and speed bars; the Spider's legs from
+     above (front at the top; lit = this leg, ok = the one already stepping); a load as a number or dots; a battery's meter */
+  .bpf.gsz { font-size: calc(16px + 7px * var(--g)); }
+  .gbars { display: flex; flex-direction: column; gap: 2px; } .gbar { display: flex; align-items: flex-end; gap: 2px; font-size: 16px; line-height: 1; }
+  .stiff.fast i.on { background: var(--cyan); }
+  .lg4 { display: grid; grid-template-columns: repeat(2, 12px); gap: 3px 9px; padding: 3px 5px; border-radius: 7px; background: rgba(255,255,255,.08); }
+  .lg4 i { width: 12px; height: 12px; border-radius: 4px; background: rgba(255,255,255,.18); }
+  .lg4 i.on { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); } .lg4 i.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .bport.beat .lg4 { grid-template-columns: repeat(2, 16px); } .bport.beat .lg4 i { width: 16px; height: 16px; }
+  .ld { font: 900 24px 'Asap', sans-serif; color: var(--yellow); text-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
+  .ldp { display: grid; grid-template-columns: repeat(3, 9px); gap: 3px; } .ldp i { width: 9px; height: 9px; border-radius: 50%; background: var(--yellow); }
+  .ldp.meter { grid-template-columns: repeat(5, 9px); } .ldp.meter i { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); } .ldp.meter i.on { background: var(--green); border-color: var(--green); }
+  .bdone { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 64px; }
+  .glift.sparkle { animation: liftSparkle .8s ease-in-out 3; }
+  @keyframes liftSparkle { 50% { border-color: var(--yellow); box-shadow: inset 0 0 40px rgba(0,0,0,.5), 0 0 34px rgba(255,216,61,.95); } }
+  @media (max-width: 560px) {
+    .gwall.body.build { gap: 6px; }
+    .bhead { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; } .bback { width: 42px; height: 42px; font-size: 18px; border-width: 3px; }
+    .bhead .bic { font-size: 28px; } .bhead .bname { font-size: 18px; } .bsteps { gap: 4px; } .bsteps i { width: 32px; height: 32px; font-size: 16px; border-width: 2px; }
+    .btray { gap: 6px; } .bpart { border-width: 3px; border-radius: 14px; gap: 2px; } .bpart .bpi { font-size: 38px; } .bpart .bin { font-size: 20px; } .bpart .bbag { font-size: 15px; }
+    .bhint { font-size: 20px; }
+    .bspot { width: 34px; height: 34px; font-size: 15px; }
+    .lcard .lbp { font-size: 12px; padding: 2px 4px; top: 42%; } .lcard .lbp b { font-size: 11px; } .lcard .lpips { top: 5px; right: 4px; gap: 2px; } .lcard .lpips i { width: 9px; height: 9px; }
+    .bjob { gap: 6px; } .bjt { font-size: 24px; } .bplug, .bport { border-width: 3px; border-radius: 12px; padding: 2px 4px; gap: 4px; font-size: 18px; } .bpf { font-size: 22px; }
+    .bplug .fact { font-size: 18px; } .bport .ans { font-size: 22px; } .wsh svg { width: 26px; height: 26px; } .bpole i { width: 16px; height: 16px; } .bpole { gap: 5px; } .bpad { font-size: 24px; }
+    .bwire { font-size: 20px; } .stiff i { width: 6px; }
+    .bpf.gsz { font-size: calc(12px + 5px * var(--g)); } .gbar { font-size: 12px; } .ld { font-size: 18px; }
+    .lg4 { grid-template-columns: repeat(2, 9px); gap: 2px 6px; padding: 2px 3px; } .lg4 i { width: 9px; height: 9px; } .ldp { grid-template-columns: repeat(3, 7px); gap: 2px; } .ldp i { width: 7px; height: 7px; }
+  }
+  @media (max-height: 460px) and (min-width: 600px) {
+    .gwall.body.build { gap: 6px; }
+    .bhead { gap: 8px; padding: 3px 8px; border-width: 3px; border-radius: 14px; } .bback { width: 38px; height: 38px; font-size: 16px; border-width: 3px; }
+    .bhead .bic { font-size: 26px; } .bhead .bname { font-size: 18px; } .bsteps i { width: 30px; height: 30px; font-size: 15px; border-width: 2px; }
+    .btray { gap: 8px; } .bpart { border-width: 3px; border-radius: 14px; gap: 1px; } .bpart .bpi { font-size: 34px; } .bpart .bin { font-size: 19px; } .bpart .bbag { font-size: 14px; }
+    .bhint { font-size: 18px; }
+    .bspot { width: 32px; height: 32px; font-size: 14px; }
+    /* (#90: up to 4 parts in two columns, top right under the pips: clear of the icon and the trade-off chips) */
+    .lcard .lbp { font-size: 12px; padding: 2px 4px; top: 17px; left: auto; right: 4px; transform: none; display: grid; grid-template-columns: auto auto; column-gap: 5px; } .lcard .lbp b { font-size: 11px; } .lcard .lpips { top: 5px; right: 4px; gap: 2px; } .lcard .lpips i { width: 9px; height: 9px; }
+    .bjob { gap: 4px 8px; } .bjt { font-size: 22px; } .bplug, .bport { border-width: 3px; border-radius: 12px; padding: 2px 6px; font-size: 18px; } .bpf { font-size: 22px; }
+    .bplugs, .bports { gap: 5px; } .bplug .fact { font-size: 18px; } .bport .ans { font-size: 22px; } .wsh svg { width: 24px; height: 24px; } .bpole i { width: 14px; height: 14px; } .bpole { gap: 4px; } .bpad { font-size: 22px; }
+    .bpf.gsz { font-size: calc(12px + 5px * var(--g)); } .gbar { font-size: 12px; } .ld { font-size: 18px; }
+    .lg4 { grid-template-columns: repeat(2, 9px); gap: 2px 6px; padding: 2px 3px; } .lg4 i { width: 9px; height: 9px; } .ldp { grid-template-columns: repeat(3, 7px); gap: 2px; } .ldp i { width: 7px; height: 7px; }
+  }
+  /* ---------- #94: the touch controller is showing (html.tp-showing, from the TouchPad block): the HUD makes room ----------
+     The stick rests bottom left (its ring reaches 16 + 132 px up), the buttons fan out from the bottom-right corner
+     (about 233 px each way), ⏸ sits top right; all ×1.3 on a tablet (--tpu, the TouchPad's --tp-u). */
+  html { --tpu: 1; }
+  @media (min-width: 700px) and (min-height: 700px) { html { --tpu: 1.3; } }
+  .tp-btn.dim { opacity: .45; }
+  .tp-btn.ready { animation: pulse .9s ease-in-out infinite; }
+  /* its MEND, JUMP and BAG stand in for the HUD's 🔧 ⤴️ 🎒, and there are no keys to show */
+  html.tp-showing #hud .health .mendb, html.tp-showing #hud .bagb, html.tp-showing #hud small, html.tp-showing #clear small { display: none; }
+  html.tp-showing #hud .prompt.on { display: none; }   /* its FIX / PARTS stand in for the prompt's 🔧 / 🔩 (which could land on a thumb's button) */
+  html.tp-showing #hud .right { right: calc(30px + 44px * var(--tpu)); }   /* clear of ⏸ */
+  /* the left column, above the stick's resting spot: the speed bars, then ⭐ */
+  html.tp-showing #hud .speed { bottom: calc(26px + 132px * var(--tpu)); transform-origin: left bottom; }
+  html.tp-showing #hud .mastery { bottom: calc(109px + 132px * var(--tpu)); }
+  html.tp-showing #hud .compass { transform-origin: right bottom; }
+  /* sideways: the weapons row along the bottom between the thumbs, the compass and 🌊 just left of it */
+  @media (orientation: landscape) {
+    html.tp-showing #hud .compass { right: auto; left: calc(50% - 321px); bottom: 22px; }
+    html.tp-showing #hud .wave { right: auto; left: calc(50% - 321px); bottom: 150px; }
+  }
+  /* upright: a smaller weapons row; the compass and 🌊 stand over the buttons */
+  @media (orientation: portrait) {
+    html.tp-showing #hud .weapons { gap: 8px; }
+    html.tp-showing #hud .wpn { width: 50px; height: 50px; font-size: 26px; border-width: 3px; }
+    html.tp-showing #hud .compass { bottom: calc(26px + 222px * var(--tpu)); }
+    html.tp-showing #hud .wave { bottom: calc(34px + 342px * var(--tpu)); }
+  }
+  /* a phone: the speed bars and compass at 70% */
+  @media (max-width: 560px), (max-height: 460px) {
+    html.tp-showing #hud .speed, html.tp-showing #hud .compass { transform: scale(.7); }
+    html.tp-showing #hud .mastery { bottom: 219px; }
+  }
+  @media (max-width: 560px) {   /* upright: the counters are under the health panel already; 🌊 beside the compass, the weapons row over both */
+    html.tp-showing #hud .right { right: 22px; }
+    html.tp-showing #hud .wave { right: 114px; bottom: 248px; }
+    html.tp-showing #hud .weapons { bottom: 346px; }
+  }
+  @media (max-height: 460px) and (min-width: 600px) {   /* on its side: ⭐ beside the speed bars; a smaller weapons row */
+    html.tp-showing #hud .mastery { left: 183px; bottom: 158px; }
+    html.tp-showing #hud .weapons { bottom: 16px; gap: 8px; }
+    html.tp-showing #hud .wpn { width: 50px; height: 50px; font-size: 26px; border-width: 3px; }
+    html.tp-showing #hud .compass { left: calc(50% - 271px); bottom: 16px; }
+    html.tp-showing #hud .wave { left: calc(50% - 271px); bottom: 108px; }
+  }
+  /* WEAPON held: the weapons row opens as a picker in the middle of the screen; a tap on a slot picks it */
+  html.tp-showing #hud .weapons.pick { z-index: 5; bottom: auto; top: 50%; transform: translate(-50%, -50%); gap: 10px; padding: 14px 18px; border-radius: 26px; background: rgba(20,24,42,.88); border: 4px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
+  html.tp-showing #hud .weapons.pick .wpn { width: min(78px, 15vw); height: min(78px, 15vw); font-size: min(40px, 8vw); border-width: 4px; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1056,14 +1221,213 @@
   <div class="gbay">
     <div class="gtop"><span class="gt"><i data-ic="wrench" data-label="garage"></i></span><div class="gtabs" id="gTabs"></div><button class="x" id="garageX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div class="gbody">
-      <div class="glift" id="gLift"><span class="gwho" id="gWho"></span></div>
+      <div class="glift" id="gLift"><span class="gwho" id="gWho"></span><div class="bspots" id="gSpots"></div></div>
       <div class="gwall" id="gWall"></div>
     </div>
   </div>
   <div id="gCheer"></div>
+  <div id="gDrag" aria-hidden="true"></div>
 </div>
 <!-- G4: the toast in play when a milestone unlocks an advanced part -->
 <div id="advToast" role="status"></div>
+
+<!-- ===========================================================================
+TouchPad: on-screen controller for phones and tablets (issue #92, Family Knockout; copied for Robot Battle in #94).
+Self-contained: its CSS, DOM and logic all live in the one script element below, so another game can copy the block as-is.
+
+  const pad = TouchPad.create({
+    buttons: [                       // right side; the first is the main action (biggest, at the thumb's rest)
+      { id: 'jump', label: 'JUMP', icon: '<svg…>' },
+      { id: 'dive', label: 'DIVE', icon: '<svg…>', angle: 180 },   // degrees around the main button (90 = up, 180 = left)
+      { id: 'bag', label: 'BAG', icon: '<svg…>', angle: 170, ring: 145, size: 48, hidden: true },
+          // (#94, optional) size: px across at phone scale (main 80, others 58); ring: px from the main button's
+          // centre (default: just clear of it); hidden: starts hidden (setVisible shows it)
+    ],
+    pause: true,                     // a pause button, top right (reported as pressed.pause)
+    pauseIcon: '<svg…>',             // (#94, optional) the pause button's icon, for a game with its own icon set
+    active: () => bool,              // is the game in play? The controller shows only then, and only in touch mode.
+    before: element,                 // (#94, optional) put the controller just before this element instead of at the
+    z: 'auto',                       //   end of <body>, at this z-index (default 20): screens after it stay on top,
+  });                                //   so their buttons still take taps while empty space falls through to the controller
+  pad.poll() -> { x, y, held: {id: bool}, pressed: {id: bool}, lookDx, lookDy, looking }
+     x/y are analog -1..1 like a gamepad's left stick (y down = +), after a dead zone. `pressed` latches every
+     tap since the last poll, so a tap shorter than a frame still counts (and reads as held for that poll).
+     lookDx/lookDy are the pixels dragged on empty space on the right since the last poll (camera / aim).
+  pad.state -> { showing, touchMode, x, y, held: [ids], looking }   (for test hooks)
+  pad.padUsed()                      // call when a gamepad button or stick is used: hides it until the next touch
+  pad.setVisible(id, on)             // (#94) show or hide one button (a contextual one); hiding it lets go of it
+  pad.setIcon(id, html)              // (#94) swap a button's icon (its label stays)
+  pad.el(id)                         // (#94) a button's element, to add a class (a pulse, say)
+
+Touch mode turns on at the first touch (pointerType 'touch') or on load when (pointer: coarse) matches, and off
+on any key press, mouse press or padUsed(). Each pointerId is tracked on its own (move + buttons + look at once).
+The root element toggles `tp-showing` on <html> so a game can move HUD pieces out of the thumbs' way.
+=========================================================================== -->
+<script>
+window.TouchPad = (() => {
+  const CSS = `
+  .tp-root { position: fixed; inset: 0; z-index: 20; display: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+    --tp-u: 1; --tp-l: max(16px, env(safe-area-inset-left)); --tp-r: max(16px, env(safe-area-inset-right)); --tp-t: max(12px, env(safe-area-inset-top)); --tp-b: max(16px, env(safe-area-inset-bottom)); }
+  .tp-root.on { display: block; }
+  @media (min-width: 700px) and (min-height: 700px) { .tp-root { --tp-u: 1.3; } }
+  .tp-root * { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
+  .tp-ring { position: absolute; border-radius: 50%; background: rgba(255,255,255,.25); border: 2px solid rgba(255,255,255,.55);
+    box-shadow: 0 0 0 1.5px rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.12); }
+  .tp-stick { width: calc(120px * var(--tp-u)); height: calc(120px * var(--tp-u)); margin: calc(-60px * var(--tp-u)) 0 0 calc(-60px * var(--tp-u)); pointer-events: none;
+    background: rgba(255,255,255,.14); opacity: .75; transition: left .22s ease-out, top .22s ease-out, opacity .22s; }
+  .tp-stick.live { transition: none; opacity: 1; background: rgba(255,255,255,.25); }
+  .tp-knob { left: 50%; top: 50%; width: 44%; height: 44%; margin: -22% 0 0 -22%; background: rgba(255,255,255,.4); }
+  .tp-stick.live .tp-knob { background: rgba(255,255,255,.55); }
+  .tp-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: #fff; padding: 0;
+    font: 900 calc(10px * var(--tp-u)) system-ui, sans-serif; letter-spacing: .5px; text-shadow: 0 1px 2px rgba(0,0,0,.7), 0 0 4px rgba(0,0,0,.35); }
+  .tp-btn .tp-ic { display: flex; width: 46%; height: 46%; pointer-events: none; }
+  .tp-btn svg { width: 100%; height: 100%; margin: 0; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.3)); }
+  .tp-btn.down { background: rgba(255,255,255,.5); transform: scale(.94); }
+  .tp-btn.tp-off { display: none; }
+  .tp-pause { top: var(--tp-t); right: var(--tp-r); width: calc(44px * var(--tp-u)); height: calc(44px * var(--tp-u)); }
+  `;
+  const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>';
+  const DEAD = 0.15;   // stick dead zone, as a fraction of its radius
+
+  function create(cfg) {
+    const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
+    const root = document.createElement('div'); root.className = 'tp-root'; root.setAttribute('aria-hidden', 'true');
+    if (cfg.z != null) root.style.zIndex = cfg.z;
+    const stick = document.createElement('div'); stick.className = 'tp-ring tp-stick';
+    const knob = document.createElement('div'); knob.className = 'tp-ring tp-knob'; stick.appendChild(knob); root.appendChild(stick);
+    const btns = {};
+    const mkBtn = (b, cls) => {
+      const el = document.createElement('div'); el.className = 'tp-ring tp-btn ' + cls + (b.hidden ? ' tp-off' : ''); el.dataset.tp = b.id;
+      el.innerHTML = `<i class="tp-ic">${b.icon}</i>` + (b.label ? `<span>${b.label}</span>` : ''); root.appendChild(el); btns[b.id] = el; return el;
+    };
+    cfg.buttons.forEach((b, i) => mkBtn(b, i === 0 ? 'tp-main' : 'tp-sub'));
+    if (cfg.pause) mkBtn({ id: 'pause', icon: cfg.pauseIcon || PAUSE_ICON }, 'tp-pause');
+    if (cfg.before) cfg.before.before(root); else document.body.appendChild(root);
+
+    const S = { touchMode: false, showing: false, x: 0, y: 0, lookDx: 0, lookDy: 0 };
+    const held = {}, latched = {};
+    const ptrs = new Map();   // pointerId -> { role: 'stick' | 'look' | 'btn', ... }
+    let home = { x: 0, y: 0 }, R = 60;
+    const hasStick = () => [...ptrs.values()].some((p) => p.role === 'stick');
+
+    function layout() {
+      const u = parseFloat(getComputedStyle(root).getPropertyValue('--tp-u')) || 1;
+      const len = (v) => { const p = document.createElement('div'); p.style.cssText = `position:absolute;width:${v}`; root.appendChild(p); const w = p.getBoundingClientRect().width; p.remove(); return w; };
+      const L = len('var(--tp-l)'), Rt = len('var(--tp-r)'), B = len('var(--tp-b)');
+      const W = innerWidth, H = innerHeight;
+      R = 60 * u;
+      home = { x: L + R + 12 * u, y: H - B - R - 12 * u };
+      if (!hasStick()) { stick.style.left = home.x + 'px'; stick.style.top = home.y + 'px'; }
+      // the main button sits at the right thumb's rest, the others in an arc around it
+      const main = (cfg.buttons[0].size ?? 80) * u, gap = 14 * u;
+      const cx = W - Rt - main / 2 - 10 * u, cy = H - B - main / 2 - 10 * u;
+      cfg.buttons.forEach((b, i) => {
+        const el = btns[b.id], s = i === 0 ? main : (b.size ?? 58) * u;
+        let x = cx, y = cy;
+        if (i > 0) { const a = (b.angle ?? 180) * Math.PI / 180, r = b.ring != null ? b.ring * u : main / 2 + s / 2 + gap; x = cx + Math.cos(a) * r; y = cy - Math.sin(a) * r; }
+        Object.assign(el.style, { width: s + 'px', height: s + 'px', left: x - s / 2 + 'px', top: y - s / 2 + 'px' });
+      });
+    }
+    addEventListener('resize', () => { if (S.showing) layout(); });
+
+    const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx}px, ${dy}px)`; };
+    function stickHome() { S.x = S.y = 0; setKnob(0, 0); stick.classList.remove('live'); stick.style.left = home.x + 'px'; stick.style.top = home.y + 'px'; }
+    function releaseAll() {
+      ptrs.clear(); for (const k in held) held[k] = false; for (const k in latched) latched[k] = false;
+      S.lookDx = S.lookDy = 0; for (const el of Object.values(btns)) el.classList.remove('down'); stickHome();
+    }
+    function refresh() {
+      const show = S.touchMode && !!cfg.active();
+      if (show !== S.showing) {
+        S.showing = show; root.classList.toggle('on', show); document.documentElement.classList.toggle('tp-showing', show);
+        if (show) layout(); else releaseAll();
+      }
+    }
+    function setTouchMode(on) { if (S.touchMode !== on) { S.touchMode = on; refresh(); } }
+
+    function stickMove(p, x, y) {
+      let dx = x - p.x0, dy = y - p.y0; const d = Math.hypot(dx, dy);
+      if (d > R) { dx *= R / d; dy *= R / d; }
+      setKnob(dx, dy);
+      const m = Math.min(1, d / R);
+      if (m < DEAD) { S.x = S.y = 0; return; }
+      const s = (m - DEAD) / (1 - DEAD) / m;   // rescale: the dead zone's edge reads 0, the rim reads 1
+      S.x = dx / R * s; S.y = dy / R * s;
+    }
+
+    root.addEventListener('pointerdown', (e) => {
+      e.preventDefault();   // no stopPropagation: the game's own pointerdown (audio unlock) still runs
+      const bEl = e.target.closest && e.target.closest('[data-tp]');
+      try { root.setPointerCapture(e.pointerId); } catch (err) {}
+      if (bEl) {
+        const id = bEl.dataset.tp; held[id] = true; latched[id] = true; bEl.classList.add('down');
+        ptrs.set(e.pointerId, { role: 'btn', id });
+      } else if (e.clientX < innerWidth * 0.4) {
+        if (hasStick()) return;
+        // the stick floats: its centre lands under the thumb, kept fully on screen
+        const x = Math.max(R + 4, e.clientX), y = Math.max(R + 4, Math.min(e.clientY, innerHeight - R - 4));
+        const p = { role: 'stick', x0: x, y0: y }; ptrs.set(e.pointerId, p);
+        stick.classList.add('live'); stick.style.left = x + 'px'; stick.style.top = y + 'px';
+        stickMove(p, e.clientX, e.clientY);
+      } else {
+        ptrs.set(e.pointerId, { role: 'look', lx: e.clientX, ly: e.clientY });
+      }
+    });
+    root.addEventListener('pointermove', (e) => {
+      const p = ptrs.get(e.pointerId); if (!p) return;
+      e.preventDefault();
+      if (p.role === 'stick') stickMove(p, e.clientX, e.clientY);
+      else if (p.role === 'look') { S.lookDx += e.clientX - p.lx; S.lookDy += e.clientY - p.ly; p.lx = e.clientX; p.ly = e.clientY; }
+    });
+    const letGo = (id) => { if (![...ptrs.values()].some((q) => q.role === 'btn' && q.id === id)) { held[id] = false; btns[id].classList.remove('down'); } };
+    const onUp = (e) => {
+      const p = ptrs.get(e.pointerId); if (!p) return;
+      ptrs.delete(e.pointerId);
+      if (p.role === 'btn') letGo(p.id);
+      else if (p.role === 'stick') stickHome();
+    };
+    for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) root.addEventListener(t, onUp);
+    root.addEventListener('contextmenu', (e) => e.preventDefault());
+    root.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });   // no double-tap zoom or long-press callout on iOS
+    root.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+    // Touch mode: on at the first touch, off on a key or mouse press (capture, so it runs before the game's listeners).
+    addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') setTouchMode(true); else if (e.pointerType === 'mouse') setTouchMode(false); }, true);
+    addEventListener('keydown', () => setTouchMode(false), true);
+    addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+    try { if (matchMedia('(pointer: coarse)').matches) S.touchMode = true; } catch (err) {}
+
+    return {
+      poll() {
+        refresh();
+        if (!S.showing) return { x: 0, y: 0, held: {}, pressed: {}, lookDx: 0, lookDy: 0, looking: false };
+        const out = { x: S.x, y: S.y, held: { ...held }, pressed: { ...latched }, lookDx: S.lookDx, lookDy: S.lookDy,
+          looking: [...ptrs.values()].some((p) => p.role === 'look') };
+        for (const k in latched) { if (latched[k]) out.held[k] = true; latched[k] = false; }
+        S.lookDx = S.lookDy = 0;
+        return out;
+      },
+      padUsed() { setTouchMode(false); },
+      refresh,
+      setVisible(id, on) {
+        const el = btns[id]; if (!el || el.classList.contains('tp-off') === !on) return;
+        el.classList.toggle('tp-off', !on);
+        if (!on) { for (const [k, p] of ptrs) if (p.role === 'btn' && p.id === id) ptrs.delete(k); held[id] = latched[id] = false; el.classList.remove('down'); }
+      },
+      setIcon(id, html) { const i = btns[id]?.querySelector('.tp-ic'); if (i && i.dataset.k !== html) { i.dataset.k = html; i.innerHTML = html; } },
+      el: (id) => btns[id] || null,
+      get state() {
+        refresh();
+        return { showing: S.showing, touchMode: S.touchMode, x: +S.x.toFixed(3), y: +S.y.toFixed(3),
+          held: Object.keys(held).filter((k) => held[k]), looking: [...ptrs.values()].some((p) => p.role === 'look'),
+          shown: Object.keys(btns).filter((k) => !btns[k].classList.contains('tp-off')) };
+      },
+    };
+  }
+  return { create };
+})();
+</script>
 
 <script type="module">
 import * as THREE from 'three';
@@ -1212,8 +1576,8 @@ const ADVANCED = [
 ];
 const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', goldFrame: '#b8860b', toast: 3500, cheer: 4500 };
 const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || null; };
-// B2 body shop: leg shapes, swapped in the garage's 🦿 tab (free, instant). Each unlocks when the trophy wall's lifetime count
-// of its part reaches `need` (spending parts never locks it again), and changes the mech's stats by these multipliers (or,
+// B2 body shop: leg shapes, swapped in the garage's 🦿 tab (free, instant). Each unlocked when the trophy wall's lifetime count
+// of its part reached `need` (#89: now each is built instead, BUILDS; part / need stay for the one-time latch), and changes the mech's stats by these multipliers (or,
 // for energy, adds; after the 250 armour cap, as chrome does). Stats multiply: the base mech × the shape × the G2 level, so a
 // paid upgrade never vanishes on a shape. Starting values, tuned at the playtest.
 //   energy     added to max energy          topSpeed × top speed       accel    × how fast it speeds up
@@ -1228,21 +1592,147 @@ const LEG_SHAPES = [
   { id: 'tracks', icon: '🚜', ic: 'tracks', name: 'Tracks', part: 'ram', need: 6, energy: 50, walkDamage: 2, push: 0.5, topSpeed: 0.8, accel: 0.75, legTurn: 0.8, jump: 0.5 },
 ];
 const SHAPE_FX = { energy: 0, topSpeed: 1, accel: 1, legTurn: 1, turnSlow: 0.3, jump: 1, kick: 1, walkDamage: 1, push: 1 };
+// #91: the Spider Mk II, the 6-legged advanced build. Not a fifth leg shape: an upgrade of the Spider, built once the Spider
+// is, after which the Spider card switches between 4 and 6 legs (rec.garage.body.spiderLegs, per child). With 6 on, these
+// go on top of the Spider's own trade-off: energy added, accel multiplied. Everything else (the turning, the kick, walking
+// into things) stays the Spider's. Starting values, tuned at the playtest.
+const SPIDER_MK2 = { energy: 15, accel: 1.15 };
+// the build projects that upgrade a shape (BUILDS has their recipes): of = the shape they upgrade, legs = its leg count once on
+const BUILD_UPS = [{ id: 'mk2', of: 'spider', icon: '🕷️', ic: 'spider', name: 'Spider Mk II', legs: 6 }];
+// the Spider's legs by index, as LEG_KITS.spider builds them: front left, front right, back left, back right (#91: and the
+// Mk II's middle left, middle right)
+const LEGS6 = ['FL', 'FR', 'BL', 'BR', 'ML', 'MR'];
 // the sections a shape can be picked for (B2 builds the legs; the torso and arms have today's shape only, for now)
 const BODY_SHAPES = { legs: LEG_SHAPES, torso: [{ id: 'standard', icon: '🤖', ic: 'torso', name: 'Standard' }], arms: [{ id: 'standard', icon: '💪', ic: 'arm', name: 'Standard' }] };
 const legShapeOf = (n) => { const s = String(n ?? '').toLowerCase(); return LEG_SHAPES.find((S) => S.id === s || S.icon === n || S.name.toLowerCase() === s) || null; };
-const shapeFx = (id) => { const S = legShapeOf(id) || LEG_SHAPES[0]; return Object.fromEntries(Object.entries(SHAPE_FX).map(([k, v]) => [k, S[k] ?? v])); };
+// (#91: six = the Spider wearing its Mk II's 6 legs: SPIDER_MK2 on top)
+const shapeFx = (id, six = false) => {
+  const S = legShapeOf(id) || LEG_SHAPES[0], fx = Object.fromEntries(Object.entries(SHAPE_FX).map(([k, v]) => [k, S[k] ?? v]));
+  if (six && S.id === 'spider') { fx.energy += SPIDER_MK2.energy; fx.accel *= SPIDER_MK2.accel; }
+  return fx;
+};
+// #91: a build project by id, icon or name: a leg shape (LEG_SHAPES) or an upgrade of one (BUILD_UPS, e.g. 'mk2')
+const buildProjOf = (n) => { const s = String(n ?? '').toLowerCase(); return BUILD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s) || legShapeOf(n); };
+const isProj = (S) => !!S && !!(S.part || S.of);
+// #89: every new shape is a build project. A blueprint is a list of steps, done in order: 'parts' (drag these parts from the
+// bag onto their spots on the frame on the lift; spent at once, never given back) or 'job' (a Quick Fix–style board in the
+// child's own setting, math wiring or colour wiring, with the real idea behind the shape). A wrong move on a job buzzes and
+// costs nothing. The last step done unlocks the shape and puts it on. Saved per child in rec.garage.body.builds =
+// { [shape]: { parts: { id: n }, step: k } } (n = how many of that part are in, k = steps done). #90: the harder shapes take
+// more steps: Hopper 3, Tracks 4, Spider 5. A recipe can have more than one parts step; each adds to the parts needed.
+//   jobs (BUILD_JOBS deals and checks each board):
+//   'stiffness' = pick the spring that lands a test jump on the pad (stiffer jumps higher), `rounds` pads in a row
+//   'mount'     = wire each leg's spring to its motor
+//   'gear'      = (#90) pick the gear for a pushing test: low gear = strong and slow, high gear = fast and weak. The right
+//                 one is the fastest gear still strong enough for the load (too high a gear stalls, too low is slow)
+//   'tension'   = (#90) tighten each tread (the left, then the right) by as much as it sags: too loose slips, too tight jams
+//   'legwire'   = (#90) wire each of the 4 legs' motors to the controller
+//   'gait'      = (#90) which leg steps with this one so it never tips over: its diagonal partner (the same side tips it
+//                 sideways, the same end tips it forward or back)
+//   'balance'   = (#90) share the leg motors' load between the 2 batteries so each carries half
+// #91: the Spider Mk II (BUILD_UPS) is built the same way, on the same jobs, each told about its 6 legs by its step:
+//   legwire legs = which legs' motors to wire (the two new ones, ML and MR, a hip and a knee motor each)
+//   gait    tripod = the 6-leg tripod gait: front and back on one side step with the middle on the other (two partners)
+//   balance motors = how many leg motors share the 2 batteries (6)
+const BUILDS = {
+  hopper: [
+    { kind: 'parts', parts: { spring: 4, motor: 2, armour: 2 } },
+    { kind: 'job', job: 'stiffness', ic: 'jump' },
+    { kind: 'job', job: 'mount', ic: 'wire' },
+  ],
+  tracks: [
+    { kind: 'parts', parts: { ram: 6, motor: 4, armour: 2 } },
+    { kind: 'job', job: 'gear', ic: 'motor' },
+    { kind: 'parts', parts: { wiring: 2 } },
+    { kind: 'job', job: 'tension', ic: 'tracks' },
+  ],
+  spider: [
+    { kind: 'parts', parts: { motor: 6, armour: 2 } },
+    { kind: 'job', job: 'legwire', ic: 'brain' },
+    { kind: 'parts', parts: { wiring: 4, battery: 2 } },
+    { kind: 'job', job: 'gait', ic: 'walker' },
+    { kind: 'job', job: 'balance', ic: 'battery' },
+  ],
+  mk2: [
+    { kind: 'parts', parts: { motor: 4, armour: 2 } },
+    { kind: 'job', job: 'legwire', ic: 'brain', legs: [4, 5, 4, 5] },   // (each new leg's hip motor, then its knee motor)
+    { kind: 'parts', parts: { wiring: 4, battery: 2 } },
+    { kind: 'job', job: 'gait', ic: 'walker', tripod: true },
+    { kind: 'job', job: 'balance', ic: 'battery', motors: 6 },
+  ],
+};
+const BUILD = { rounds: 2, cheer: 3200 };
+// where each spot sits on a shape's frame, in the order its part fills them: [leg, the leg's piece it hangs on, how far out
+// to the side, up, back]. Legs: 0 left, 1 right; the Spider's 0 front left, 1 front right, 2 back left, 3 back right (its
+// legs are each turned to point out, so "out" is along the leg on both sides)
+const BUILD_SPOTS = {
+  hopper: {
+    spring: [[0, 'knee', 0.9, -0.1], [1, 'knee', 0.9, -0.1], [0, 'ankle', 0.95, -0.6], [1, 'ankle', 0.95, -0.6]],
+    motor: [[0, 'hip', 1.1, 0.6], [1, 'hip', 1.1, 0.6]],
+    armour: [[0, 'thighPlate', 1.9, -0.3], [1, 'thighPlate', 1.9, -0.3]],
+  },
+  tracks: {
+    // (#90: chosen so no two spots of one parts step overlap on the lift at 1280×800, 390×844 or 844×390)
+    ram: [[0, 'blade', 0.9, 0.2, -0.3], [1, 'blade', 0.9, 0.2, -0.3], [0, 'unit', 1.2, -0.9, -1.2], [1, 'unit', 1.2, -0.9, -1.2], [0, 'unit', 1.4, 0, -1.5], [1, 'unit', 1.4, 0, -1.5]],
+    motor: [[0, 'hip', 1.2, 0.5], [1, 'hip', 1.2, 0.5], [0, 'unit', 1.2, 0, 1.75], [1, 'unit', 1.2, 0, 1.75]],   // (the hips, then the drive wheels)
+    armour: [[0, 'hip', 1.3, -1.3, -0.4], [1, 'hip', 1.3, -1.3, -0.4]],
+    wiring: [[0, 'hip', 1.0, -1.5], [1, 'hip', 1.0, -1.5]],
+  },
+  spider: {
+    motor: [[0, 'knee', 0.5, 0.3], [1, 'knee', 0.5, 0.3], [2, 'knee', 0.5, 0.3], [3, 'knee', 0.5, 0.3], [0, 'foot', 0, 0.9, -0.4], [1, 'foot', 0, 0.9, -0.4]],   // (each leg's knee, then the front claws)
+    armour: [[2, 'knee', 0.5, -1.9], [3, 'knee', 0.5, -1.9]],
+    wiring: [[0, 'hip', 0.6, -1.0], [1, 'hip', 0.6, -1.0], [2, 'hip', 0.6, -1.0], [3, 'hip', 0.6, -1.0]],
+    battery: [[2, 'knee', 0.5, -2.6], [3, 'knee', 0.5, -2.6]],
+  },
+  // #91: the Mk II's spots are all on its two new legs, 4 middle left and 5 middle right (the first four are built already)
+  mk2: {
+    motor: [[4, 'coxa', 0.6, 0.6], [5, 'coxa', 0.6, 0.6], [4, 'knee', 0.5, 0.3], [5, 'knee', 0.5, 0.3]],   // (each new leg's hip, then its knee)
+    armour: [[4, 'knee', 0.5, -1.9], [5, 'knee', 0.5, -1.9]],
+    wiring: [[4, 'hip', 0.6, -0.6], [5, 'hip', 0.6, -0.6], [4, 'knee', 0.5, -1.0], [5, 'knee', 0.5, -1.0]],
+    battery: [[4, 'knee', 0.5, -2.8], [5, 'knee', 0.5, -2.8]],
+  },
+};
+// (#90) how far each frame is turned from straight on, on the lift (radians): the Tracks and Spider further than the Hopper,
+// so the spots on their back wheels and back legs show beside the front ones
+const BUILD_TURN = { hopper: 0.25, tracks: 0.9, spider: 0.5, mk2: 0 };   // (#91: the Mk II straight on: its new legs reach out either side)
+const buildOf = (id) => BUILDS[id] ?? null;
+// the parts a build needs in all by the end of step i (counted across its parts steps, so a later parts step adds to them)
+function buildNeed(id, upTo = Infinity) {
+  const out = {}; (buildOf(id) || []).forEach((st, i) => { if (st.kind === 'parts' && i <= upTo) for (const [p, n] of Object.entries(st.parts)) out[p] = (out[p] || 0) + n; });
+  return out;
+}
 // a garage's body shop record, made with ||= the first time it's read (so a record saved before B2 keeps everything else, and
-// valid() and v are untouched), and kept sane: unlocked = known shapes (latched from the trophy counts too, so a shape is
-// never lost), equipped = a known shape that's unlocked (the walker otherwise)
+// valid() and v are untouched), and kept sane: unlocked = known shapes, equipped = a known shape that's unlocked (the walker
+// otherwise). #89: shapes unlock only by being built now. The first time a record is read under #89 (no b.trophyLatch yet),
+// any shape whose part count on the trophy wall had already reached its old `need` latches as unlocked, once (the flag), so
+// what a child had already earned stays theirs. builds kept to known shapes with a recipe, counts whole and in range.
 function bodyRec(g) {
   g.body ||= { legs: 'walker', torso: 'standard', arms: 'standard', unlocked: [] };
   if (typeof g.body !== 'object') g.body = { legs: 'walker', torso: 'standard', arms: 'standard', unlocked: [] };
   const b = g.body, un = Array.isArray(b.unlocked) ? b.unlocked : [];
-  b.unlocked = LEG_SHAPES.filter((S) => S.part && (un.includes(S.id) || (g.trophies?.[S.part]?.n || 0) >= S.need)).map((S) => S.id);
+  const old = !b.trophyLatch;   // #89: the one-time latch from the old trophy counts
+  b.unlocked = LEG_SHAPES.filter((S) => S.part && (un.includes(S.id) || (old && (g.trophies?.[S.part]?.n || 0) >= S.need))).map((S) => S.id);
+  b.trophyLatch = true;
+  b.builds ||= {};
+  if (typeof b.builds !== 'object' || Array.isArray(b.builds)) b.builds = {};
+  for (const k of Object.keys(b.builds)) {
+    const B = b.builds[k], R = buildOf(k);
+    if (!R || !B || typeof B !== 'object') { delete b.builds[k]; continue; }
+    const need = buildNeed(k), parts = {};
+    for (const [p, n] of Object.entries(need)) { const v = clamp(Math.floor(Number(B.parts?.[p]) || 0), 0, n); if (v) parts[p] = v; }
+    B.parts = parts; B.step = clamp(Math.floor(Number(B.step) || 0), 0, R.length);
+  }
   if (!LEG_SHAPES.some((S) => S.id === b.legs && (!S.part || b.unlocked.includes(S.id)))) b.legs = 'walker';
   for (const k of ['torso', 'arms']) if (!BODY_SHAPES[k].some((S) => S.id === b[k])) b[k] = 'standard';
+  // #91: the Spider's legs, 4 or 6: 6 only once its Mk II is built (that build's last step done)
+  b.spiderLegs = b.spiderLegs === 6 && upBuilt(b, 'mk2') ? 6 : 4;
   return b;
+}
+// #91: whether body record b has built upgrade project id (BUILD_UPS): the shape it upgrades unlocked, and every step done.
+// Kept as the build's step, so a reload, a child of their own and a backup's merge (the step, the further) all come for free.
+function upBuilt(b, id) {
+  const U = BUILD_UPS.find((q) => q.id === id), R = buildOf(id);
+  return !!U && !!R && Array.isArray(b.unlocked) && b.unlocked.includes(U.of) && (Number(b.builds?.[id]?.step) || 0) >= R.length;
 }
 // a garage's upgrade levels, every upgrade listed, each a whole number from 0 to its max
 const upLevels = (g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math.floor(Number(g?.upgrades?.[U.id]) || 0), 0, U.max)]));
@@ -1626,6 +2116,7 @@ const ICONS = {
   cross: ['no', ['✖', '✖️', '❌'], ln('M6 6 L18 18 M18 6 L6 18', UI, 3.2)],
   play: ['go', ['▶', '▶️'], pa('M7 3.6 L20.4 12 L7 20.4 Z', UI)],
   back: ['back', ['◀', '◀️'], pa('M17 3.6 L3.6 12 L17 20.4 Z', UI)],
+  pause: ['pause', ['⏸', '⏸️'], re(5.2, 3.6, 5, 16.8, 1.4, UI) + re(13.8, 3.6, 5, 16.8, 1.4, UI)],   // #94: the touch controller's pause
   up: ['up', ['▲'], pa('M12 4.4 L20.6 18.6 L3.4 18.6 Z', UI)],
   down: ['down', ['▼', '⬇', '⬇️'], pa('M12 19.6 L20.6 5.4 L3.4 5.4 Z', UI)],
   arrow: ['to', ['➜', '→'], ln('M3.4 12 L13.4 12', UI, 3.2, 'butt') + pa('M12.6 5 L21 12 L12.6 19 Z', UI)],
@@ -2226,7 +2717,9 @@ const Backup = {
   //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
   //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
   //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
-  //             if this device has none)
+  //             if this device has none); #89 body.builds: per shape each part's count and the step, the more;
+  //             body.trophyLatch: done if either has done it; #91 the Mk II's build is one of body.builds (so it's
+  //             built if either side's is), and body.spiderLegs, the 4 / 6 switch, is an equipped shape's: this device's
   //   anything else (a field a later slice adds): this device's, the backup's where this device has none
   merge(dev, bak) {
     const out = clone(dev), b = clone(bak);
@@ -2280,6 +2773,12 @@ const Backup = {
     if (isObj(gd.body) || isObj(gb.body)) {
       g.body = clone(isObj(gd.body) ? gd.body : gb.body);
       g.body.unlocked = [...new Set([...arr(gd.body?.unlocked), ...arr(gb.body?.unlocked)])];
+      // #89: build projects: per shape, each part's count the more and the step the further along (parts spent on either
+      // side stay spent); the one-time trophy latch is done if either side has done it
+      const bd = isObj(gd.body?.builds) ? gd.body.builds : null, bbk = isObj(gb.body?.builds) ? gb.body.builds : null;
+      if (bd || bbk) g.body.builds = byKey(bd, bbk, (p, q) => (!isObj(p) || !isObj(q) ? clone(isObj(p) ? p : q)
+        : { parts: byKey(p.parts, q.parts, (u, w) => Math.max(num(u), num(w))), step: Math.max(num(p.step), num(q.step)) }));
+      if (gd.body?.trophyLatch || gb.body?.trophyLatch) g.body.trophyLatch = true;
     }
     // the advanced parts the merged facts have earned (Facts.latch's rule: picking the child would latch them anyway, and
     // the summary should show them now), waiting for their cheer
@@ -2585,7 +3084,7 @@ addEventListener('pointerdown', () => Sfx.unlock());
 const anyKey = (list) => list.some((k) => keys.has(k));
 
 const mouse = { dx: 0, dy: 0, locked: false, down: false };
-canvas.addEventListener('click', () => { if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked && !FixUI.mode) canvas.requestPointerLock?.(); });
+canvas.addEventListener('click', (e) => { if (e.pointerType === 'touch' || touch.state.touchMode) return; if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked && !FixUI.mode) canvas.requestPointerLock?.(); });
 document.addEventListener('pointerlockchange', () => {
   mouse.locked = document.pointerLockElement === canvas;
   // a repair frees the mouse for dragging wires; that isn't a pause
@@ -2620,8 +3119,50 @@ function readPad(i) {
     stickP: cur.stick && !prev.stick,
   };
   padPrev[i] = cur;
+  if (out.lx || out.ly || out.rx || out.ry || Object.values(cur).some(Boolean)) touch.padUsed();   // #94: a pad in use hides the touch controller
   return out;
 }
+
+// #94: the on-screen touch controller (the TouchPad block above, as in Family Knockout): player 1 only, read
+// once per frame in gatherInput. Stick = throttle and leg turn, a drag on the right's empty space = torso aim,
+// FIRE (held: the rail gun charges), WEAPON (a tap cycles; a long press opens the weapons row as a picker),
+// JUMP (once spring legs are bought), FIX / PARTS (beside a downed robot), BAG, MEND, and pause.
+// It hides while a panel (the Quick Fix, keypad, picker, bag, mend, naming), the garage or the fact grid is open.
+const touch = TouchPad.create({
+  buttons: [
+    { id: 'fire', label: 'FIRE', icon: icon('smash') },
+    { id: 'wpn', label: 'WEAPON', icon: icon('gun'), angle: 180 },
+    { id: 'jump', label: 'JUMP', icon: icon('jump'), angle: 90, hidden: true },
+    { id: 'fix', label: 'FIX', icon: icon('wrench'), angle: 135, hidden: true },
+    { id: 'parts', label: 'PARTS', icon: icon('bolt'), angle: 135, ring: 146, size: 50, hidden: true },
+    { id: 'mend', label: 'MEND', icon: icon('energy'), angle: 100, ring: 145, size: 48 },
+    { id: 'bag', label: 'BAG', icon: icon('bag'), angle: 170, ring: 145, size: 48 },
+  ],
+  pause: true, pauseIcon: icon('pause'),
+  active: () => Game.state === 'play' && !!Game.pilot && !Game.paused && !Title.on && !Garage.on && !Progress.mode && !FixUI.mode && Game.humans.length > 0,
+  before: $('hurt'), z: 'auto',   // under the HUD and the clear screen, so their buttons (weapon slots, ▶, 🔧) still take taps
+});
+const WPN_HOLD = 0.45;   // s: a WEAPON press this long opens the picker instead of cycling
+function readTouch() {
+  const t = touch.poll();
+  return { lx: t.x, ly: t.y, fireH: !!t.held.fire, wpnH: !!t.held.wpn, jumpP: !!t.pressed.jump, fixP: !!t.pressed.fix, partsP: !!t.pressed.parts,
+    mendP: !!t.pressed.mend, bagP: !!t.pressed.bag, pauseP: !!t.pressed.pause, lookDx: t.lookDx, lookDy: t.lookDy, looking: t.looking };
+}
+// the contextual buttons: JUMP once spring legs are on (as the HUD's ⤴️), FIX / PARTS while the prompt beside a
+// downed robot is up (as the HUD's 🔧 / 🔩); WEAPON wears the current weapon's icon
+function touchButtons(h) {
+  const m = h.mech, pr = !!(m && !h.repair && promptRobot(h));
+  touch.setVisible('jump', (m?.upg?.spring || 0) > 0);
+  touch.setVisible('fix', pr); touch.setVisible('parts', pr);
+  touch.setIcon('wpn', icon(WEAPON[h.weapon]?.ic || 'gun'));
+}
+// the weapons row as a picker (a long press on WEAPON): big, in the middle of the screen; a tap on a slot picks it
+const WpnPick = {
+  get on() { return $('weapons').classList.contains('pick'); },
+  set(on) { $('weapons').classList.toggle('pick', !!on); },
+};
+// a touch anywhere but the row closes the picker (the row's own taps pick, then close it)
+addEventListener('pointerdown', (e) => { if (WpnPick.on && !e.target.closest?.('#weapons') && !e.target.closest?.('[data-tp="wpn"]')) WpnPick.set(false); }, true);
 
 // ===========================================================================
 // The meadow: rolling ground, wind-blown grass, rocks and trees
@@ -2927,7 +3468,7 @@ function capsule(r, len, color, opts) { const m = new THREE.Mesh(new THREE.Capsu
 // pelvis, the torso sits on the turret ring above it, and the arms hang from the torso. The pelvis (hub, hip bar,
 // skirt) is the same on every shape, at the same height, so the torso, arms, camera, hit heights and the jump's
 // feet-clear rule (#46, worked from the simulated jump, not the model) are the same on every shape too.
-function buildMech(paint = PAINT, shape = 'walker') {
+function buildMech(paint = PAINT, shape = 'walker', legN = null) {   // (#91: legN = 6 for the Spider Mk II's)
   const root = new THREE.Group();
   const body = new THREE.Group(); root.add(body);            // bobs with the gait
   const metal = { metalness: 0.55, roughness: 0.4 };
@@ -2937,7 +3478,7 @@ function buildMech(paint = PAINT, shape = 'walker') {
   const hipBar = capsule(0.42, 2.6, paint.dark, metal); hipBar.rotation.z = Math.PI / 2; pelvis.add(hipBar);
   const skirt = rbox(2.2, 0.5, 1.6, 0.22, paint.armour); skirt.position.set(0, -0.35, 0); pelvis.add(skirt);
 
-  const kit = LEG_KITS[shape] ? shape : 'walker', legSet = LEG_KITS[kit].build(pelvis, paint, metal);
+  const kit = LEG_KITS[shape] ? shape : 'walker', legSet = LEG_KITS[kit].build(pelvis, paint, metal, { six: kit === 'spider' && legN === 6 });
   const legs = legSet.legs;
 
   // Torso: sits on a turret ring so it can swing round on its own
@@ -3021,6 +3562,7 @@ function buildMech(paint = PAINT, shape = 'walker') {
   const md = { root, body, pelvis, torso, legs, arms, flashes, muzzleLight, lights, cockpit, canopy, ringGlow, skirt, chest, back, sockets };
   // B2: the leg piece: its shape, the legs that carry the G2 pieces (each with its sockets), and anything its motion turns
   md.legShape = kit; md.sockLegs = legs.filter((L) => L.sock); md.treads = legSet.treads || null;
+  md.legCount = legs.length;   // #91: 2 (walker, hopper, tracks), 4 (the Spider) or 6 (its Mk II)
   adoptPaint(md);
   return md;
 }
@@ -3142,13 +3684,18 @@ const LEG_KITS = {
     probe(md) { const L = md.legs.find((l) => l.s > 0); return { hip: r3(L.hip.rotation.x), knee: r3(L.knee.rotation.x) }; },
   },
   // 🕷️ four legs, the knees up high, the feet planted wide. The front pair carries the G2 pieces.
+  // #91: the Mk II (opts.six) adds a middle pair, legs 4 (middle left) and 5 (middle right), after the first four so every
+  // index into them stays as it was. Its front and back pairs splay a little further fore and aft to make room. The middle
+  // pair carries the G2 pieces too. Each leg's beat: 4 legs step in diagonal pairs (FL + BR, then FR + BL), 6 in tripods
+  // (FR + BR + ML, then FL + BL + MR: front and back on one side with the middle on the other).
   spider: {
     rest: { hip: 1.87, knee: -1.65 },
-    build(pelvis, paint, metal) {
-      const legs = [];
-      for (const f of [1, -1]) for (const s of [-1, 1]) {   // the front pair (f = 1) first, then the back pair
-        const yaw = s > 0 ? f * 0.62 : f * (Math.PI - 0.62);
-        const base = new THREE.Group(); base.position.set(s * 1.25, -0.1, -f * 0.75); base.rotation.y = yaw; pelvis.add(base);   // the leg's frame: +x out along it
+    build(pelvis, paint, metal, opts = {}) {
+      const legs = [], six = !!opts.six, splay = six ? 0.78 : 0.62, fore = six ? 0.95 : 0.75;
+      const at = [[1, -1], [1, 1], [-1, -1], [-1, 1], ...(six ? [[0, -1], [0, 1]] : [])];   // [f, s]: the front pair, the back pair, (the middle pair)
+      for (const [f, s] of at) {
+        const yaw = f === 0 ? (s > 0 ? 0 : Math.PI) : s > 0 ? f * splay : f * (Math.PI - splay);
+        const base = new THREE.Group(); base.position.set(s * (f === 0 ? 1.4 : 1.25), -0.1, -f * fore); base.rotation.y = yaw; pelvis.add(base);   // the leg's frame: +x out along it
         const coxa = new THREE.Group(); base.add(coxa);                                   // turns the leg fore and aft
         coxa.add(ball(0.55, paint.dark, metal));
         const cap = cyl(0.6, 0.6, 0.3, paint.trim, metal, 18); cap.rotation.z = Math.PI / 2; cap.position.x = 0.32; coxa.add(cap);
@@ -3164,19 +3711,21 @@ const LEG_KITS = {
         foot.add(ball(0.3, paint.dark, metal));
         const pad = rbox(0.9, 0.3, 0.9, 0.12, paint.frame, metal); pad.position.y = -0.12; foot.add(pad);
         const claw = rbox(0.35, 0.25, 0.5, 0.1, paint.armour); claw.position.set(0, -0.1, -0.55); foot.add(claw);
-        const L = { s, f, yaw, base, coxa, hip, knee, foot, thigh, thighPlate, shin, shinGuard, armour: [thighPlate, shinGuard], motor: [thigh, shin], plateRef: shinGuard, limbRef: shin };
-        if (f > 0) L.sock = { drum: { p: coxa, s: 1, x: 0.5, y: 0, z: 0 }, spring: { p: knee, x: -0.38, y: -1.7, z: 0 }, ram: { p: foot, x: 0, y: 0.05, z: -0.7, tip: -1.0, sc: 0.6 },
+        // (#91: beat 0 or 1, which half of the stride it steps in: diagonal pairs on 4 legs, as ever; tripods on 6)
+        const L = { s, f, yaw, base, coxa, hip, knee, foot, thigh, thighPlate, shin, shinGuard, armour: [thighPlate, shinGuard], motor: [thigh, shin], plateRef: shinGuard, limbRef: shin,
+          name: LEGS6[legs.length], beat: six ? ((f === 0 ? -s : s) > 0 ? 0 : 1) : s * f > 0 ? 0 : 1 };
+        if (f >= 0) L.sock = { drum: { p: coxa, s: 1, x: 0.5, y: 0, z: 0 }, spring: { p: knee, x: -0.38, y: -1.7, z: 0 }, ram: { p: foot, x: 0, y: 0.05, z: -0.7, tip: -1.0, sc: 0.6 },
           plate: { p: knee, x: 0, y: -2.6, z: s > 0 ? -0.3 : 0.3, ry: s > 0 ? 0 : Math.PI }, piston: { p: hip, x: -0.4, y: -1.0, z: 0.3, rx: 0 } };
         this.level(L); legs.push(L);
       }
       return { legs };
     },
     level(L) { L.foot.rotation.set(0, -(L.yaw + L.coxa.rotation.y), -(L.hip.rotation.z + L.knee.rotation.z), 'ZYX'); },
-    // diagonal pairs step together; a leg swings forward as it lifts
+    // each beat's legs step together (diagonal pairs; #91: tripods on 6 legs); a leg swings forward as it lifts
     walk(md, m, k) {
       const R = this.rest;
       for (const L of md.legs) {
-        const p = m.phase + (L.s * L.f > 0 ? 0 : Math.PI), swing = Math.sin(p), lift = Math.max(0, Math.cos(p));
+        const p = m.phase + (L.beat ? Math.PI : 0), swing = Math.sin(p), lift = Math.max(0, Math.cos(p));
         L.coxa.rotation.y = swing * 0.28 * k * L.s; L.hip.rotation.z = R.hip + lift * 0.3 * k; L.knee.rotation.z = R.knee - lift * 0.15 * k;
         this.level(L);
       }
@@ -3279,18 +3828,20 @@ function treadTex() {
 }
 // a leg piece on its own (the body shop's cards): the pelvis and that shape's legs at rest, in the paint as built. Its
 // materials are the shared mat() ones, never dressed; r = a radius that holds it, y = its middle
+// (#91: id can be a build project that upgrades a shape, BUILD_UPS: 'mk2' is the Spider on its 6 legs; and 'spider6' too)
 function legPiece(id) {
+  const U = BUILD_UPS.find((q) => q.id === id) || (id === 'spider6' ? BUILD_UPS[0] : null), kit = U ? U.of : id;
   const g = new THREE.Group(), pelvis = new THREE.Group(); g.add(pelvis);
   const metal = { metalness: 0.55, roughness: 0.4 };
   pelvis.add(cyl(0.9, 1.1, 1.0, PAINT.frame, metal, 20));
   const bar = capsule(0.42, 2.6, PAINT.dark, metal); bar.rotation.z = Math.PI / 2; pelvis.add(bar);
   const skirt = rbox(2.2, 0.5, 1.6, 0.22, PAINT.armour); skirt.position.y = -0.35; pelvis.add(skirt);
-  const K = LEG_KITS[id], set = K.build(pelvis, PAINT, metal);
+  const K = LEG_KITS[kit], set = K.build(pelvis, PAINT, metal, { six: U?.legs === 6 });
   K.walk({ legs: set.legs, treads: set.treads || null, body: new THREE.Group() }, { phase: 0 }, 0);
   g.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(g), size = box.getSize(new V3()), mid = box.getCenter(new V3());
   pelvis.position.set(-mid.x, -mid.y, -mid.z);
-  return { g, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5 };
+  return { g, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5, set, K };   // (#89: set and K, for the build frame's spots and its moving)
 }
 
 // G3 paint. Paint goes through materials, not meshes: a mech owns one copy of each material its painted meshes
@@ -3779,8 +4330,9 @@ function dressUpgrades(md, lv, adv = {}) {
   // 🛡️ plates bolted on, one set per level
   if (a >= 1) put('plate', md.torso, rbox(2.2, 0.9, 0.3, 0.12, hex('armour'), metal), 0, 0.3, -1.66, 'chest').rotation.x = -0.25;
   for (const s of [-1, 1]) {
-    const L = md.sockLegs.find((q) => q.s === s);
-    if (a >= 2 && L) at('plate', 'plate', L, rbox(0.8, 1.1, 0.24, 0.1, hex('armour'), metal)).rotation.y = L.sock.plate.ry || 0;
+    // (#91: on every socket leg on this side: one a side on the walker, hopper and tracks, and the Spider's front pair, as
+    // before; the Mk II's middle pair too)
+    if (a >= 2) for (const L of md.sockLegs.filter((q) => q.s === s)) at('plate', 'plate', L, rbox(0.8, 1.1, 0.24, 0.1, hex('armour'), metal)).rotation.y = L.sock.plate.ry || 0;
     const A = md.arms.find((q) => q.s === s);
     if (a >= 3 && A) put('plate', A.shoulder, rbox(1.25, 0.3, 1.5, 0.12, hex('armour'), metal), s * 0.25, 0.78, 0, 'shoulder');
     if (a >= 4) put('plate', md.torso, rbox(0.26, 1.1, 1.7, 0.1, hex('armour'), metal), s * 2.05, 0.65, 0.1, 'flank');
@@ -3847,7 +4399,18 @@ function upgradeLook(md) {
     if (['drum', 'spring', 'ram', 'plate'].includes(o.userData.socket)) inSocket[s] = (inSocket[s] || 0) + 1;
   }
   return { pieces: md.up.meshes.filter((o) => o.parent).length, kinds, plateDepth: r3(L0.plateRef.scale.z), legWidth: r3(L0.limbRef.scale.x),
-    lit: md.lights.filter((L) => md.up.lights.includes(L)).length, legs: md.legShape, sockets, inSocket, pose: md.pose ? { ...md.pose } : null };
+    lit: md.lights.filter((L) => md.up.lights.includes(L)).length, legs: md.legShape, sockets, inSocket, pose: md.pose ? { ...md.pose } : null,
+    legCount: md.legCount, sockLegs: md.sockLegs.length, feet: feetLook(md) };   // (#91)
+}
+// #91: the Spider's feet as the model has them now, for the hooks' gait checks: each foot's height (m) over the pelvis's
+// lowest foot, read from the model's own matrices in the pelvis's frame (so the body's bob and sway don't count), and which
+// are planted (within 5 cm of the lowest) or up. null on a shape without the Spider's feet.
+function feetLook(md) {
+  if (md?.legShape !== 'spider') return null;
+  const pel = md.legs[0].base.parent, v = new V3(); pel.updateMatrixWorld(true);
+  const inv = pel.matrixWorld.clone().invert(), y = md.legs.map((L) => v.setFromMatrixPosition(L.foot.matrixWorld).applyMatrix4(inv).y), lo = Math.min(...y);
+  const h = Object.fromEntries(md.legs.map((L, i) => [L.name, r3(y[i] - lo)]));
+  return { h, planted: md.legs.filter((L) => h[L.name] < 0.05).map((L) => L.name), up: md.legs.filter((L) => h[L.name] >= 0.05).map((L) => L.name) };
 }
 // G2: whoever is playing's upgrades on player 0's mech: energy (a rise in maxHealth is a rise in health too, so
 // buying 🛡️ on a full mech fills it to the new top; a powered-down mech stays at 0), top speed (its own spec),
@@ -3863,9 +4426,9 @@ function upgradeLook(md) {
 // #68: a child switch (pickChild) does the same, so switching to a child with less energy and back doesn't heal the mech.
 function applyUpgrades(opts = {}) {
   const h = Game.humans[0], m = h?.mech; if (!m) return null;
-  const shape = Shapes.rec().legs;
-  if (m.model.legShape !== shape) swapModel(h, shape);
-  const fx = m.fx = shapeFx(shape);
+  const shape = Shapes.rec().legs, legN = Shapes.legCount();   // (#91: and the Spider's legs, 4 or 6)
+  if (m.model.legShape !== shape || (shape === 'spider' && m.model.legCount !== legN)) swapModel(h, shape, legN);
+  const fx = m.fx = shapeFx(shape, shape === 'spider' && legN === 6);
   const lv = m.upg = upLevels(Garage.rec());
   const adv = m.adv = Object.fromEntries(ADVANCED.map((A) => [A.id, Garage.has(A.id)]));
   const who = Game.child?.id ?? null;
@@ -3892,8 +4455,8 @@ function applyUpgrades(opts = {}) {
 }
 // B2: put leg shape `shape` on player h's mech: a whole new model (buildMech), so the paint, finish, tiers, lights and decals
 // are all made afresh for it by applyUpgrades. The 💤 sprite and the pilot move over; the old model's own geometry is freed.
-function swapModel(h, shape) {
-  const m = h.mech, old = m.model, md = buildMech(PAINT, shape);
+function swapModel(h, shape, legN = null) {
+  const m = h.mech, old = m.model, md = buildMech(PAINT, shape, legN);
   scene.remove(old.root); scene.add(md.root);
   if (old.icon) { md.root.add(old.icon); md.icon = old.icon; }
   m.model = md;
@@ -3912,8 +4475,30 @@ const Shapes = {
   // the trophy wall's lifetime count of shape S's part
   have(S) { return S.part ? Garage.rec().trophies[S.part]?.n || 0 : 0; },
   open(S) { return !S.part || this.rec().unlocked.includes(S.id); },
-  offer() { return Object.fromEntries(LEG_SHAPES.map((S) => [S.id, { unlocked: this.open(S), have: this.have(S), need: S.need, part: S.part }])); },
-  status() { const b = this.rec(); return { equipped: { legs: b.legs, torso: b.torso, arms: b.arms }, unlocked: b.unlocked.slice(), offer: this.offer() }; },
+  // (#89: have / need are the old trophy-count rule's, kept for the one-time latch; build = how far its build project has got)
+  offer() { return Object.fromEntries(LEG_SHAPES.map((S) => [S.id, { unlocked: this.open(S), have: this.have(S), need: S.need, part: S.part, build: S.part ? Builds.brief(S.id) : null }])); },
+  // #89: builds = whoever is playing's build projects as saved ({ [shape]: { parts, step } }), trophyLatch = the one-time latch done
+  // #91: mk2 = the Spider Mk II: open (its blueprint shows: the Spider is built), built, on (the Spider wears 6 legs; it
+  // counts whichever legs are equipped), legs (4 or 6, as saved) and its build's brief
+  status() { const b = this.rec(); return { equipped: { legs: b.legs, torso: b.torso, arms: b.arms }, unlocked: b.unlocked.slice(), offer: this.offer(), builds: JSON.parse(JSON.stringify(b.builds)), trophyLatch: !!b.trophyLatch,
+    mk2: { open: this.open(legShapeOf('spider')), built: upBuilt(b, 'mk2'), on: b.spiderLegs === 6, legs: b.spiderLegs, wearing: b.legs === 'spider' ? b.spiderLegs : null, build: Builds.brief('mk2') } }; },
+  // #91: how many legs the Spider wears (4, or 6 once its Mk II is built and switched on)
+  legCount() { return this.rec().spiderLegs; },
+  // #91: switch the Spider between 4 and 6 legs (n = 4 | 6; left out, the other one): the card's toggle, keys, pad and
+  // __rb.spiderLegs. Saved per child at once. If the Spider's on, the model swaps (the damage taken kept, as a leg swap).
+  // Refused with nothing changed: 'not built' (no Mk II yet), 'no such legs'.
+  setLegs(n) {
+    const b = this.rec(), want = n == null ? (b.spiderLegs === 6 ? 4 : 6) : Number(n);
+    let res = null;
+    if (want !== 4 && want !== 6) res = { ok: false, why: 'no such legs', legs: n };
+    else if (!upBuilt(b, 'mk2')) res = { ok: false, why: 'not built', legs: want, build: Builds.brief('mk2') };
+    if (res) { if (!Game.manual) Sfx.buzz(); Garage.flash(null, 'bad', '.lcard[data-shape="spider"] .lmk2'); return res; }
+    const was = b.spiderLegs; b.spiderLegs = want; Facts.save();
+    if (b.legs === 'spider') applyUpgrades({ swap: true });
+    if (Garage.on) { Garage.dress(); Garage.draw(); Garage.flash(null, 'got', '.lcard[data-shape="spider"]'); }
+    if (!Game.manual && was !== want) { Sfx.mendParts(); Sfx.tone(want === 6 ? 523 : 392, 0.12, 'square', 0.06, want === 6 ? 1046 : 784, 0.25); }
+    return { ok: true, legs: want, was, wearing: b.legs === 'spider' };
+  },
   // put shape `shape` (an id, icon or name) on section `section` ('legs' | 'torso' | 'arms'). Refused, with nothing changed:
   // why 'no such shape' (or section), or 'locked' with what unlocking it needs (have / need of its part)
   equip(section, shape) {
@@ -3921,7 +4506,7 @@ const Shapes = {
     const S = section === 'legs' ? legShapeOf(shape) : list?.find((q) => q.id === String(shape ?? '').toLowerCase() || q.icon === shape) ?? null;
     let res = null;
     if (!list || !S) res = { ok: false, why: 'no such shape', section, shape };
-    else if (section === 'legs' && !this.open(S)) res = { ok: false, why: 'locked', section, shape: S.id, part: S.part, have: this.have(S), need: S.need };
+    else if (section === 'legs' && !this.open(S)) res = { ok: false, why: 'locked', section, shape: S.id, part: S.part, have: this.have(S), need: S.need, build: Builds.brief(S.id) };
     if (res) {
       if (!Game.manual) Sfx.buzz();
       if (S) Garage.flash(null, 'bad', `.lcard[data-shape="${S.id}"]`);
@@ -3934,6 +4519,322 @@ const Shapes = {
     if (!Game.manual && was !== S.id) { Sfx.mendParts(); Sfx.tone(392, 0.12, 'square', 0.06, 784, 0.25); }
     return { ok: true, section, shape: S.id, was };
   },
+};
+// #89: the body shop's build projects (BUILDS). Whoever is playing's builds live in rec.garage.body.builds (bodyRec keeps
+// them sane); Guest's are in Guest's record, which is never saved, so they last only for the session. Parts go in one at a
+// time onto the frame's spots, in order (spot k of a part is filled once more than k of it are in, so the next one in is
+// always spot `in`: the one that glows): from the bag, spent at once and saved. A job is a board of plugs and ports
+// (Builds.job), kept here so it works with the garage shut (the hooks); a wrong link buzzes, shows what went wrong, and costs
+// nothing. The garage's 🦿 tab draws all of it (Garage.drawBuild) and the lift shows the frame filling in (Garage.frameOf).
+const Builds = {
+  job: null,      // the job board open now: { shape, step, who, job, mode, round, rounds, boards, tries, miss, log }
+  // shape id's build as saved ({ parts, step }); made (with ||=) only for a shape with a recipe, and only when write is set
+  rec(id, write = false) {
+    const b = Shapes.rec();
+    if (write && buildOf(id)) return (b.builds[id] ||= { parts: {}, step: 0 });
+    return b.builds[id] ?? { parts: {}, step: 0 };
+  },
+  // (#91: an upgrade project, the Mk II, is built once its last step's done; a leg shape once it's unlocked)
+  built(id) { const S = buildProjOf(id); return !!S && (S.of ? upBuilt(Shapes.rec(), S.id) : Shapes.open(S)); },
+  // #91: why a project can't be started yet: an upgrade needs the shape it upgrades built first ('spider first'); null if it can
+  locked(id) { const S = buildProjOf(id); return S?.of && !this.built(S.of) ? S.of + ' first' : null; },
+  // the step the build is on (an index into its recipe; its length once all are done)
+  stepOf(id) { const R = buildOf(id); return R ? (this.built(id) ? R.length : this.rec(id).step) : 0; },
+  // what a card needs: soon = no recipe (none since #90, when the Tracks and Spider got theirs; kept as a guard), built,
+  // parts in / needed in all, steps done / how many
+  brief(id) {
+    const R = buildOf(id), B = this.rec(id), built = this.built(id);
+    if (!R) return { soon: true, built, parts: {}, need: {}, step: 0, steps: 0 };
+    const need = buildNeed(id), parts = Object.fromEntries(Object.keys(need).map((p) => [p, built ? need[p] : B.parts[p] || 0]));
+    return { soon: false, built, parts, need, step: this.stepOf(id), steps: R.length };
+  },
+  // the hooks' view: the recipe, the parts in so far, every step (kind, its parts or job, done, current), the bag, the job board
+  status(id) {
+    const S = buildProjOf(id); if (!isProj(S)) return { ok: false, why: 'no such shape', shape: id };
+    const R = buildOf(S.id) || [], br = this.brief(S.id), k = br.step;
+    return { ok: true, shape: S.id, soon: br.soon, built: br.built, step: k, steps: R.length, parts: br.parts, need: br.need,
+      recipe: R.map((st, i) => ({ kind: st.kind, parts: st.parts ? { ...st.parts } : undefined, job: st.job, done: i < k, current: i === k && !br.built })),
+      current: R[k] && !br.built ? { kind: R[k].kind, job: R[k].job, index: k } : null, of: S.of ?? null, locked: this.locked(S.id),
+      bag: { ...Game.bag }, job: this.job && this.job.shape === S.id ? this.jobState() : null, open: Garage.on && Garage.bp === S.id,
+      look: this.look(S.id), saved: JSON.parse(JSON.stringify(Shapes.rec().builds[S.id] ?? null)) };
+  },
+  // what the lift's frame shows for shape id, from the build's state (the same rule the 3D and the spots use): per part, which
+  // spots are filled and which are ghost; wired once its first job is done; moving once its last is (and through the cheer);
+  // jobs = [done, how many] (#90: the Spider has 3)
+  look(id) {
+    const R = buildOf(id); if (!R) return null;
+    const br = this.brief(id), spots = Garage.spotList(id), filled = [], ghost = [];
+    for (const sp of spots) (sp.k < (br.parts[sp.part] || 0) ? filled : ghost).push(sp.part + ':' + sp.k);
+    const jobs = R.map((st, i) => (st.kind === 'job' ? i : -1)).filter((i) => i >= 0);
+    return { ghost, filled, spots: spots.length, wired: jobs.length > 0 && br.step > jobs[0], moving: br.step >= R.length, done: br.built,
+      jobs: [jobs.filter((i) => i < br.step).length, jobs.length] };
+  },
+  // why shape id's build can't take n of part now (null if it can)
+  refuse(id, part, n) {
+    const S = buildProjOf(id), R = S && buildOf(S.id);
+    if (!isProj(S)) return { why: 'no such shape' };
+    if (!R) return { why: 'coming soon' };
+    if (this.built(S.id)) return { why: 'built' };
+    if (this.locked(S.id)) return { why: this.locked(S.id) };
+    const k = this.stepOf(S.id), st = R[k];
+    if (st.kind !== 'parts') return { why: 'job first', job: st.job };
+    if (!PARTS[part]) return { why: 'no such part', part };
+    const need = buildNeed(S.id, k)[part] || 0, have = this.rec(S.id).parts[part] || 0;
+    if (!need || have >= need) return { why: 'not needed', part, in: have, need };
+    if (have + n > need) return { why: 'too many', part, in: have, need, n };
+    if ((Game.bag[part] || 0) < n) return { why: 'not enough parts', part, bag: Game.bag[part] || 0, n };
+    return null;
+  },
+  // put n of part into shape id's build (a drop on its glowing spot, a key / pad pick, or __rb.buildPut): spent from the bag at
+  // once, saved, never given back. When the step's parts are all in, the build moves on to its next step.
+  put(id, part, n = 1) {
+    const S = buildProjOf(id); n = Math.max(1, Math.floor(Number(n) || 1));
+    const P = PARTS[part] ? part : Object.keys(PARTS).find((k) => PARTS[k].icon === part || PARTS[k].ic === part) ?? part;
+    const no = this.refuse(id, P, n);
+    if (no) { if (!Game.manual) Sfx.buzz(); Garage.flash(null, 'bad', `.bpart[data-part="${P}"]`); return { ok: false, shape: S?.id ?? id, ...no }; }
+    const B = this.rec(S.id, true);
+    Game.bag[P] -= n; if (!Game.bag[P]) delete Game.bag[P];
+    B.parts[P] = (B.parts[P] || 0) + n;
+    const k = B.step, need = buildNeed(S.id, k), full = Object.entries(need).every(([p, v]) => (B.parts[p] || 0) >= v);
+    if (full) B.step = k + 1;
+    Facts.save();
+    if (!Game.manual) { Sfx.noise(0.05, 0.3, 1400, 0, 2); Sfx.tone(180, 0.1, 'square', 0.08, 120); if (full) Sfx.mendParts(); }   // a clank
+    const done = B.step >= buildOf(S.id).length;
+    if (Garage.on) {
+      if (Garage.bpick === P && (B.parts[P] >= (need[P] || 0) || !Game.bag[P])) Garage.bpick = null;
+      if (full) { Garage.bpick = null; Garage.bcur = 0; Garage.bsel = -1; }
+      Garage.draw(); Garage.flash(null, 'got', `.bpart[data-part="${P}"]`);
+    }
+    if (done) this.finish(S.id);
+    return { ok: true, shape: S.id, part: P, n, in: B.parts[P], need: need[P], left: Game.bag[P] || 0, step: B.step, next: done ? null : buildOf(S.id)[B.step].kind, built: done };
+  },
+  // ---- jobs. A board is a set of plugs and ports; each plug with want >= 0 must be linked to that port (a plug with want -1
+  // is a wrong choice: a spring that misses the pad). mode = the child's Quick Fix setting: in math wiring a plug shows a
+  // fact and a port its answer; in colour wiring both show a wire's colour and shape. Rounds come one after another.
+  // BUILD_JOBS deals each job's boards and says what a wrong link does (#90).
+  // the job for shape id's current step, made fresh if there's none for it (or it's someone else's, or another step's)
+  jobFor(id) {
+    const S = buildProjOf(id), R = S && buildOf(S.id); if (!R || this.built(S.id) || this.locked(S.id)) return null;
+    const k = this.stepOf(S.id), st = R[k]; if (st?.kind !== 'job') return null;
+    const who = Game.child?.id ?? null, mode = wiringMode(), J = this.job;
+    if (J && J.shape === S.id && J.step === k && J.who === who && J.mode === mode) return J;
+    // (#91: ctx.step = the recipe's step, which tells a job about the Mk II's legs: legwire's legs, gait's tripod, balance's motors)
+    const JD = BUILD_JOBS[st.job], rounds = JD.rounds, ctx = { step: st }, boards = [];
+    for (let r = 0; r < rounds; r++) boards.push(JD.deal(mode, r, ctx));
+    return (this.job = { shape: S.id, step: k, who, job: st.job, ic: st.ic, mode, round: 0, rounds, boards, tries: 0, miss: null, log: [] });
+  },
+  // why there's no job for shape id now
+  noJob(id) {
+    const S = buildProjOf(id), R = S && buildOf(S.id);
+    if (!isProj(S)) return 'no such shape';
+    if (!R) return 'coming soon';
+    if (this.built(S.id)) return 'built';
+    if (this.locked(S.id)) return this.locked(S.id);
+    return R[this.stepOf(S.id)]?.kind === 'parts' ? 'parts first' : 'no job';
+  },
+  // link plug i to port j on the job's board now. Right: it goes in (clank); when every plug that's wanted is in, the round
+  // is done, and after the last round the job's step is done (saved). Wrong: a buzz and the miss shown (BUILD_JOBS' miss:
+  // e.g. the spring went 'over' or 'under' the pad, the gear 'stall's or is 'slow', or the plug and port don't match):
+  // nothing is spent, try again.
+  link(id, i, j) {
+    const J = this.jobFor(id); if (!J) return { ok: false, why: this.noJob(id) };
+    const Bd = J.boards[J.round], p = Bd.plugs[i], q = Bd.ports[j];
+    if (!p || !q) return { ok: false, why: 'no such plug or port', plug: i, port: j };
+    if (Bd.links[i] >= 0) return { ok: false, why: 'in already', plug: i };
+    J.tries++;
+    if (p.want !== j) {
+      J.miss = { plug: i, port: j, how: BUILD_JOBS[J.job].miss(p, q, Bd, j) };
+      J.log.push({ round: J.round, plug: i, port: j, right: false });
+      if (!Game.manual) Sfx.buzz();
+      if (Garage.on) { Garage.bsel = -1; Garage.draw(); Garage.flash(null, 'bad', `.bplug[data-plug="${i}"]`); }
+      return { ok: false, why: 'wrong', miss: J.miss.how, plug: i, port: j, round: J.round };
+    }
+    Bd.links[i] = j; J.miss = null; J.log.push({ round: J.round, plug: i, port: j, right: true });
+    const roundDone = Bd.plugs.every((pl, k) => pl.want < 0 || Bd.links[k] >= 0);
+    let stepDone = false;
+    if (roundDone) {
+      if (J.round + 1 < J.rounds) J.round++;
+      else { stepDone = true; this.rec(J.shape, true).step = J.step + 1; Facts.save(); this.job = null; }
+    }
+    if (!Game.manual) { Sfx.noise(0.05, 0.3, 1400, 0, 2); Sfx.tone(523, 0.1, 'square', 0.06, 784, 0.2); if (stepDone) Sfx.mendParts(); }
+    const built = stepDone && this.rec(J.shape).step >= buildOf(J.shape).length;
+    if (Garage.on) { Garage.bcur = 0; Garage.bsel = -1; Garage.draw(); }
+    if (built) this.finish(J.shape);
+    return { ok: true, plug: i, port: j, roundDone, round: J.round, stepDone, step: this.stepOf(J.shape), built };
+  },
+  // the right link for the board now's next wanted plug, as [plug, port] (the hooks' default answer)
+  answer(id) {
+    const J = this.jobFor(id); if (!J) return null;
+    const Bd = J.boards[J.round], i = Bd.plugs.findIndex((p, k) => p.want >= 0 && Bd.links[k] < 0);
+    return i >= 0 ? [i, Bd.plugs[i].want] : null;
+  },
+  // a wrong link on the board now (a plug and a port that don't go together, one that shows the job's idea when the job
+  // says which: BUILD_JOBS' wrong), for tests
+  wrong(id) {
+    const J = this.jobFor(id); if (!J) return null;
+    const Bd = J.boards[J.round], pick = BUILD_JOBS[J.job].wrong?.(Bd);
+    if (pick) return pick;
+    for (let i = 0; i < Bd.plugs.length; i++) if (Bd.links[i] < 0) for (let j = 0; j < Bd.ports.length; j++) if (Bd.plugs[i].want !== j) return [i, j];
+    return null;
+  },
+  // the job board as the hooks see it (want included, so a test can answer right or wrong), with each job's idea (#90):
+  // stiff = the level of the 3 to pick from (a spring's stiffness, a gear's strength, a tensioner's turns), and per job
+  // strength / speed (gear), turns (tension), leg ('FL' 'FR' 'BL' 'BR'), load (a leg motor's draw); a port's height (the
+  // pad's height, the test's load, the tread's sag), leg (the one already stepping), target and load (a battery's)
+  jobState() {
+    const J = this.job; if (!J) return null;
+    const Bd = J.boards[J.round], JD = BUILD_JOBS[J.job];
+    return { shape: J.shape, step: J.step, job: J.job, mode: J.mode, round: J.round, rounds: J.rounds, tries: J.tries, miss: J.miss?.how ?? null,
+      plugs: Bd.plugs.map((p, i) => ({ what: p.what, stiff: p.stiff ?? null, side: p.side ?? null, leg: LEGS6[p.leg] ?? null, load: p.load ?? null, ...(JD.idea?.(p) ?? {}),
+        fact: p.fact ? factText(p.fact) : null, colour: p.fact ? null : WIRE_COLORS[p.col]?.color ?? null, want: p.want, in: Bd.links[i] >= 0, port: Bd.links[i] })),
+      ports: Bd.ports.map((q, j) => ({ what: q.what, height: q.height ?? null, side: q.side ?? null, leg: LEGS6[q.leg] ?? null, ...(JD.ideaPort?.(q, j, Bd) ?? {}),
+        answer: q.answer ?? null, colour: q.answer != null ? null : Array.isArray(q.col) ? q.col.map((c) => WIRE_COLORS[c].color) : WIRE_COLORS[q.col]?.color ?? null })) };   // (#91: the tripod's, two)
+  },
+  // the last step is done: the shape unlocks (saved straight away) and goes on, with a cheer and a sparkle. The lift keeps
+  // the frame, now moving, through the cheer; then the blueprint shuts and the lift shows the mech on its new legs.
+  // #91: an upgrade project (the Mk II) unlocks nothing new: its last step done is what built means; it switches its shape
+  // onto the new legs (6) and puts that shape on
+  finish(id) {
+    const b = Shapes.rec(), U = BUILD_UPS.find((q) => q.id === id);
+    if (U) b.spiderLegs = U.legs;
+    else if (!b.unlocked.includes(id)) b.unlocked.push(id);
+    bodyRec(Garage.rec()); Facts.save();
+    if (Garage.on) Garage.cheerBuild(id);
+    Shapes.equip('legs', U ? U.of : id);
+    return true;
+  },
+};
+// n multiplication facts for a job board in math wiring, each with a different answer: the tracker picks them from the
+// child's open steps (as a Quick Fix board does), any 2–9 fact if it has none left. The answers aren't recorded (#89).
+function jobFacts(n) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const taken = new Set(out.map((f) => f.answer)), clash = [];
+    for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (taken.has(a * b)) clash.push(makeFact('×', a, b).key);
+    let f = Facts.rec ? Facts.next({ exclude: clash, ops: ['×'] }) : null;
+    if (!f || taken.has(f.answer)) {
+      const free = []; for (let a = 2; a <= 9; a++) for (let b = a; b <= 9; b++) if (!taken.has(a * b)) free.push(makeFact('×', a, b));
+      f = free[Math.floor(Math.random() * free.length)];
+    }
+    out.push({ op: '×', a: f.a, b: f.b, key: f.key, answer: f.answer, flip: Math.random() < 0.5 });
+  }
+  return out;
+}
+// #90: each build job's board. deal(mode, round, ctx) deals one round's board ({ plugs, ports, links }; ctx carries between
+// rounds); rounds = how many; miss(plug, port, board, j) = what a wrong link shows (the job's idea); wrong(board) = a wrong
+// link that shows it, for the hooks (left out: any plug and port that don't go together); idea / ideaPort = the idea for
+// jobState. A plug with want -1 is never right.
+const LEGS4 = LEGS6.slice(0, 4);   // the Spider's legs, as LEG_KITS.spider builds them: front left, front right, back left, back right
+const legSide = (l) => (l % 2 ? 1 : -1);   // (#91: the Mk II's middle legs too: 4 is left, 5 right)
+const legEnd = (l) => (l < 2 ? 1 : l < 4 ? -1 : 0);   // #91: front 1, back -1, middle 0
+// three plugs at levels 1, 2, 3 (soft to stiff, weak to strong, few turns to many) and one test at one of their levels
+// (never the same level twice in a row): only the plug at the test's level is right. In math wiring each plug's fact's
+// answer gets bigger with its level, and the test shows the right one's answer.
+function levelBoard(mode, ctx, what, port, extra = {}) {
+  let lv; do lv = Math.floor(Math.random() * 3); while (lv === ctx.last); ctx.last = lv;
+  const facts = mode === 'math' ? jobFacts(3).sort((a, b) => a.answer - b.answer) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3);
+  return { plugs: [0, 1, 2].map((i) => ({ what, stiff: i + 1, want: i === lv ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] })),
+    ports: [{ what: port, height: lv + 1, answer: facts ? facts[lv].answer : null, col: cols[lv], ...extra }], links: [-1, -1, -1] };
+}
+// n plugs each wired to its own port (of = whose port it is): shuffled so no port sits straight across from its own plug;
+// in math wiring a decoy answer too
+function wireBoard(mode, n, plug, port) {
+  const facts = mode === 'math' ? jobFacts(n) : null, cols = shuffle([0, 1, 2, 3]).slice(0, n);
+  const ports = Array.from({ length: n }, (_, i) => ({ ...port(i), of: i, answer: facts ? facts[i].answer : null, col: cols[i] }));
+  if (facts) { const used = new Set(facts.map((f) => f.answer)); let d = facts[0].answer + facts[0].a; while (used.has(d)) d++; ports.push({ ...port(-1), of: -1, answer: d, col: null }); }
+  let order = shuffle(ports.map((_, j) => j));
+  for (let t = 0; t < 30 && order.some((j, pos) => pos < n && j === pos); t++) order = shuffle(order);
+  const P = order.map((j) => ports[j]);
+  return { plugs: Array.from({ length: n }, (_, i) => ({ ...plug(i), want: P.findIndex((q) => q.of === i), fact: facts?.[i] ?? null, col: cols[i] })), ports: P, links: Array(n).fill(-1) };
+}
+const BUILD_JOBS = {
+  // Hopper: the spring that lands the jump on the pad (stiffer jumps higher)
+  stiffness: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'spring', 'pad'), miss: (p, q) => (p.stiff > q.height ? 'over' : 'under') },
+  // Hopper: each leg's spring to its motor
+  mount: { rounds: 1, deal: (mode) => wireBoard(mode, 2, (i) => ({ what: 'spring', side: i ? 1 : -1 }), (i) => ({ what: 'motor', side: i < 0 ? 0 : i ? 1 : -1 })), miss: () => 'wrong' },
+  // Tracks: the gear for a pushing test. A gear's strength is its level (low gear = 3, strong and slow; high gear = 1, fast
+  // and weak) and the test's load the height: the fastest gear still strong enough is the one as strong as the load. Too
+  // high a gear 'stall's against it, too low a gear is 'slow'.
+  gear: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'gear', 'load'), miss: (p, q) => (p.stiff < q.height ? 'stall' : 'slow'),
+    idea: (p) => ({ strength: p.stiff, speed: 4 - p.stiff, gear: ['high', 'mid', 'low'][p.stiff - 1] }), ideaPort: (q) => ({ load: q.height }) },
+  // Tracks: tension each tread (round 1 the left, round 2 the right) by as many turns as it sags: too few and it 'slip's,
+  // too many and it 'jam's
+  tension: { rounds: BUILD.rounds, deal: (mode, r, ctx) => levelBoard(mode, ctx, 'tensioner', 'tread', { side: r ? 1 : -1 }), miss: (p, q) => (p.stiff < q.height ? 'slip' : 'jam'),
+    idea: (p) => ({ turns: p.stiff }), ideaPort: (q) => ({ sag: q.height }) },
+  // Spider: each leg's motor to the controller. #91: the Mk II's step says which legs' motors (ctx.step.legs): its two new
+  // legs' 4 motors, each leg's hip motor and then its knee motor
+  legwire: { rounds: 1,
+    deal: (mode, r, ctx) => { const L = ctx?.step?.legs || [0, 1, 2, 3], two = L.length > new Set(L).size;
+      return wireBoard(mode, L.length, (i) => ({ what: 'leg', leg: L[i], joint: two ? (i < L.length / 2 ? 'hip' : 'knee') : null }), () => ({ what: 'controller' })); },
+    miss: () => 'wrong', idea: (p) => (p.joint ? { joint: p.joint } : {}) },
+  // Spider: one leg is stepping (the port); which leg steps with it so it never tips over? Its diagonal partner (FL with BR,
+  // FR with BL: 3 - leg). The same side tips it sideways ('tip-side'), the same end forward or back ('tip-end'). Round 2
+  // asks about the other pair.
+  // #91: the Mk II (ctx.step.tripod) walks in tripods, the gait real six-legged robots and insects use: front and back on one
+  // side with the middle on the other (FR + BR + ML, FL + BL + MR). One leg is stepping; which two step with it? Both are
+  // right (two plugs to the one port). A leg on the same side tips it sideways, the one across at the same end (or the
+  // other middle) tips it forward or back, and the far corner is 'pair': the 4-legged Spider's diagonal, not a tripod.
+  // Round 2 asks about the other tripod. In colour wiring both partners wear the port's colour (4 colours, 5 legs).
+  gait: { rounds: BUILD.rounds,
+    tripods: [[1, 3, 4], [0, 2, 5]],
+    deal(mode, r, ctx) {
+      if (ctx?.step?.tripod) return BUILD_JOBS.gait.tripod(mode, r, ctx);
+      const pair = r === 0 ? Math.floor(Math.random() * 2) : 1 - ctx.pair; ctx.pair = pair;   // pair 0 = FL + BR, 1 = FR + BL
+      const given = Math.random() < 0.5 ? pair : 3 - pair, partner = 3 - given, others = shuffle([0, 1, 2, 3].filter((l) => l !== given));
+      const facts = mode === 'math' ? jobFacts(3) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3), k = others.indexOf(partner);
+      return { plugs: others.map((l, i) => ({ what: 'leg', leg: l, want: l === partner ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] })),
+        ports: [{ what: 'beat', leg: given, answer: facts ? facts[k].answer : null, col: cols[k] }], links: [-1, -1, -1] };
+    },
+    tripod(mode, r, ctx) {
+      const t = r === 0 ? Math.floor(Math.random() * 2) : 1 - ctx.pair; ctx.pair = t;   // tripod 0 = FR + BR + ML, 1 = FL + BL + MR
+      const T = BUILD_JOBS.gait.tripods[t], given = T[Math.floor(Math.random() * 3)], others = shuffle([0, 1, 2, 3, 4, 5].filter((l) => l !== given));
+      const facts = mode === 'math' ? jobFacts(5) : null, cols = shuffle([0, 1, 2, 3]);
+      let w = 1; const plugs = others.map((l, i) => { const right = T.includes(l); return { what: 'leg', leg: l, want: right ? 0 : -1, fact: facts?.[i] ?? null, col: right ? cols[0] : cols[w++] }; });
+      const right = others.map((l, i) => (T.includes(l) ? i : -1)).filter((i) => i >= 0);
+      return { plugs, ports: [{ what: 'beat', leg: given, tripod: true, answer: facts ? right.map((i) => facts[i].answer) : null, col: cols[0] }], links: others.map(() => -1) };
+    },
+    miss: (p, q) => (legSide(p.leg) === legSide(q.leg) ? 'tip-side' : q.tripod && legEnd(p.leg) !== legEnd(q.leg) ? 'pair' : 'tip-end') },
+  // Spider: the 4 leg motors' loads shared between 2 batteries so each carries half. The heaviest is on battery 1 already;
+  // loads a < b < c < d with a + d = b + c, so the lightest joins it and the middle two go on battery 2 (the only way). Too
+  // much on a battery is 'over'; anything else that can't come out even is 'uneven'. In math wiring the loads are numbers
+  // to add (up to 9); in colour wiring they're dots to count (up to 6).
+  // #91: the Mk II's 6 leg motors (ctx.step.motors): loads 1–9 (math) or 1–6 dots (colour, at most 10 a battery), repeats
+  // allowed, dealt only where there's exactly one way to share them with the heaviest pinned on battery 1 (counting which
+  // motors, so two equal loads never swap), with at least one more on battery 1 and two on battery 2. Pinned and wanted by
+  // motor, not by load.
+  balance: { rounds: 1,
+    deal(mode, r, ctx) {
+      if ((ctx?.step?.motors || 4) !== 4) return BUILD_JOBS.balance.six(mode);
+      const max = mode === 'math' ? 9 : 6, sets = [];
+      for (let a = 1; a <= max; a++) for (let b = a + 1; b <= max; b++) for (let c = b + 1; c <= max; c++) { const d = b + c - a; if (d > c && d <= max) sets.push([a, b, c, d]); }
+      const [a, b, c, d] = sets[Math.floor(Math.random() * sets.length)], loads = shuffle([a, b, c, d]), half = a + d;
+      const plugs = loads.map((n, l) => ({ what: 'motor', leg: l, load: n, want: n === a || n === d ? 0 : 1, fact: null, col: null }));
+      const links = loads.map((n) => (n === d ? 0 : -1));
+      return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: half })), links };
+    },
+    six(mode) {
+      const max = mode === 'math' ? 9 : 6, all = (BUILD_JOBS.balance.sets6 ||= {})[max] ||= (() => {
+        const out = [], bits = (m) => [0, 1, 2, 3, 4].filter((i) => (m >> i) & 1).length;
+        const rec = (lo, cur) => {
+          if (cur.length === 6) {
+            const tot = cur.reduce((a, b) => a + b, 0), half = tot / 2; if (tot % 2 || (mode !== 'math' && half > 10)) return;
+            let n = 0, sol = 0;
+            for (let m = 0; m < 32; m++) if (cur[5] + cur.slice(0, 5).reduce((a, v, i) => a + ((m >> i) & 1 ? v : 0), 0) === half) { n++; sol = m; }
+            if (n === 1 && bits(sol) >= 1 && 5 - bits(sol) >= 2) out.push({ loads: cur.slice(), on1: sol, half });
+            return;
+          }
+          for (let v = lo; v <= max; v++) rec(v, [...cur, v]);
+        };
+        rec(1, []); return out;
+      })();
+      const S = all[Math.floor(Math.random() * all.length)], at = shuffle([0, 1, 2, 3, 4, 5]);   // at[l] = which of the set's loads leg l's motor draws
+      const plugs = at.map((k, l) => ({ what: 'motor', leg: l, load: S.loads[k], want: k === 5 || (S.on1 >> k) & 1 ? 0 : 1, fact: null, col: null }));
+      return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: S.half })), links: at.map((k) => (k === 5 ? 0 : -1)) };
+    },
+    miss: (p, q, Bd, j) => (BUILD_JOBS.balance.sum(Bd, j) + p.load > q.target ? 'over' : 'uneven'),
+    wrong: (Bd) => { const i = Bd.plugs.findIndex((p, k) => Bd.links[k] < 0 && p.want === 1); return i >= 0 ? [i, 0] : null; },   // (a middle one on battery 1: over)
+    sum: (Bd, j) => Bd.plugs.reduce((s, p, k) => s + (Bd.links[k] === j ? p.load : 0), 0),
+    ideaPort: (q, j, Bd) => ({ target: q.target, load: BUILD_JOBS.balance.sum(Bd, j) }) },
 };
 // what mech m's kick does: the base kick × the 🐏 ram plate's levels × the leg shape (the tracks' blade shove does the same)
 const kickDmg = (m) => WEAPON.kick.dmg * (1 + UPGRADE.kick * (m?.upg?.ram || 0)) * (m?.fx?.kick ?? 1);
@@ -6812,10 +7713,14 @@ function selectWeapon(h, w) {
 
 function gatherInput(dt) {
   const solo = Game.humans.length === 1;
+  const tp = readTouch(), tpOn = touch.state.showing;   // #94: touch drives player 1
   for (const h of Game.humans) {
     const sc = SCHEMES[h.idx];
     const k = (n) => anyKey(sc[n]) || (solo && anyKey(SOLO_EXTRA[n]));
     const pad = readPad(h.idx);
+    const tpad = h.idx === 0 && tpOn ? tp : null;
+    if (h.idx === 0) touchButtons(h);
+    if (!tpad) h.tpWpn = null;   // (a WEAPON press cut off by a panel or the pause neither cycles nor opens the picker)
     // the garage is open: player 0's pad works it; nobody drives, and no Start un-pauses the world under it
     if (Garage.on) { if (h.idx === 0) Garage.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // the fact grid or the parent view is open: player 0's pad works it, and the mech stands still
@@ -6827,22 +7732,32 @@ function gatherInput(dt) {
       if (!Game.pilot && h.idx === 0 && !Game.manual) { if (!Game.child) pickChild(CHILDREN[Title.kid].id); else startGame(PILOTS[Title.cur].id); }
       else setPause(!Game.paused);
     }
+    if (tpad && tpad.pauseP && !Game.paused) setPause(true);   // #94: the controller's pause (it only shows in play)
     const titleUp = h.idx === 0 && Title.on && !Game.manual;
     if (titleUp) Title.input(pad);
     sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) selectWeapon(h, WEAPONS[w]); });
     if (pad && (pad.lbP || pad.rbP)) cycleWeapon(h, pad.rbP ? 1 : -1);
+    // #94: WEAPON on the controller: a tap cycles to the next unlocked weapon (on letting go), a long press opens
+    // (or closes) the picker instead. Timed in sim time, so __rb.step can drive it.
+    if (tpad) {
+      if (tpad.wpnH) { h.tpWpn ??= { t: 0, long: false }; h.tpWpn.t += dt; if (h.tpWpn.t >= WPN_HOLD && !h.tpWpn.long) { h.tpWpn.long = true; WpnPick.set(!WpnPick.on); if (!Game.manual) Sfx.click(); } }
+      else if (h.tpWpn) { if (!h.tpWpn.long) { cycleWeapon(h, 1); WpnPick.set(false); } h.tpWpn = null; }
+    }
     const picking = h.repair?.kind === 'parts', mending = h.idx === 0 && FixUI.mode === 'mend';
     const wiring = h.idx === 0 && FixUI.mode === 'wires', asking = h.repair?.kind === 'home';
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
     // in the picker, the mend panel and the send-home panel the d-pad moves between tiles (◀ ▶), and in
     // the Quick Fix between plugs and ports (▲ ▼); the stick still steers
     if (pad) { turn += pad.lx - (picking || mending || asking || (wiring && (FixUI.entry || FixUI.puz)) ? pad.dpadX : 0); thr -= pad.ly - (wiring ? pad.dpadY : 0); }
+    if (tpad) { turn += tpad.lx; thr -= tpad.ly; }   // #94: the touch stick, like a pad's left stick
     let padB = false;   // B was used by a panel this frame (so it doesn't also open the bag)
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
     h.ci.camY = pad ? -pad.ry : 0;
     h.rig.yaw = wrapAngle(h.rig.yaw - h.ci.camX * 1.8 * dt);
     h.rig.pitch = clamp(h.rig.pitch + h.ci.camY * 1.0 * dt, -0.35, 0.5);
     if (solo && mouse.locked) { h.rig.yaw = wrapAngle(h.rig.yaw - mouse.dx * 0.0025); h.rig.pitch = clamp(h.rig.pitch - mouse.dy * 0.002, -0.35, 0.5); }
+    // #94: a drag on the right's empty space swings the torso (Family Knockout's camera-drag rates; up aims up, as the mouse)
+    if (tpad && (tpad.lookDx || tpad.lookDy)) { h.rig.yaw = wrapAngle(h.rig.yaw - tpad.lookDx * 0.006); h.rig.pitch = clamp(h.rig.pitch - tpad.lookDy * 0.004, -0.35, 0.5); }
     const m = h.mech; if (!m) continue;
     m.input.weapon = h.weapon;
     if (Game.paused || titleUp) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
@@ -6856,15 +7771,15 @@ function gatherInput(dt) {
     // powered down: nothing moves, aims or fires until it reboots
     if (m.state === 'down') { m.input.throttle = m.input.turn = 0; m.input.attack = false; m.input.aimYaw = h.rig.yaw = m.torsoYaw; m.input.aimPitch = m.aimPitch; continue; }
     m.input.throttle = clamp(thr, -1, 1); m.input.turn = clamp(turn, -1, 1);
-    m.input.attack = k('fire') || (solo && mouse.locked && mouse.down) || !!(pad && pad.rt);
+    m.input.attack = k('fire') || (solo && mouse.locked && mouse.down) || !!(pad && pad.rt) || !!(tpad && tpad.fireH);
     m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch;
     // G2 spring legs: jump (C, L, or a stick pressed in), not while fixing a robot or naming one
-    if ((sc.jump.some((c) => keysPressed.has(c)) || (pad && pad.stickP)) && !h.repair && !(h.idx === 0 && ['wires', 'parts', 'home', 'name'].includes(FixUI.mode))) jumpMech(h);
+    if ((sc.jump.some((c) => keysPressed.has(c)) || (pad && pad.stickP) || (tpad && tpad.jumpP)) && !h.repair && !(h.idx === 0 && ['wires', 'parts', 'home', 'name'].includes(FixUI.mode))) jumpMech(h);
     // the prompt beside a downed robot: 🔧 fix or 🔩 take parts
     const pr = !h.repair && promptRobot(h);
     if (pr) {
-      if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
-      else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
+      if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP) || (tpad && tpad.fixP)) chooseFor(h, pr, 'fix');
+      else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP) || (tpad && tpad.partsP)) chooseFor(h, pr, 'parts');
     } else if (asking && pad) {
       // who goes home: d-pad ◀ ▶ moves between squadmates, A sends that one home, B backs out
       const rp = h.repair, n = Game.squad.length;
@@ -6889,7 +7804,7 @@ function gatherInput(dt) {
       if (h.idx === 0) FixUI.drawPicker();
     }
     // fix my mech: 🔧 key or pad LT opens and closes it; in it, d-pad ◀ ▶ moves, A uses a part, B backs out
-    if (h.idx === 0 && !picking && (sc.mend.some((c) => keysPressed.has(c)) || (pad && pad.ltP))) FixUI.toggleMend();
+    if (h.idx === 0 && !picking && (sc.mend.some((c) => keysPressed.has(c)) || (pad && pad.ltP) || (tpad && tpad.mendP))) FixUI.toggleMend();
     else if (mending && pad) {
       const n = FixUI.mendIds().length;
       if (n && (pad.leftP || pad.rightP)) FixUI.mendCur = (FixUI.mendCur + (pad.rightP ? 1 : -1) + n) % n;
@@ -6898,7 +7813,7 @@ function gatherInput(dt) {
     }
     if (h.idx === 0 && FixUI.mode === 'mend') FixUI.drawMend();
     // the parts bag: 🎒 key or pad Back (or B when no panel is open)
-    if (h.idx === 0 && !picking && !mending && !asking && !wiring && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && !padB && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
+    if (h.idx === 0 && !picking && !mending && !asking && !wiring && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && !padB && FixUI.mode !== 'wires'))) || (tpad && tpad.bagP))) FixUI.toggleBag();
   }
   mouse.dx = mouse.dy = 0;
   keysPressed.clear();
@@ -6997,7 +7912,7 @@ const FixUI = {
     $('homeTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.pickHome(Game.humans[0], Game.squad.find((q) => q.id === +t.dataset.id)); });
     $('homeX').addEventListener('click', () => this.dismiss());
     // the weapon slots on the HUD: a tap picks one (a locked one buzzes)
-    $('weapons').addEventListener('click', (e) => { const b = e.target.closest('.wpn'); if (b) { e.stopPropagation(); selectWeapon(Game.humans[0], b.dataset.w); } });
+    $('weapons').addEventListener('click', (e) => { const b = e.target.closest('.wpn'); if (b) { e.stopPropagation(); if (selectWeapon(Game.humans[0], b.dataset.w)) WpnPick.set(false); } });   // (#94: picking one closes the touch picker)
   },
   fromPrompt(choice) { const h = Game.humans[0], r = h && promptRobot(h); if (r) chooseFor(h, r, choice); },
   icon(ci, fill, stroke) { return `<svg viewBox="0 0 40 40"><g fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round">${SHAPE_SVG[WIRE_COLORS[ci].shape]}</g></svg>`; },
@@ -7475,7 +8390,7 @@ const FixUI = {
   },
   close() { this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); Adv.flush(); },   // (G4: a toast held for the board)
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
-  relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.()?.catch?.(() => {}); },
+  relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
   // nothing is taken), close the bag, or keep the name
   dismiss() {
@@ -8045,6 +8960,10 @@ function updateHud() {
   $('mendBtn').classList.toggle('off', down || !ids.length);
   $('mendBtn').classList.toggle('ready', !down && ids.some((id) => Game.bag[id] > 0));
   $('jumpBtn').classList.toggle('on', (m.upg?.spring || 0) > 0); $('jumpBtn').classList.toggle('air', (!!m.hop && !(m.adv?.jets && !m.hop.jet)) || down);   // (G4: lit in the air while the jets' jump is left)
+  // #94: the touch controller's MEND pulses and its JUMP dims as the HUD's 🔧 and ⤴️ do (they hide while it shows)
+  touch.el('mend').classList.toggle('ready', $('mendBtn').classList.contains('ready')); touch.el('mend').classList.toggle('dim', $('mendBtn').classList.contains('off'));
+  touch.el('jump').classList.toggle('dim', $('jumpBtn').classList.contains('air'));
+  if (WpnPick.on && !touch.state.showing) WpnPick.set(false);   // a panel or the pause closes the weapon picker
   const hb = $('health'), now = performance.now();
   for (const src in h.healPop) {
     const v = h.healPop[src];
@@ -8092,6 +9011,10 @@ const Garage = {
   cheering: null, cheerT: null,   // G4: the advanced parts the garage is cheering now
   lcur: 0,            // B2: the 🦿 leg card picked by keys / pad
   scur: 0, prow: 0,   // G3: the 🤖 button picked (squadmate × upgrade, in reading order) and the 🎨 row picked (0 body, 1 trim, 2 decal)
+  // #89: the blueprint open in the 🦿 tab (a shape id, or null for the cards); the part picked to put in (keys, pad or a tap);
+  // the keys / pad cursor on the build (a part chip, or on a job a plug, then a port); the plug picked on a job (-1 none);
+  // a drag going on (pointer); the shape being cheered as built; frames = each shape's frame for the lift, made once
+  bp: null, bpick: null, bcur: 0, bsel: -1, drag: null, bcheer: null, bcheerT: null, frames: {}, spotXY: {},
   // whoever is playing's garage (their record's; before anyone is picked, a loose one for this session)
   rec() { return Facts.rec ? fillGarage(Facts.rec).garage : this.loose; },
   // a part went into the bag: count it on the wall, with where it came from (a robot type or 'meadow')
@@ -8099,7 +9022,7 @@ const Garage = {
     if (!PARTS[part]) return;
     const t = this.rec().trophies[part] ||= { n: 0, from: {} };
     t.n++; t.from[from] = (t.from[from] || 0) + 1;
-    bodyRec(this.rec());   // B2: a shape whose part count it reaches unlocks now (latched: spending never locks it again)
+    bodyRec(this.rec());   // (#89: trophy counts no longer unlock shapes: they're built)
     Facts.save();
     if (this.on) this.draw();
   },
@@ -8126,7 +9049,8 @@ const Garage = {
     Progress.holdStop();
     if (from === 'clear') setPause(true);
     this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {}; this.cur = 0; this.scur = 0; this.prow = 0;
-    this.lcur = Math.max(0, LEG_SHAPES.findIndex((S) => S.id === Shapes.rec().legs));   // B2: the 🦿 pick starts on the legs on now
+    this.bp = null; this.bpick = null; this.bcur = 0; this.bsel = -1;   // #89: the cards first
+    this.lcur = Math.max(0, this.legOpts().indexOf(Shapes.rec().legs));   // B2: the 🦿 pick starts on the legs on now
     document.body.classList.add('garage'); $('garage').classList.add('on');
     this.build(); this.dress();
     Adv.toastStop();
@@ -8142,6 +9066,8 @@ const Garage = {
     const from = this.from;
     this.on = false; this.from = null;
     if (this.cheering) this.cheerStop();
+    if (this.bcheer) this.cheerBuildStop();
+    this.dragEnd(); this.bp = null; this.bpick = null;   // #89
     document.body.classList.remove('garage'); $('garage').classList.remove('on');
     if (from === 'clear') setPause(false); else Title.draw();
     if (!Game.manual) Sfx.click();
@@ -8150,7 +9076,7 @@ const Garage = {
   setTab(t) {
     const T = GARAGE_TABS.find((x) => x.id === t || x.icon === t) || GARAGE_TABS[t];
     if (!T) return { ok: false, why: 'no such tab' };
-    if (this.tab !== T.id) { this.tab = T.id; this.drawn = {}; this.draw(); if (!Game.manual) Sfx.click(); }
+    if (this.tab !== T.id) { this.dragEnd(); this.tab = T.id; this.drawn = {}; this.draw(); if (!Game.manual) Sfx.click(); }
     return { ok: true, tab: T.id, locked: !!T.locked };
   },
   step(d) { const i = GARAGE_TABS.findIndex((x) => x.id === this.tab), n = GARAGE_TABS.length; return this.setTab(GARAGE_TABS[(i + d + n) % n].id); },
@@ -8164,6 +9090,7 @@ const Garage = {
     const picks = this.tab !== 'trophies';   // (the 🏆 wall has nothing to pick; B2: on 🦿, the leg shapes)
     if (picks && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
     else if (picks && (e.code === 'Enter' || e.code === 'Space')) this.act();
+    else if (e.code === 'Escape' && this.tab === 'body' && this.bp) this.back();   // #89: Esc backs out of a blueprint a step at a time
     else if (e.code === 'Escape' || e.code === 'KeyG') this.close();
     else if (['ArrowLeft', 'KeyA', 'KeyQ'].includes(e.code)) this.step(-1);
     else if (['ArrowRight', 'KeyD', 'KeyE'].includes(e.code)) this.step(1);
@@ -8177,7 +9104,8 @@ const Garage = {
     if (!pad) return;
     if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
     if (this.tab !== 'trophies') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
-    if (pad.bP || pad.xP || pad.startP) this.close();
+    if (pad.bP && this.tab === 'body' && this.bp) this.back();   // #89: B backs out of a blueprint a step at a time
+    else if (pad.bP || pad.xP || pad.startP) this.close();
   },
   // move the pick d on (reading order, round the end): the 🦾 card, the 🤖 button, the 🎨 row or (B2) the 🦿 leg card
   move(d) {
@@ -8185,7 +9113,8 @@ const Garage = {
     let out;
     if (this.tab === 'squad') { const o = this.squadOptions(); this.scur = wrap(this.scur, o.length); out = o[this.scur] ? o[this.scur].id + ':' + o[this.scur].up : null; }
     else if (this.tab === 'paint') { this.prow = wrap(this.prow, 3); out = ['body', 'trim', 'decal'][this.prow]; }
-    else if (this.tab === 'body') { this.lcur = wrap(this.lcur, LEG_SHAPES.length); out = LEG_SHAPES[this.lcur].id; }   // B2: the leg card picked
+    else if (this.tab === 'body' && this.bp) { const o = this.buildOptions(); this.bcur = wrap(this.bcur, o.length); out = o[this.bcur] ?? null; }   // #89: a part chip, a plug or a port
+    else if (this.tab === 'body') { const o = this.legOpts(); this.lcur = wrap(this.lcur, o.length); out = o[this.lcur]; }   // B2: the leg card picked (#91: or the Spider's Mk II chip)
     else { this.cur = wrap(this.cur, UPGRADES.length); out = UPGRADES[this.cur].id; }
     this.draw(); if (!Game.manual) Sfx.click();
     return out;
@@ -8194,7 +9123,8 @@ const Garage = {
   // 🦿 leg shape picked
   act() {
     if (this.tab === 'mech') return this.buy(UPGRADES[this.cur].id);
-    if (this.tab === 'body') return Shapes.equip('legs', LEG_SHAPES[this.lcur].id);   // B2: equip the leg card picked
+    if (this.tab === 'body' && this.bp) return this.buildAct();   // #89: pick the part, then put it in its glowing spot; or a plug, then a port
+    if (this.tab === 'body') return this.cardTap(this.legOpts()[this.lcur]);   // B2: equip the leg card picked (#89: or open its blueprint; #91: or the Mk II chip)
     if (this.tab === 'squad') { const o = this.squadOptions()[this.scur]; return o ? this.squadBuy(o.id, o.up) : { ok: false, why: 'no squad' }; }
     if (this.tab === 'paint') {
       const p = this.paintNow(), row = ['body', 'trim', 'decal'][this.prow];
@@ -8202,6 +9132,287 @@ const Garage = {
       return this.setPaint({ [row]: next });
     }
     return null;
+  },
+  // ---- #89: build projects in the 🦿 tab. A tap (or Enter / pad A) on a card: a built shape goes on; a blueprint opens on
+  // the lift (#90: every leg shape has a recipe; one without would buzz and shake, 'coming soon', as a guard)
+  // #91: 'mk2' is the Spider card's Mk II chip: its blueprint until it's built, then the switch between 4 and 6 legs
+  cardTap(id) {
+    if (id === 'mk2') return Builds.built('mk2') ? Shapes.setLegs() : this.openBuild('mk2');
+    const S = legShapeOf(id); if (!S) return { ok: false, why: 'no such shape' };
+    if (Shapes.open(S)) return Shapes.equip('legs', S.id);
+    return this.openBuild(S.id);
+  },
+  // #91: what the keys / pad step through on the 🦿 cards, in reading order: each leg shape, and once the Spider is built its
+  // Mk II chip just after it
+  legOpts() { return LEG_SHAPES.flatMap((S) => (S.id === 'spider' && Shapes.open(S) ? [S.id, 'mk2'] : [S.id])); },
+  // open shape id's blueprint: its frame stands on the lift as a dark ghost, its parts and steps on the wall
+  openBuild(id) {
+    const S = buildProjOf(id);   // (#91: or the Mk II, once the Spider is built)
+    if (!isProj(S)) return { ok: false, why: 'no such shape' };
+    const no = !buildOf(S.id) ? 'coming soon' : Builds.built(S.id) ? 'built' : Builds.locked(S.id);
+    if (no) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', S.of ? `.lcard[data-shape="${S.of}"]` : `.lcard[data-shape="${S.id}"]`); return { ok: false, why: no, shape: S.id }; }
+    if (!this.on) return { ok: false, why: 'closed' };
+    if (this.tab !== 'body') this.setTab('body');
+    this.lcur = Math.max(0, this.legOpts().indexOf(S.id));
+    this.bp = S.id; this.bpick = null; this.bcur = 0; this.bsel = -1; this.dragEnd();
+    this.draw();
+    if (!Game.manual) { Sfx.click(); Sfx.tone(220, 0.25, 'triangle', 0.05, 330); }
+    return { ok: true, shape: S.id };
+  },
+  closeBuild() {
+    if (!this.bp) return { ok: false, why: 'no blueprint open' };
+    const was = this.bp; this.dragEnd(); this.bp = null; this.bpick = null; this.bsel = -1;
+    if (this.bcheer) this.cheerBuildStop(); else { this.dress(); this.draw(); }
+    if (!Game.manual) Sfx.click();
+    return { ok: true, was };
+  },
+  // Esc / pad B / ◀ on a blueprint: drop the plug or part picked, or else shut the blueprint
+  back() {
+    if (this.bsel >= 0) { this.bsel = -1; this.bcur = 0; this.draw(); return { ok: true, dropped: 'plug' }; }
+    if (this.bpick) { this.bpick = null; this.draw(); return { ok: true, dropped: 'part' }; }
+    return this.closeBuild();
+  },
+  // what the keys / pad step through on the open blueprint: its part chips (parts step), or on a job its plugs not yet in,
+  // then (one picked) its ports
+  buildOptions() {
+    const id = this.bp, R = buildOf(id); if (!R || Builds.built(id)) return [];
+    const st = R[Builds.stepOf(id)]; if (!st) return [];   // (its last step just done: the cheer's on its way)
+    if (st.kind === 'parts') return Object.keys(st.parts).map((p) => 'part:' + p);
+    const J = Builds.jobFor(id), Bd = J.boards[J.round];
+    return this.bsel >= 0 ? Bd.ports.map((_, j) => 'port:' + j) : Bd.plugs.map((_, i) => i).filter((i) => Bd.links[i] < 0).map((i) => 'plug:' + i);
+  },
+  buildAct() {
+    const o = this.buildOptions()[this.bcur]; if (!o) return null;
+    const [kind, v] = o.split(':');
+    if (kind === 'part') return this.bpick === v ? this.putAt(v, this.nextSpot(v)) : this.pickPart(v);
+    if (kind === 'plug') return this.pickPlug(+v);
+    if (kind === 'port') { const i = this.bsel; this.bsel = -1; this.bcur = 0; return Builds.link(this.bp, i, +v); }
+    return null;
+  },
+  // pick part p up to put in (its next spot glows): refused with a buzz while it can't go in (none in the bag, or all in)
+  pickPart(p) {
+    const no = Builds.refuse(this.bp, p, 1);
+    if (no) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', `.bpart[data-part="${p}"]`); return { ok: false, ...no }; }
+    this.bpick = this.bpick === p ? null : p;
+    const o = this.buildOptions().indexOf('part:' + p); if (o >= 0) this.bcur = o;
+    this.draw(); if (!Game.manual) Sfx.click();
+    return { ok: true, picked: this.bpick };
+  },
+  pickPlug(i) {
+    const J = Builds.jobFor(this.bp); if (!J || J.boards[J.round].links[i] >= 0) return { ok: false, why: 'no such plug' };
+    this.bsel = this.bsel === i ? -1 : i; this.bcur = 0;
+    this.draw(); if (!Game.manual) Sfx.click();
+    return { ok: true, plug: this.bsel };
+  },
+  // the spot part p goes in next on the open blueprint (spot k = how many of p are in), or -1 if none
+  nextSpot(p) { const id = this.bp, B = Builds.rec(id), need = buildNeed(id, Builds.stepOf(id))[p] || 0, k = B.parts[p] || 0; return k < need ? k : -1; },
+  // part p put on spot k: only its glowing spot (the next one) takes it; any other springs it back with a buzz
+  putAt(p, k) {
+    if (k < 0 || k !== this.nextSpot(p)) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', `.bspot[data-part="${p}"][data-k="${k}"]`); return { ok: false, why: 'wrong spot', part: p, k }; }
+    return Builds.put(this.bp, p, 1);
+  },
+  // shape id's spots, in the order they fill: per part of its recipe, k = 0, 1, ... (BUILD_SPOTS says where each one is)
+  spotList(id) { return Object.entries(buildNeed(id)).flatMap(([part, n]) => Array.from({ length: n }, (_, k) => ({ part, k }))); },
+  // the cheer for a build finished: the shape's icon in a banner with confetti, the frame on the lift sparkling and moving;
+  // then the blueprint shuts and the lift shows the mech on its new legs
+  cheerBuild(id) {
+    const S = buildProjOf(id); this.bcheer = id; this.dragEnd(); this.bpick = null; this.bsel = -1;
+    $('gCheer').innerHTML = `<div class="gch build"><span class="big">${icon(S.ic)}</span><b>${icon('party')} ${icon('check')}</b></div><div class="confetti" id="gConfetti"></div>`;
+    const el = $('gCheer'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    confetti($('gConfetti'), 70);
+    const L = $('gLift'); L.classList.remove('sparkle'); void L.offsetWidth; L.classList.add('sparkle');
+    if (!Game.manual) { Sfx.unlock(); Sfx.table(); }
+    clearTimeout(this.bcheerT);
+    this.bcheerT = setTimeout(() => this.cheerBuildStop(), BUILD.cheer);
+    this.draw();
+    return id;
+  },
+  cheerBuildStop() {
+    clearTimeout(this.bcheerT); const id = this.bcheer; this.bcheer = null;
+    $('gCheer').classList.remove('on'); $('gLift').classList.remove('sparkle');
+    if (this.bp === id) this.bp = null;
+    if (this.on) { this.dress(); this.draw(); }
+  },
+  // ---- dragging (mouse and touch): a part chip onto its glowing spot on the lift, or a plug onto a port. The picture that
+  // follows the pointer lives outside the wall (a redraw doesn't lose it); a drop anywhere else springs it back. A tap
+  // (hardly moved) picks it instead, for tap-then-tap.
+  dragStart(e, kind, v, el) {
+    this.dragEnd();
+    const d = this.drag = { kind, v, x0: e.clientX, y0: e.clientY, id: e.pointerId, type: e.pointerType, moved: false, was: this.bpick };
+    const g = $('gDrag'); g.innerHTML = el.querySelector('.bpi, .bpf')?.innerHTML ?? ''; g.style.setProperty('--pc', el.style.getPropertyValue('--pc') || '#fff');
+    g.style.left = e.clientX + 'px'; g.style.top = e.clientY + 'px'; g.className = 'on';
+    if (kind === 'part') { this.bpick = v; this.draw(); }
+    return d;
+  },
+  dragMove(e) {
+    const d = this.drag; if (!d || e.pointerId !== d.id) return;
+    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 10) d.moved = true;
+    const g = $('gDrag'); g.style.left = e.clientX + 'px'; g.style.top = e.clientY + 'px';
+  },
+  dragDrop(e) {
+    const d = this.drag; if (!d || e.pointerId !== d.id) return null;
+    this.drag = null;
+    const g = $('gDrag'), hit = document.elementFromPoint(e.clientX, e.clientY);
+    let res;
+    if (d.kind === 'part') {
+      const sp = hit?.closest?.('.bspot');
+      if (sp && sp.dataset.part === d.v) res = this.putAt(d.v, +sp.dataset.k);
+      else if (sp) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', `.bspot[data-part="${sp.dataset.part}"][data-k="${sp.dataset.k}"]`); res = { ok: false, why: 'wrong spot', part: d.v, spot: sp.dataset.part + ':' + sp.dataset.k }; }
+      else if (!d.moved) { this.bpick = d.was === d.v ? null : d.v; this.draw(); if (!Game.manual) Sfx.click(); res = { ok: true, picked: this.bpick, tap: true }; }
+      else res = { ok: false, why: 'dropped' };
+      if (!res.ok) { this.bpick = d.was; this.draw(); }
+    } else {
+      const po = hit?.closest?.('.bport');
+      if (po) { this.bsel = -1; res = Builds.link(this.bp, d.v, +po.dataset.port); }
+      else if (!d.moved) res = this.pickPlug(d.v);
+      else res = { ok: false, why: 'dropped' };
+    }
+    if (res.ok) g.className = '';
+    else { g.style.left = d.x0 + 'px'; g.style.top = d.y0 + 'px'; g.className = 'on back'; setTimeout(() => { if (!this.drag) g.className = ''; }, 280); }   // springs back
+    return res;
+  },
+  dragEnd() { this.drag = null; const g = $('gDrag'); if (g) g.className = ''; },
+  // the open blueprint on the wall: ◀, the shape, its steps as pips (✔ once done); then the parts step's chips (each part's
+  // icon, in / needed, the bag's count) with how to put them in, or the job's board
+  drawBuild() {
+    const id = this.bp, S = buildProjOf(id), R = buildOf(id), k = Builds.stepOf(id), br = Builds.brief(id), done = br.built;
+    const pips = R.map((st, i) => `<i class="${i < k ? 'on' : ''}${i === k && !done ? ' cur' : ''}" data-k="${i}" aria-label="step ${i + 1}${i < k ? ': done' : ''}">${icon(i < k ? 'check' : st.kind === 'parts' ? 'bolt' : st.ic)}</i>`).join('');
+    const head = `<div class="bhead"><button class="bback" aria-label="Back to the shapes">${icon('back')}</button><span class="bic">${icon(S.ic)}</span><b class="bname">${S.name}</b><span class="bsteps">${pips}</span></div>`;
+    const st = R[k], opts = this.buildOptions(), cur = opts[this.bcur] ?? null, pad = padConnected();
+    if (done || !st) return head + `<div class="bdone">${icon('party')}${icon(S.ic)}${icon('check')}</div>`;
+    if (st.kind === 'parts') {
+      const need = buildNeed(id, k);
+      const chips = Object.keys(st.parts).map((p) => {
+        const n = br.parts[p] || 0, v = need[p], bag = Game.bag[p] || 0, full = n >= v, P = PARTS[p];
+        return `<button class="bpart${this.bpick === p ? ' pick' : ''}${cur === 'part:' + p ? ' cur' : ''}${full ? ' full' : ''}${!full && !bag ? ' empty' : ''}" data-part="${p}" style="--pc:${P.hex}" aria-label="${p}: ${n} of ${v} in, ${bag} in the bag">`
+          + `<span class="bpi">${icon(P.ic)}</span><b class="bin">${n}/${v}</b><span class="bbag${bag ? '' : ' short'}">${icon('bag')}${bag}</span>${full ? `<span class="bok">${icon('check')}</span>` : ''}</button>`;
+      }).join('');
+      const how = pad ? `${icon('pad')}${icon(PARTS[st.parts && Object.keys(st.parts)[0]].ic)}${icon('arrow')}${icon('frame')}` : `${icon('tap')}${icon('arrow')}${icon('frame')}`;
+      return head + `<div class="btray">${chips}</div><div class="bhint">${how}</div>`;
+    }
+    // a job: its plugs on the left (springs, gears, tensioners, legs, leg motors), its ports on the right (the test pad, the
+    // pushing test, a tread, the motors, the controller, the leg already stepping, the batteries)
+    const J = Builds.jobFor(id), Bd = J.boards[J.round], M = J.mode === 'math';
+    // a plug's or port's tag: in math wiring a plug's fact or a port's answer; in colour wiring its wire's colour and shape
+    const shp = (c, fill) => `<span class="wsh" style="--wc:${WIRE_COLORS[c].hex}">${FixUI.icon(c, fill, '#14182a')}</span>`;
+    const face = (p) => (p.fact ? `<span class="fact">${factText(p.fact)}</span>` : p.col != null ? shp(p.col, '#fff') : '');
+    // (#90) level bars (1–3 lit); the Spider's 4 legs seen from above, front at the top (lit: this leg; ok: the one stepping);
+    // a load as a number (math wiring) or dots (colour wiring); a pole of 3 levels, one lit (at) or lit up to it (stack)
+    const bars = (n, cls = 'stiff') => `<span class="${cls}">${[1, 2, 3].map((s) => `<i class="${s <= n ? 'on' : ''}"></i>`).join('')}</span>`;
+    // (#91: on the Mk II, its 6 legs: front, middle and back rows; ls = more than one leg lit, a tripod)
+    const six = BUILD_UPS.some((U) => U.id === J.shape && U.legs === 6);
+    const legs = (l, cls = 'on') => `<span class="${six ? 'lg4 lg6' : 'lg4'}">${(six ? [0, 1, 4, 5, 2, 3] : [0, 1, 2, 3]).map((k) => `<i class="${k === l || (Array.isArray(l) && l.includes(k)) ? cls : ''}"></i>`).join('')}</span>`;
+    const load = (n) => (M ? `<b class="ld">${n}</b>` : `<span class="ldp">${'<i></i>'.repeat(n)}</span>`);
+    const pole = (h, stack) => `<span class="bpole">${[3, 2, 1].map((k) => `<i class="${(stack ? k <= h : k === h) ? 'at' : ''}"></i>`).join('')}</span>`;
+    const MISS_IC = { over: 'up', under: 'down', stall: 'down', slow: 'timer', slip: 'down', jam: 'up', 'tip-side': 'warn', 'tip-end': 'warn' };
+    const PLUG = {
+      spring: (p, i) => [PARTS.spring.hex, `spring ${i + 1}${p.stiff ? ', stiffness ' + p.stiff : ''}`,`<span class="bpf">${icon(p.side ? (p.side < 0 ? 'back' : 'play') : 'spring')}${p.side ? icon('spring') : ''}</span>${p.stiff ? bars(p.stiff) : ''}`],
+      gear: (p) => [PARTS.motor.hex, `${['high', 'middle', 'low'][p.stiff - 1]} gear: strength ${p.stiff}, speed ${4 - p.stiff}`,
+        `<span class="bpf gsz" style="--g:${p.stiff}">${icon('motor')}</span><span class="gbars"><span class="gbar">${icon('smash')}${bars(p.stiff)}</span><span class="gbar">${icon('speed')}${bars(4 - p.stiff, 'stiff fast')}</span></span>`],
+      tensioner: (p) => [PARTS.wiring.hex, `tensioner, ${p.stiff} turns`, `<span class="bpf">${icon('wrench')}</span>${bars(p.stiff)}`],
+      leg: (p) => [J.job === 'legwire' ? PARTS.motor.hex : '#ffd83d', `${LEGS6[p.leg]} leg${p.joint ? ' ' + p.joint + ' motor' : ''}`, `${J.job === 'legwire' ? `<span class="bpf">${icon('motor')}</span>` : ''}${legs(p.leg)}`],
+      motor: (p) => [PARTS.motor.hex, `${LEGS6[p.leg]} leg motor, load ${p.load}`, `<span class="bpf">${icon('motor')}</span>${legs(p.leg)}${load(p.load)}`],
+    };
+    const plugs = Bd.plugs.map((p, i) => {
+      const inn = Bd.links[i] >= 0, [hex, what, inner] = PLUG[p.what](p, i);
+      const miss = J.miss && J.miss.plug === i ? `<span class="bmiss">${icon(MISS_IC[J.miss.how] || 'cross')}</span>` : '';
+      return `<button class="bplug${inn ? ' in' : ''}${this.bsel === i ? ' pick' : ''}${cur === 'plug:' + i ? ' cur' : ''}" data-plug="${i}"${p.leg != null ? ` data-leg="${LEGS6[p.leg]}"` : ''}${p.load != null ? ` data-load="${p.load}"` : ''} style="--pc:${hex}" aria-label="${what}">`
+        + `${inner}${face(p)}${miss}${inn ? `<span class="bok">${icon('check')}</span>` : ''}</button>`;
+    }).join('');
+    const ports = Bd.ports.map((q, j) => {
+      // (#91: the tripod's port takes two legs, so it shows both answers, or both colours)
+      const tag = q.answer != null ? [].concat(q.answer).map((a) => `<span class="ans">${a}</span>`).join('') : q.col != null ? [].concat(q.col).map((c) => shp(c, WIRE_COLORS[c].hex)).join('') : '';
+      const linked = Bd.links.some((l) => l === j), c = cur === 'port:' + j ? ' cur' : '';
+      if (q.what === 'pad') return `<button class="bport pad${c}" data-port="${j}" style="--h:${q.height}" aria-label="the test pad, height ${q.height}">${pole(q.height)}<span class="bpad">${icon('aim')}${tag}</span></button>`;
+      if (q.what === 'load') return `<button class="bport pad load${c}" data-port="${j}" style="--h:${q.height}" aria-label="the pushing test, load ${q.height}">${pole(q.height, true)}<span class="bpad">${icon('ram')}${tag}</span></button>`;
+      if (q.what === 'tread') return `<button class="bport pad tread${c}" data-port="${j}" style="--h:${q.height}" aria-label="the ${q.side < 0 ? 'left' : 'right'} tread, sagging ${q.height}">${pole(q.height)}<span class="bpad"><span class="bpf">${icon(q.side < 0 ? 'back' : 'play')}${icon('tracks')}</span>${tag}</span></button>`;
+      if (q.what === 'beat') return `<button class="bport pad beat${c}" data-port="${j}" data-leg="${LEGS6[q.leg]}" aria-label="the ${LEGS6[q.leg]} leg is stepping: which ${q.tripod ? 'two step' : 'steps'} with it?"><span class="bpad">${legs(q.leg, 'ok')}${icon('walker')}${tag}</span></button>`;
+      if (q.what === 'battery') {
+        const sum = BUILD_JOBS.balance.sum(Bd, j), full = sum === q.target, meter = M ? `<b class="ld">${sum}/${q.target}</b>` : `<span class="ldp meter">${Array.from({ length: q.target }, (_, k) => `<i class="${k < sum ? 'on' : ''}"></i>`).join('')}</span>`;
+        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${PARTS.battery.hex}" aria-label="battery ${j + 1}: ${sum} of ${q.target}"><span class="bpf">${icon('battery')}</span>${meter}</button>`;
+      }
+      const [ic, hex, name] = q.what === 'controller' ? ['brain', '#ff7ad9', 'controller socket'] : ['motor', PARTS.motor.hex, 'motor'];
+      return `<button class="bport${linked ? ' in' : ''}${c}" data-port="${j}" style="--pc:${hex}" aria-label="${name} ${j + 1}"><span class="bpf">${icon(ic)}</span>${tag}</button>`;
+    }).join('');
+    const rounds = J.rounds > 1 ? `<span class="bround">${Array.from({ length: J.rounds }, (_, r) => `<i class="${r < J.round ? 'on' : ''}"></i>`).join('')}</span>` : '';
+    return head + `<div class="bjob ${J.job}${M ? ' math' : ''}" data-job="${J.job}"><div class="bjt">${icon(st.ic)}${rounds}</div><div class="bplugs">${plugs}</div><div class="bwire">${icon('arrow')}</div><div class="bports">${ports}</div></div>`;
+  },
+  // the glowing spots over the lift's frame: one per part to put in (shown only on a parts step), each at its 3D spot's place
+  // on screen (render() moves them); next = the one that part goes in now, glow = it's that part being put in now
+  drawSpots() {
+    const el = $('gSpots'), id = this.bp;
+    if (!this.on || this.tab !== 'body' || !id || !buildOf(id)) { el.innerHTML = ''; return; }
+    const R = buildOf(id), k = Builds.stepOf(id), st = R[k];
+    if (!st || st.kind !== 'parts' || Builds.built(id)) { el.innerHTML = ''; return; }
+    const br = Builds.brief(id), need = buildNeed(id, k), held = this.drag?.kind === 'part' ? this.drag.v : this.bpick;
+    el.innerHTML = this.spotList(id).filter((sp) => need[sp.part] > sp.k).map((sp) => {
+      const n = br.parts[sp.part] || 0, inn = sp.k < n, next = sp.k === n, xy = this.spotXY[sp.part + ':' + sp.k];
+      return `<button class="bspot${inn ? ' in' : ''}${next ? ' next' : ''}${next && held === sp.part ? ' glow' : ''}" data-part="${sp.part}" data-k="${sp.k}" style="--pc:${PARTS[sp.part].hex}${xy ? `;left:${xy[0]}px;top:${xy[1]}px` : ';visibility:hidden'}" aria-label="${sp.part} spot ${sp.k + 1}${inn ? ': in' : ''}">${icon(inn ? 'check' : PARTS[sp.part].ic)}</button>`;
+    }).join('');
+  },
+  // ---- the 3D frame on the lift: the shape's legs (legPiece) as a dark ghost (each mesh dark in a lighter rim), a small part
+  // piece at each spot (ghost till that part's in), and each frame mesh tied to its nearest spot, so it fills in solid as
+  // the part beside it goes in. Wired (its first job done): a glow round each spot. Moving (all done): the legs walk.
+  frameOf(id) {
+    if (this.frames[id]) return this.frames[id];
+    const { g, set, K } = legPiece(id), root = new THREE.Group(); root.add(g); root.updateMatrixWorld(true);
+    const ghost = new THREE.MeshStandardMaterial({ color: GARAGE.ghost, roughness: 0.9, metalness: 0 }), rimMat = new THREE.MeshBasicMaterial({ color: GARAGE.rim, side: THREE.BackSide });
+    const frameMeshes = []; g.traverse((o) => { if (o.isMesh) frameMeshes.push(o); });
+    const at = BUILD_SPOTS[id] || {}, halo = new THREE.MeshBasicMaterial({ color: '#3ff0ff', transparent: true, opacity: 0.35, depthWrite: false, toneMapped: false });
+    const spots = this.spotList(id).map((sp) => {
+      const [leg, joint, x = 0.95, y = 0, z = 0] = at[sp.part]?.[sp.k] || [0, 'hip'];
+      const L = set.legs[leg % set.legs.length], parent = L[joint] || L.hip;
+      // (out to the side: away from the middle; a Spider leg's frame is already turned to point out, so its x is as given)
+      const holder = new THREE.Group(); holder.position.set(L.yaw != null ? x : L.s * x, y, z); holder.scale.setScalar(0.42); parent.add(holder);
+      const lit = partPiece(sp.part), out = lit.clone(true), ms = []; out.traverse((o) => { if (o.isMesh) ms.push(o); });
+      for (const o of ms) { o.material = ghost; const sh = new THREE.Mesh(o.geometry, rimMat); sh.scale.setScalar(1.09); o.add(sh); }
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 12), halo); glow.visible = false;
+      holder.add(lit, out, glow);
+      return { ...sp, holder, lit, out, glow };
+    });
+    root.updateMatrixWorld(true);
+    const wp = spots.map((s) => s.holder.getWorldPosition(new V3())), meshes = [];
+    // (#91: an upgrade's frame, the Mk II's, is a shape that's built already: only its new legs (after the Spider's own 4)
+    // are ghost and fill in; the rest stays solid, spot -1)
+    const U = BUILD_UPS.find((q) => q.id === id), fresh = new Set();
+    if (U) for (const L of set.legs.slice(4)) L.base.traverse((o) => fresh.add(o));
+    for (const o of frameMeshes) {
+      if (U && !fresh.has(o)) { meshes.push({ o, lit: o.material, rim: null, spot: -1 }); continue; }
+      if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+      const c = o.geometry.boundingSphere.center.clone().applyMatrix4(o.matrixWorld);
+      let best = 0, bd = Infinity; wp.forEach((p, i) => { const d = p.distanceTo(c); if (d < bd) { bd = d; best = i; } });
+      const rim = new THREE.Mesh(o.geometry, rimMat); rim.scale.setScalar(1.06); o.add(rim);
+      meshes.push({ o, lit: o.material, rim, spot: best });
+    }
+    const box = new THREE.Box3().setFromObject(g), size = box.getSize(new V3());
+    // (nearly from the front: both legs' spots in view, one above another; #90: the Tracks and Spider turned further, so
+    // the spots on their back wheels and back legs aren't hidden behind the front ones)
+    root.position.y = -box.min.y; root.rotation.y = Math.PI - (BUILD_TURN[id] ?? 0.25);
+    const F = this.frames[id] = { id, root, set, K, spots, meshes, ghost, y: size.y / 2, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5 + 0.2 };
+    root.visible = false; this.lift.add(root);
+    return F;
+  },
+  // move the spots over the lift to where frame F's 3D spots are on screen now (kept in spotXY, so a redraw puts them back)
+  placeSpots(F) {
+    const el = $('gLift'), b = el.getBoundingClientRect(), v = new V3();
+    for (const s of F.spots) {
+      s.holder.getWorldPosition(v).project(this.cam);
+      this.spotXY[s.part + ':' + s.k] = [Math.round((v.x + 1) / 2 * b.width - el.clientLeft), Math.round((1 - v.y) / 2 * b.height - el.clientTop)];
+    }
+    for (const sp of $('gSpots').children) {
+      const xy = this.spotXY[sp.dataset.part + ':' + sp.dataset.k]; if (!xy) continue;
+      sp.style.left = xy[0] + 'px'; sp.style.top = xy[1] + 'px'; sp.style.visibility = '';
+    }
+  },
+  // dress frame F for the build's state now (the look's rule), and pose its legs (walking once it's moving)
+  dressFrame(F) {
+    const lk = Builds.look(F.id), filled = new Set(lk.filled), fsp = F.spots.map((s) => filled.has(s.part + ':' + s.k));
+    for (const s of F.spots) { const f = filled.has(s.part + ':' + s.k); s.lit.visible = f; s.out.visible = !f; s.glow.visible = lk.wired && f; }
+    let lit = 0;
+    for (const m of F.meshes) { const f = lk.moving || m.spot < 0 || fsp[m.spot]; m.o.material = f ? m.lit : F.ghost; if (m.rim) m.rim.visible = !f; if (f) lit++; }
+    const md = { legs: F.set.legs, treads: F.set.treads || null, body: new THREE.Group() };
+    if (lk.moving) F.K.walk(md, { phase: this.t * 5 }, 1); else F.K.walk(md, { phase: 0 }, 0);
+    return { ghost: lk.ghost, filled: lk.filled, meshes: { lit, ghost: F.meshes.length - lit }, wired: lk.wired, moving: lk.moving };
   },
   // ---- G4: advanced parts. Whoever is playing's (ids, ADVANCED order; none before anyone is picked, none for Guest)
   unlocks() { return this.rec().unlocks?.slice() ?? []; },
@@ -8266,7 +9477,7 @@ const Garage = {
   },
   // a card's shake (refused) or glow (bought); sel picks the element (a 🦾 card by default)
   flash(id, cls, sel = `.ucard[data-up="${id}"]`) {
-    const el = this.on && $('gWall').querySelector(sel); if (!el) return;
+    const el = this.on && $('garage').querySelector(sel); if (!el) return;   // (#89: the lift's spots too)
     el.classList.remove('bad', 'got'); void el.offsetWidth; el.classList.add(cls);
   },
   // ---- G3: squad upgrades. Every squadmate's two, in reading order (squadmate, then plating / job): what the
@@ -8327,6 +9538,7 @@ const Garage = {
     $('gTabs').innerHTML = GARAGE_TABS.map((T) => `<button class="gtab${T.id === this.tab ? ' on' : ''}${T.locked ? ' locked' : ''}" data-t="${T.id}" aria-label="${T.name}${T.locked ? ': coming soon' : ''}">${icon(T.ic)}<small>${T.name}</small>${T.locked ? `<i class="lk">${icon('lock')}</i>` : ''}</button>`).join('');
     const T = GARAGE_TABS.find((x) => x.id === this.tab);
     for (const c of ['trophies', 'mech', 'squad', 'paint', 'body']) $('gWall').classList.toggle(c, T.id === c);
+    $('gWall').classList.toggle('build', T.id === 'body' && !!this.bp);   // #89: a blueprint open on the 🦿 tab
     if (T.locked) $('gWall').innerHTML = `<div class="glock" data-tab="${T.id}"><span class="big">${icon('lock')}</span><span class="ti">${icon(T.ic)}</span><b>coming soon</b></div>`;
     else if (T.id === 'mech') {
       // a card per upgrade: the part (3D), what a level does, pips, cost × part, the bag's count, the buy button
@@ -8377,20 +9589,34 @@ const Garage = {
         return `<button class="decal${p.decal === D.id ? ' on' : ''}${t ? ' tint' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}" style="--tc:${p.trim}">${icon(D.ic)}${t ? `<i class="dtint" style="--m:${iconURL(D.ic)}"></i>` : ''}</button>`; }).join('');
       // (I2: body is a roller and trim a brush: 🤖 is the squad's and ✨ chrome's)
       $('gWall').innerHTML = row(0, 'body', 'roller', 'Body', sw('body')) + row(1, 'trim', 'brush', 'Trim', sw('trim')) + row(2, 'decal', 'tag', 'Decal', dec);
+    } else if (T.id === 'body' && this.bp) {
+      $('gWall').innerHTML = this.drawBuild();   // #89: the open blueprint
     } else if (T.id === 'body') {
       // B1: a row per section: its icon, its tier as 0–4 pips (lit by upgrades in its part colour, by mastery in yellow),
       // the tier's name, and what raises it (its upgrades' part icons, and 🔢 for facts mastered, with the bonus it gives)
       const B = Body.status();
       // B2: first the legs row: a card per leg shape, its piece in 3D, its trade-off as icons (green better, red worse),
       // ✔ on the one equipped, and a 🔒 with how far its part count has got until it's unlocked. A tap equips it.
-      const L = Shapes.status();
-      const cards = LEG_SHAPES.map((S, i) => {
+      const L = Shapes.status(), pick = this.legOpts()[this.lcur];
+      const cards = LEG_SHAPES.map((S) => {
         const o = L.offer[S.id], on = L.equipped.legs === S.id;
-        const fx = this.legFx(S).map(([ic, up, t]) => `<i class="${up ? 'up' : 'dn'}">${icon(ic)}<b>${t}</b></i>`).join('');
-        const lock = o.unlocked ? '' : `<span class="llock">${icon('lock')}<b>${Math.min(o.have, o.need)}/${o.need}</b>${icon(PARTS[S.part].ic)}</span>`;
-        return `<button class="lcard${on ? ' on' : ''}${i === this.lcur ? ' cur' : ''}${o.unlocked ? '' : ' locked'}" data-shape="${S.id}" style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
-          + ` aria-label="${S.name}${o.unlocked ? (on ? ': on' : '') : `: locked, ${o.have} of ${o.need} ${S.part}`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
-          + `${on ? `<span class="lon">${icon('check')}</span>` : ''}${lock}<span class="lfx">${fx}</span></button>`;
+        // (#91: the Spider on 6 legs shows the Mk II's trade-off on top of its own)
+        const six = S.id === 'spider' && L.mk2.on, fx = this.legFx(six ? { ...S, energy: (S.energy || 0) + SPIDER_MK2.energy, accel: r3((S.accel ?? 1) * SPIDER_MK2.accel) } : S)
+          .map(([ic, up, t]) => `<i class="${up ? 'up' : 'dn'}">${icon(ic)}<b>${t}</b></i>`).join('');
+        // #91: once the Spider is built its card carries the Mk II chip: the Mk II's blueprint (dashed, its steps as pips) till
+        // it's built, then the switch between 4 and 6 legs (the one on lit)
+        const M = L.mk2, mb = M.build, mk2 = S.id !== 'spider' || !o.unlocked ? ''
+          : M.built ? `<span class="lmk2 tog${pick === 'mk2' ? ' cur' : ''}" role="switch" aria-checked="${M.on}" aria-label="Spider legs: ${M.legs}, switch to ${M.on ? 4 : 6}"><i class="${M.on ? '' : 'on'}">4</i><i class="${M.on ? 'on' : ''}">6</i></span>`
+          : `<span class="lmk2 bp${pick === 'mk2' ? ' cur' : ''}" role="button" aria-label="Spider Mk II blueprint, 6 legs: ${mb.step} of ${mb.steps} steps done">${icon('spider')}<b>6</b><span class="mpips">${Array.from({ length: mb.steps }, (_, k) => `<i class="${k < mb.step ? 'on' : ''}"></i>`).join('')}</span></span>`;
+        // #89: a shape not built yet is a blueprint: its parts (icon, in / needed) and its steps as pips (lit once done)
+        // (#90: every leg shape has its recipe now, so none shows "soon" any more)
+        const br = o.build;
+        const lock = o.unlocked ? ''
+          : `<span class="lbp">${Object.keys(br.need).map((p) => `<i class="${br.parts[p] >= br.need[p] ? 'full' : ''}">${icon(PARTS[p].ic)}<b>${br.parts[p]}/${br.need[p]}</b></i>`).join('')}</span>`
+            + `<span class="lpips">${Array.from({ length: br.steps }, (_, k) => `<i class="${k < br.step ? 'on' : ''}"></i>`).join('')}</span>`;
+        return `<button class="lcard${on ? ' on' : ''}${pick === S.id ? ' cur' : ''}${o.unlocked ? '' : ' locked bp'}" data-shape="${S.id}"${six ? ' data-legs="6"' : ''} style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
+          + ` aria-label="${S.name}${six ? ' Mk II' : ''}${o.unlocked ? (on ? ': on' : '') : `: blueprint, ${br.step} of ${br.steps} steps done`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
+          + `${on ? `<span class="lon">${icon('check')}</span>` : ''}${lock}${mk2}<span class="lfx">${fx}</span></button>`;
       }).join('');
       $('gWall').innerHTML = `<div class="lrow">${cards}</div>` + BODY_SECTIONS.map((S) => {
         const t = B.tiers[S.id], up = B.preview != null ? t : Math.min(B.points[S.id], t);   // (a previewTier forces the tier: no mastery pips)
@@ -8410,6 +9636,7 @@ const Garage = {
     }
     const P = Game.pilot, C = Game.child, who = $('gWho');
     who.style.setProperty('--c', P?.hex || '#fff'); who.innerHTML = (C ? icon(C.ic) : '') + (P?.name ?? '');   // (I2: the child's icon, not their emoji)
+    this.drawSpots();   // #89: the glowing spots over the frame on the lift (none unless a blueprint is on a parts step)
   },
   // B2: a leg shape's trade-off against the walker, as [icon name, better?, how much]: energy, speed (top speed), accel (how
   // fast it gets going, I2), swap (leg turn), jump, boot (kick), smash (walking damage) and knock (the knock-back it takes,
@@ -8476,9 +9703,35 @@ const Garage = {
     const lcards = [...W.querySelectorAll('.lcard')];
     const legs = lcards.length ? Object.fromEntries(lcards.map((el) => [el.dataset.shape, { on: el.classList.contains('on'), tick: !!el.querySelector('.lon'), tickIcon: ic(el.querySelector('.lon')), locked: el.classList.contains('locked'),
       lock: el.querySelector('.llock') ? icRead(el.querySelector('.llock')) : null, picked: el.classList.contains('cur'), icon: ic(el.querySelector('.lic')),
-      fx: [...el.querySelectorAll('.lfx i')].map((i) => i.className + ' ' + icRead(i)), drawn: this.drawn['legs:' + el.dataset.shape] ?? null }])) : null;
+      fx: [...el.querySelectorAll('.lfx i')].map((i) => i.className + ' ' + icRead(i)), drawn: this.drawn['legs:' + el.dataset.shape] ?? null,
+      // #89: a blueprint card: its parts as shown ('{spring}0/4{motor}0/2...'), its step pips (lit, of); soon is false since #90
+      blueprint: el.classList.contains('bp'), soon: el.classList.contains('soon'), parts: el.querySelector('.lbp') ? icRead(el.querySelector('.lbp')) : null,
+      pips: el.querySelector('.lpips') ? [el.querySelectorAll('.lpips i.on').length, el.querySelectorAll('.lpips i').length] : null,
+      // #91: the Spider's Mk II chip as shown: 'blueprint' (its pips lit, of) or 'switch' (legs = the one lit), picked by keys / pad
+      legs: el.dataset.legs ? +el.dataset.legs : null, mk2: (() => { const m = el.querySelector('.lmk2'); if (!m) return null;
+        return { kind: m.classList.contains('tog') ? 'switch' : 'blueprint', legs: m.classList.contains('tog') ? +(m.querySelector('i.on')?.textContent ?? 0) : null,
+          pips: m.querySelector('.mpips') ? [m.querySelectorAll('.mpips i.on').length, m.querySelectorAll('.mpips i').length] : null, picked: m.classList.contains('cur'), icon: ic(m) }; })() }])) : null;
+    // #89: the open blueprint as shown: its steps (lit, of, the current one), the part chips (in / needed and the bag's count
+    // as shown, picked, the keys / pad cursor, full, none in the bag), the spots over the lift (in, next, glowing, where on the
+    // lift box, shown), the job's plugs and ports (their tags, in, picked, cursor, the miss shown) and frame = what the 3D drew
+    const bw = W.classList.contains('build'), num2 = (el) => (el ? (el.textContent.match(/(\d+)\/(\d+)/) || []).slice(1).map(Number) : null);
+    const build = !bw ? null : { shape: this.bp, steps: [W.querySelectorAll('.bsteps i.on').length, W.querySelectorAll('.bsteps i').length], step: +(W.querySelector('.bsteps i.cur')?.dataset.k ?? -1),
+      stepIcons: [...W.querySelectorAll('.bsteps i')].map((i) => ic(i)), done: !!W.querySelector('.bdone'), hint: W.querySelector('.bhint') ? icRead(W.querySelector('.bhint')) : null,
+      parts: Object.fromEntries([...W.querySelectorAll('.bpart')].map((el) => { const [n, v] = num2(el.querySelector('.bin')); return [el.dataset.part, { in: n, need: v, bag: num(el.querySelector('.bbag')), picked: el.classList.contains('pick'),
+        cur: el.classList.contains('cur'), full: el.classList.contains('full'), empty: el.classList.contains('empty') }]; })),
+      spots: [...$('gSpots').children].map((el) => ({ spot: el.dataset.part + ':' + el.dataset.k, in: el.classList.contains('in'), next: el.classList.contains('next'), glow: el.classList.contains('glow'),
+        x: parseFloat(el.style.left) || null, y: parseFloat(el.style.top) || null, shown: el.style.visibility !== 'hidden' })),
+      job: W.querySelector('.bjob') ? { job: W.querySelector('.bjob').dataset.job, math: W.querySelector('.bjob').classList.contains('math'),
+        plugs: [...W.querySelectorAll('.bplug')].map((el) => ({ tag: el.querySelector('.fact')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, stiff: el.querySelectorAll('.stiff:not(.fast) i.on').length || null,
+          in: el.classList.contains('in'), picked: el.classList.contains('pick'), cur: el.classList.contains('cur'), miss: ic(el.querySelector('.bmiss')),
+          leg: el.dataset.leg ?? null, load: el.dataset.load != null ? +el.dataset.load : null })),   // (#90: a Spider leg as shown, a leg motor's load)
+        ports: [...W.querySelectorAll('.bport')].map((el) => ({ tag: el.querySelector('.ans')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, pad: el.classList.contains('pad'), height: el.style.getPropertyValue('--h') ? +el.style.getPropertyValue('--h') : null,
+          in: el.classList.contains('in'), cur: el.classList.contains('cur'), leg: el.dataset.leg ?? null,   // (#90: the leg stepping; a battery's load and half)
+          tags: [...el.querySelectorAll('.ans')].map((a) => a.textContent), lit: [...el.querySelectorAll('.lg4 i')].map((i) => i.className).join(','),   // (#91: the tripod's two answers; its legs as drawn)
+          load: el.dataset.sum != null ? +el.dataset.sum : null, target: el.dataset.target != null ? +el.dataset.target : null })) } : null,
+      frame: this.drawn.frame ?? null };
     const ch = $('gCheer'), em = W.querySelector('.sempty');
-    return { tab: this.tab, body, legs, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
+    return { tab: this.tab, body, legs, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
       empty: !!em, emptyText: em ? icRead(em) : null, paint, lift: this.drawn.lift ?? null, who: icRead($('gWho')),
       // (I2: each tab as { id, icon, on, locked }; it was 'id', 'id*' for the open one, with a 🔒 after a locked one)
       tabs: [...$('gTabs').children].map((b) => ({ id: b.dataset.t, icon: ic(b), on: b.classList.contains('on'), locked: b.classList.contains('locked') })) };
@@ -8492,6 +9745,8 @@ const Garage = {
       // G3: per squadmate its upgrades, what the next level of each needs, and what they do; the 🤖 pick; paint
       squad: Game.squad.map((r) => ({ id: r.id, type: r.type, name: r.name, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, offer: this.squadOffer(r), effects: squadEffects(r) })),
       scur: this.squadOptions()[this.scur] ?? null, paint: this.paintNow(), prow: ['body', 'trim', 'decal'][this.prow],
+      // #89: the blueprint open in the 🦿 tab (null: the cards), the part picked, the plug picked (-1 none), the build being cheered
+      blueprint: { open: this.bp, pick: this.bpick, plug: this.bsel, cur: this.bp ? this.buildOptions()[this.bcur] ?? null : null, cheer: this.bcheer, drag: this.drag ? { kind: this.drag.kind, v: this.drag.v } : null },
       advanced: this.advStatus(), dom: this.dom() };   // G4: the advanced parts (advStatus)
   },
   // ---- the 3D: one scene, built once: lights, the lift (with a copy of the player's mech on it, made on
@@ -8533,7 +9788,7 @@ const Garage = {
       this.pieces['adv:' + A.id] = { holder, lit, out };
     }
     // B2: each leg shape's piece for the 🦿 cards, the same way (lit once unlocked, an outline till then), keyed 'legs:<id>'
-    for (const S of LEG_SHAPES) {
+    for (const S of [...LEG_SHAPES, { id: 'spider6' }]) {   // (#91: and the Spider on its Mk II's 6 legs, for its card once switched on)
       const { g: lit, r } = legPiece(S.id), out = lit.clone(true);
       const meshes = []; out.traverse((o) => { if (o.isMesh) meshes.push(o); });
       for (const o of meshes) { o.material = ghost; const sh = new THREE.Mesh(o.geometry, rimMat); sh.scale.setScalar(1.06); o.add(sh); }
@@ -8579,7 +9834,20 @@ const Garage = {
       this.lift.visible = true; Object.values(this.pieces).forEach((p) => (p.holder.visible = false));
       this.lift.position.y = -9 * (1 - e); this.mechAt.rotation.y = 0.6 + this.t * GARAGE.spin;
       const mb = this.mechBox || { y: 4, r: 6 };
-      this.drawn.lift = this.mech && this.view($('gLift'), mb.y, mb.r, 0.18) ? 'mech' : null;
+      // #89: an open blueprint puts its frame on the lift instead of the mech (filled in as far as the build has got), with
+      // the glowing spots laid over it where each 3D spot falls on screen
+      const F = this.tab === 'body' && this.bp && buildOf(this.bp) ? this.frameOf(this.bp) : null;
+      for (const k in this.frames) this.frames[k].root.visible = false;
+      if (F) {
+        this.mechAt.visible = false; F.root.visible = true;
+        const fl = this.dressFrame(F), ok = this.view($('gLift'), F.y, F.r, 0.18);
+        this.drawn.lift = ok ? 'frame' : null; this.drawn.frame = ok ? fl : null;
+        if (ok) this.placeSpots(F);
+        F.root.visible = false; this.mechAt.visible = true;
+      } else {
+        this.drawn.frame = null;
+        this.drawn.lift = this.mech && this.view($('gLift'), mb.y, mb.r, 0.18) ? 'mech' : null;
+      }
       this.lift.visible = false;
       if (this.tab === 'trophies') {
         const tr = this.trophies();
@@ -8612,11 +9880,11 @@ const Garage = {
       } else if (this.tab === 'body') {
         // B2: each leg card's shape, turning (an outline while it's locked)
         for (const el of $('gWall').querySelectorAll('.lcard')) {
-          const id = el.dataset.shape, p = this.pieces['legs:' + id]; if (!p) continue;
+          const id = el.dataset.shape, six = el.dataset.legs === '6', p = this.pieces['legs:' + (six ? 'spider6' : id)]; if (!p) continue;   // (#91)
           const got = !el.classList.contains('locked');
           p.holder.visible = true; p.lit.visible = got; p.out.visible = !got;
           p.holder.rotation.set(0.12, 0.7 + this.t * GARAGE.pieceSpin, 0);
-          this.drawn['legs:' + id] = this.view(el.querySelector('.tv'), 0, p.r, 0.2) ? (got ? 'piece' : 'outline') : null;
+          this.drawn['legs:' + id] = this.view(el.querySelector('.tv'), 0, p.r, 0.2) ? (got ? (six ? 'piece6' : 'piece') : 'outline') : null;
           p.holder.visible = false;
         }
       }
@@ -8637,11 +9905,43 @@ const Garage = {
       if (sr) { e.stopPropagation(); const i = this.squadOptions().findIndex((o) => o.id === +sr.dataset.id && o.up === sr.dataset.up); if (i >= 0) { this.scur = i; this.draw(); } return; }
       if (pv) { e.stopPropagation(); const row = pv.dataset.row; this.prow = ['body', 'trim', 'decal'].indexOf(row); this.setPaint({ [row]: row === 'decal' ? pv.dataset.v : +pv.dataset.v }); return; }
       if (pr) { e.stopPropagation(); this.prow = ['body', 'trim', 'decal'].indexOf(pr.dataset.row); this.draw(); return; }
-      // B2: a 🦿 leg card equips its shape (a locked one buzzes and shakes)
+      // #89: on a blueprint, ◀ goes back to the cards; a part chip, plug or port tapped with the keys (Enter on a focused
+      // button: a pointer's tap comes through pointerup); a tap on a motor (port) with a plug picked links them. (A click with
+      // detail 0 isn't always the keys: Chrome's touch emulation sends a tap's click with detail 0 and pointerType 'touch',
+      // and taken as the keys it put the part in on the same tap that picked it. Keys = no click count and no pointer.)
+      const keyed = e.detail === 0 && !e.pointerType;
+      const bb = e.target.closest('.bback'), bpt = e.target.closest('.bpart'), bpl = e.target.closest('.bplug'), bpo = e.target.closest('.bport');
+      if (bb) { e.stopPropagation(); this.closeBuild(); return; }
+      if (bpt) { e.stopPropagation(); if (keyed) { if (this.bpick === bpt.dataset.part) this.putAt(this.bpick, this.nextSpot(this.bpick)); else this.pickPart(bpt.dataset.part); } return; }
+      if (bpl) { e.stopPropagation(); if (keyed) this.pickPlug(+bpl.dataset.plug); return; }
+      if (bpo) { e.stopPropagation(); if (this.bsel >= 0) { const i = this.bsel; this.bsel = -1; Builds.link(this.bp, i, +bpo.dataset.port); } else { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', '.bplug:not(.in)'); } return; }
+      // B2: a 🦿 leg card equips its shape (#89: a blueprint's opens it)
+      // #91: the Spider's Mk II chip (inside its card, so it's looked for first): its blueprint, or the 4 / 6 legs switch
+      const mk = e.target.closest('.lmk2');
+      if (mk) { e.stopPropagation(); this.lcur = Math.max(0, this.legOpts().indexOf('mk2')); this.draw(); this.cardTap('mk2'); return; }
       const lc = e.target.closest('.lcard');
-      if (lc) { e.stopPropagation(); this.lcur = Math.max(0, LEG_SHAPES.findIndex((S) => S.id === lc.dataset.shape)); this.draw(); Shapes.equip('legs', lc.dataset.shape); return; }
+      if (lc) { e.stopPropagation(); this.lcur = Math.max(0, this.legOpts().indexOf(lc.dataset.shape)); this.draw(); this.cardTap(lc.dataset.shape); return; }
       if (b) { e.stopPropagation(); if (!b.classList.contains('max')) this.buy(b.dataset.up); }
       else if (c) { e.stopPropagation(); this.cur = Math.max(0, UPGRADES.findIndex((U) => U.id === c.dataset.up)); this.draw(); }
+    });
+    // #89: dragging a part chip onto the frame, or a plug onto a port (mouse and touch: pointer events, followed on the window
+    // so a redraw of the wall mid-drag can't lose it); a tap on a spot puts the picked part in it (only its glowing one takes it)
+    $('gWall').addEventListener('pointerdown', (e) => {
+      if (!this.bp || this.bcheer || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const bpt = e.target.closest('.bpart:not(.full)'), bpl = e.target.closest('.bplug:not(.in)');
+      // (a part with none in the bag is refused as the keys refuse it, a buzz and a shake, instead of picked up with its spot glowing)
+      if (bpt) { e.preventDefault(); if (bpt.classList.contains('empty')) this.pickPart(bpt.dataset.part); else this.dragStart(e, 'part', bpt.dataset.part, bpt); }
+      else if (bpl) { e.preventDefault(); this.dragStart(e, 'plug', +bpl.dataset.plug, bpl); }
+    });
+    addEventListener('pointermove', (e) => { if (this.drag) this.dragMove(e); });
+    addEventListener('pointerup', (e) => { if (this.drag) this.dragDrop(e); });
+    addEventListener('pointercancel', (e) => { if (this.drag && e.pointerId === this.drag.id) { this.dragEnd(); this.bpick = null; this.draw(); } });
+    $('gSpots').addEventListener('click', (e) => {
+      const sp = e.target.closest('.bspot'); if (!sp) return;
+      e.stopPropagation();
+      if (!this.bpick) { if (sp.classList.contains('next')) this.pickPart(sp.dataset.part); return; }   // (no part picked: a tap on a part's spot picks that part)
+      if (sp.dataset.part !== this.bpick) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', `.bspot[data-part="${sp.dataset.part}"][data-k="${sp.dataset.k}"]`); return; }
+      this.putAt(this.bpick, +sp.dataset.k);
     });
     $('garage').addEventListener('click', (e) => e.stopPropagation());
     $('garageB').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); this.open('pause'); });
@@ -8800,7 +10100,7 @@ function startPlay() {
   // spawns again, even with the meadow empty (manual mode waits for __rb.nextWave())
   if (Game.wave === 0 && Game.humans[0] && !Game.manual) Waves.spawn(1);
   // (a pad's A or a hook isn't a user gesture, so the lock can be refused: the mouse just isn't captured yet)
-  if (Game.humans.length === 1) canvas.requestPointerLock?.()?.catch?.(() => {});
+  if (Game.humans.length === 1 && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {});   // (#94: never on a touch screen)
 }
 $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
 
@@ -8992,9 +10292,12 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
   ICONS, icon, icText,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
+  // #94: the on-screen touch controller: { showing, touchMode, x, y (the stick, -1..1), held: [buttons held],
+  // looking (a finger aiming), shown: [buttons on screen], picker (the weapon picker open) }
+  get touch() { return { ...touch.state, picker: WpnPick.on }; },
   // ---- I1: the icon set ----
   // every icon's name (the sprite's symbols); iconOf(emoji) = the icon an emoji alias stands for (null if none)
   icons() { return Object.keys(ICONS); },
@@ -9186,6 +10489,49 @@ window.__rb = {
   body(section, shape) {
     const res = section == null ? { ok: true } : Shapes.equip(section, shape), st = this.state(), p = st.players[0];
     return { ...res, body: st.body, effects: p?.effects ?? null, look: p?.look ?? null, maxHealth: p?.maxHealth ?? null };
+  },
+  // #91: switch the Spider between 4 and 6 legs (n = 4 | 6; left out, the other one), as the Spider card's Mk II switch does
+  // (the garage needn't be open). Refused with nothing changed: 'not built' (no Mk II yet) or 'no such legs'. Returns what
+  // happened and the same as body(): state().body (its mk2: open, built, on, legs), player 0's effects, look and maxHealth
+  spiderLegs(n) {
+    const res = Shapes.setLegs(n), st = this.state(), p = st.players[0];
+    return { ...res, body: st.body, effects: p?.effects ?? null, look: p?.look ?? null, maxHealth: p?.maxHealth ?? null };
+  },
+  // ---- #89: build projects ----
+  // shape's build ('hopper' | 'spider' | 'tracks', or its icon or name): its recipe (each step's kind, parts or job, done,
+  // current), the parts in so far and needed in all, the step it's on, soon (no recipe: false for all three since #90),
+  // built, the bag, the job board now (job, with each plug's `want` and the job's idea: Builds.jobState), open (its blueprint
+  // open in the garage), look = what the lift's frame shows (ghost and filled spots, as 'part:k'; wired; moving; jobs done
+  // of how many) and saved = what's in the record. open: true opens its blueprint in the garage (the garage must be open),
+  // false shuts it. #91: 'mk2' is the Spider Mk II's build (of: 'spider'; locked: 'spider first' till the Spider's built)
+  build(shape, open) {
+    let res = { ok: true };
+    if (open === true) res = Garage.openBuild(shape); else if (open === false) res = Garage.closeBuild();
+    return { ...res, ...Builds.status(shape), garage: Garage.on ? Garage.status().dom.build : null };
+  },
+  // put n (1 if left out) of part into shape's build, the same path as a drag onto its glowing spot: spent from the bag at
+  // once and saved. Refused with nothing spent: 'coming soon' | 'built' | 'job first' | 'not needed' | 'too many' |
+  // 'not enough parts' | 'no such part' | 'no such shape' | (#91) 'spider first'
+  buildPut(shape, part, n = 1) {
+    const res = Builds.put(shape, part, n);
+    return { ...res, build: Builds.status(shape), bag: { ...Game.bag } };
+  },
+  // run shape's current job: answers = [plug, port] links, in order (left out: the right ones, every round, so the job is
+  // done); 'wrong' = one wrong link (nothing spent, the job stays; its miss shows the job's idea: 'over' / 'under',
+  // 'stall' / 'slow', 'slip' / 'jam', 'tip-side' / 'tip-end', 'over' / 'uneven', or 'wrong'). Stops at the job's end.
+  // Refused: 'parts first' (its parts aren't all in), 'built', 'coming soon', 'no job'. Returns each link's result and the
+  // build after
+  buildJob(shape, answers) {
+    const S = buildProjOf(shape), J0 = S && Builds.jobFor(S.id);   // (#91: or 'mk2')
+    if (!J0) return { ok: false, why: Builds.noJob(shape), build: Builds.status(shape) };
+    const step = J0.step, results = [];
+    const todo = answers === 'wrong' ? [Builds.wrong(S.id)] : Array.isArray(answers) ? answers.slice() : null;
+    for (let t = 0; t < 20; t++) {
+      if (Builds.stepOf(S.id) !== step) break;
+      const a = todo ? todo.shift() : Builds.answer(S.id); if (!a) break;
+      results.push(Builds.link(S.id, a[0], a[1]));
+    }
+    return { ok: results.length > 0 && results.every((r) => r.ok), results, stepDone: Builds.stepOf(S.id) > step, build: Builds.status(S.id), bag: { ...Game.bag } };
   },
   // player i's mech jumps, as C / L / a stick pressed in do (refused without spring legs, powered down, or in the air;
   // G4: in the air with jump jets, once more: jet: true)
