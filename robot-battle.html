@@ -609,7 +609,7 @@
      and so the layout, the same) */
   #garage .ic, #advToast .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
     margin: max(.15em, min(calc(.15em + 3.5px), calc(23px - .85em))) var(--mx) calc(.16em + 1px); vertical-align: calc(-.31em - 1px); }
-  #garage :is(.gtab, .tf, .aic, .gch .big, .glock .big, .glock .ti, .sic, .spart, .plab, .lic, .lfx, .braise) .ic, #advToast .ti .ic { margin: 0 var(--mx); vertical-align: top; }
+  #garage :is(.gtab, .tf, .aic, .gch .big, .glock .big, .glock .ti, .sic, .spart, .plab, .llab, .lic, .lfx, .braise) .ic, #advToast .ti .ic { margin: 0 var(--mx); vertical-align: top; }
   /* I3: the Quick Fix, puzzles and repair screens size their icons the way I2's garage does (the room the emoji took, drawn
      a fifth bigger), and where a line was 1em tall (line-height: 1, or a flex item) only the side margins stay. :where()
      keeps these at .ic's weight, so a panel's own rules still win; #75's squadmate badge in the mend panel keeps its own */
@@ -772,11 +772,17 @@
   .gwall.body { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
   /* B2: the legs row above the tiers: a card per leg shape (its piece in 3D, its icon, its trade-off as chips, ✔ on the one
      equipped, a 🔒 with progress while locked) */
-  .lrow { flex: 1 1 0; min-height: 110px; display: grid; grid-template-columns: auto repeat(var(--n, 4), 1fr); gap: 10px; }
-  /* #42: a tab per section (legs, torso, arms) beside the cards: the one showing lit */
-  .lsec { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-  .lsecb { flex: 1 1 0; min-height: 0; width: 46px; padding: 0; border-radius: 12px; border: 3px solid color-mix(in srgb, var(--pc) 60%, transparent); background: rgba(20,24,42,.7); color: #fff; font-size: 26px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: .7; }
-  .lsecb.on { opacity: 1; border-color: var(--yellow); background: color-mix(in srgb, var(--pc) 35%, rgba(20,24,42,.9)); box-shadow: 0 0 12px rgba(255,216,61,.5); }
+  /* #42: a cards row per section, stacked: legs, torso, arms, each with its section's icon at its left (lit yellow while
+     the keys / pad pick is in it). Each row keeps a card's height (--rh) and grows when there's room; when the rows and the
+     tiers don't all fit, the wall scrolls up and down (the keys / pad pick is scrolled into view) */
+  .gwall.body:not(.build) { justify-content: flex-start; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 7px 7px 7px 3px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.35) transparent; }
+  .gwall.body:not(.build) > * { flex-shrink: 0; }
+  .lrow { --rh: 200px; flex: 1 0 var(--rh); min-height: var(--rh); display: grid; grid-template-columns: auto repeat(var(--n, 4), 1fr); gap: 10px; }
+  .llab { width: 46px; min-height: 0; border-radius: 12px; border: 3px solid color-mix(in srgb, var(--pc) 60%, transparent); background: color-mix(in srgb, var(--pc) 22%, rgba(20,24,42,.85)); color: #fff; font-size: 26px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .llab small { font: 900 11px 'Asap', sans-serif; color: #fff; text-shadow: 1px 1px 0 var(--ink); }
+  /* (#42: a blueprint's parts two to a line, so a row's height holds them clear of Tracks' seven chips) */
+  .lrow .lcard .lbp { display: grid; grid-template-columns: auto auto; column-gap: 7px; row-gap: 2px; }
+  .llab.on { border-color: var(--yellow); box-shadow: 0 0 12px rgba(255,216,61,.5); }
   .lcard { position: relative; min-width: 0; min-height: 0; padding: 0; border-radius: 18px; border: 4px solid color-mix(in srgb, var(--pc) 70%, transparent); background: rgba(20,24,42,.7); color: #fff; font: inherit; cursor: pointer; }
   .lcard .tv { position: absolute; inset: 4px 4px 30px 4px; pointer-events: none; }
   .lcard .lic { position: absolute; left: 6px; top: 5px; font-size: 39px; line-height: 1; filter: brightness(1.25) drop-shadow(0 0 3px rgba(255,255,255,.55)); }   /* (#82: 1.5x and brighter: they were 26 px, dim on the dark card) */
@@ -845,7 +851,7 @@
     .brow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 3px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 14px; } .braise { font-size: 20px; gap: 2px; }
-    .lrow { gap: 5px; min-height: 120px; } .lsec { gap: 4px; } .lsecb { width: 34px; font-size: 20px; border-width: 2px; border-radius: 9px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 4px; }
+    .lrow { --rh: 170px; gap: 5px; } .lrow .lcard .lbp { display: flex; } .lrow .lcard .lic { font-size: 24px; } .lrow .lcard .lpips { right: 3px; gap: 1px; } .lrow .lcard .lpips i { width: 7px; height: 7px; border-width: 1px; } .llab { width: 30px; font-size: 20px; border-width: 2px; border-radius: 9px; } .llab small { display: none; } .gwall.body:not(.build) { padding: 6px 5px 6px 2px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 4px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .lfx { font-size: 13px; gap: 2px; } .lcard .lfx i { padding: 1px 2px; } .lcard .lfx b { display: none; }
     .lcard .tv { bottom: 40px; } .lcard .llock { font-size: 14px; padding: 2px 5px; } .lcard .llock b { font-size: 13px; }
   }
@@ -884,9 +890,9 @@
     .brow { gap: 8px; padding: 2px 8px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 4px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
     .brow .bname { font-size: 15px; } .braise { font-size: 20px; }
-    .lrow { gap: 6px; min-height: 0; } .lsec { gap: 3px; } .lsecb { width: 28px; font-size: 17px; border-width: 2px; border-radius: 8px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 3px; }
+    .lrow { --rh: 106px; gap: 6px; } .llab { width: 28px; font-size: 17px; border-width: 2px; border-radius: 8px; } .llab small { display: none; } .gwall.body:not(.build) { padding: 6px 5px 6px 2px; } .lcard { border-width: 3px; border-radius: 14px; } .lcard .lic { font-size: 30px; left: 4px; top: 3px; }
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .tv { bottom: 22px; }
-    .lcard .lfx { font-size: 12px; bottom: 2px; gap: 2px 2px; } .lcard .lfx i { padding: 1px 1px; } .lcard .lfx b { font-size: 9px; }   /* (#42: a little smaller, for the section tabs beside the cards) */ .lcard .llock { font-size: 15px; } .lcard .llock b { font-size: 14px; }
+    .lcard .lfx { font-size: 12px; bottom: 2px; gap: 2px 2px; } .lcard .lfx i { padding: 1px 1px; } .lcard .lfx b { font-size: 9px; }   /* (#42: a little smaller, for the section's icon beside the cards) */ .lcard .llock { font-size: 15px; } .lcard .llock b { font-size: 14px; }
     .lcard .llock { top: 32%; }   /* (I2: Tracks' seven chips take three rows here: the lock sits higher, clear of them) */
   }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
@@ -915,6 +921,13 @@
   @media (max-width: 430px), (max-height: 460px) and (min-width: 600px) {
     .lcard .lmk2 { left: 3px; top: 37px; padding: 1px 3px; gap: 2px; font-size: 13px; border-width: 2px; } .lcard .lmk2 b { font-size: 12px; }
     .lcard .lmk2 .mpips i { width: 5px; height: 5px; } .lcard .lmk2.tog i { font-size: 12px; min-width: 15px; padding: 2px 2px; }
+  }
+  /* #42: a tablet upright: the cards are narrow (the lift keeps its column), so Tracks' trade-off chips stack one a row.
+     The rows are taller, and a blueprint's parts sit under the icon, clear of the chips */
+  @media (orientation: portrait) and (min-width: 561px) {
+    .lrow { --rh: 300px; }
+    .lcard .lic { font-size: 30px; left: 4px; top: 4px; } .lcard .lpips { top: 5px; right: 4px; gap: 1px; } .lcard .lpips i { width: 8px; height: 8px; border-width: 1px; }
+    .lcard .lbp { top: 46px; transform: translateX(-50%); font-size: 14px; padding: 2px 5px; } .lcard .lbp b { font-size: 13px; }
   }
   .gwall.body.build { gap: 10px; }
   .bhead { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 18px; border: 4px solid rgba(79,157,255,.6); background: rgba(16,30,62,.85); }
@@ -9484,6 +9497,7 @@ const Garage = {
     this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {}; this.cur = 0; this.scur = 0; this.prow = 0;
     this.bp = null; this.bpick = null; this.bcur = 0; this.bsel = -1;   // #89: the cards first
     this.lcur = Math.max(0, this.legOpts().indexOf(Shapes.rec().legs));   // B2: the 🦿 pick starts on the legs on now
+    $('gWall').scrollTop = 0;   // (#42: the 🦿 wall scrolls; it opens at the top)
     document.body.classList.add('garage'); $('garage').classList.add('on');
     this.build(); this.dress();
     Adv.toastStop();
@@ -9509,19 +9523,23 @@ const Garage = {
   setTab(t) {
     const T = GARAGE_TABS.find((x) => x.id === t || x.icon === t) || GARAGE_TABS[t];
     if (!T) return { ok: false, why: 'no such tab' };
-    if (this.tab !== T.id) { this.dragEnd(); this.tab = T.id; this.drawn = {}; this.draw(); if (!Game.manual) Sfx.click(); }
+    if (this.tab !== T.id) { this.dragEnd(); this.tab = T.id; this.drawn = {}; $('gWall').scrollTop = 0; this.lreveal = T.id === 'body'; this.draw(); if (!Game.manual) Sfx.click(); }   // (#42: the 🦿 wall scrolls: a tab starts at its top)
     return { ok: true, tab: T.id, locked: !!T.locked };
   },
   step(d) { const i = GARAGE_TABS.findIndex((x) => x.id === this.tab), n = GARAGE_TABS.length; return this.setTab(GARAGE_TABS[(i + d + n) % n].id); },
   // keys while it's open go to it alone: Esc / G close, ◀ ▶ (A D, Q E) or 1–5 pick a tab; on 🦾, ▲ ▼ (W S) move
-  // (B2: on 🦿, ▲ ▼ move between the leg shapes and Enter / Space equips the one picked)
+  // (B2: on 🦿, ▲ ▼ move between the leg shapes and Enter / Space equips the one picked; #42: there, ▲ ▼ go between the
+  // legs', torso's and arms' rows and ◀ ▶ (A D) along a row, so only Q E and 1–5 pick a tab)
   // between the upgrades and Enter / Space buys the one picked. Tab, and Enter / Space on a focused button, stay
   // the browser's (so they click)
   key(e) {
     if (e.code === 'Tab' || (e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
     if (e.repeat) return 'used';
     const picks = this.tab !== 'trophies';   // (the 🏆 wall has nothing to pick; B2: on 🦿, the leg shapes)
-    if (picks && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
+    const rows = this.tab === 'body' && !this.bp;   // #42: the 🦿 cards are three rows: ▲ ▼ (W S) go between them, ◀ ▶ (A D) along one; Q E still pick a tab
+    if (rows && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.moveRow(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
+    else if (rows && ['ArrowLeft', 'KeyA', 'ArrowRight', 'KeyD'].includes(e.code)) this.move(e.code === 'ArrowLeft' || e.code === 'KeyA' ? -1 : 1);
+    else if (picks && ['ArrowUp', 'KeyW', 'ArrowDown', 'KeyS'].includes(e.code)) this.move(e.code === 'ArrowUp' || e.code === 'KeyW' ? -1 : 1);
     else if (picks && (e.code === 'Enter' || e.code === 'Space')) this.act();
     else if (e.code === 'Escape' && this.tab === 'body' && this.bp) this.back();   // #89: Esc backs out of a blueprint a step at a time
     else if (e.code === 'Escape' || e.code === 'KeyG') this.close();
@@ -9531,12 +9549,19 @@ const Garage = {
     return 'used';
   },
   // the gamepad: ◀ ▶ or LB / RB pick a tab; on 🦾 / 🤖, ▲ ▼ move between the upgrades and A buys; on 🦿 (B2), ▲ ▼ move
-  // between the leg shapes and A equips; on 🎨, ▲ ▼ pick
+  // between the leg shapes and A equips (#42: ▲ ▼ between the rows, ◀ ▶ along one, LB / RB for a tab); on 🎨, ▲ ▼ pick
   // a row and A puts on its next colour or decal; B, X or Start closes
   pad(pad) {
     if (!pad) return;
-    if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
-    if (this.tab !== 'trophies') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
+    // #42: on the 🦿 cards ▲ ▼ go between the three rows and ◀ ▶ along one (LB / RB still pick a tab)
+    if (this.tab === 'body' && !this.bp && (pad.leftP || pad.rightP || pad.upP || pad.downP)) {
+      if (pad.upP || pad.downP) this.moveRow(pad.downP ? 1 : -1); else this.move(pad.rightP ? 1 : -1);
+      if (pad.lbP) this.step(-1); else if (pad.rbP) this.step(1);
+      if (pad.aP && this.tab === 'body') this.act();
+    } else {
+      if (pad.leftP || pad.lbP) this.step(-1); else if (pad.rightP || pad.rbP) this.step(1);
+      if (this.tab !== 'trophies') { if (pad.upP || pad.downP) this.move(pad.downP ? 1 : -1); if (pad.aP) this.act(); }
+    }
     if (pad.bP && this.tab === 'body' && this.bp) this.back();   // #89: B backs out of a blueprint a step at a time
     else if (pad.bP || pad.xP || pad.startP) this.close();
   },
@@ -9547,7 +9572,10 @@ const Garage = {
     if (this.tab === 'squad') { const o = this.squadOptions(); this.scur = wrap(this.scur, o.length); out = o[this.scur] ? o[this.scur].id + ':' + o[this.scur].up : null; }
     else if (this.tab === 'paint') { this.prow = wrap(this.prow, 3); out = ['body', 'trim', 'decal'][this.prow]; }
     else if (this.tab === 'body' && this.bp) { const o = this.buildOptions(); this.bcur = wrap(this.bcur, o.length); out = o[this.bcur] ?? null; }   // #89: a part chip, a plug or a port
-    else if (this.tab === 'body') { const o = this.bodyOpts(); this.lcur = wrap(this.lcur, o.length); out = o[this.lcur]; }   // B2: the leg card picked (#91: or the Spider's Mk II chip; #42: or a torso or arms card)
+    else if (this.tab === 'body') {   // B2: the leg card picked (#91: or the Spider's Mk II chip; #42: or a torso or arms card, along its own row)
+      const o = this.bodyOpts(), row = this.bodyRows()[this.bodyAt().r], i = row.indexOf(o[this.lcur]);
+      out = row[wrap(Math.max(0, i), row.length)]; this.lcur = Math.max(0, o.indexOf(out)); this.lreveal = true;
+    }
     else { this.cur = wrap(this.cur, UPGRADES.length); out = UPGRADES[this.cur].id; }
     this.draw(); if (!Game.manual) Sfx.click();
     return out;
@@ -9585,11 +9613,34 @@ const Garage = {
   // torso's cards ('torso:<id>') and the arms' ('arms:<id>'). The cards row shows the section of the one picked (bodySec)
   bodyOpts() { return [...this.legOpts(), ...TORSO_SHAPES.map((S) => 'torso:' + S.id), ...ARM_SHAPES.map((S) => 'arms:' + S.id)]; },
   optKey(sec, id) { return sec === 'legs' ? id : sec + ':' + id; },
+  // #42: the 🦿 cards as rows (legs with the Mk II chip, torso, arms), and the row and column of the pick (the Mk II chip is
+  // in the Spider's column)
+  bodyRows() { return [this.legOpts(), TORSO_SHAPES.map((S) => 'torso:' + S.id), ARM_SHAPES.map((S) => 'arms:' + S.id)]; },
+  bodyAt() {
+    const o = this.bodyOpts()[this.lcur] ?? '', r = Math.max(0, this.bodyRows().findIndex((R) => R.includes(o)));
+    return { r, c: r ? this.bodyRows()[r].indexOf(o) : Math.max(0, LEG_SHAPES.findIndex((S) => S.id === (o === 'mk2' ? 'spider' : o))) };
+  },
+  // ▲ ▼ on the 🦿 cards: the pick goes to the row above or below (round the end), in the same column (or the row's last card)
+  moveRow(d) {
+    const { r, c } = this.bodyAt(), rows = this.bodyRows(), r2 = (r + d + rows.length) % rows.length;
+    const out = r2 ? rows[r2][Math.min(c, rows[r2].length - 1)] : LEG_SHAPES[Math.min(c, LEG_SHAPES.length - 1)].id;
+    this.lcur = Math.max(0, this.bodyOpts().indexOf(out)); this.lreveal = true;
+    this.draw(); if (!Game.manual) Sfx.click();
+    return out;
+  },
+  // scroll the 🦿 wall just enough to show the row of the card the keys / pad picked (the wall scrolls when the rows and
+  // the tiers don't all fit)
+  reveal() {
+    const W = $('gWall'), c = W.querySelector('.lcard.cur, .lcard:has(.lmk2.cur)')?.closest('.lrow'); if (!c) return;
+    const w = W.getBoundingClientRect(), b = c.getBoundingClientRect(), pad = 8;
+    if (b.top < w.top + pad) W.scrollTop -= w.top + pad - b.top;
+    else if (b.bottom > w.bottom - pad) W.scrollTop += Math.min(b.bottom - w.bottom + pad, b.top - w.top - pad);
+  },
   bodySec() { const o = this.bodyOpts()[this.lcur] ?? ''; return o.startsWith('torso:') ? 'torso' : o.startsWith('arms:') ? 'arms' : 'legs'; },
-  // #42: show section sec's cards (its tab beside the cards row): the pick goes to the shape it has on
+  // #42: go to section sec's row: the pick goes to the shape it has on, scrolled into view
   showSec(sec) {
     if (!BODY_SHAPES[sec]) return { ok: false, why: 'no such section' };
-    this.lcur = Math.max(0, this.bodyOpts().indexOf(this.optKey(sec, Shapes.rec()[sec])));
+    this.lcur = Math.max(0, this.bodyOpts().indexOf(this.optKey(sec, Shapes.rec()[sec]))); this.lreveal = true;
     this.draw(); if (!Game.manual) Sfx.click();
     return { ok: true, section: sec };
   },
@@ -9609,7 +9660,7 @@ const Garage = {
   },
   closeBuild() {
     if (!this.bp) return { ok: false, why: 'no blueprint open' };
-    const was = this.bp; this.dragEnd(); this.bp = null; this.bpick = null; this.bsel = -1;
+    const was = this.bp; this.dragEnd(); this.bp = null; this.bpick = null; this.bsel = -1; this.lreveal = true;   // (#42: back on the cards, its card in view)
     if (this.bcheer) this.cheerBuildStop(); else { this.dress(); this.draw(); }
     if (!Game.manual) Sfx.click();
     return { ok: true, was };
@@ -9678,7 +9729,7 @@ const Garage = {
   cheerBuildStop() {
     clearTimeout(this.bcheerT); const id = this.bcheer; this.bcheer = null;
     $('gCheer').classList.remove('on'); $('gLift').classList.remove('sparkle');
-    if (this.bp === id) this.bp = null;
+    if (this.bp === id) { this.bp = null; this.lreveal = true; }   // (#42: back on the cards, the new card in view)
     if (this.on) { this.dress(); this.draw(); }
   },
   // ---- dragging (mouse and touch): a part chip onto its glowing spot on the lift, or a plug onto a port. The picture that
@@ -10069,18 +10120,19 @@ const Garage = {
       const B = Body.status();
       // B2: first the legs row: a card per leg shape, its piece in 3D, its trade-off as icons (green better, red worse),
       // ✔ on the one equipped, and a 🔒 with how far its part count has got until it's unlocked. A tap equips it.
-      // #42: the cards row shows one section's shapes at a time (the legs, the torso or the arms: the section of the card
-      // picked), with a tab for each section beside it; the torso's and the arms' cards are the legs' kind of card
-      const L = Shapes.status(), pick = this.bodyOpts()[this.lcur], sec = this.bodySec();
+      // #42: then a row each for the torso's and the arms' shapes, stacked under the legs', each with its section's icon at
+      // its left (lit while the keys / pad pick is in that row); their cards are the legs' kind of card
+      const L = Shapes.status(), pick = this.bodyOpts()[this.lcur], psec = this.bodySec();
       const lock = (br) => `<span class="lbp">${Object.keys(br.need).map((p) => `<i class="${br.parts[p] >= br.need[p] ? 'full' : ''}">${icon(PARTS[p].ic)}<b>${br.parts[p]}/${br.need[p]}</b></i>`).join('')}</span>`
         + `<span class="lpips">${Array.from({ length: br.steps }, (_, k) => `<i class="${k < br.step ? 'on' : ''}"></i>`).join('')}</span>`;
       const chips = (list) => list.map(([ic, up, t]) => `<i class="${up ? 'up' : 'dn'}">${icon(ic)}<b>${t}</b></i>`).join('');
-      const cards = sec !== 'legs' ? BODY_SHAPES[sec].map((S) => {
+      const secCards = (sec) => BODY_SHAPES[sec].map((S) => {
         const o = L[sec][S.id], on = L.equipped[sec] === S.id, br = o.build, key = sec + ':' + S.id;
         return `<button class="lcard${on ? ' on' : ''}${pick === key ? ' cur' : ''}${o.unlocked ? '' : ' locked bp'}" data-sec="${sec}" data-shape="${S.id}" style="--pc:${S.part ? PARTS[S.part].hex : '#ffd83d'}"`
           + ` aria-label="${S.name}${o.unlocked ? (on ? ': on' : '') : `: blueprint, ${br.step} of ${br.steps} steps done`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
           + `${on ? `<span class="lon">${icon('check')}</span>` : ''}${o.unlocked ? '' : lock(br)}<span class="lfx">${chips(this.secFx(sec, S))}</span></button>`;
-      }).join('') : LEG_SHAPES.map((S) => {
+      }).join('');
+      const legCards = LEG_SHAPES.map((S) => {
         const o = L.offer[S.id], on = L.equipped.legs === S.id;
         // (#91: the Spider on 6 legs shows the Mk II's trade-off on top of its own)
         const six = S.id === 'spider' && L.mk2.on, fx = this.legFx(six ? { ...S, energy: (S.energy || 0) + SPIDER_MK2.energy, accel: r3((S.accel ?? 1) * SPIDER_MK2.accel) } : S)
@@ -10100,9 +10152,11 @@ const Garage = {
           + ` aria-label="${S.name}${six ? ' Mk II' : ''}${o.unlocked ? (on ? ': on' : '') : `: blueprint, ${br.step} of ${br.steps} steps done`}"><div class="tv"></div><span class="lic">${icon(S.ic)}</span>`
           + `${on ? `<span class="lon">${icon('check')}</span>` : ''}${lock}${mk2}<span class="lfx">${fx}</span></button>`;
       }).join('');
-      const tabs = `<div class="lsec">${['legs', 'torso', 'arms'].map((k) => { const B = BODY_SECTIONS.find((q) => q.id === k);
-        return `<button class="lsecb${k === sec ? ' on' : ''}" data-sec="${k}" style="--pc:${B.hex}" aria-label="${B.name}: ${k === sec ? 'showing' : 'show'} its shapes"${k === sec ? ' aria-pressed="true"' : ''}>${icon(B.ic)}</button>`; }).join('')}</div>`;
-      $('gWall').innerHTML = `<div class="lrow" data-sec="${sec}" style="--n:${BODY_SHAPES[sec].length}">${tabs}${cards}</div>` + BODY_SECTIONS.map((S) => {
+      // (every row has the legs' four columns, so a torso or arms card is a leg card's size and ▲ ▼ keep to a column)
+      const rows = ['legs', 'torso', 'arms'].map((k) => { const Q = BODY_SECTIONS.find((q) => q.id === k);
+        return `<div class="lrow" data-sec="${k}" style="--n:${LEG_SHAPES.length}"><div class="llab${k === psec ? ' on' : ''}" style="--pc:${Q.hex}" role="img" aria-label="${Q.name}">${icon(Q.ic)}<small>${Q.name}</small></div>`
+          + `${k === 'legs' ? legCards : secCards(k)}</div>`; }).join('');
+      $('gWall').innerHTML = rows + BODY_SECTIONS.map((S) => {
         const t = B.tiers[S.id], up = B.preview != null ? t : Math.min(B.points[S.id], t);   // (a previewTier forces the tier: no mastery pips)
         const pips = Array.from({ length: BODY.max }, (_, k) => `<i class="${k < up ? 'on' : k < t ? 'on bonus' : ''}"></i>`).join('');
         return `<div class="brow" data-sec="${S.id}" data-tier="${t}" style="--pc:${S.hex}" aria-label="${S.name}: tier ${t} of ${BODY.max}, ${BODY.names[t]}">`
@@ -10121,6 +10175,8 @@ const Garage = {
     const P = Game.pilot, C = Game.child, who = $('gWho');
     who.style.setProperty('--c', P?.hex || '#fff'); who.innerHTML = (C ? icon(C.ic) : '') + (P?.name ?? '');   // (I2: the child's icon, not their emoji)
     this.drawSpots();   // #89: the glowing spots over the frame on the lift (none unless a blueprint is on a parts step)
+    if (this.lreveal && T.id === 'body' && !this.bp) this.reveal();   // #42: the keys / pad pick (or the card just built) in view
+    this.lreveal = false;
   },
   // B2: a leg shape's trade-off against the walker, as [icon name, better?, how much]: energy, speed (top speed), accel (how
   // fast it gets going, I2), swap (leg turn), jump, boot (kick), smash (walking damage) and knock (the knock-back it takes,
@@ -10228,16 +10284,20 @@ const Garage = {
           tags: [...el.querySelectorAll('.ans')].map((a) => a.textContent), lit: [...el.querySelectorAll('.lg4 i')].map((i) => i.className).join(','),   // (#91: the tripod's two answers; its legs as drawn)
           load: el.dataset.sum != null ? +el.dataset.sum : null, target: el.dataset.target != null ? +el.dataset.target : null })) } : null,
       frame: this.drawn.frame ?? null };
-    // #42: the torso's or the arms' cards as shown (whichever section shows: the other is null), each as a leg card reads
-    // (on, tick, locked, picked, icon, fx chips, drawn, blueprint, parts, pips); section = the section showing, and its tabs
+    // #42: the torso's and the arms' rows of cards as shown (all three rows show at once), each card as a leg card reads
+    // (on, tick, locked, picked, icon, fx chips, drawn, blueprint, parts, pips); rows = the rows top to bottom (section, its
+    // icon, lit = the keys / pad pick is in it, its cards in order, seen = all of it inside the wall now, which scrolls);
+    // section = the row the pick is in
     const secCards = (k) => { const els = [...W.querySelectorAll(`.lrow[data-sec="${k}"] .lcard`)]; return els.length ? Object.fromEntries(els.map((el) => [el.dataset.shape, { on: el.classList.contains('on'), tick: !!el.querySelector('.lon'),
       locked: el.classList.contains('locked'), picked: el.classList.contains('cur'), icon: ic(el.querySelector('.lic')), fx: [...el.querySelectorAll('.lfx i')].map((i) => i.className + ' ' + icRead(i)),
       drawn: this.drawn[k + ':' + el.dataset.shape] ?? null, blueprint: el.classList.contains('bp'), parts: el.querySelector('.lbp') ? icRead(el.querySelector('.lbp')) : null,
       pips: el.querySelector('.lpips') ? [el.querySelectorAll('.lpips i.on').length, el.querySelectorAll('.lpips i').length] : null }])) : null; };
-    const lrow = W.querySelector('.lrow'), section = lrow ? lrow.dataset.sec : null;
-    const secTabs = lrow ? [...lrow.querySelectorAll('.lsecb')].map((b) => ({ sec: b.dataset.sec, icon: ic(b), on: b.classList.contains('on') })) : null;
+    const lrows = [...W.querySelectorAll('.lrow')], wr = W.getBoundingClientRect();
+    const rows = lrows.length ? lrows.map((el) => { const b = el.getBoundingClientRect(), l = el.querySelector('.llab');
+      return { sec: el.dataset.sec, icon: ic(l), on: l.classList.contains('on'), cards: [...el.querySelectorAll('.lcard')].map((c) => c.dataset.shape), seen: b.top >= wr.top - 1 && b.bottom <= wr.bottom + 1 }; }) : null;
+    const section = lrows.length ? this.bodySec() : null;
     const ch = $('gCheer'), em = W.querySelector('.sempty');
-    return { tab: this.tab, body, legs, torso: secCards('torso'), arms: secCards('arms'), section, secTabs, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
+    return { tab: this.tab, body, legs, torso: secCards('torso'), arms: secCards('arms'), section, rows, scroll: lrows.length ? { top: Math.round(W.scrollTop), max: W.scrollHeight - W.clientHeight } : null, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
       empty: !!em, emptyText: em ? icRead(em) : null, paint, lift: this.drawn.lift ?? null, who: icRead($('gWho')),
       // (I2: each tab as { id, icon, on, locked }; it was 'id', 'id*' for the open one, with a 🔒 after a locked one)
       tabs: [...$('gTabs').children].map((b) => ({ id: b.dataset.t, icon: ic(b), on: b.classList.contains('on'), locked: b.classList.contains('locked') })) };
@@ -10321,11 +10381,17 @@ const Garage = {
     this.mechBox = { y: mid.y, r: Math.max(size.y, Math.hypot(size.x, size.z)) * 0.5 + 0.4 };
   },
   // draw the scene into element el's box, the camera framing a ball of radius rad round (0, y, 0). false if it's off screen
-  view(el, y, rad, lookDown = 0.12) {
+  // (#42: or outside clip, a box it's cut to: the 🦿 wall, which scrolls, so a card half scrolled out draws only its inside part)
+  view(el, y, rad, lookDown = 0.12, clip = null) {
     const R = renderer, H = innerHeight, b = el.getBoundingClientRect();
     if (b.width < 4 || b.height < 4 || b.bottom <= 0 || b.top >= H) return false;
     const x = b.left, yy = H - b.bottom, cam = this.cam;
-    R.setViewport(x, yy, b.width, b.height); R.setScissor(x, yy, b.width, b.height);
+    R.setViewport(x, yy, b.width, b.height);
+    if (clip) {
+      const t = Math.max(b.top, clip.top), bt = Math.min(b.bottom, clip.bottom), l = Math.max(b.left, clip.left), r = Math.min(b.right, clip.right);
+      if (bt - t < 1 || r - l < 1) return false;
+      R.setScissor(l, H - bt, r - l, bt - t);
+    } else R.setScissor(x, yy, b.width, b.height);
     cam.aspect = b.width / b.height;
     const d = rad / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) / Math.min(1, cam.aspect);
     cam.position.set(0, y + d * lookDown, d); cam.lookAt(0, y, 0); cam.near = d / 20; cam.far = d * 4; cam.updateProjectionMatrix();
@@ -10387,13 +10453,16 @@ const Garage = {
           p.holder.visible = false;
         }
       } else if (this.tab === 'body') {
-        // B2: each leg card's shape, turning (an outline while it's locked)
+        // B2: each leg card's shape, turning (an outline while it's locked) (#42: and the torso's and arms' rows, cut to the
+        // wall's inside, which scrolls)
+        const wb = $('gWall'), wr = wb.getBoundingClientRect();
+        const clip = { left: wr.left + wb.clientLeft, top: wr.top + wb.clientTop, right: wr.left + wb.clientLeft + wb.clientWidth, bottom: wr.top + wb.clientTop + wb.clientHeight };
         for (const el of $('gWall').querySelectorAll('.lcard')) {
           const id = el.dataset.shape, sec = el.dataset.sec || 'legs', six = el.dataset.legs === '6', p = this.pieces[sec + ':' + (six ? 'spider6' : id)]; if (!p) continue;   // (#91; #42: or a torso's or an arm set's)
           const got = !el.classList.contains('locked');
           p.holder.visible = true; p.lit.visible = got; p.out.visible = !got;
           p.holder.rotation.set(0.12, 0.7 + this.t * GARAGE.pieceSpin, 0);
-          this.drawn[sec + ':' + id] = this.view(el.querySelector('.tv'), 0, p.r, 0.2) ? (got ? (six ? 'piece6' : 'piece') : 'outline') : null;
+          this.drawn[sec + ':' + id] = this.view(el.querySelector('.tv'), 0, p.r, 0.2, clip) ? (got ? (six ? 'piece6' : 'piece') : 'outline') : null;
           p.holder.visible = false;
         }
       }
@@ -10428,9 +10497,7 @@ const Garage = {
       // #91: the Spider's Mk II chip (inside its card, so it's looked for first): its blueprint, or the 4 / 6 legs switch
       const mk = e.target.closest('.lmk2');
       if (mk) { e.stopPropagation(); this.lcur = Math.max(0, this.legOpts().indexOf('mk2')); this.draw(); this.cardTap('mk2'); return; }
-      // #42: a section's tab beside the cards shows its cards; a torso or arms card is keyed by its section
-      const ls = e.target.closest('.lsecb');
-      if (ls) { e.stopPropagation(); this.showSec(ls.dataset.sec); return; }
+      // #42: a torso or arms card is keyed by its section
       const lc = e.target.closest('.lcard');
       if (lc) { e.stopPropagation(); const key = this.optKey(lc.dataset.sec || 'legs', lc.dataset.shape); this.lcur = Math.max(0, this.bodyOpts().indexOf(key)); this.draw(); this.cardTap(key); return; }
       if (b) { e.stopPropagation(); if (!b.classList.contains('max')) this.buy(b.dataset.up); }
