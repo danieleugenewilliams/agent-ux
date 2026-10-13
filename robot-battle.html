@@ -973,6 +973,52 @@
     .bjob { gap: 4px 8px; } .bjt { font-size: 22px; } .bplug, .bport { border-width: 3px; border-radius: 12px; padding: 2px 6px; font-size: 18px; } .bpf { font-size: 22px; }
     .bplugs, .bports { gap: 5px; } .bplug .fact { font-size: 18px; } .bport .ans { font-size: 22px; } .wsh svg { width: 24px; height: 24px; } .bpole i { width: 14px; height: 14px; } .bpole { gap: 4px; } .bpad { font-size: 22px; }
   }
+  /* ---------- #94: the touch controller is showing (html.tp-showing, from the TouchPad block): the HUD makes room ----------
+     The stick rests bottom left (its ring reaches 16 + 132 px up), the buttons fan out from the bottom-right corner
+     (about 233 px each way), ⏸ sits top right; all ×1.3 on a tablet (--tpu, the TouchPad's --tp-u). */
+  html { --tpu: 1; }
+  @media (min-width: 700px) and (min-height: 700px) { html { --tpu: 1.3; } }
+  .tp-btn.dim { opacity: .45; }
+  .tp-btn.ready { animation: pulse .9s ease-in-out infinite; }
+  /* its MEND, JUMP and BAG stand in for the HUD's 🔧 ⤴️ 🎒, and there are no keys to show */
+  html.tp-showing #hud .health .mendb, html.tp-showing #hud .bagb, html.tp-showing #hud small, html.tp-showing #clear small { display: none; }
+  html.tp-showing #hud .right { right: calc(30px + 44px * var(--tpu)); }   /* clear of ⏸ */
+  /* the left column, above the stick's resting spot: the speed bars, then ⭐ */
+  html.tp-showing #hud .speed { bottom: calc(26px + 132px * var(--tpu)); transform-origin: left bottom; }
+  html.tp-showing #hud .mastery { bottom: calc(109px + 132px * var(--tpu)); }
+  html.tp-showing #hud .compass { transform-origin: right bottom; }
+  /* sideways: the weapons row along the bottom between the thumbs, the compass and 🌊 just left of it */
+  @media (orientation: landscape) {
+    html.tp-showing #hud .compass { right: auto; left: calc(50% - 321px); bottom: 22px; }
+    html.tp-showing #hud .wave { right: auto; left: calc(50% - 321px); bottom: 150px; }
+  }
+  /* upright: a smaller weapons row; the compass and 🌊 stand over the buttons */
+  @media (orientation: portrait) {
+    html.tp-showing #hud .weapons { gap: 8px; }
+    html.tp-showing #hud .wpn { width: 50px; height: 50px; font-size: 26px; border-width: 3px; }
+    html.tp-showing #hud .compass { bottom: calc(26px + 222px * var(--tpu)); }
+    html.tp-showing #hud .wave { bottom: calc(34px + 342px * var(--tpu)); }
+  }
+  /* a phone: the speed bars and compass at 70% */
+  @media (max-width: 560px), (max-height: 460px) {
+    html.tp-showing #hud .speed, html.tp-showing #hud .compass { transform: scale(.7); }
+    html.tp-showing #hud .mastery { bottom: 219px; }
+  }
+  @media (max-width: 560px) {   /* upright: the counters are under the health panel already; 🌊 beside the compass, the weapons row over both */
+    html.tp-showing #hud .right { right: 22px; }
+    html.tp-showing #hud .wave { right: 114px; bottom: 248px; }
+    html.tp-showing #hud .weapons { bottom: 346px; }
+  }
+  @media (max-height: 460px) and (min-width: 600px) {   /* on its side: ⭐ beside the speed bars; a smaller weapons row */
+    html.tp-showing #hud .mastery { left: 183px; bottom: 158px; }
+    html.tp-showing #hud .weapons { bottom: 16px; gap: 8px; }
+    html.tp-showing #hud .wpn { width: 50px; height: 50px; font-size: 26px; border-width: 3px; }
+    html.tp-showing #hud .compass { left: calc(50% - 271px); bottom: 16px; }
+    html.tp-showing #hud .wave { left: calc(50% - 271px); bottom: 108px; }
+  }
+  /* WEAPON held: the weapons row opens as a picker in the middle of the screen; a tap on a slot picks it */
+  html.tp-showing #hud .weapons.pick { bottom: auto; top: 50%; transform: translate(-50%, -50%); gap: 10px; padding: 14px 18px; border-radius: 26px; background: rgba(20,24,42,.88); border: 4px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
+  html.tp-showing #hud .weapons.pick .wpn { width: min(78px, 15vw); height: min(78px, 15vw); font-size: min(40px, 8vw); border-width: 4px; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1152,6 +1198,204 @@
 </div>
 <!-- G4: the toast in play when a milestone unlocks an advanced part -->
 <div id="advToast" role="status"></div>
+
+<!-- ===========================================================================
+TouchPad: on-screen controller for phones and tablets (issue #92, Family Knockout; copied for Robot Battle in #94).
+Self-contained: its CSS, DOM and logic all live in the one script element below, so another game can copy the block as-is.
+
+  const pad = TouchPad.create({
+    buttons: [                       // right side; the first is the main action (biggest, at the thumb's rest)
+      { id: 'jump', label: 'JUMP', icon: '<svg…>' },
+      { id: 'dive', label: 'DIVE', icon: '<svg…>', angle: 180 },   // degrees around the main button (90 = up, 180 = left)
+      { id: 'bag', label: 'BAG', icon: '<svg…>', angle: 170, ring: 145, size: 48, hidden: true },
+          // (#94, optional) size: px across at phone scale (main 80, others 58); ring: px from the main button's
+          // centre (default: just clear of it); hidden: starts hidden (setVisible shows it)
+    ],
+    pause: true,                     // a pause button, top right (reported as pressed.pause)
+    pauseIcon: '<svg…>',             // (#94, optional) the pause button's icon, for a game with its own icon set
+    active: () => bool,              // is the game in play? The controller shows only then, and only in touch mode.
+    before: element,                 // (#94, optional) put the controller just before this element instead of at the
+    z: 'auto',                       //   end of <body>, at this z-index (default 20): screens after it stay on top,
+  });                                //   so their buttons still take taps while empty space falls through to the controller
+  pad.poll() -> { x, y, held: {id: bool}, pressed: {id: bool}, lookDx, lookDy, looking }
+     x/y are analog -1..1 like a gamepad's left stick (y down = +), after a dead zone. `pressed` latches every
+     tap since the last poll, so a tap shorter than a frame still counts (and reads as held for that poll).
+     lookDx/lookDy are the pixels dragged on empty space on the right since the last poll (camera / aim).
+  pad.state -> { showing, touchMode, x, y, held: [ids], looking }   (for test hooks)
+  pad.padUsed()                      // call when a gamepad button or stick is used: hides it until the next touch
+  pad.setVisible(id, on)             // (#94) show or hide one button (a contextual one); hiding it lets go of it
+  pad.setIcon(id, html)              // (#94) swap a button's icon (its label stays)
+  pad.el(id)                         // (#94) a button's element, to add a class (a pulse, say)
+
+Touch mode turns on at the first touch (pointerType 'touch') or on load when (pointer: coarse) matches, and off
+on any key press, mouse press or padUsed(). Each pointerId is tracked on its own (move + buttons + look at once).
+The root element toggles `tp-showing` on <html> so a game can move HUD pieces out of the thumbs' way.
+=========================================================================== -->
+<script>
+window.TouchPad = (() => {
+  const CSS = `
+  .tp-root { position: fixed; inset: 0; z-index: 20; display: none; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+    --tp-u: 1; --tp-l: max(16px, env(safe-area-inset-left)); --tp-r: max(16px, env(safe-area-inset-right)); --tp-t: max(12px, env(safe-area-inset-top)); --tp-b: max(16px, env(safe-area-inset-bottom)); }
+  .tp-root.on { display: block; }
+  @media (min-width: 700px) and (min-height: 700px) { .tp-root { --tp-u: 1.3; } }
+  .tp-root * { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; box-sizing: border-box; }
+  .tp-ring { position: absolute; border-radius: 50%; background: rgba(255,255,255,.25); border: 2px solid rgba(255,255,255,.55);
+    box-shadow: 0 0 0 1.5px rgba(0,0,0,.28), inset 0 0 0 1px rgba(0,0,0,.12); }
+  .tp-stick { width: calc(120px * var(--tp-u)); height: calc(120px * var(--tp-u)); margin: calc(-60px * var(--tp-u)) 0 0 calc(-60px * var(--tp-u)); pointer-events: none;
+    background: rgba(255,255,255,.14); opacity: .75; transition: left .22s ease-out, top .22s ease-out, opacity .22s; }
+  .tp-stick.live { transition: none; opacity: 1; background: rgba(255,255,255,.25); }
+  .tp-knob { left: 50%; top: 50%; width: 44%; height: 44%; margin: -22% 0 0 -22%; background: rgba(255,255,255,.4); }
+  .tp-stick.live .tp-knob { background: rgba(255,255,255,.55); }
+  .tp-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: #fff; padding: 0;
+    font: 900 calc(10px * var(--tp-u)) system-ui, sans-serif; letter-spacing: .5px; text-shadow: 0 1px 2px rgba(0,0,0,.7), 0 0 4px rgba(0,0,0,.35); }
+  .tp-btn .tp-ic { display: flex; width: 46%; height: 46%; pointer-events: none; }
+  .tp-btn svg { width: 100%; height: 100%; margin: 0; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.3)); }
+  .tp-btn.down { background: rgba(255,255,255,.5); transform: scale(.94); }
+  .tp-btn.tp-off { display: none; }
+  .tp-pause { top: var(--tp-t); right: var(--tp-r); width: calc(44px * var(--tp-u)); height: calc(44px * var(--tp-u)); }
+  `;
+  const PAUSE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>';
+  const DEAD = 0.15;   // stick dead zone, as a fraction of its radius
+
+  function create(cfg) {
+    const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
+    const root = document.createElement('div'); root.className = 'tp-root'; root.setAttribute('aria-hidden', 'true');
+    if (cfg.z != null) root.style.zIndex = cfg.z;
+    const stick = document.createElement('div'); stick.className = 'tp-ring tp-stick';
+    const knob = document.createElement('div'); knob.className = 'tp-ring tp-knob'; stick.appendChild(knob); root.appendChild(stick);
+    const btns = {};
+    const mkBtn = (b, cls) => {
+      const el = document.createElement('div'); el.className = 'tp-ring tp-btn ' + cls + (b.hidden ? ' tp-off' : ''); el.dataset.tp = b.id;
+      el.innerHTML = `<i class="tp-ic">${b.icon}</i>` + (b.label ? `<span>${b.label}</span>` : ''); root.appendChild(el); btns[b.id] = el; return el;
+    };
+    cfg.buttons.forEach((b, i) => mkBtn(b, i === 0 ? 'tp-main' : 'tp-sub'));
+    if (cfg.pause) mkBtn({ id: 'pause', icon: cfg.pauseIcon || PAUSE_ICON }, 'tp-pause');
+    if (cfg.before) cfg.before.before(root); else document.body.appendChild(root);
+
+    const S = { touchMode: false, showing: false, x: 0, y: 0, lookDx: 0, lookDy: 0 };
+    const held = {}, latched = {};
+    const ptrs = new Map();   // pointerId -> { role: 'stick' | 'look' | 'btn', ... }
+    let home = { x: 0, y: 0 }, R = 60;
+    const hasStick = () => [...ptrs.values()].some((p) => p.role === 'stick');
+
+    function layout() {
+      const u = parseFloat(getComputedStyle(root).getPropertyValue('--tp-u')) || 1;
+      const len = (v) => { const p = document.createElement('div'); p.style.cssText = `position:absolute;width:${v}`; root.appendChild(p); const w = p.getBoundingClientRect().width; p.remove(); return w; };
+      const L = len('var(--tp-l)'), Rt = len('var(--tp-r)'), B = len('var(--tp-b)');
+      const W = innerWidth, H = innerHeight;
+      R = 60 * u;
+      home = { x: L + R + 12 * u, y: H - B - R - 12 * u };
+      if (!hasStick()) { stick.style.left = home.x + 'px'; stick.style.top = home.y + 'px'; }
+      // the main button sits at the right thumb's rest, the others in an arc around it
+      const main = (cfg.buttons[0].size ?? 80) * u, gap = 14 * u;
+      const cx = W - Rt - main / 2 - 10 * u, cy = H - B - main / 2 - 10 * u;
+      cfg.buttons.forEach((b, i) => {
+        const el = btns[b.id], s = i === 0 ? main : (b.size ?? 58) * u;
+        let x = cx, y = cy;
+        if (i > 0) { const a = (b.angle ?? 180) * Math.PI / 180, r = b.ring != null ? b.ring * u : main / 2 + s / 2 + gap; x = cx + Math.cos(a) * r; y = cy - Math.sin(a) * r; }
+        Object.assign(el.style, { width: s + 'px', height: s + 'px', left: x - s / 2 + 'px', top: y - s / 2 + 'px' });
+      });
+    }
+    addEventListener('resize', () => { if (S.showing) layout(); });
+
+    const setKnob = (dx, dy) => { knob.style.transform = `translate(${dx}px, ${dy}px)`; };
+    function stickHome() { S.x = S.y = 0; setKnob(0, 0); stick.classList.remove('live'); stick.style.left = home.x + 'px'; stick.style.top = home.y + 'px'; }
+    function releaseAll() {
+      ptrs.clear(); for (const k in held) held[k] = false; for (const k in latched) latched[k] = false;
+      S.lookDx = S.lookDy = 0; for (const el of Object.values(btns)) el.classList.remove('down'); stickHome();
+    }
+    function refresh() {
+      const show = S.touchMode && !!cfg.active();
+      if (show !== S.showing) {
+        S.showing = show; root.classList.toggle('on', show); document.documentElement.classList.toggle('tp-showing', show);
+        if (show) layout(); else releaseAll();
+      }
+    }
+    function setTouchMode(on) { if (S.touchMode !== on) { S.touchMode = on; refresh(); } }
+
+    function stickMove(p, x, y) {
+      let dx = x - p.x0, dy = y - p.y0; const d = Math.hypot(dx, dy);
+      if (d > R) { dx *= R / d; dy *= R / d; }
+      setKnob(dx, dy);
+      const m = Math.min(1, d / R);
+      if (m < DEAD) { S.x = S.y = 0; return; }
+      const s = (m - DEAD) / (1 - DEAD) / m;   // rescale: the dead zone's edge reads 0, the rim reads 1
+      S.x = dx / R * s; S.y = dy / R * s;
+    }
+
+    root.addEventListener('pointerdown', (e) => {
+      e.preventDefault();   // no stopPropagation: the game's own pointerdown (audio unlock) still runs
+      const bEl = e.target.closest && e.target.closest('[data-tp]');
+      try { root.setPointerCapture(e.pointerId); } catch (err) {}
+      if (bEl) {
+        const id = bEl.dataset.tp; held[id] = true; latched[id] = true; bEl.classList.add('down');
+        ptrs.set(e.pointerId, { role: 'btn', id });
+      } else if (e.clientX < innerWidth * 0.4) {
+        if (hasStick()) return;
+        // the stick floats: its centre lands under the thumb, kept fully on screen
+        const x = Math.max(R + 4, e.clientX), y = Math.max(R + 4, Math.min(e.clientY, innerHeight - R - 4));
+        const p = { role: 'stick', x0: x, y0: y }; ptrs.set(e.pointerId, p);
+        stick.classList.add('live'); stick.style.left = x + 'px'; stick.style.top = y + 'px';
+        stickMove(p, e.clientX, e.clientY);
+      } else {
+        ptrs.set(e.pointerId, { role: 'look', lx: e.clientX, ly: e.clientY });
+      }
+    });
+    root.addEventListener('pointermove', (e) => {
+      const p = ptrs.get(e.pointerId); if (!p) return;
+      e.preventDefault();
+      if (p.role === 'stick') stickMove(p, e.clientX, e.clientY);
+      else if (p.role === 'look') { S.lookDx += e.clientX - p.lx; S.lookDy += e.clientY - p.ly; p.lx = e.clientX; p.ly = e.clientY; }
+    });
+    const letGo = (id) => { if (![...ptrs.values()].some((q) => q.role === 'btn' && q.id === id)) { held[id] = false; btns[id].classList.remove('down'); } };
+    const onUp = (e) => {
+      const p = ptrs.get(e.pointerId); if (!p) return;
+      ptrs.delete(e.pointerId);
+      if (p.role === 'btn') letGo(p.id);
+      else if (p.role === 'stick') stickHome();
+    };
+    for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) root.addEventListener(t, onUp);
+    root.addEventListener('contextmenu', (e) => e.preventDefault());
+    root.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });   // no double-tap zoom or long-press callout on iOS
+    root.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+    // Touch mode: on at the first touch, off on a key or mouse press (capture, so it runs before the game's listeners).
+    addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') setTouchMode(true); else if (e.pointerType === 'mouse') setTouchMode(false); }, true);
+    addEventListener('keydown', () => setTouchMode(false), true);
+    addEventListener('blur', releaseAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+    try { if (matchMedia('(pointer: coarse)').matches) S.touchMode = true; } catch (err) {}
+
+    return {
+      poll() {
+        refresh();
+        if (!S.showing) return { x: 0, y: 0, held: {}, pressed: {}, lookDx: 0, lookDy: 0, looking: false };
+        const out = { x: S.x, y: S.y, held: { ...held }, pressed: { ...latched }, lookDx: S.lookDx, lookDy: S.lookDy,
+          looking: [...ptrs.values()].some((p) => p.role === 'look') };
+        for (const k in latched) { if (latched[k]) out.held[k] = true; latched[k] = false; }
+        S.lookDx = S.lookDy = 0;
+        return out;
+      },
+      padUsed() { setTouchMode(false); },
+      refresh,
+      setVisible(id, on) {
+        const el = btns[id]; if (!el || el.classList.contains('tp-off') === !on) return;
+        el.classList.toggle('tp-off', !on);
+        if (!on) { for (const [k, p] of ptrs) if (p.role === 'btn' && p.id === id) ptrs.delete(k); held[id] = latched[id] = false; el.classList.remove('down'); }
+      },
+      setIcon(id, html) { const i = btns[id]?.querySelector('.tp-ic'); if (i && i.dataset.k !== html) { i.dataset.k = html; i.innerHTML = html; } },
+      el: (id) => btns[id] || null,
+      get state() {
+        refresh();
+        return { showing: S.showing, touchMode: S.touchMode, x: +S.x.toFixed(3), y: +S.y.toFixed(3),
+          held: Object.keys(held).filter((k) => held[k]), looking: [...ptrs.values()].some((p) => p.role === 'look'),
+          shown: Object.keys(btns).filter((k) => !btns[k].classList.contains('tp-off')) };
+      },
+    };
+  }
+  return { create };
+})();
+</script>
 
 <script type="module">
 import * as THREE from 'three';
@@ -1758,6 +2002,7 @@ const ICONS = {
   cross: ['no', ['✖', '✖️', '❌'], ln('M6 6 L18 18 M18 6 L6 18', UI, 3.2)],
   play: ['go', ['▶', '▶️'], pa('M7 3.6 L20.4 12 L7 20.4 Z', UI)],
   back: ['back', ['◀', '◀️'], pa('M17 3.6 L3.6 12 L17 20.4 Z', UI)],
+  pause: ['pause', ['⏸', '⏸️'], re(5.2, 3.6, 5, 16.8, 1.4, UI) + re(13.8, 3.6, 5, 16.8, 1.4, UI)],   // #94: the touch controller's pause
   up: ['up', ['▲'], pa('M12 4.4 L20.6 18.6 L3.4 18.6 Z', UI)],
   down: ['down', ['▼', '⬇', '⬇️'], pa('M12 19.6 L20.6 5.4 L3.4 5.4 Z', UI)],
   arrow: ['to', ['➜', '→'], ln('M3.4 12 L13.4 12', UI, 3.2, 'butt') + pa('M12.6 5 L21 12 L12.6 19 Z', UI)],
@@ -2724,7 +2969,7 @@ addEventListener('pointerdown', () => Sfx.unlock());
 const anyKey = (list) => list.some((k) => keys.has(k));
 
 const mouse = { dx: 0, dy: 0, locked: false, down: false };
-canvas.addEventListener('click', () => { if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked && !FixUI.mode) canvas.requestPointerLock?.(); });
+canvas.addEventListener('click', (e) => { if (e.pointerType === 'touch' || touch.state.touchMode) return; if (Game.state === 'play' && Game.humans.length === 1 && !mouse.locked && !FixUI.mode) canvas.requestPointerLock?.(); });
 document.addEventListener('pointerlockchange', () => {
   mouse.locked = document.pointerLockElement === canvas;
   // a repair frees the mouse for dragging wires; that isn't a pause
@@ -2759,8 +3004,50 @@ function readPad(i) {
     stickP: cur.stick && !prev.stick,
   };
   padPrev[i] = cur;
+  if (out.lx || out.ly || out.rx || out.ry || Object.values(cur).some(Boolean)) touch.padUsed();   // #94: a pad in use hides the touch controller
   return out;
 }
+
+// #94: the on-screen touch controller (the TouchPad block above, as in Family Knockout): player 1 only, read
+// once per frame in gatherInput. Stick = throttle and leg turn, a drag on the right's empty space = torso aim,
+// FIRE (held: the rail gun charges), WEAPON (a tap cycles; a long press opens the weapons row as a picker),
+// JUMP (once spring legs are bought), FIX / PARTS (beside a downed robot), BAG, MEND, and pause.
+// It hides while a panel (the Quick Fix, keypad, picker, bag, mend, naming), the garage or the fact grid is open.
+const touch = TouchPad.create({
+  buttons: [
+    { id: 'fire', label: 'FIRE', icon: icon('smash') },
+    { id: 'wpn', label: 'WEAPON', icon: icon('gun'), angle: 180 },
+    { id: 'jump', label: 'JUMP', icon: icon('jump'), angle: 90, hidden: true },
+    { id: 'fix', label: 'FIX', icon: icon('wrench'), angle: 135, hidden: true },
+    { id: 'parts', label: 'PARTS', icon: icon('bolt'), angle: 135, ring: 146, size: 50, hidden: true },
+    { id: 'mend', label: 'MEND', icon: icon('energy'), angle: 100, ring: 145, size: 48 },
+    { id: 'bag', label: 'BAG', icon: icon('bag'), angle: 170, ring: 145, size: 48 },
+  ],
+  pause: true, pauseIcon: icon('pause'),
+  active: () => Game.state === 'play' && !!Game.pilot && !Game.paused && !Title.on && !Garage.on && !Progress.mode && !FixUI.mode && Game.humans.length > 0,
+  before: $('hurt'), z: 'auto',   // under the HUD and the clear screen, so their buttons (weapon slots, ▶, 🔧) still take taps
+});
+const WPN_HOLD = 0.45;   // s: a WEAPON press this long opens the picker instead of cycling
+function readTouch() {
+  const t = touch.poll();
+  return { lx: t.x, ly: t.y, fireH: !!t.held.fire, wpnH: !!t.held.wpn, jumpP: !!t.pressed.jump, fixP: !!t.pressed.fix, partsP: !!t.pressed.parts,
+    mendP: !!t.pressed.mend, bagP: !!t.pressed.bag, pauseP: !!t.pressed.pause, lookDx: t.lookDx, lookDy: t.lookDy, looking: t.looking };
+}
+// the contextual buttons: JUMP once spring legs are on (as the HUD's ⤴️), FIX / PARTS while the prompt beside a
+// downed robot is up (as the HUD's 🔧 / 🔩); WEAPON wears the current weapon's icon
+function touchButtons(h) {
+  const m = h.mech, pr = !!(m && !h.repair && promptRobot(h));
+  touch.setVisible('jump', (m?.upg?.spring || 0) > 0);
+  touch.setVisible('fix', pr); touch.setVisible('parts', pr);
+  touch.setIcon('wpn', icon(WEAPON[h.weapon]?.ic || 'gun'));
+}
+// the weapons row as a picker (a long press on WEAPON): big, in the middle of the screen; a tap on a slot picks it
+const WpnPick = {
+  get on() { return $('weapons').classList.contains('pick'); },
+  set(on) { $('weapons').classList.toggle('pick', !!on); },
+};
+// a touch anywhere but the row closes the picker (the row's own taps pick, then close it)
+addEventListener('pointerdown', (e) => { if (WpnPick.on && !e.target.closest?.('#weapons') && !e.target.closest?.('[data-tp="wpn"]')) WpnPick.set(false); }, true);
 
 // ===========================================================================
 // The meadow: rolling ground, wind-blown grass, rocks and trees
@@ -7151,10 +7438,14 @@ function selectWeapon(h, w) {
 
 function gatherInput(dt) {
   const solo = Game.humans.length === 1;
+  const tp = readTouch(), tpOn = touch.state.showing;   // #94: touch drives player 1
   for (const h of Game.humans) {
     const sc = SCHEMES[h.idx];
     const k = (n) => anyKey(sc[n]) || (solo && anyKey(SOLO_EXTRA[n]));
     const pad = readPad(h.idx);
+    const tpad = h.idx === 0 && tpOn ? tp : null;
+    if (h.idx === 0) touchButtons(h);
+    if (!tpad) h.tpWpn = null;   // (a WEAPON press cut off by a panel or the pause neither cycles nor opens the picker)
     // the garage is open: player 0's pad works it; nobody drives, and no Start un-pauses the world under it
     if (Garage.on) { if (h.idx === 0) Garage.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // the fact grid or the parent view is open: player 0's pad works it, and the mech stands still
@@ -7166,22 +7457,32 @@ function gatherInput(dt) {
       if (!Game.pilot && h.idx === 0 && !Game.manual) { if (!Game.child) pickChild(CHILDREN[Title.kid].id); else startGame(PILOTS[Title.cur].id); }
       else setPause(!Game.paused);
     }
+    if (tpad && tpad.pauseP && !Game.paused) setPause(true);   // #94: the controller's pause (it only shows in play)
     const titleUp = h.idx === 0 && Title.on && !Game.manual;
     if (titleUp) Title.input(pad);
     sc.wpn.forEach((code, w) => { if (keysPressed.has(code)) selectWeapon(h, WEAPONS[w]); });
     if (pad && (pad.lbP || pad.rbP)) cycleWeapon(h, pad.rbP ? 1 : -1);
+    // #94: WEAPON on the controller: a tap cycles to the next unlocked weapon (on letting go), a long press opens
+    // (or closes) the picker instead. Timed in sim time, so __rb.step can drive it.
+    if (tpad) {
+      if (tpad.wpnH) { h.tpWpn ??= { t: 0, long: false }; h.tpWpn.t += dt; if (h.tpWpn.t >= WPN_HOLD && !h.tpWpn.long) { h.tpWpn.long = true; WpnPick.set(!WpnPick.on); if (!Game.manual) Sfx.click(); } }
+      else if (h.tpWpn) { if (!h.tpWpn.long) { cycleWeapon(h, 1); WpnPick.set(false); } h.tpWpn = null; }
+    }
     const picking = h.repair?.kind === 'parts', mending = h.idx === 0 && FixUI.mode === 'mend';
     const wiring = h.idx === 0 && FixUI.mode === 'wires', asking = h.repair?.kind === 'home';
     let turn = (k('right') ? 1 : 0) - (k('left') ? 1 : 0), thr = (k('up') ? 1 : 0) - (k('down') ? 1 : 0);
     // in the picker, the mend panel and the send-home panel the d-pad moves between tiles (◀ ▶), and in
     // the Quick Fix between plugs and ports (▲ ▼); the stick still steers
     if (pad) { turn += pad.lx - (picking || mending || asking || (wiring && (FixUI.entry || FixUI.puz)) ? pad.dpadX : 0); thr -= pad.ly - (wiring ? pad.dpadY : 0); }
+    if (tpad) { turn += tpad.lx; thr -= tpad.ly; }   // #94: the touch stick, like a pad's left stick
     let padB = false;   // B was used by a panel this frame (so it doesn't also open the bag)
     h.ci.camX = (k('camR') ? 1 : 0) - (k('camL') ? 1 : 0) + (pad ? pad.rx : 0);
     h.ci.camY = pad ? -pad.ry : 0;
     h.rig.yaw = wrapAngle(h.rig.yaw - h.ci.camX * 1.8 * dt);
     h.rig.pitch = clamp(h.rig.pitch + h.ci.camY * 1.0 * dt, -0.35, 0.5);
     if (solo && mouse.locked) { h.rig.yaw = wrapAngle(h.rig.yaw - mouse.dx * 0.0025); h.rig.pitch = clamp(h.rig.pitch - mouse.dy * 0.002, -0.35, 0.5); }
+    // #94: a drag on the right's empty space swings the torso (Family Knockout's camera-drag rates; up aims up, as the mouse)
+    if (tpad && (tpad.lookDx || tpad.lookDy)) { h.rig.yaw = wrapAngle(h.rig.yaw - tpad.lookDx * 0.006); h.rig.pitch = clamp(h.rig.pitch - tpad.lookDy * 0.004, -0.35, 0.5); }
     const m = h.mech; if (!m) continue;
     m.input.weapon = h.weapon;
     if (Game.paused || titleUp) { m.input.throttle = m.input.turn = 0; m.input.attack = false; continue; }
@@ -7195,15 +7496,15 @@ function gatherInput(dt) {
     // powered down: nothing moves, aims or fires until it reboots
     if (m.state === 'down') { m.input.throttle = m.input.turn = 0; m.input.attack = false; m.input.aimYaw = h.rig.yaw = m.torsoYaw; m.input.aimPitch = m.aimPitch; continue; }
     m.input.throttle = clamp(thr, -1, 1); m.input.turn = clamp(turn, -1, 1);
-    m.input.attack = k('fire') || (solo && mouse.locked && mouse.down) || !!(pad && pad.rt);
+    m.input.attack = k('fire') || (solo && mouse.locked && mouse.down) || !!(pad && pad.rt) || !!(tpad && tpad.fireH);
     m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch;
     // G2 spring legs: jump (C, L, or a stick pressed in), not while fixing a robot or naming one
-    if ((sc.jump.some((c) => keysPressed.has(c)) || (pad && pad.stickP)) && !h.repair && !(h.idx === 0 && ['wires', 'parts', 'home', 'name'].includes(FixUI.mode))) jumpMech(h);
+    if ((sc.jump.some((c) => keysPressed.has(c)) || (pad && pad.stickP) || (tpad && tpad.jumpP)) && !h.repair && !(h.idx === 0 && ['wires', 'parts', 'home', 'name'].includes(FixUI.mode))) jumpMech(h);
     // the prompt beside a downed robot: 🔧 fix or 🔩 take parts
     const pr = !h.repair && promptRobot(h);
     if (pr) {
-      if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
-      else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
+      if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP) || (tpad && tpad.fixP)) chooseFor(h, pr, 'fix');
+      else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP) || (tpad && tpad.partsP)) chooseFor(h, pr, 'parts');
     } else if (asking && pad) {
       // who goes home: d-pad ◀ ▶ moves between squadmates, A sends that one home, B backs out
       const rp = h.repair, n = Game.squad.length;
@@ -7228,7 +7529,7 @@ function gatherInput(dt) {
       if (h.idx === 0) FixUI.drawPicker();
     }
     // fix my mech: 🔧 key or pad LT opens and closes it; in it, d-pad ◀ ▶ moves, A uses a part, B backs out
-    if (h.idx === 0 && !picking && (sc.mend.some((c) => keysPressed.has(c)) || (pad && pad.ltP))) FixUI.toggleMend();
+    if (h.idx === 0 && !picking && (sc.mend.some((c) => keysPressed.has(c)) || (pad && pad.ltP) || (tpad && tpad.mendP))) FixUI.toggleMend();
     else if (mending && pad) {
       const n = FixUI.mendIds().length;
       if (n && (pad.leftP || pad.rightP)) FixUI.mendCur = (FixUI.mendCur + (pad.rightP ? 1 : -1) + n) % n;
@@ -7237,7 +7538,7 @@ function gatherInput(dt) {
     }
     if (h.idx === 0 && FixUI.mode === 'mend') FixUI.drawMend();
     // the parts bag: 🎒 key or pad Back (or B when no panel is open)
-    if (h.idx === 0 && !picking && !mending && !asking && !wiring && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && !padB && FixUI.mode !== 'wires'))))) FixUI.toggleBag();
+    if (h.idx === 0 && !picking && !mending && !asking && !wiring && (sc.bag.some((c) => keysPressed.has(c)) || (pad && (pad.backP || (pad.bP && !padB && FixUI.mode !== 'wires'))) || (tpad && tpad.bagP))) FixUI.toggleBag();
   }
   mouse.dx = mouse.dy = 0;
   keysPressed.clear();
@@ -7336,7 +7637,7 @@ const FixUI = {
     $('homeTiles').addEventListener('click', (e) => { const t = e.target.closest('.tile'); if (t) this.pickHome(Game.humans[0], Game.squad.find((q) => q.id === +t.dataset.id)); });
     $('homeX').addEventListener('click', () => this.dismiss());
     // the weapon slots on the HUD: a tap picks one (a locked one buzzes)
-    $('weapons').addEventListener('click', (e) => { const b = e.target.closest('.wpn'); if (b) { e.stopPropagation(); selectWeapon(Game.humans[0], b.dataset.w); } });
+    $('weapons').addEventListener('click', (e) => { const b = e.target.closest('.wpn'); if (b) { e.stopPropagation(); if (selectWeapon(Game.humans[0], b.dataset.w)) WpnPick.set(false); } });   // (#94: picking one closes the touch picker)
   },
   fromPrompt(choice) { const h = Game.humans[0], r = h && promptRobot(h); if (r) chooseFor(h, r, choice); },
   icon(ci, fill, stroke) { return `<svg viewBox="0 0 40 40"><g fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round">${SHAPE_SVG[WIRE_COLORS[ci].shape]}</g></svg>`; },
@@ -7814,7 +8115,7 @@ const FixUI = {
   },
   close() { this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); Adv.flush(); },   // (G4: a toast held for the board)
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
-  relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual) canvas.requestPointerLock?.()?.catch?.(() => {}); },
+  relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
   // nothing is taken), close the bag, or keep the name
   dismiss() {
@@ -8384,6 +8685,10 @@ function updateHud() {
   $('mendBtn').classList.toggle('off', down || !ids.length);
   $('mendBtn').classList.toggle('ready', !down && ids.some((id) => Game.bag[id] > 0));
   $('jumpBtn').classList.toggle('on', (m.upg?.spring || 0) > 0); $('jumpBtn').classList.toggle('air', (!!m.hop && !(m.adv?.jets && !m.hop.jet)) || down);   // (G4: lit in the air while the jets' jump is left)
+  // #94: the touch controller's MEND pulses and its JUMP dims as the HUD's 🔧 and ⤴️ do (they hide while it shows)
+  touch.el('mend').classList.toggle('ready', $('mendBtn').classList.contains('ready')); touch.el('mend').classList.toggle('dim', $('mendBtn').classList.contains('off'));
+  touch.el('jump').classList.toggle('dim', $('jumpBtn').classList.contains('air'));
+  if (WpnPick.on && !touch.state.showing) WpnPick.set(false);   // a panel or the pause closes the weapon picker
   const hb = $('health'), now = performance.now();
   for (const src in h.healPop) {
     const v = h.healPop[src];
@@ -9463,7 +9768,7 @@ function startPlay() {
   // spawns again, even with the meadow empty (manual mode waits for __rb.nextWave())
   if (Game.wave === 0 && Game.humans[0] && !Game.manual) Waves.spawn(1);
   // (a pad's A or a hook isn't a user gesture, so the lock can be refused: the mouse just isn't captured yet)
-  if (Game.humans.length === 1) canvas.requestPointerLock?.()?.catch?.(() => {});
+  if (Game.humans.length === 1 && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {});   // (#94: never on a touch screen)
 }
 $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
 
@@ -9658,6 +9963,9 @@ window.__rb = {
   Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD,
   ICONS, icon, icText,
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
+  // #94: the on-screen touch controller: { showing, touchMode, x, y (the stick, -1..1), held: [buttons held],
+  // looking (a finger aiming), shown: [buttons on screen], picker (the weapon picker open) }
+  get touch() { return { ...touch.state, picker: WpnPick.on }; },
   // ---- I1: the icon set ----
   // every icon's name (the sprite's symbols); iconOf(emoji) = the icon an emoji alias stands for (null if none)
   icons() { return Object.keys(ICONS); },
