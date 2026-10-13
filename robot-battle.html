@@ -9543,7 +9543,7 @@ const Garage = {
       spots: [...$('gSpots').children].map((el) => ({ spot: el.dataset.part + ':' + el.dataset.k, in: el.classList.contains('in'), next: el.classList.contains('next'), glow: el.classList.contains('glow'),
         x: parseFloat(el.style.left) || null, y: parseFloat(el.style.top) || null, shown: el.style.visibility !== 'hidden' })),
       job: W.querySelector('.bjob') ? { job: W.querySelector('.bjob').dataset.job, math: W.querySelector('.bjob').classList.contains('math'),
-        plugs: [...W.querySelectorAll('.bplug')].map((el) => ({ tag: el.querySelector('.fact')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, stiff: el.querySelectorAll('.stiff i.on').length || null,
+        plugs: [...W.querySelectorAll('.bplug')].map((el) => ({ tag: el.querySelector('.fact')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, stiff: el.querySelectorAll('.stiff:not(.fast) i.on').length || null,
           in: el.classList.contains('in'), picked: el.classList.contains('pick'), cur: el.classList.contains('cur'), miss: ic(el.querySelector('.bmiss')),
           leg: el.dataset.leg ?? null, load: el.dataset.load != null ? +el.dataset.load : null })),   // (#90: a Spider leg as shown, a leg motor's load)
         ports: [...W.querySelectorAll('.bport')].map((el) => ({ tag: el.querySelector('.ans')?.textContent ?? el.querySelector('.wsh')?.style.getPropertyValue('--wc') ?? null, pad: el.classList.contains('pad'), height: el.style.getPropertyValue('--h') ? +el.style.getPropertyValue('--h') : null,
