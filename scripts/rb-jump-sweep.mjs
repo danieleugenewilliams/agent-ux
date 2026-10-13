@@ -32,7 +32,7 @@
 // (clears / walk / stomp / scuffed), and all runs give the same outcomes.
 // If a change to jumping is meant to move the baseline, update BASELINE below in the same PR and say why.
 // Chrome runs muted, and is killed with its temporary profile deleted however the script ends: finish, error,
-// Ctrl-C / SIGTERM, or a hard timeout of 5 minutes for the whole script (one run takes about a minute).
+// Ctrl-C / SIGTERM / SIGHUP, or a hard timeout of 5 minutes for the whole script (one run takes about a minute).
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -113,22 +113,22 @@ const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'rb-jump-sweep-'));
 // Port 0: Chrome picks a free port and writes it to DevToolsActivePort in its own profile, so a sweep never
 // attaches to another Chrome that already holds a fixed or randomly picked port (and drives that one's tab).
 // --mute-audio: the game plays sound, and a sweep must never be heard (#105).
-// detached: Chrome leads its own process group, so cleanup kills it and every helper process it started.
+// Not detached: Chrome stays in this script's process group and session, so a Ctrl-C, a closed terminal or a
+// kill of the whole group (what a tool timeout does) reaches it even when the script cannot run its cleanup.
 const chrome = spawn(chromeBin, ['--headless=new', '--mute-audio', '--remote-debugging-port=0', '--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-first-run', '--no-default-browser-check',
-  '--allow-file-access-from-files', '--window-size=1280,800', '--user-data-dir=' + prof, 'about:blank'], { stdio: 'ignore', detached: true });
+  '--allow-file-access-from-files', '--window-size=1280,800', '--user-data-dir=' + prof, 'about:blank'], { stdio: 'ignore' });
 chrome.on('error', () => {});   // a failed spawn shows up as "Chrome did not start" below
 let chromeExited = false;
 chrome.on('exit', () => { chromeExited = true; });
 let ws;
 
 // Close Chrome and delete its profile on every way out (#105): normal finish and thrown errors (the finally at
-// the bottom), SIGINT / SIGTERM, the hard timeout, and any other process.exit (the 'exit' handler, sync only).
+// the bottom), SIGINT / SIGTERM / SIGHUP, the hard timeout, and any other process.exit (the 'exit' handler, sync only).
 const HARD_TIMEOUT_MS = 5 * 60 * 1000;
 let cleaned = false;
 function killChrome() {
   try { ws?.close(); } catch {}
-  try { process.kill(-chrome.pid, 'SIGKILL'); } catch {}   // the whole process group
-  try { chrome.kill('SIGKILL'); } catch {}
+  try { chrome.kill('SIGKILL'); } catch {}   // its helper processes exit when the browser process goes
 }
 function cleanupSync() {
   if (cleaned) return;
@@ -143,7 +143,7 @@ async function cleanup() {
   cleanupSync();
 }
 process.on('exit', cleanupSync);
-for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143]]) process.on(sig, () => { cleanup().finally(() => process.exit(code)); });
+for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) process.on(sig, () => { cleanup().finally(() => process.exit(code)); });
 setTimeout(() => {
   console.error(`hard timeout: the sweep ran over ${HARD_TIMEOUT_MS / 60000} min; closing Chrome`);
   cleanup().finally(() => process.exit(124));
