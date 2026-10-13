@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Open Water</title>
 <style>
   :root{
@@ -16,7 +16,7 @@
     font:13px/1.35 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
   canvas{display:block;width:100vw;height:100vh;touch-action:none;cursor:grab}
   canvas:active{cursor:grabbing}
-  #ui{position:fixed;left:16px;bottom:16px;width:min(300px,calc(100vw - 32px));padding:14px 14px 12px;
+  #ui{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));width:min(300px,calc(100vw - 32px));padding:14px 14px 12px;
     background:var(--glass);border:1px solid var(--line);border-radius:14px;
     backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
     box-shadow:0 10px 30px rgba(0,0,0,.25);transition:opacity .3s,transform .3s;user-select:none}
@@ -38,12 +38,12 @@
   .foot{display:flex;justify-content:space-between;color:var(--ink-dim);font-size:11.5px;margin-top:2px}
   .foot button{all:unset;cursor:pointer;color:var(--ink-dim)}
   .foot button:hover{color:var(--ink)}
-  #show{all:unset;display:none;position:fixed;left:16px;bottom:16px;padding:8px 12px;border-radius:10px;
+  #show{all:unset;display:none;position:fixed;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));padding:8px 12px;border-radius:10px;
     background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer;color:var(--ink)}
   .hud{position:fixed;background:var(--glass);border:1px solid var(--line);border-radius:14px;
     backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);box-shadow:0 10px 30px rgba(0,0,0,.25);user-select:none}
   .hud.hidden{display:none}
-  #inst{left:16px;top:16px;width:212px;padding:10px 12px 10px;pointer-events:none}
+  #inst{left:max(16px,env(safe-area-inset-left));top:max(16px,env(safe-area-inset-top));width:212px;padding:10px 12px 10px;pointer-events:none}
   #compass{display:block;width:188px;height:28px;margin:0 0 6px}
   .kv{display:flex;justify-content:space-between;align-items:baseline;margin:3px 0;gap:10px}
   .kv span{color:var(--ink-dim)} .kv b{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
@@ -51,16 +51,17 @@
   .trimZone{position:absolute;top:0;bottom:0;border-radius:3px;background:rgba(255,255,255,.35)}
   .trimMark{position:absolute;top:-4px;width:3px;height:14px;margin-left:-1.5px;border-radius:2px;background:var(--accent)}
   .tiny{display:flex;justify-content:space-between;color:var(--ink-dim);font-size:11.5px}
-  #finderBox{right:16px;top:16px;padding:8px 8px 6px;pointer-events:none}
+  #finderBox{right:max(16px,env(safe-area-inset-right));top:max(16px,env(safe-area-inset-top));padding:8px 8px 6px;pointer-events:none}
   #finder{display:block;width:220px;height:150px;border-radius:8px}
   #finderBox .tiny{margin-top:5px;padding:0 2px}
-  #fishHud{right:16px;bottom:16px;width:220px;padding:12px 14px;pointer-events:none}
+  #fishHud{right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));width:220px;padding:12px 14px;pointer-events:none}
   .meter{height:6px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden;margin:4px 0 8px}
   .meter i{display:block;height:100%;width:0;background:var(--accent);border-radius:3px}
   .meter.warn i{background:#ff8a6b}
-  #prompt{left:50%;bottom:24px;transform:translateX(-50%);padding:9px 16px;border-radius:999px;font-weight:500;white-space:nowrap;pointer-events:none;transition:opacity .25s}
+  #prompt{left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);padding:9px 16px;border-radius:999px;font-weight:500;white-space:nowrap;pointer-events:none;transition:opacity .25s}
   #prompt:empty{opacity:0}
   #card,#help,#log{left:50%;top:50%;transform:translate(-50%,-50%);padding:18px 20px;width:min(360px,calc(100vw - 32px))}
+  #help,#log{box-sizing:border-box;max-height:calc(100vh - 32px);overflow:auto;overscroll-behavior:contain}   /* a short landscape phone scrolls the controls list */
   #card{top:16px;transform:translateX(-50%);width:min(320px,calc(100vw - 32px))}
   #card h2,#help h2,#log h2{margin:0 0 2px;font-size:17px;font-weight:600}
   #card .sub{color:var(--ink-dim);font-style:italic;margin-bottom:10px}
@@ -75,6 +76,17 @@
   #logList .kv{border-top:1px solid var(--line);padding-top:5px}
   kbd{font:inherit;font-weight:600;padding:0 5px;border-radius:4px;background:rgba(255,255,255,.14)}
   @media (max-width:720px){ #finderBox{display:none} #inst{width:170px} #compass{width:146px} }
+  /* TouchPad (below): while the on-screen controller shows, the HUD moves out from under the stick and the buttons */
+  body.tp-on #show{display:none!important}
+  body.tp-on #finderBox,body.tp-on #fishHud{right:calc(max(16px,env(safe-area-inset-right)) + var(--tp-menu,56px))}
+  body.tp-on.tp-fish #finderBox{display:none}
+  body.tp-on #fishHud{bottom:auto;top:max(16px,env(safe-area-inset-top))}
+  body.tp-on #prompt{transform:none;left:var(--tp-left,160px);right:var(--tp-right,370px);width:fit-content;margin:0 auto;white-space:normal;text-align:center;border-radius:14px}
+  @media (max-height:500px){ body.tp-on #finder{width:176px;height:110px} }   /* a landscape phone: the finder clears the button arc */
+  @media (orientation:portrait){
+    body.tp-on #fishHud{top:auto;right:max(16px,env(safe-area-inset-right));bottom:calc(var(--tp-top,300px) + 12px)}
+    body.tp-on #prompt{left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));bottom:auto;top:calc(max(16px,env(safe-area-inset-top)) + 168px)}
+  }
   #err{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:24px;color:#dfe6ee;background:#0b0f14}
 </style>
 <script type="importmap">
@@ -1398,7 +1410,7 @@ function polar(twa) {                                // fraction of true wind co
   if (d < 140) return lerp(0.8, 0.7, (d - 95) / 45);
   return lerp(0.7, 0.56, (d - 140) / 40);
 }
-const input = { keys: new Set(), reelMouse: false };
+const input = { keys: new Set(), reelMouse: false, stick: { x: 0, y: 0 } };   // stick: the TouchPad's analog x / y, -1..1 (y down = ease)
 const held = (...codes) => codes.some(c => input.keys.has(c));
 function sailStep(dt) {
   const p = player, U = sea.wind, w = windTo();
@@ -1410,8 +1422,9 @@ function sailStep(dt) {
   p.lee = (sx * ax + sz * az) >= 0 ? 1 : -1;                                    // apparent wind blows toward the lee side
   p.boomOpt = clamp(p.awa * 0.5 - 0.14, 0.07, 1.48);
   // sheet: manual with W/S, or auto-trim
-  const trimIn = held('KeyW', 'ArrowUp'), trimOut = held('KeyS', 'ArrowDown');
+  const trimIn = held('KeyW', 'ArrowUp'), trimOut = held('KeyS', 'ArrowDown'), sy = input.stick.y;
   if (trimIn || trimOut) { p.autoTrim = false; p.sheet = clamp(p.sheet + (trimOut ? 1 : -1) * 0.35 * dt, 0, 1); }
+  else if (sy) { p.autoTrim = false; p.sheet = clamp(p.sheet + sy * 0.35 * dt, 0, 1); }
   else if (p.autoTrim) p.sheet += (clamp((p.boomOpt - 0.07) / 1.41, 0, 1) - p.sheet) * Math.min(1, dt * 1.5);
   p.boom = 0.07 + p.sheet * 1.41;
   let eff = p.boom > p.boomOpt ? Math.exp(-(((p.boom - p.boomOpt) / 0.24) ** 2))   // eased too far: luffing
@@ -1426,7 +1439,7 @@ function sailStep(dt) {
   p.v += (target - p.v) * dt / (target > p.v ? 6 : (p.sail < 0.3 ? 5 : 12));
   p.v = Math.max(0, p.v);
   // tiller: centres itself when released; steerage needs way on
-  const steer = (held('KeyD', 'ArrowRight') ? 1 : 0) - (held('KeyA', 'ArrowLeft') ? 1 : 0);
+  const steer = clamp((held('KeyD', 'ArrowRight') ? 1 : 0) - (held('KeyA', 'ArrowLeft') ? 1 : 0) + input.stick.x, -1, 1);
   p.rudder += clamp((steer - p.rudder), -dt * 2.5, dt * 2.5);
   p.psi += p.rudder * (0.035 + 0.2 * clamp(p.v / 3, 0, 1)) * dt;
   // heel from the side force of the sails
@@ -1527,21 +1540,24 @@ addEventListener('keyup', (e) => {
 }, true);
 addEventListener('blur', () => { input.keys.clear(); input.reelMouse = false; });
 
+// drag to look: the mouse here, a finger on the right side of the screen through the TouchPad
+const lookStart = (x, y) => ({ x, y, yaw: cam.yaw, pitch: cam.pitch, lookYaw: cam.lookYaw, lookPitch: cam.lookPitch });
+function lookMove(d, x, y) {
+  const k = camera.fov * PI / 180 / innerHeight, dx = (x - d.x) * k, dy = (y - d.y) * k;
+  if (cam.mode === 'chase') { cam.yaw = d.yaw + dx * 1.6; cam.pitch = clamp(d.pitch - dy * 1.6, -0.7, 0.35); }
+  else { cam.lookYaw = d.lookYaw + dx; cam.lookPitch = clamp(d.lookPitch + dy, -1.2, 1.0); }
+}
 let drag = null;
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener('pointerdown', (e) => {
   audio.start();
+  if (e.pointerType === 'touch') return touchPad.sceneDown(e);   // fingers: stick on the left, look / pinch on the right
   if (e.button === 2) { input.reelMouse = true; return; }
-  drag = { x: e.clientX, y: e.clientY, yaw: cam.yaw, pitch: cam.pitch, lookYaw: cam.lookYaw, lookPitch: cam.lookPitch };
-  canvas.setPointerCapture(e.pointerId);
+  drag = { ...lookStart(e.clientX, e.clientY), id: e.pointerId };
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
 });
-canvas.addEventListener('pointermove', (e) => {
-  if (!drag) return;
-  const k = camera.fov * PI / 180 / innerHeight, dx = (e.clientX - drag.x) * k, dy = (e.clientY - drag.y) * k;
-  if (cam.mode === 'chase') { cam.yaw = drag.yaw + dx * 1.6; cam.pitch = clamp(drag.pitch - dy * 1.6, -0.7, 0.35); }
-  else { cam.lookYaw = drag.lookYaw + dx; cam.lookPitch = clamp(drag.lookPitch + dy, -1.2, 1.0); }
-});
-addEventListener('pointerup', (e) => { if (e.button === 2) input.reelMouse = false; drag = null; });
+canvas.addEventListener('pointermove', (e) => { if (drag && e.pointerId === drag.id) lookMove(drag, e.clientX, e.clientY); });
+addEventListener('pointerup', (e) => { if (e.button === 2) input.reelMouse = false; if (drag && e.pointerId === drag.id) drag = null; });
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   if (cam.mode === 'fish') fishing.wheel(e.deltaY);
@@ -2509,6 +2525,296 @@ function renderLog() {
   });
 }
 
+// ================================================================ TouchPad
+// On-screen controller for phones and tablets (issue #93). Self-contained: its CSS, DOM and logic are all here,
+// so another game can copy this block as-is and wire it up with its own config (see `touchPad = TouchPad({...})`).
+//   left ~40% of the screen: a floating analog stick (appears under the thumb, drifts back to rest when let go)
+//   right side: round buttons (main action biggest, the rest in an arc, small rows above), drag on empty space
+//   to look, two fingers to pinch-zoom; a small ☰ at the top right pauses and opens a menu.
+// It shows on the first touch (or on load on a coarse pointer), hides on any key or gamepad button, and every
+// pointerId is tracked on its own, so stick + buttons + look all work at once.
+// cfg: { after, disabled, zone, buttons: [{ id, code, slot | row+col, size, sets, icon, label, faces, face, dim, sel }],
+//        set(), blocked(), press(code, down), stick(x, y), look: { start(x, y), move(d, x, y) }, pinch: { start(), move(scale) },
+//        menu: [{ label, act() }], onShow(), onLayout(vars) }
+const TouchPad = (cfg) => {
+  const css = `
+#tp{position:fixed;inset:0;z-index:5;pointer-events:none;display:none;touch-action:none;user-select:none;-webkit-user-select:none;
+  -webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;color:#fff;font:900 10px/1 system-ui,sans-serif}
+body.tp-on #tp{display:block}
+#tp .tp-btn{position:absolute;box-sizing:border-box;pointer-events:auto;touch-action:none;border-radius:50%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;transform:translate(-50%,-50%);background:rgba(255,255,255,.25);
+  border:2px solid rgba(255,255,255,.55);box-shadow:0 0 0 1.5px rgba(0,0,0,.28),inset 0 0 0 1px rgba(0,0,0,.12);transition:background .08s,opacity .2s}
+#tp .tp-btn.on{background:rgba(255,255,255,.5);transform:translate(-50%,-50%) scale(.94)}
+#tp .tp-btn.sel{border-color:rgba(255,255,255,.95);background:rgba(255,255,255,.36)}
+#tp .tp-btn.dim{opacity:.4}
+#tp .tp-btn.off{display:none}
+#tp svg{width:46%;height:46%;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.3))}
+#tp .tp-btn b{font-weight:900;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 4px rgba(0,0,0,.35)}
+#tp .tp-small svg{width:54%;height:54%}
+#tp .tp-stick{position:absolute;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.14);opacity:.75;
+  border:2px solid rgba(255,255,255,.55);box-shadow:0 0 0 1.5px rgba(0,0,0,.28),inset 0 0 0 1px rgba(0,0,0,.12);transition:left .22s ease-out,top .22s ease-out,opacity .22s}
+#tp .tp-stick.on{transition:none;opacity:1;background:rgba(255,255,255,.25)}
+#tp .tp-stick i{position:absolute;box-sizing:border-box;left:50%;top:50%;border-radius:50%;background:rgba(255,255,255,.4);
+  border:2px solid rgba(255,255,255,.55);box-shadow:0 0 0 1.5px rgba(0,0,0,.28),inset 0 0 0 1px rgba(0,0,0,.12)}
+#tp .tp-stick.on i{background:rgba(255,255,255,.55)}
+#tp.tp-blocked .tp-btn:not(.tp-menu),#tp.tp-blocked .tp-stick,#tp.tp-paused .tp-btn:not(.tp-menu),#tp.tp-paused .tp-stick{display:none}
+#tp .tp-panel{position:absolute;display:none;pointer-events:auto;min-width:190px;padding:6px;border-radius:14px;background:rgba(18,22,28,.72);
+  box-shadow:0 0 0 1px rgba(255,255,255,.18),0 10px 30px rgba(0,0,0,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#tp.tp-paused .tp-panel{display:block}
+#tp .tp-panel div{padding:0 14px;height:46px;display:flex;align-items:center;border-radius:9px;font-size:15px;font-weight:500}
+#tp .tp-panel div.on{background:rgba(255,255,255,.2)}
+#tp .tp-panel .tp-title{height:30px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.65}`;
+  const style = document.createElement('style'); style.textContent = css; document.head.append(style);
+  const root = document.createElement('div'); root.id = 'tp'; root.setAttribute('aria-hidden', 'true');
+  cfg.after.after(root);
+  const probe = document.createElement('div');      // reads env(safe-area-inset-*) for the layout
+  probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  root.append(probe);
+  const stickEl = document.createElement('div'); stickEl.className = 'tp-stick'; stickEl.innerHTML = '<i></i>'; root.append(stickEl);
+  const knob = stickEl.firstChild;
+  const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+  const btns = [];
+  for (const def of cfg.buttons) {
+    const el = document.createElement('div');
+    el.className = `tp-btn tp-${def.size || 'arc'}${def.id === 'menu' ? ' tp-menu' : ''}`; el.dataset.tp = def.id;
+    el.innerHTML = svg(def.icon) + (def.label ? `<b>${def.label}</b>` : '');
+    root.append(el);
+    const b = { def, el, face: null, held: 0 };
+    btns.push(b);
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (!pad.showing) show();
+      if (def.id === 'menu') return setPaused(!pad.paused);
+      ptrs.set(e.pointerId, { kind: 'btn', b, code: def.code });
+      b.held++; el.classList.add('on');
+      cfg.press(def.code, true);
+    });
+  }
+  const panel = document.createElement('div'); panel.className = 'tp-panel';
+  panel.innerHTML = '<div class="tp-title">Paused</div>' + cfg.menu.map((m, i) => `<div data-i="${i}">${m.label}</div>`).join('');
+  root.append(panel);
+  panel.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const row = e.target.closest('[data-i]'); if (!row) return;
+    row.classList.add('on'); setTimeout(() => row.classList.remove('on'), 150);
+    const m = cfg.menu[+row.dataset.i];
+    setPaused(false); m.act?.();
+  });
+  root.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  const pad = { showing: false, paused: false, set: null, stick: { x: 0, y: 0 } };
+  const ptrs = new Map();                      // pointerId -> { kind: 'btn' | 'stick' | 'look', ... }
+  let L = null;                                // layout: sizes and resting spots
+  let pinch = null;
+  const DEAD = 0.15;   // stick dead zone, as a fraction of its radius (as in Family Knockout's TouchPad)
+
+  function layout() {
+    const W = innerWidth, H = innerHeight, cs = getComputedStyle(probe);
+    const sa = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+    const s = W >= 700 && H >= 700 ? 1.3 : 1, portrait = H > W;          // tablets: 1.3x, as in Family Knockout
+    const size = { main: 80 * s, arc: 58 * s, small: 44 * s, menu: 44 * s };
+    const C = { x: W - sa.r - 20 * s - size.main / 2, y: H - sa.b - 20 * s - size.main / 2 };
+    const r = 104 * s, slots = { main: [0, 0], a1: [-r, 0], a2: [-r * 0.71, -r * 0.71], a3: [0, -r] };
+    const rowAt = (row, col) => portrait ? [(-110 + col * 50) * s, (row === 1 ? -170 : -222) * s]
+                                         : [(-176 - col * 50) * s, (row === 1 ? 18 : -40) * s];
+    let top = 0, left = 0;
+    for (const b of btns) {
+      const d = b.def, px = d.size === 'menu' ? size.menu : size[d.size || 'arc'];
+      let x, y;
+      if (d.id === 'menu') { x = W - sa.r - 16 - px / 2; y = sa.t + 16 + px / 2; }
+      else { const o = d.row ? rowAt(d.row, d.col) : slots[d.slot]; x = C.x + o[0]; y = C.y + o[1]; top = Math.max(top, H - y + px / 2); left = Math.max(left, W - x + px / 2); }
+      Object.assign(b.el.style, { left: x + 'px', top: y + 'px', width: px + 'px', height: px + 'px', fontSize: (d.size === 'small' ? 9 : 10) * s + 'px' });
+    }
+    const stick = 120 * s, rest = { x: sa.l + 24 * s + stick / 2, y: H - sa.b - 24 * s - stick / 2 };
+    Object.assign(stickEl.style, { width: stick + 'px', height: stick + 'px' });
+    Object.assign(knob.style, { width: '44%', height: '44%', marginLeft: '-22%', marginTop: '-22%' });
+    Object.assign(panel.style, { right: sa.r + 16 + 'px', top: sa.t + 16 + size.menu + 8 + 'px' });
+    L = { W, H, s, stick, rest, sa };
+    if (!ptrs.size || ![...ptrs.values()].some(p => p.kind === 'stick')) placeStick(rest.x, rest.y, 0, 0);
+    const vars = { '--tp-top': top + 'px', '--tp-right': left + 12 + 'px', '--tp-left': sa.l + 24 * s + stick + 12 + 'px', '--tp-menu': size.menu + 12 + 'px' };
+    for (const k in vars) document.body.style.setProperty(k, vars[k]);
+    cfg.onLayout?.(vars);
+  }
+  function placeStick(cx, cy, kx, ky) {
+    stickEl.style.left = cx + 'px'; stickEl.style.top = cy + 'px';
+    knob.style.transform = `translate(${kx * L.stick / 2}px,${ky * L.stick / 2}px)`;
+  }
+  function setStick(x, y) { pad.stick.x = x; pad.stick.y = y; cfg.stick(x, y); }
+
+  pad.sceneDown = (e) => {                     // a finger on the scene (the game's canvas pointerdown hands it over)
+    e.preventDefault();
+    if (pad.paused) return;
+    if (!L) layout();
+    const stickBusy = [...ptrs.values()].some(p => p.kind === 'stick');
+    if (pad.showing && !root.classList.contains('tp-blocked') && e.clientX < innerWidth * cfg.zone && !stickBusy) {
+      const R = L.stick / 2;
+      const cx = clamp(e.clientX, L.sa.l + R, innerWidth * cfg.zone), cy = clamp(e.clientY, L.sa.t + R, innerHeight - L.sa.b - R);
+      ptrs.set(e.pointerId, { kind: 'stick', cx, cy });
+      stickEl.classList.add('on'); placeStick(cx, cy, 0, 0);
+      stickMove(ptrs.get(e.pointerId), e.clientX, e.clientY);
+      return;
+    }
+    ptrs.set(e.pointerId, { kind: 'look', x: e.clientX, y: e.clientY, d: cfg.look.start(e.clientX, e.clientY) });
+    startPinch();
+  };
+  function stickMove(p, x, y) {
+    const R = L.stick / 2; let dx = (x - p.cx) / R, dy = (y - p.cy) / R;
+    const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; }
+    placeStick(p.cx, p.cy, dx, dy);
+    const mm = Math.min(1, m), k = mm < DEAD ? 0 : (mm - DEAD) / (1 - DEAD) / Math.max(mm, 1e-6);   // dead zone, then 0..1
+    setStick(dx * k, dy * k);
+  }
+  const looks = () => [...ptrs.values()].filter(p => p.kind === 'look');
+  function startPinch() {
+    const l = looks();
+    if (l.length === 2) { pinch = { d0: Math.hypot(l[0].x - l[1].x, l[0].y - l[1].y) || 1 }; cfg.pinch.start(); }
+  }
+  addEventListener('pointermove', (e) => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    if (p.kind === 'stick') return stickMove(p, e.clientX, e.clientY);
+    if (p.kind !== 'look') return;
+    p.x = e.clientX; p.y = e.clientY;
+    const l = looks();
+    if (pinch && l.length >= 2) cfg.pinch.move(Math.hypot(l[0].x - l[1].x, l[0].y - l[1].y) / pinch.d0);
+    else if (!pinch) cfg.look.move(p.d, p.x, p.y);
+  }, true);
+  function end(e) {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    ptrs.delete(e.pointerId);
+    if (p.kind === 'btn') { if (--p.b.held <= 0) { p.b.held = 0; p.b.el.classList.remove('on'); } cfg.press(p.code, false); }
+    else if (p.kind === 'stick') { stickEl.classList.remove('on'); setStick(0, 0); placeStick(L.rest.x, L.rest.y, 0, 0); }
+    else if (p.kind === 'look' && pinch) {     // one finger of a pinch lifted: the other goes back to looking from where it is
+      pinch = null;
+      for (const q of looks()) q.d = cfg.look.start(q.x, q.y);
+    }
+  }
+  addEventListener('pointerup', end, true);
+  addEventListener('pointercancel', end, true);
+  function releaseAll() {
+    for (const id of [...ptrs.keys()]) end({ pointerId: id });
+    pinch = null;
+  }
+  addEventListener('blur', releaseAll);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+
+  function setPaused(on) {
+    if (on) releaseAll();
+    pad.paused = on; root.classList.toggle('tp-paused', on);
+    btns.find(b => b.def.id === 'menu')?.el.classList.toggle('on', on);
+  }
+  function show() {
+    if (pad.showing || cfg.disabled) return;
+    pad.showing = true; document.body.classList.add('tp-on'); layout(); pad.update();
+    cfg.onShow?.();
+  }
+  function hide() {
+    if (!pad.showing) return;
+    releaseAll(); setPaused(false);
+    pad.showing = false; document.body.classList.remove('tp-on');
+  }
+  pad.show = show; pad.hide = hide;
+  addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') show(); }, true);
+  addEventListener('keydown', hide, true);
+  addEventListener('resize', () => { if (pad.showing) layout(); });
+
+  pad.update = () => {                          // once a frame: which buttons, their faces, and the gamepad check
+    if (!pad.showing) return;
+    const pads = navigator.getGamepads?.() || [];
+    for (const g of pads) if (g && g.buttons.some(b => b.pressed)) return hide();
+    const set = cfg.set(); pad.set = set;
+    root.classList.toggle('tp-blocked', !!cfg.blocked());
+    document.body.classList.toggle('tp-fish', set === 'fish');
+    for (const b of btns) {
+      const d = b.def;
+      b.el.classList.toggle('off', !!d.sets && !d.sets.includes(set));
+      if (d.faces) {
+        const f = d.face();
+        if (f !== b.face) { b.face = f; b.el.innerHTML = svg(d.faces[f].icon) + `<b>${d.faces[f].label}</b>`; }
+      }
+      if (d.dim) b.el.classList.toggle('dim', !!d.dim());
+      if (d.sel) b.el.classList.toggle('sel', !!d.sel());
+    }
+  };
+  pad.report = () => ({
+    showing: pad.showing, paused: pad.paused, blocked: root.classList.contains('tp-blocked'), set: pad.set,
+    stick: { x: +pad.stick.x.toFixed(3), y: +pad.stick.y.toFixed(3) },
+    held: btns.filter(b => b.held > 0).map(b => b.def.id),
+    buttons: btns.filter(b => pad.showing && !b.el.classList.contains('off') && getComputedStyle(b.el).display !== 'none').map(b => b.def.id),
+  });
+  if (!cfg.disabled && matchMedia('(pointer: coarse)').matches) show();
+  return pad;
+};
+
+// Open Water's buttons (issue #93): sailing set while sailing, fishing set while the rod is out.
+const ICON = {
+  sails: '<path d="M11 3v17"/><path d="M11 4l8 13h-8"/><path d="M11 7L5 17h6"/><path d="M3 20h18"/>',
+  trim: '<path d="M4.5 13A7.5 7.5 0 0 1 17.8 7.2"/><path d="M19.5 11A7.5 7.5 0 0 1 6.2 16.8"/><path d="M18 3v4.5h-4.5"/><path d="M6 21v-4.5h4.5"/>',
+  view: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  rod: '<path d="M3 21L19 4"/><path d="M19 4v10"/><path d="M19 14c0 2-2.5 2.5-3 1"/><circle cx="7" cy="17" r="2.2"/>',
+  cast: '<path d="M5 20C5 11 10 5.5 18 5"/><path d="M14.5 2l3.8 3-3.3 3.6"/><circle cx="5" cy="20" r="1.5"/>',
+  strike: '<path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12z"/>',
+  net: '<path d="M3 5h13a6.5 6.5 0 0 1-13 0z"/><path d="M6.5 5v4.8M9.5 5v6.5M12.5 5v4.8"/><path d="M16 5l5 15"/>',
+  reel: '<circle cx="11" cy="12.5" r="6.5"/><circle cx="11" cy="12.5" r="1.6"/><path d="M11 6V2.5"/><path d="M17.5 12.5H21v3.5"/>',
+  spoon: '<path d="M14.5 3.5c3 1.5 2.5 7-1 10.5s-7.5 3.5-8 1.5 2-6.5 4.5-9 3-3.5 4.5-3z"/><path d="M6 16.5l-2 4"/>',
+  jig: '<circle cx="8.5" cy="8.5" r="4"/><path d="M11.5 11.5L18 18"/><path d="M15 21l3-3 3 3"/>',
+  bait: '<circle cx="12" cy="10" r="3.6"/><path d="M12 2v4.4M12 13.6v8.4M8.4 10h7.2"/>',
+  minus: '<path d="M6 12h12"/>',
+  plus: '<path d="M6 12h12M12 6v12"/>',
+  menu: '<path d="M5 7h14M5 12h14M5 17h14"/>',
+};
+const FISH_FACE = { charging: 'cast', ready: 'cast', bite: 'strike', boatside: 'net' };
+const touchPad = TouchPad({
+  after: canvas, disabled: HIDE_ALL, zone: 0.4,
+  set: () => cam.mode === 'fish' ? 'fish' : 'sail',
+  blocked: () => !helpEl.classList.contains('hidden') || !logEl.classList.contains('hidden') || !!fishing.card,
+  press: (code, down) => {                      // the same path as the keyboard (keydown / keyup handlers above)
+    if (down) { audio.start(); input.keys.add(code); onKeyDown(code); }
+    else { input.keys.delete(code); onKeyUp(code); }
+  },
+  stick: (x, y) => {                            // x steers; y sheets only when the thumb clearly pushes up or down,
+    input.stick.x = x;                          // so a slightly diagonal steer doesn't switch auto-trim off
+    const ay = Math.abs(y);
+    input.stick.y = ay > 0.45 && ay > Math.abs(x) * 0.8 ? Math.sign(y) * (ay - 0.45) / 0.55 : 0;
+  },
+  look: { start: lookStart, move: lookMove },
+  pinch: (() => { let d0 = 0; return { start: () => { d0 = cam.dist; }, move: (s) => { if (cam.mode === 'chase') cam.dist = clamp(d0 / s, 9, 160); } }; })(),
+  onShow: (() => { let once = false; return () => { if (!once) { once = true; setUI(false); } }; })(),   // the conditions panel sits where the stick rests
+  menu: [
+    { label: 'Resume' },
+    { label: 'Catch log', act: () => onKeyDown('KeyL') },
+    { label: 'Help', act: () => onKeyDown('Slash') },
+    { label: 'Conditions', act: () => onKeyDown('KeyH') },
+    { label: 'Sound on / off', act: () => { audio.start(); onKeyDown('KeyM'); } },
+  ],
+  buttons: [
+    { id: 'menu', size: 'menu', icon: ICON.menu },
+    { id: 'sails', code: 'Space', slot: 'main', size: 'main', sets: ['sail'], icon: ICON.sails, label: 'Sails' },
+    { id: 'rodUp', code: 'KeyF', slot: 'a1', sets: ['sail'], icon: ICON.rod, label: 'Rod', dim: () => player.sailTarget > 0 || player.sail > 0.2 || player.v > 1 },
+    { id: 'trim', code: 'KeyT', slot: 'a2', sets: ['sail'], icon: ICON.trim, label: 'Trim', sel: () => player.autoTrim },
+    { id: 'view', code: 'KeyC', slot: 'a3', sets: ['sail'], icon: ICON.view, label: 'View' },
+    { id: 'cast', code: 'Space', slot: 'main', size: 'main', sets: ['fish'],
+      face: () => FISH_FACE[fishing.state] === 'net' && fishing.fish?.kg > 9 ? 'gaff' : FISH_FACE[fishing.state] || 'cast',
+      faces: { cast: { icon: ICON.cast, label: 'Cast' }, strike: { icon: ICON.strike, label: 'Strike!' }, net: { icon: ICON.net, label: 'Net' }, gaff: { icon: ICON.net, label: 'Gaff' } },
+      icon: ICON.cast, label: 'Cast', dim: () => !FISH_FACE[fishing.state] },
+    { id: 'reel', code: 'KeyE', slot: 'a1', sets: ['fish'], icon: ICON.reel, label: 'Reel' },
+    { id: 'rodDown', code: 'KeyF', slot: 'a3', sets: ['fish'], icon: ICON.rod, label: 'Stow' },
+    ...['spoon', 'jig', 'bait'].map((id, i) => ({ id, code: 'Digit' + (i + 1), row: 1, col: i, size: 'small', sets: ['fish'], icon: ICON[id],
+      label: ['Spoon', 'Jig', 'Bait'][i], sel: () => fishing.tackle === i, dim: () => fishing.state !== 'ready' })),
+    { id: 'dragDown', code: 'BracketLeft', row: 2, col: 0, size: 'small', sets: ['fish'], icon: ICON.minus, label: 'Drag' },
+    { id: 'dragUp', code: 'BracketRight', row: 2, col: 1, size: 'small', sets: ['fish'], icon: ICON.plus, label: 'Drag' },
+  ],
+});
+// the prompts name keys; with the controller showing, name the buttons instead
+const TOUCH_WORDS = [
+  [/Hold Space to cast · 1 2 3 tackle · F stow rod/, 'Hold Cast, let go to throw'], [/Release Space to cast/, 'Let go of Cast to throw'],
+  [/Strike! Press Space/, 'Strike! Tap Strike'], [/Space to (net|gaff) him/, (m, w) => `tap ${w === 'net' ? 'Net' : 'Gaff'}`],
+  [/[Hh]old E\b/g, (m) => m[0] + 'old Reel'], [/taps of E\b/, 'taps of Reel'], [/scroll for drag/, '− + for drag'],
+  [/press F to pick up the rod/, 'tap Rod to fish'], [/\(Space\)/g, '(Sails)'], [/with A or D/, 'with the stick'],
+  [/sheet in with W/, 'sheet in: stick up'], [/ease the sheet \(S\)/, 'ease the sheet (stick down)'], [/\(F\)/g, '(Rod)'],
+  [/Keep \(K\) or release \(R\)/, 'Keep or release'], [/trim with W \/ S/, 'trim with the stick'],
+];
+const touchWords = (t) => TOUCH_WORDS.reduce((s, [re, to]) => s.replace(re, to), t);
+
 // ---------------------------------------------------------------- loop
 let simT = FIXED_TIME ?? 0, last = performance.now(), frameNo = 0, acc = 0, pendingStep = 0;
 const STEP = 1 / 120;
@@ -2540,6 +2846,7 @@ function frame() {
   const now = performance.now();
   let dt = Math.min((now - last) / 1000, 0.1); last = now;
   if (FIXED_TIME !== null) { dt = frameNo < WARMUP ? 1 / 60 : 0; if (pendingStep > 0) { dt = pendingStep; pendingStep = 0; } }
+  if (touchPad.paused) dt = 0;                             // the TouchPad's menu pauses play
   simT += dt;
   stepWeather(FIXED_TIME !== null ? 1 : dt);
 
@@ -2633,7 +2940,9 @@ function frame() {
   }
   grainPass.uniforms.uTime.value = simT;
   updateInstruments(now);
-  const tp = now < toast.until ? toast.text : contextPrompt();
+  touchPad.update();
+  let tp = now < toast.until ? toast.text : contextPrompt();
+  if (touchPad.showing) tp = touchWords(tp);
   if (promptEl.textContent !== tp) promptEl.textContent = tp;
   audio.update(dt);
   renderReflection();
@@ -2646,7 +2955,7 @@ function frame() {
 }
 requestAnimationFrame(frame);
 window.__wf = () => waterFish;
-window.__game = { player, boats, cam, state, W, sea, get fishing() { return fishing; }, camera, probe: probeBuf, polar };
+window.__game = { player, boats, cam, state, W, sea, get fishing() { return fishing; }, camera, probe: probeBuf, polar, get touch() { return touchPad.report(); } };
 </script>
 </body>
 </html>
