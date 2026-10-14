@@ -10276,6 +10276,7 @@ const Garage = {
     const was = this.tcheer; this.tcheer = null; this.tflipped = false;
     if (Body.hold) { Body.hold = null; Body.refresh(); }
     $('gTier').classList.remove('on', 'flipped'); $('gTier').innerHTML = ''; if (!this.bcheer) $('gLift').classList.remove('sparkle');
+    if (this.on) this.tierPlay();   // (a tier-up bought while this one played waited for it: it plays next, not at the next open)
     return was;
   },
   // put each playing section's sparkle where that section is on the lift's mech now (its meshes' box, projected)
