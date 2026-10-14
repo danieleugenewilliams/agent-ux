@@ -607,9 +607,9 @@
      tall (line-height: 1, or a flex item) it took 1em of height, so there only the side margins stay. And an icon's
      drawing leaves a margin round it that an emoji glyph doesn't, so each is drawn a fifth bigger than its box (the box,
      and so the layout, the same) */
-  #garage .ic, #advToast .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
+  #garage .ic, #advToast .ic, #tierToast .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
     margin: max(.15em, min(calc(.15em + 3.5px), calc(23px - .85em))) var(--mx) calc(.16em + 1px); vertical-align: calc(-.31em - 1px); }
-  #garage :is(.gtab, .tf, .aic, .gch .big, .glock .big, .glock .ti, .sic, .spart, .plab, .llab, .lic, .lfx, .braise) .ic, #advToast .ti .ic { margin: 0 var(--mx); vertical-align: top; }
+  #garage :is(.gtab, .tf, .aic, .gch .big, .glock .big, .glock .ti, .sic, .spart, .plab, .llab, .lic, .lfx, .braise, .gtier .tu) .ic, #advToast .ti .ic, #tierToast :is(.ti, .tg) .ic { margin: 0 var(--mx); vertical-align: top; }
   /* I3: the Quick Fix, puzzles and repair screens size their icons the way I2's garage does (the room the emoji took, drawn
      a fifth bigger), and where a line was 1em tall (line-height: 1, or a flex item) only the side margins stay. :where()
      keeps these at .ic's weight, so a panel's own rules still win; #75's squadmate badge in the mend panel keeps its own */
@@ -698,6 +698,37 @@
   #advToast small { font: 900 20px 'Asap', sans-serif; color: var(--yellow); }
   body.garage #advToast { display: none; }
   body:has(#cheer.on) #advToast { top: max(48%, 180px); }   /* under the table cheer when both come from one answer */
+  /* #43: the tier-up toast in play: in the unlock toast's place (it never shows with that one up); a chip per section that
+     rose, its icon in its part colour and its tier as pips, the new ones glowing; then ➜ 🔧 */
+  #tierToast { position: fixed; left: 50%; top: max(22%, 180px); translate: -50% 0; z-index: 6; display: none; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px 12px;
+    max-width: calc(100vw - 32px); padding: 8px 16px; border-radius: 22px; background: rgba(20,24,42,.9); border: 4px solid var(--yellow); box-shadow: 0 0 26px rgba(255,216,61,.6); pointer-events: none; }
+  #tierToast.on { display: flex; animation: cheerPop .45s ease-out; }
+  #tierToast .tu { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; border-radius: 14px; border: 3px solid var(--pc); background: color-mix(in srgb, var(--pc) 18%, transparent); }
+  #tierToast .ti { font-size: 34px; line-height: 1; }
+  #tierToast .tp, .gtier .tp { display: flex; gap: 3px; }
+  #tierToast .tp i, .gtier .tp i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: rgba(255,255,255,.2); }
+  #tierToast .tp i.on, .gtier .tp i.on { background: var(--pc); }
+  #tierToast .tp i.new, .gtier .tp i.new { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  #tierToast .tg { font-size: 28px; line-height: 1; color: var(--yellow); }
+  body.garage #tierToast { display: none; }
+  body:has(#cheer.on) #tierToast { top: max(48%, 180px); }
+  /* #43: the garage's tier-up: a banner across the top of the lift (the section icons and their new pips) and a sparkle
+     where each section is on the lift, as it flips from its old look to its new one */
+  .gtier { position: absolute; inset: 0; display: none; pointer-events: none; overflow: hidden; border-radius: 18px; }
+  .gtier.on { display: block; }
+  .gtier .tban { position: absolute; left: 50%; top: 8px; translate: -50% 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: calc(100% - 16px); padding: 6px 10px; border-radius: 18px;
+    background: rgba(20,24,42,.9); border: 4px solid var(--yellow); box-shadow: 0 0 24px rgba(255,216,61,.7); animation: cheerPop .45s ease-out; }
+  .gtier .tu { display: flex; align-items: center; gap: 5px; padding: 2px 6px 2px 3px; border-radius: 12px; border: 3px solid var(--pc); font-size: 28px; line-height: 1; }
+  .gtier .tsp { position: absolute; width: 0; height: 0; }
+  .gtier .tsp i { position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px var(--pc), 0 0 18px var(--yellow); opacity: 0; animation: tierSpark 1s ease-out infinite; }
+  .gtier.flipped .tsp i { animation-duration: .7s; }
+  @keyframes tierSpark { 0% { opacity: 0; transform: translate(0, 0) scale(.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.1); } }
+  /* #43: the 🦿 rows' next-tier hint: + how many levels and the parts that give them, or the facts milestone; ⭐ at tier 4 */
+  .braise .bup, .braise .bfacts { display: flex; align-items: center; gap: 1px; }
+  .braise .bup b, .braise .bfacts b { font: 900 .72em 'Asap', sans-serif; color: #fff; text-shadow: 2px 2px 0 var(--ink); }
+  .braise .bor { font: 900 .6em 'Asap', sans-serif; color: rgba(255,255,255,.55); font-style: normal; margin: 0 2px; }
+  .braise .bstar { color: var(--yellow); filter: drop-shadow(0 0 6px rgba(255,216,61,.8)); }
+  .braise .block { opacity: .55; }
   /* G2: the 🦾 Mech tab. A card per upgrade: its part as a 3D piece, what it does, its level pips, the cost
      (2 × the part) with how many the bag has, and a buy button (grey when the bag is short; ⭐ when it's maxed) */
   .gwall.mech { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
@@ -803,9 +834,6 @@
   .brow .pips i.bonus { background: var(--yellow); box-shadow: 0 0 10px rgba(255,216,61,.8); }
   .brow .bname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 900 20px 'Asap', sans-serif; color: #fff; text-shadow: 2px 2px 0 var(--ink); }
   .braise { flex: none; display: flex; align-items: center; gap: 4px; font-size: 26px; line-height: 1; }
-  .bmath { position: relative; opacity: .4; filter: grayscale(1); }
-  .bmath.on { opacity: 1; filter: none; }
-  .bmath small { position: absolute; right: -6px; bottom: -6px; padding: 0 3px; border-radius: 6px; background: var(--yellow); color: var(--ink); font: 900 12px 'Asap', sans-serif; }
   /* the 🔧 buttons: under ⭐ on the pause screen, beside ▶ on the clear screen */
   #start .rcol { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .garb { position: relative; display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; padding: 0; border-radius: 50%; border: 5px solid var(--ink); background: var(--cyan); font-size: 36px; cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
@@ -829,6 +857,9 @@
     .aslot .afx, .aslot .amile { font-size: 15px; right: 3px; } .aslot .awords { display: none; } .aslot .abar { top: 22px; left: 4px; right: 4px; height: 5px; }
     #gCheer .gch { padding: 10px 16px 12px; max-width: calc(100vw - 32px); } #gCheer .gch .big { font-size: 46px; } #gCheer .gch b { font-size: 26px; }
     #advToast .ti { font-size: 34px; } #advToast b { font-size: 17px; } #advToast small { font-size: 16px; }
+    #tierToast { gap: 6px; padding: 6px 8px; } #tierToast .tu { gap: 4px; padding: 2px 5px 2px 2px; border-width: 2px; } #tierToast .ti { font-size: 24px; } #tierToast .tg { font-size: 20px; }
+    #tierToast .tp { gap: 2px; } #tierToast .tp i { width: 9px; height: 9px; }
+    .gtier .tu { font-size: 22px; } .gtier .tp i { width: 9px; height: 9px; }
     .glock .big { font-size: 64px; }
     .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
     .ucard { padding: 4px 6px 6px; border-width: 3px; border-radius: 14px; }
@@ -1070,12 +1101,14 @@
   html.tp-mode #hud .prompt button { pointer-events: none; width: 56px; height: 56px; font-size: 30px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
   html.tp-mode #hud .prompt .pparts { display: none; }
   /* toasts stay high, clear of the thumbs: on its side, just under the top row */
-  @media (orientation: landscape) { html.tp-mode #advToast { top: calc(max(12px, env(safe-area-inset-top)) + 60px * var(--tpu)); } }
+  @media (orientation: landscape) { html.tp-mode :is(#advToast, #tierToast) { top: calc(max(12px, env(safe-area-inset-top)) + 60px * var(--tpu)); } }
   /* WEAPON held: the weapons row opens as a picker in the middle of the screen; a tap on a slot picks it */
   html.tp-mode #hud .weapons.pick { z-index: 5; bottom: auto; top: 50%; transform: translate(-50%, -50%); gap: 10px; padding: 14px 18px; border-radius: 26px; background: rgba(20,24,42,.88); border: 4px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
   html.tp-mode #hud .weapons.pick .wpn { width: min(78px, 15vw); height: min(78px, 15vw); font-size: min(40px, 8vw); border-width: 4px; }
   /* the pause menu (the HUD steps aside while it's up): Resume, Bag, Garage, Facts, Trophies, Sound */
   html.tp-mode #start.on:not(.title) ~ :is(#hud, #hurt) { visibility: hidden; }
+  /* #43: and the controller while the garage is open (it showed through the garage's see-through bay, under the cards) */
+  body.garage .tp-root { visibility: hidden; }
   #start .tpmenu { display: none; margin: 20px auto 0; grid-template-columns: repeat(3, 132px); gap: 12px; justify-content: center; }
   html.tp-mode #start:not(.title) .tpmenu { display: grid; }
   html.tp-mode #start:not(.title) :is(.resume, .keys) { display: none; }
@@ -1271,7 +1304,7 @@
   <div class="gbay">
     <div class="gtop"><span class="gt"><i data-ic="wrench" data-label="garage"></i></span><div class="gtabs" id="gTabs"></div><button class="x" id="garageX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div class="gbody">
-      <div class="glift" id="gLift"><span class="gwho" id="gWho"></span><div class="bspots" id="gSpots"></div></div>
+      <div class="glift" id="gLift"><span class="gwho" id="gWho"></span><div class="bspots" id="gSpots"></div><div class="gtier" id="gTier" role="status"></div></div>
       <div class="gwall" id="gWall"></div>
     </div>
   </div>
@@ -1280,6 +1313,8 @@
 </div>
 <!-- G4: the toast in play when a milestone unlocks an advanced part -->
 <div id="advToast" role="status"></div>
+<!-- #43: the toast in play when a section's realism tier rises -->
+<div id="tierToast" role="status"></div>
 
 <!-- ===========================================================================
 TouchPad: on-screen controller for phones and tablets (issue #92, Family Knockout; copied for Robot Battle in #94).
@@ -1876,6 +1911,16 @@ function bodyRec(g) {
   for (const k of ['torso', 'arms']) if (!BODY_SHAPES[k].some((S) => S.id === b[k] && (!S.part || b.unlocked.includes(S.id)))) b[k] = 'standard';   // (#42: built ones only)
   // #91: the Spider's legs, 4 or 6: 6 only once its Mk II is built (that build's last step done)
   b.spiderLegs = b.spiderLegs === 6 && upBuilt(b, 'mk2') ? 6 : 4;
+  // #43: tier-ups. tierSeen = each section's tier when last checked: the first time a record is read under #43 it's the
+  // tiers the record already earns, so what was earned before brings no burst of old tier-ups. tierUps = each one queued
+  // { sec, from, to, why, played }: every one not yet played, and the last 20 played
+  const ids = BODY_SECTIONS.map((S) => S.id), tier = (v) => (Number.isInteger(v) && v >= 0 && v <= BODY.max ? v : null);
+  if (!b.tierSeen || typeof b.tierSeen !== 'object') b.tierSeen = Body.rule(g);
+  else { let R = null; for (const k of ids) if (tier(b.tierSeen[k]) == null) b.tierSeen[k] = (R ||= Body.rule(g))[k]; }
+  const ups = (Array.isArray(b.tierUps) ? b.tierUps : []).filter((u) => u && ids.includes(u.sec) && tier(u.from) != null && tier(u.to) != null && u.from < u.to)
+    .map((u) => ({ sec: u.sec, from: u.from, to: u.to, why: typeof u.why === 'string' ? u.why : null, played: !!u.played }));
+  const played = ups.filter((u) => u.played);
+  b.tierUps = played.length > 20 ? ups.filter((u) => !u.played || played.indexOf(u) >= played.length - 20) : ups;
   return b;
 }
 // #91: whether body record b has built upgrade project id (BUILD_UPS): the shape it upgrades unlocked, and every step done.
@@ -2484,7 +2529,10 @@ const Facts = {
     r.practice ||= {}; r.opened ||= []; r.cheered ||= {}; fillGarage(r);   // a record saved before G1 gets an empty garage
     r.puzzles ||= { seq: 0, seen: {} };                                   // P3-1: when each puzzle type was last seen
     this.child = C; this.rec = r;
-    this.advance(); this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
+    this.advance(); const got = this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
+    // #43: and any tier rise this record holds that hasn't been checked: a milestone just latched, or a backup's merge (which
+    // takes the higher upgrades and the unlocks of both sides); its toast waits for play. A record already checked: nothing
+    Body.tierCheck(got.length ? 'facts' : 'load');
     return r;
   },
   // G4: latch the advanced parts whoever is playing has earned: every ADVANCED part whose milestone their Mastered
@@ -3680,7 +3728,7 @@ const TORSO_KITS = {
     sock: { mount: [2.25, 1.0, -0.1], badge: [0, 0.95, 1.72], decal: { x: 1.0, y: 0.95, z: 1.725, size: 0.68 },
       chest: { at: [0, 0.3, -1.66], rx: -0.25, size: [2.2, 0.9, 0.3] }, flank: { at: [2.05, 0.65, 0.1], size: [0.26, 1.1, 1.7] },
       cell: { y: 2.1, z: 1.1, gap: 0.42 }, cable: { x: 1.45, y: 1.2, z: 0.5 }, jet: { at: [0.75, -0.2, 1.85], fy: -1.35 },
-      core: { at: [0, 0.95, -1.78], ring: -1.74 }, tram: { at: [1.55, 0.2, -0.55], rz: 0.35 }, backCable: [0, 0, 0] },
+      core: { at: [0, 0.95, -1.78], ring: -1.74 }, tram: { at: [1.7, 0.4, -0.9], rz: 0.35 }, backCable: [0, 0, 0] },   // (#43: the ram on the dome's side; it stood 0.36 m off it)
     build(torso, paint, metal) {
       const ringGlow = turretRing(torso, paint, metal, 1.05, 1.08);
       const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), mat(paint.armour, { roughness: 0.45, metalness: 0.25 }));
@@ -3720,7 +3768,7 @@ const TORSO_KITS = {
     sock: { mount: [2.1, 0.75, 0.1], badge: [0, 0.85, 1.77], decal: { x: 0.92, y: 0.85, z: 1.775, size: 0.5 },
       chest: { at: [0, 1.32, -1.25], rx: -1.45, size: [1.3, 1.0, 0.2] }, flank: { at: [1.6, 0.7, 0.4], size: [0.22, 0.7, 1.4] },
       cell: { y: 1.85, z: 1.45, gap: 0.36 }, cable: { x: 1.3, y: 1.0, z: 0.6 }, jet: { at: [0.65, 0.1, 1.95], fy: -1.05 },
-      core: { at: [0, 1.5, -1.15], ring: -1.11 }, tram: { at: [1.25, 0.2, -0.3], rz: 0.35 }, backCable: [0, -0.1, 0] },
+      core: { at: [0, 1.5, -1.15], ring: -1.11 }, tram: { at: [1.25, 0.3, -0.5], rz: 0.35 }, backCable: [0, -0.1, 0] },   // (#43: the ram against the wedge's side; it stood 6 cm off)
     build(torso, paint, metal) {
       const ringGlow = turretRing(torso, paint, metal, 0.95, 0.98);
       const sh = new THREE.Shape(); sh.moveTo(0, 2.3); sh.lineTo(1.7, -0.9); sh.lineTo(1.2, -1.4); sh.lineTo(-1.2, -1.4); sh.lineTo(-1.7, -0.9); sh.closePath();
@@ -4079,7 +4127,7 @@ const LEG_KITS = {
         const L = { s, f, yaw, base, coxa, hip, knee, foot, thigh, thighPlate, shin, shinGuard, armour: [thighPlate, shinGuard], motor: [thigh, shin], plateRef: shinGuard, limbRef: shin,
           name: LEGS6[legs.length], beat: six ? ((f === 0 ? -s : s) > 0 ? 0 : 1) : s * f > 0 ? 0 : 1 };
         if (f >= 0) L.sock = { drum: { p: coxa, s: 1, x: 0.5, y: 0, z: 0 }, spring: { p: knee, x: -0.38, y: -1.7, z: 0 }, ram: { p: foot, x: 0, y: 0.05, z: -0.7, tip: -1.0, sc: 0.6 },
-          plate: { p: knee, x: 0, y: -2.6, z: s > 0 ? -0.3 : 0.3, ry: s > 0 ? 0 : Math.PI }, piston: { p: hip, x: -0.4, y: -1.0, z: 0.3, rx: 0 } };
+          plate: { p: knee, x: 0, y: -2.6, z: s > 0 ? -0.3 : 0.3, ry: s > 0 ? 0 : Math.PI }, piston: { p: hip, x: 0, y: -1.0, z: (f ? -s : s) * 0.5, rx: 0 } };   // (#43: the piston on the thigh's open side: under it, and on the middle legs between the others, it was hidden)
         this.level(L); legs.push(L);
       }
       return { legs };
@@ -4400,22 +4448,71 @@ const BODY_SECTIONS = [
 // by tier; normal: the normal map's strength; cc / ccRough: the paint's clear-coat; seam / heat: the tier-4 glows;
 // size: map size (px) by quality; bonus: the G4 unlocks that raise every section, and by how much
 const BODY = { names: ['Toy', 'Metal', 'Bolted', 'Worn', 'Battle-ready'], max: 4, points: 3, env: [1, 0.35, 0.45, 0.65, 0.65], fin: [1, 1, 1.1, 1.25, 1.25],
-  normal: [1, 0.55, 0.75, 0.9, 0.9], cc: 0.45, ccRough: 0.2, seam: 1.6, heat: 1.8, size: { full: 512, lite: 256 }, bonus: [['shield', 2], ['jets', 1]] };
+  normal: [1, 0.55, 0.75, 0.9, 0.9], cc: 0.45, ccRough: 0.2, seam: 1.6, heat: 1.8, size: { full: 512, lite: 256 }, bonus: [['shield', 2], ['jets', 1]],
+  flip: 1500, cheer: 3400 };   // #43: the garage's tier-up: the old look shows for flip ms (the lift is up by then), then the new one; the banner stays cheer ms in all
 // each section's panels: where its seams cross the plate (fractions of the square), its seed and its stencil
 const BODY_PANEL = { legs: { v: [0.5], h: [0.62], seed: 11, code: 'RB-L2' }, torso: { v: [0.34, 0.66], h: [0.5], seed: 23, code: 'RB-T4' },
   arms: { v: [], h: [0.4, 0.75], seed: 37, code: 'RB-A2' }, core: { v: [0.2, 0.4, 0.6, 0.8], h: [], seed: 53, code: 'RB-C5' } };
 const Body = {
-  mode: 'auto', q: null, preview: null, cache: new Map(), made: 0, twin: new WeakMap(), src: new WeakMap(),
+  mode: 'auto', q: null, preview: null, hold: null, cache: new Map(), made: 0, twin: new WeakMap(), src: new WeakMap(),
   // ---- the rule
   points(g = Garage.rec()) {
     const lv = upLevels(g), max = Object.fromEntries(UPGRADES.map((U) => [U.id, U.max]));
     return Object.fromEntries(BODY_SECTIONS.map((S) => [S.id, Math.floor(BODY.points * S.ups.reduce((t, id) => t + lv[id], 0) / S.ups.reduce((t, id) => t + max[id], 0))]));
   },
-  bonus() { return BODY.bonus.find(([id]) => Garage.has(id))?.[1] ?? 0; },
-  // the tiers on the mech now: the rule's, or every section at previewTier's n
+  bonus(g = Garage.rec()) { const un = Array.isArray(g.unlocks) ? g.unlocks : []; return BODY.bonus.find(([id]) => un.includes(id))?.[1] ?? 0; },
+  // #43: the tiers the rule gives garage record g (what's been earned), whatever the mech shows
+  rule(g = Garage.rec()) {
+    const p = this.points(g), b = this.bonus(g);
+    return Object.fromEntries(BODY_SECTIONS.map((S) => [S.id, Math.min(BODY.max, p[S.id] + b)]));
+  },
+  // the tiers on the mech now: the rule's, or every section at previewTier's n. #43: a section with a tier-up not yet played
+  // in the garage keeps its old look (the tier it rose from) till the garage plays it, so the flip happens on the lift and no
+  // map is made while playing; hold = the old tiers the garage's flip shows for a moment before it lets go
   tiers() {
-    const p = this.points(), b = this.bonus();
-    return Object.fromEntries(BODY_SECTIONS.map((S) => [S.id, this.preview ?? Math.min(BODY.max, p[S.id] + b)]));
+    const T = this.rule(), q = Shapes.rec().tierUps;
+    return Object.fromEntries(BODY_SECTIONS.map((S) => {
+      if (this.preview != null) return [S.id, this.preview];
+      if (this.hold?.[S.id] != null) return [S.id, this.hold[S.id]];
+      const u = q.find((x) => !x.played && x.sec === S.id);
+      return [S.id, u ? Math.min(u.from, T[S.id]) : T[S.id]];
+    }));
+  },
+  // ---- #43: tier-ups. After anything that can raise a tier (a purchase, a milestone), the rule's tiers are compared with the
+  // ones last seen (saved per child in rec.garage.body.tierSeen): each section that rose queues one tier-up { sec, from, to,
+  // why }. In play a toast shows it straight away (TierToast); the garage plays it on the lift the next time it opens (or
+  // at once, if it's open), and then it's marked played and saved, so a reload never replays it. A tier that falls (a backup
+  // restored) just moves tierSeen down. Guest's record is never saved, so Guest's last only for the session.
+  tierCheck(why) {
+    const b = Shapes.rec(), T = this.rule(), seen = b.tierSeen, ups = [];
+    let changed = false;
+    for (const S of BODY_SECTIONS) {
+      const t = T[S.id], s = seen[S.id];
+      if (t > s) ups.push({ sec: S.id, from: s, to: t, why, played: false });
+      if (t !== s) { seen[S.id] = t; changed = true; }
+    }
+    if (!changed) return [];
+    b.tierUps.push(...ups); Facts.save();
+    if (ups.length) { if (Garage.on) Garage.tierPlay(); else TierToast.show(ups, why !== 'buy'); }   // (a milestone's own toast goes first; at a load, the first tick in play)
+    return ups;
+  },
+  // what lifts each section's tier next (the rule in the 🦿 rows' hints): levels = how many more upgrade levels in that
+  // section (any of ups, its upgrades not yet maxed) raise its points by one (null once its points are at 3); facts = the next
+  // milestone that raises the mastery bonus (🚀 jets at 18 gives +1, then 🛡️ shield at 36 makes it +2), with how many are
+  // left (null for Guest, who earns none, and once the shield's in); star = tier 4, nothing more to lift
+  next() {
+    const g = Garage.rec(), lv = upLevels(g), max = Object.fromEntries(UPGRADES.map((U) => [U.id, U.max])), T = this.rule(g), p = this.points(g), b = this.bonus(g);
+    const guest = !Facts.rec || !Game.child || !!Game.child.guest, un = Array.isArray(g.unlocks) ? g.unlocks : [];
+    const nx = guest ? null : BODY.bonus.filter(([id, k]) => k > b && !un.includes(id)).map(([id]) => advOf(id)).sort((x, y) => x.at - y.at)[0] ?? null;
+    const mastered = nx ? Facts.mastery()?.mastered ?? 0 : 0;
+    return Object.fromEntries(BODY_SECTIONS.map((S) => {
+      const t = T[S.id];
+      if (t >= BODY.max) return [S.id, { tier: t, star: true, levels: null, ups: null, facts: null, factsLeft: null, milestone: null }];
+      const L = S.ups.reduce((n, id) => n + lv[id], 0), M = S.ups.reduce((n, id) => n + max[id], 0);
+      const levels = p[S.id] < BODY.points ? Math.ceil((p[S.id] + 1) * M / BODY.points) - L : null;
+      return [S.id, { tier: t, star: false, levels, ups: levels ? S.ups.filter((id) => lv[id] < max[id]) : null,
+        facts: nx ? nx.at : null, factsLeft: nx ? Math.max(0, nx.at - mastered) : null, milestone: nx ? nx.id : null }];
+    }));
   },
   // ---- quality: 'auto' picks lite on a coarse pointer or a screen under 900 px wide (once, so turning a phone round
   // doesn't redraw every map), 'full' or 'lite' otherwise
@@ -4632,7 +4729,13 @@ const Body = {
       md.xMats ||= { steel: new THREE.MeshStandardMaterial({ color: '#c9ced8', metalness: 0.9, roughness: 0.25 }), cable: new THREE.MeshStandardMaterial({ color: '#232838', metalness: 0.2, roughness: 0.6 }) };
       for (const m of Object.values(md.xMats)) set(m, 'envMap', advEnv());
     }
-    if (T.legs === 4) for (const L of md.sockLegs) { const P = L.sock.piston; put('legs', P.p, X.piston, md.xMats.steel, P.x, P.y, P.z, P.rx); }   // (B2: each leg shape's piston socket)
+    // (B2: each leg shape's piston socket. #43: moved out from the thigh's middle by as much as 🦵 motors have thickened the
+    // thigh (its radius × the growth), which otherwise swallowed it at motor 3; a leg with no thigh capsule stays put)
+    const mk = 0.16 * (md.up?.lv?.motor || 0);
+    if (T.legs === 4) for (const L of md.sockLegs) {
+      const P = L.sock.piston, r = L.thigh?.geometry?.parameters?.radius ?? 0, d = Math.hypot(P.x, P.z), f = d ? (d + r * mk) / d : 1;
+      put('legs', P.p, X.piston, md.xMats.steel, P.x * f, P.y, P.z * f, P.rx);
+    }
     // (#42: in the arm set's and the torso's own sockets)
     const AC = md.asock.cable, TR = md.tsock.tram, BC = md.tsock.backCable;
     if (T.arms === 4) for (const A of md.arms) put('arms', A.arm, X.armCable, md.xMats.cable, A.s * AC[0], AC[1], AC[2]);
@@ -4687,7 +4790,7 @@ const Body = {
   },
   status(md = Game.humans[0]?.mech?.model) {
     const T = this.tiers();
-    return { tiers: T, points: this.points(), bonus: this.bonus(), names: Object.fromEntries(Object.entries(T).map(([k, t]) => [k, BODY.names[t]])),
+    return { tiers: T, rule: this.rule(), hold: this.hold ? { ...this.hold } : null, points: this.points(), bonus: this.bonus(), names:Object.fromEntries(Object.entries(T).map(([k, t]) => [k, BODY.names[t]])),
       quality: this.quality(), mode: this.mode, preview: this.preview, size: BODY.size[this.quality()], mats: this.look(md), cost: this.cost(md) };
   },
 };
@@ -4904,7 +5007,13 @@ const Shapes = {
   // #91: mk2 = the Spider Mk II: open (its blueprint shows: the Spider is built), built, on (the Spider wears 6 legs; it
   // counts whichever legs are equipped), legs (4 or 6, as saved) and its build's brief
   // #42: torso / arms = those sections' offers (offerOf)
-  status() { const b = this.rec(); return { equipped: { legs: b.legs, torso: b.torso, arms: b.arms }, unlocked: b.unlocked.slice(), offer: this.offer(), torso: this.offerOf('torso'), arms: this.offerOf('arms'), builds: JSON.parse(JSON.stringify(b.builds)), trophyLatch: !!b.trophyLatch,
+  // #43: tierUps = the tier-ups queued (not yet played in the garage) and played (the last 20), seen = the tiers last checked,
+  // playing = the ones the lift is playing now, toast = the in-play toast as shown (TierToast.dom); next = each section's
+  // next-tier need (Body.next)
+  tierStatus() { const b = this.rec();
+    return { queued: b.tierUps.filter((u) => !u.played).map((u) => ({ ...u })), played: b.tierUps.filter((u) => u.played).map((u) => ({ ...u })), seen: { ...b.tierSeen },
+      playing: Garage.tcheer ? Garage.tcheer.map((u) => ({ ...u })) : null, flipped: Garage.tflipped, toast: TierToast.dom() }; },
+  status() { const b = this.rec(); return { tierUps: this.tierStatus(), next: Body.next(), equipped: { legs: b.legs, torso: b.torso, arms: b.arms }, unlocked: b.unlocked.slice(), offer: this.offer(), torso: this.offerOf('torso'), arms: this.offerOf('arms'), builds: JSON.parse(JSON.stringify(b.builds)), trophyLatch: !!b.trophyLatch,
     mk2: { open: this.open(legShapeOf('spider')), built: upBuilt(b, 'mk2'), on: b.spiderLegs === 6, legs: b.spiderLegs, wearing: b.legs === 'spider' ? b.spiderLegs : null, build: Builds.brief('mk2') } }; },
   // #91: how many legs the Spider wears (4, or 6 once its Mk II is built and switched on)
   legCount() { return this.rec().spiderLegs; },
@@ -8394,6 +8503,7 @@ function tick(dt) {
   if (Game.state !== 'play' || Game.paused) return;
   Game.ticks++;
   if (Adv.pending) Adv.flush();   // G4: an unlock's toast held while a fix panel was up
+  if (TierToast.pending) TierToast.flush();   // #43: a tier-up's toast held for a fix panel or the unlock toast
   Meadow.time.value += dt;
   // Robots think at 20 Hz (Family Knockout's bot loop), writing their input.
   // Glitched ones run their type's brain; squadmates their type's squad job (each built on allyAI).
@@ -8959,7 +9069,7 @@ const FixUI = {
     this.drawMend();
     return res;
   },
-  close() { this.thenParts = null; this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); Adv.flush(); },   // (G4: a toast held for the board)
+  close() { this.thenParts = null; this.stopHint(); this.mode = null; this.r = null; this.drag = null; this.sel = -1; this.entry = null; this.puz = null; $('fix').classList.remove('typing', 'puzzling'); this.show(null); $('nameIn').blur(); Adv.flush(); TierToast.flush(); },   // (G4: a toast held for the board)
   // (from a pad button or a hook there is no user gesture, so the browser can refuse the lock: the mouse just isn't captured yet)
   relock() { if (Game.humans.length === 1 && Game.state === 'play' && !Game.paused && !Game.manual && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {}); },
   // ✖ / Escape: leave the wiring or the picker (the robot's clock runs again and
@@ -9606,6 +9716,7 @@ const Garage = {
   // a drag going on (pointer); the shape being cheered as built; frames = each shape's frame for the lift, made once
   bp: null, bpick: null, bcur: 0, bsel: -1, drag: null, bcheer: null, bcheerT: null, frames: {}, spotXY: {},
   jobShown: null, jobWas: null,   // #102: the job whose board the last draw showed (and the one before it)
+  tcheer: null, tflipT: null, tierT: null, tflipped: false,   // #43: the tier-ups the lift is playing now ({ sec, from, to }), its timers, flipped yet
   // whoever is playing's garage (their record's; before anyone is picked, a loose one for this session)
   rec() { return Facts.rec ? fillGarage(Facts.rec).garage : this.loose; },
   // a part went into the bag: count it on the wall, with where it came from (a robot type or 'meadow')
@@ -9645,11 +9756,12 @@ const Garage = {
     $('gWall').scrollTop = 0;   // (#42: the 🦿 wall scrolls; it opens at the top)
     document.body.classList.add('garage'); $('garage').classList.add('on');
     this.build(); this.dress();
-    Adv.toastStop();
+    Adv.toastStop(); TierToast.drop();   // (#43: the garage plays the tier-ups the toast showed)
     const cheer = this.cheerNew();   // G4: parts earned since it last opened get their cheer now
+    const tierUps = this.tierPlay();   // #43: and tier-ups queued since, on the lift (after G4's cheer, if there's one)
     this.draw();
     if (!Game.manual) { Sfx.click(); Sfx.tone(70, 1.1, 'sawtooth', 0.07, 150); Sfx.tone(1200, 0.08, 'square', 0.05, null, 1.1); }
-    return { ok: true, from, cheer };
+    return { ok: true, from, cheer, tierUps };
   },
   // close: back to the pause screen, or from the clear screen back into the running meadow (the mouse
   // stays free, so the clear screen's ▶ can still be clicked)
@@ -9657,6 +9769,7 @@ const Garage = {
     if (!this.on) return { ok: false, why: 'closed' };
     const from = this.from;
     this.on = false; this.from = null; this.jobShown = null;
+    if (this.tcheer) this.tierStop();   // #43 (it's played: the new look stays)
     if (this.cheering) this.cheerStop();
     if (this.bcheer) this.cheerBuildStop();
     this.dragEnd(); this.bp = null; this.bpick = null;   // #89
@@ -9808,7 +9921,7 @@ const Garage = {
   closeBuild() {
     if (!this.bp) return { ok: false, why: 'no blueprint open' };
     const was = this.bp; this.dragEnd(); this.bp = null; this.bpick = null; this.bsel = -1; this.lreveal = true;   // (#42: back on the cards, its card in view)
-    if (this.bcheer) this.cheerBuildStop(); else { this.dress(); this.draw(); }
+    if (this.bcheer) this.cheerBuildStop(); else { this.dress(); this.draw(); this.tierPlay(); }   // (#43: a tier-up waiting for the lift)
     if (!Game.manual) Sfx.click();
     return { ok: true, was };
   },
@@ -9877,7 +9990,7 @@ const Garage = {
     clearTimeout(this.bcheerT); const id = this.bcheer; this.bcheer = null;
     $('gCheer').classList.remove('on'); $('gLift').classList.remove('sparkle');
     if (this.bp === id) { this.bp = null; this.lreveal = true; }   // (#42: back on the cards, the new card in view)
-    if (this.on) { this.dress(); this.draw(); }
+    if (this.on) { this.dress(); this.draw(); this.tierPlay(); }   // (#43: a tier-up waiting for the lift)
   },
   // ---- dragging (mouse and touch): a part chip onto its glowing spot on the lift, or a plug onto a port. The picture that
   // follows the pointer lives outside the wall (a redraw doesn't lose it); a drop anywhere else springs it back. A tap
@@ -10127,7 +10240,55 @@ const Garage = {
     this.cheerT = setTimeout(() => this.cheerStop(), ADV.cheer);
     return ids;
   },
-  cheerStop() { clearTimeout(this.cheerT); this.cheering = null; $('gCheer').classList.remove('on'); if (this.on && this.tab === 'trophies') this.draw(); },
+  cheerStop() { clearTimeout(this.cheerT); this.cheering = null; $('gCheer').classList.remove('on'); if (this.on && this.tab === 'trophies') this.draw(); if (this.on) this.tierPlay(); },   // (#43: a tier-up waiting for it plays next)
+  // ---- #43: the tier-ups queued since the garage last played them: a banner across the lift (each section's icon and its new
+  // pips), a fanfare, and a sparkle where each section is on the lift while it shows its old look for BODY.flip ms; then it
+  // flips to the new look with a second sparkle. Played once: they're marked played and saved as it starts, so closing the
+  // garage or reloading never plays them again. Waits while the lift shows something else (a blueprint's frame, a build's or
+  // G4's cheer): closing the blueprint, or that cheer ending, plays it.
+  tierPlay() {
+    if (!this.on || this.bp || this.bcheer || this.cheering || this.tcheer) return null;
+    const q = Shapes.rec().tierUps.filter((u) => !u.played); if (!q.length) return null;
+    const ups = TierToast.merge(q); for (const u of q) u.played = true; Facts.save();
+    this.tcheer = ups; this.tflipped = false; Body.hold = Object.fromEntries(ups.map((u) => [u.sec, u.from])); Body.refresh();
+    const pips = (u, k) => `<i class="${k < u.from ? 'on' : k < u.to ? 'on new' : ''}"></i>`;
+    const sp = (u) => `<span class="tsp" data-sec="${u.sec}" style="--pc:${BODY_SECTIONS.find((q) => q.id === u.sec).hex};visibility:hidden">${Array.from({ length: 8 }, (_, k) => { const a = k * Math.PI / 4;
+      return `<i style="--dx:${Math.round(Math.cos(a) * 52)}px;--dy:${Math.round(Math.sin(a) * 52)}px;animation-delay:${(k * 0.11).toFixed(2)}s"></i>`; }).join('')}</span>`;
+    $('gTier').innerHTML = `<div class="tban">${ups.map((u) => { const S = BODY_SECTIONS.find((q) => q.id === u.sec);
+      return `<span class="tu" data-sec="${u.sec}" data-from="${u.from}" data-tier="${u.to}" style="--pc:${S.hex}">${icon(S.ic)}<span class="tp">${Array.from({ length: BODY.max }, (_, k) => pips(u, k)).join('')}</span></span>`; }).join('')}</div>${ups.map(sp).join('')}`;
+    const el = $('gTier'); el.classList.remove('on', 'flipped'); void el.offsetWidth; el.classList.add('on');
+    if (!Game.manual) { Sfx.unlock(); Sfx.tone(392, 0.14, 'triangle', 0.07, 523); Sfx.tone(523, 0.14, 'triangle', 0.07, 659, 0.14); }
+    clearTimeout(this.tflipT); clearTimeout(this.tierT);
+    this.tflipT = setTimeout(() => this.tierFlip(), BODY.flip);
+    return ups.map((u) => ({ ...u }));
+  },
+  // the flip: the hold lets go, so the mech (and its copy on the lift) wears its new tiers
+  tierFlip() {
+    clearTimeout(this.tflipT); if (!this.tcheer || this.tflipped) return null;
+    this.tflipped = true; Body.hold = null; Body.refresh(); $('gTier').classList.add('flipped');
+    const L = $('gLift'); L.classList.remove('sparkle'); void L.offsetWidth; L.classList.add('sparkle');
+    if (!Game.manual) { Sfx.table(); }
+    clearTimeout(this.tierT); this.tierT = setTimeout(() => this.tierStop(), Math.max(0, BODY.cheer - BODY.flip));
+    return Body.tiers();
+  },
+  tierStop() {
+    clearTimeout(this.tflipT); clearTimeout(this.tierT);
+    const was = this.tcheer; this.tcheer = null; this.tflipped = false;
+    if (Body.hold) { Body.hold = null; Body.refresh(); }
+    $('gTier').classList.remove('on', 'flipped'); $('gTier').innerHTML = ''; if (!this.bcheer) $('gLift').classList.remove('sparkle');
+    return was;
+  },
+  // put each playing section's sparkle where that section is on the lift's mech now (its meshes' box, projected)
+  placeTier() {
+    const el = $('gLift'), b = el.getBoundingClientRect(), box = new THREE.Box3(), mb = new THREE.Box3(), v = new V3();
+    for (const sp of $('gTier').querySelectorAll('.tsp')) {
+      box.makeEmpty(); const sec = sp.dataset.sec;
+      this.mech?.traverse((o) => { if (o.isMesh && o.visible && o.userData.sec === sec) box.union(mb.setFromObject(o)); });
+      if (box.isEmpty()) { sp.style.visibility = 'hidden'; continue; }
+      box.getCenter(v).project(this.cam);
+      sp.style.left = Math.round((v.x + 1) / 2 * b.width - el.clientLeft) + 'px'; sp.style.top = Math.round((1 - v.y) / 2 * b.height - el.clientTop) + 'px'; sp.style.visibility = '';
+    }
+  },
   // ---- G2: upgrades. Levels, and what buying the next level of each needs
   levels() { return upLevels(this.rec()); },
   offer() {
@@ -10154,10 +10315,11 @@ const Garage = {
     Game.bag[U.id] = have - UPGRADE.cost; if (!Game.bag[U.id]) delete Game.bag[U.id];
     g.upgrades[U.id] = lv + 1;
     Facts.save();
+    const tierUps = Body.tierCheck('buy');   // #43: before the mech is dressed, so a tier-up in play keeps its old look till the garage
     applyUpgrades();
     if (this.on) { this.dress(); this.cur = UPGRADES.indexOf(U); this.draw(); this.flash(U.id, 'got'); }
     if (!Game.manual) { Sfx.mendParts(); Sfx.tone(523, 0.12, 'square', 0.06, 784, 0.32); }
-    return { ok: true, id: U.id, level: lv + 1, spent: UPGRADE.cost, left: Game.bag[U.id] || 0 };
+    return { ok: true, id: U.id, level: lv + 1, spent: UPGRADE.cost, left: Game.bag[U.id] || 0, tierUps };
   },
   // a card's shake (refused) or glow (bought); sel picks the element (a 🦾 card by default)
   flash(id, cls, sel = `.ucard[data-up="${id}"]`) {
@@ -10318,12 +10480,20 @@ const Garage = {
       const rows = ['legs', 'torso', 'arms'].map((k) => { const Q = BODY_SECTIONS.find((q) => q.id === k);
         return `<div class="lrow" data-sec="${k}" style="--n:${LEG_SHAPES.length}"><div class="llab${k === psec ? ' on' : ''}" style="--pc:${Q.hex}" role="img" aria-label="${Q.name}">${icon(Q.ic)}<small>${Q.name}</small></div>`
           + `${k === 'legs' ? legCards : secCards(k)}</div>`; }).join('');
+      // #43: each row's hint is what lifts it next: + how many more upgrade levels, with the parts that give them, and / or the
+      // facts milestone (🔢 18) that raises every section; ⭐ at tier 4 (Body.next)
+      const NX = Body.next();
       $('gWall').innerHTML = rows + BODY_SECTIONS.map((S) => {
         const t = B.tiers[S.id], up = B.preview != null ? t : Math.min(B.points[S.id], t);   // (a previewTier forces the tier: no mastery pips)
         const pips = Array.from({ length: BODY.max }, (_, k) => `<i class="${k < up ? 'on' : k < t ? 'on bonus' : ''}"></i>`).join('');
-        return `<div class="brow" data-sec="${S.id}" data-tier="${t}" style="--pc:${S.hex}" aria-label="${S.name}: tier ${t} of ${BODY.max}, ${BODY.names[t]}">`
+        const n = NX[S.id], parts = [];
+        if (n.levels) parts.push(`<span class="bup" aria-label="${n.levels} more ${n.ups.join(' or ')} level${n.levels > 1 ? 's' : ''}"><b>+${n.levels}</b>${n.ups.map((id) => icon(PARTS[id].ic)).join('')}</span>`);
+        if (n.facts) parts.push(`<span class="bfacts" aria-label="${n.facts} facts mastered"><b>${n.facts}</b>${icon('math')}</span>`);
+        // (Guest earns no facts milestones: a section whose upgrades are all in shows 🔒, nothing more lifts it for Guest)
+        const hint = n.star ? `<span class="bstar" aria-label="top tier">${icon('star')}</span>` : parts.length ? parts.join('<i class="bor">/</i>') : `<span class="block" aria-label="nothing more lifts it">${icon('lock')}</span>`;
+        return `<div class="brow" data-sec="${S.id}" data-tier="${t}" data-levels="${n.levels ?? ''}" data-facts="${n.facts ?? ''}" data-star="${n.star ? 1 : 0}" style="--pc:${S.hex}" aria-label="${S.name}: tier ${t} of ${BODY.max}, ${BODY.names[t]}">`
           + `<span class="plab">${icon(S.ic)}<small>${S.name}</small></span><span class="pips">${pips}</span><b class="bname">${BODY.names[t]}</b>`
-          + `<span class="braise">${S.ups.map((id) => icon(PARTS[id].ic)).join('')}<span class="bmath${B.bonus ? ' on' : ''}">${icon('math')}${B.bonus ? `<small>+${B.bonus}</small>` : ''}</span></span></div>`;
+          + `<span class="braise">${hint}</span></div>`;
       }).join('');
     } else {
       const tr = this.trophies();
@@ -10411,8 +10581,13 @@ const Garage = {
       icon: ic(el.querySelector('.aic')), next: el.classList.contains('next'), bar: el.querySelector('.abar i')?.style.width ?? null, new: el.classList.contains('new'), drawn: this.drawn['adv:' + el.dataset.adv] ?? null }]));
     // B1: the 🦿 rows as shown: tier (pips lit), how many pips, how many lit by mastery, the name and the raising icons
     const brows = [...W.querySelectorAll('.brow')];
-    const body = brows.length ? Object.fromEntries(brows.map((el) => [el.dataset.sec, { tier: +el.dataset.tier, pips: el.querySelectorAll('.pips i.on').length, of: el.querySelectorAll('.pips i').length,
-      bonus: el.querySelectorAll('.pips i.bonus').length, name: el.querySelector('.bname').textContent, icon: ic(el.querySelector('.plab')), raise: icRead(el.querySelector('.braise')) }])) : null;
+    // #43: hint = the row's next-tier hint as shown: levels (the + number) and the part icons beside it, facts (the milestone's
+    // number) and its icon, star (⭐ at tier 4), and the whole of it as text (raise, as before)
+    const hintOf = (el) => { const up = el.querySelector('.bup'), fa = el.querySelector('.bfacts');
+      return { levels: up ? num(up.querySelector('b')) : null, ups: up ? [...up.querySelectorAll('svg.ic')].map((x) => x.dataset.icon) : null, facts: fa ? num(fa.querySelector('b')) : null, factsIcon: ic(fa),
+        star: !!el.querySelector('.bstar'), lock: !!el.querySelector('.block'), text: icRead(el.querySelector('.braise')) }; };
+    let body = brows.length ? Object.fromEntries(brows.map((el) => [el.dataset.sec, { tier: +el.dataset.tier, pips: el.querySelectorAll('.pips i.on').length, of: el.querySelectorAll('.pips i').length,
+      bonus: el.querySelectorAll('.pips i.bonus').length, name: el.querySelector('.bname').textContent, icon: ic(el.querySelector('.plab')), raise: icRead(el.querySelector('.braise')), hint: hintOf(el) }])) : null;
     // B2: the 🦿 leg cards as shown: equipped (✔), locked and the 🔒's progress, picked by keys / pad, the trade-off chips
     // (up / dn and their text), and drawn = the 3D piece in its box last frame ('piece', 'outline' while locked)
     // (#42: the legs' cards only: the torso's and the arms' are in torso / arms, below)
@@ -10458,8 +10633,25 @@ const Garage = {
     const rows = lrows.length ? lrows.map((el) => { const b = el.getBoundingClientRect(), l = el.querySelector('.llab');
       return { sec: el.dataset.sec, icon: ic(l), on: l.classList.contains('on'), cards: [...el.querySelectorAll('.lcard')].map((c) => c.dataset.shape), seen: b.top >= wr.top - 1 && b.bottom <= wr.bottom + 1 }; }) : null;
     const section = lrows.length ? this.bodySec() : null;
+    // #43: the 🦿 tab in one place, alongside the section rows above: cards = every card (legs, torso, arms) as read above,
+    // keyed 'legs:<id>' / 'torso:<id>' / 'arms:<id>'; lift = what the lift shows ('mech', or 'frame': an open blueprint's
+    // shape as a dark ghost, filling in), the shape on it, its ghost / lit meshes and the blueprint's 🔒 progress (steps lit,
+    // of; parts in / needed); tierUp = the lift's tier-up banner as shown (each section's icon, its new tier, pips lit and
+    // new) and whether it has flipped to the new look yet
+    if (this.tab === 'body') {
+      body ||= {};   // (an open blueprint: no section rows, but its cards and the lift)
+      const cards = {}; for (const k of ['legs', 'torso', 'arms']) { const c = k === 'legs' ? legs : secCards(k); for (const [id, v] of Object.entries(c || {})) cards[k + ':' + id] = v; }
+      const fr = this.drawn.frame, eq = Shapes.rec(), bpb = this.bp ? Builds.brief(this.bp) : null;
+      body.cards = cards;
+      body.lift = { shows: this.drawn.lift ?? null, shape: this.bp ?? { legs: eq.legs + (eq.legs === 'spider' ? ':' + eq.spiderLegs : ''), torso: eq.torso, arms: eq.arms },
+        ghost: fr ? fr.meshes.ghost : 0, lit: fr ? fr.meshes.lit : null, progress: bpb ? { steps: [bpb.step, bpb.steps], parts: Object.fromEntries(Object.keys(bpb.need).map((p) => [p, [bpb.parts[p], bpb.need[p]]])) } : null };
+    }
+    const tb = $('gTier');
+    const tierUp = tb.classList.contains('on') ? { flipped: tb.classList.contains('flipped'), sections: [...tb.querySelectorAll('.tban .tu')].map((t) => ({ sec: t.dataset.sec, from: +t.dataset.from, tier: +t.dataset.tier,
+        icon: ic(t), pips: t.querySelectorAll('.tp i.on').length, fresh: t.querySelectorAll('.tp i.new').length })), sparkles: [...tb.querySelectorAll('.tsp')].filter((x) => x.style.visibility !== 'hidden').map((x) => x.dataset.sec) } : null;
+    if (body) body.tierUp = tierUp;
     const ch = $('gCheer'), em = W.querySelector('.sempty');
-    return { tab: this.tab, body, legs, torso: secCards('torso'), arms: secCards('arms'), section, rows, scroll: lrows.length ? { top: Math.round(W.scrollTop), max: W.scrollHeight - W.clientHeight } : null, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
+    return { tab: this.tab, body, tierUp, legs, torso: secCards('torso'), arms: secCards('arms'), section, rows, scroll: lrows.length ? { top: Math.round(W.scrollTop), max: W.scrollHeight - W.clientHeight } : null, build, lock: lock ? { tab: lock.dataset.tab, text: icRead(lock) } : null, slots, cards, squad, advanced, cheer: ch.classList.contains('on') ? icRead(ch.querySelector('.gch')) : null,
       empty: !!em, emptyText: em ? icRead(em) : null, paint, lift: this.drawn.lift ?? null, who: icRead($('gWho')),
       // (I2: each tab as { id, icon, on, locked }; it was 'id', 'id*' for the open one, with a 🔒 after a locked one)
       tabs: [...$('gTabs').children].map((b) => ({ id: b.dataset.t, icon: ic(b), on: b.classList.contains('on'), locked: b.classList.contains('locked') })) };
@@ -10584,6 +10776,7 @@ const Garage = {
       } else {
         this.drawn.frame = null;
         this.drawn.lift = this.mech && this.view($('gLift'), mb.y, mb.r, 0.18) ? 'mech' : null;
+        if (this.tcheer && this.drawn.lift) this.placeTier();   // #43
       }
       this.lift.visible = false;
       if (this.tab === 'trophies') {
@@ -10770,6 +10963,7 @@ function advPiece(id) {
 const Adv = {
   toastIds: null, toastT: null, pending: null,
   unlocked(ids) {
+    Body.tierCheck('facts');   // #43: 🚀 jets and 🛡️ shield raise every section's tier (checked before the mech is dressed)
     applyUpgrades();   // its effect is on from now (chrome's energy, the jets, the core, the shield, gold)
     this.toast(ids);
   },
@@ -10790,6 +10984,50 @@ const Adv = {
     return this.toastIds;
   },
   toastStop() { clearTimeout(this.toastT); this.toastIds = null; this.pending = null; $('advToast').classList.remove('on'); },
+};
+// #43: the in-play toast for a tier-up: each section that rose, its icon in its part colour and its new tier as pips (the new
+// ones glowing), then ➜ 🔧 (the garage plays the flip). It shows straight away, in the unlock toast's place (high and
+// centred, clear of the thumbs and the touch buttons), and never with another toast up: while a fix panel is open, or the
+// unlock toast is up (a milestone brings both), it waits (pending) and the sim tick shows it after. Not while the garage is
+// open: the garage plays the tier-up itself.
+const TierToast = {
+  ups: null, t: null, pending: null,
+  // ups: tier-ups ({ sec, from, to }); wait: hold it for the next tick even if nothing's up (a milestone's toast comes next)
+  show(ups, wait = false) {
+    this.pending = this.merge([...(this.pending || []), ...ups]);
+    return wait ? null : this.flush();
+  },
+  // a section that rose twice shows once, from its first old tier to its last new one, in BODY_SECTIONS order
+  merge(ups) {
+    const by = {};
+    for (const u of ups) { const o = by[u.sec]; by[u.sec] = o ? { sec: u.sec, from: Math.min(o.from, u.from), to: Math.max(o.to, u.to) } : { sec: u.sec, from: u.from, to: u.to }; }
+    return BODY_SECTIONS.filter((S) => by[S.id]).map((S) => by[S.id]);
+  },
+  flush() {
+    if (!this.pending || FixUI.mode || Garage.on || Adv.toastIds || Adv.pending) return null;
+    const ups = this.pending; this.pending = null;
+    if (this.ups) ups.unshift(...this.ups);   // (one still up: it shows them all)
+    this.ups = this.merge(ups);
+    $('tierToast').innerHTML = this.ups.map((u) => { const S = BODY_SECTIONS.find((q) => q.id === u.sec);
+      return `<span class="tu" data-sec="${u.sec}" data-tier="${u.to}" style="--pc:${S.hex}"><span class="ti">${icon(S.ic)}</span><span class="tp">${Array.from({ length: BODY.max }, (_, k) => `<i class="${k < u.from ? 'on' : k < u.to ? 'on new' : ''}"></i>`).join('')}</span></span>`; }).join('')
+      + `<span class="tg">${icon('arrow')}${icon('wrench')}</span>`;
+    const el = $('tierToast'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    if (!Game.manual) { Sfx.tone(523, 0.1, 'triangle', 0.06, 784); Sfx.tone(784, 0.16, 'triangle', 0.06, 1046, 0.1); }
+    clearTimeout(this.t);
+    this.t = setTimeout(() => this.stop(), ADV.toast);
+    return this.ups;
+  },
+  stop() { clearTimeout(this.t); this.ups = null; $('tierToast').classList.remove('on'); },
+  // the garage opening plays every tier-up queued, so a toast up or waiting goes
+  drop() { this.pending = null; this.stop(); },
+  // the toast as shown: per section its icon, tier and pips lit / new, and the trailing icons; pending = waiting to show
+  dom() {
+    const el = $('tierToast'); if (!el.classList.contains('on')) return { on: false, pending: this.pending ? this.pending.map((u) => ({ ...u })) : null };
+    const r = el.getBoundingClientRect();
+    return { on: true, box: [r.left, r.top, r.right, r.bottom].map(Math.round), pending: this.pending ? this.pending.map((u) => ({ ...u })) : null,
+      sections: [...el.querySelectorAll('.tu')].map((t) => ({ sec: t.dataset.sec, tier: +t.dataset.tier, icon: t.querySelector('.ti svg.ic')?.dataset.icon ?? null, pips: t.querySelectorAll('.tp i.on').length, fresh: t.querySelectorAll('.tp i.new').length, of: t.querySelectorAll('.tp i').length })),
+      tail: icRead(el.querySelector('.tg')) };
+  },
 };
 
 function render(dt) {
@@ -11051,7 +11289,7 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, Body, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, TierToast, Body, BODY, BODY_SECTIONS, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
   BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
   CAM_FAR,   // (#103)
