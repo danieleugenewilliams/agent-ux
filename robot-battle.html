@@ -997,6 +997,7 @@
   .sq4.on { --hc: var(--yellow); } .sq4.ok { --hc: var(--green); }
   .ld { font: 900 24px 'Asap', sans-serif; color: var(--yellow); text-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
   .ldp { display: grid; grid-template-columns: repeat(3, 9px); gap: 3px; } .ldp i { width: 9px; height: 9px; border-radius: 50%; background: var(--yellow); }
+  .bbase { font-size: .7em; opacity: .85; margin-left: 2px; }   /* #102: a battery's base load, what else it powers */
   .ldp.meter { grid-template-columns: repeat(5, 9px); } .ldp.meter i { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); } .ldp.meter i.on { background: var(--green); border-color: var(--green); }
   .bdone { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 64px; }
   .glift.sparkle { animation: liftSparkle .8s ease-in-out 3; }
@@ -5254,7 +5255,8 @@ const BUILD_JOBS = {
   // allowed, dealt only where there's exactly one way to share them with the heaviest pinned on battery 1 (counting which
   // motors, so two equal loads never swap), with at least one more on battery 1 and two on battery 2. Pinned and wanted by
   // motor, not by load.
-  // #102: in math wiring every motor's load is a fact's answer (BUILD_JOBS.balance.math), so each load is worked out.
+  // #102: in math wiring every motor's load is a fact's answer (BUILD_JOBS.balance.math), so each load is worked out. Any
+  // motor can be the pinned one, and each battery carries a base load too (a part it powers), shown only in its meter.
   balance: { rounds: 1,
     deal(mode, r, ctx) {
       const n = ctx?.step?.motors || 4;
@@ -5286,44 +5288,51 @@ const BUILD_JOBS = {
       const plugs = at.map((k, l) => ({ what: 'motor', leg: l, load: S.loads[k], want: k === 5 || (S.on1 >> k) & 1 ? 0 : 1, fact: null, col: null }));
       return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: S.half })), links: at.map((k) => (k === 5 ? 0 : -1)) };
     },
-    // #102: math wiring's board for n motors (4 or 6): each motor's load is a fact's answer, all different. n - 1 facts come
-    // from the tracker (jobFacts); the last is one whose answer leaves exactly one way to share the loads with the heaviest
-    // pinned on battery 1, at least one more with it and two on battery 2 (for 4 motors that's a + d = b + c, the lightest
-    // joining the heaviest). It's a fact the child has open if one fits, else any 2–9 fact. If none fits, one of the
-    // tracker's facts is swapped for another and it tries again (then any 2–9 facts). Pinned and wanted by motor.
+    // #102: math wiring's board for n motors (4 or 6): each motor's load is a fact's answer, all different, all n facts from
+    // the tracker (jobFacts). Dad's call (#107, tighten): nothing on the board but the facts' answers may say which motors go
+    // with the pinned one, so a child who guesses sizes from the facts (4 × 9 looks big) does no better than chance:
+    //   - the pinned motor is any of them, not the heaviest;
+    //   - which others join it on battery 1 is picked at random: how many first (1 to n - 3, so battery 2 gets 2 or more),
+    //     then which, among every way that's allowed;
+    //   - each battery then gets a base load (what else it powers: the core on battery 1, the radar on battery 2; the
+    //     Brute's gun at the front and its core at the back) that makes the two halves equal. It's in the meter's number
+    //     only, so the meter shows what's on it now and the half (e.g. 39/60), and the gap is the answer to find.
+    // A set of facts and a pin is kept only if every allowed pick would be the only way to fill battery 1 (no other set of
+    // motors adds up to the same), and every pick's half is at most CAP (n: 99 for 4 motors, 150 for 6). So the pick
+    // stays a fair draw whatever the facts are: a set that would have to skip a pick is dealt again, never the pick.
+    // If no pin fits, one of the tracker's facts is swapped for another (up to 20 times), then any 2–9 facts.
     math(n) {
-      const prods = new Map(), open = Facts.rec ? [...Facts.open().values()].filter((f) => f.op === '×') : [];
-      for (let a = 2; a <= 9; a++) for (let b = a; b <= 9; b++) { const v = a * b; if (!prods.has(v)) prods.set(v, []); prods.get(v).push(makeFact('×', a, b)); }
-      const vals = [...new Set([...prods.keys(), ...open.map((f) => f.answer)])];
-      // the one way to share sorted loads L (the last, the heaviest, pinned on battery 1): its mask over the rest, or -1
-      const share = (L) => {
-        const tot = L.reduce((s, v) => s + v, 0), half = tot / 2, k = L.length - 1; if (tot % 2) return -1;
-        let ways = 0, sol = -1;
-        for (let m = 0; m < 1 << k; m++) if (L[k] + L.slice(0, k).reduce((s, v, i) => s + ((m >> i) & 1 ? v : 0), 0) === half) { ways++; sol = m; }
-        const on1 = sol < 0 ? 0 : L.slice(0, k).filter((_, i) => (sol >> i) & 1).length;
-        return ways === 1 && on1 >= 1 && k - on1 >= 2 ? sol : -1;
+      const CAP = n === 4 ? 99 : 150, pick = (l) => l[Math.floor(Math.random() * l.length)];
+      // the allowed picks for loads L with motor pin pinned, by how many join it: lists of motor indexes; null if one
+      // isn't the only way or is over CAP
+      const picks = (L, pin) => {
+        const c = L.map((_, i) => i).filter((i) => i !== pin), k = c.length, tot = L.reduce((s, v) => s + v, 0), seen = new Map(), by = [];
+        const sum = (m) => c.reduce((s, i, b) => s + ((m >> b) & 1 ? L[i] : 0), 0), size = (m) => c.filter((_, b) => (m >> b) & 1).length;
+        for (let m = 0; m < 1 << k; m++) { const s = sum(m); seen.set(s, (seen.get(s) || 0) + 1); }
+        for (let m = 1; m < 1 << k; m++) {
+          const z = size(m); if (z < 1 || k - z < 2) continue;
+          const s1 = L[pin] + sum(m); if (seen.get(sum(m)) > 1 || Math.max(s1, tot - s1) + 6 > CAP) return null;
+          (by[z] ||= []).push(c.filter((_, b) => (m >> b) & 1));
+        }
+        return by.filter(Boolean);
       };
-      const pick = (l) => l[Math.floor(Math.random() * l.length)];
-      const last = (fs) => {   // a value for the last load, and a fact for it
-        const have = new Set(fs.map((f) => f.answer)), fits = vals.filter((v) => !have.has(v) && share([...have, v].sort((x, y) => x - y)) >= 0);
-        if (!fits.length) return null;
-        const v = pick(fits), mine = open.filter((f) => f.answer === v), g = pick(mine.length ? mine : prods.get(v));
-        return { op: '×', a: g.a, b: g.b, key: g.key, answer: g.answer, flip: Math.random() < 0.5 };
-      };
-      let fs = jobFacts(n - 1), f = last(fs);
-      for (let t = 0; !f && t < 40; t++) { fs.splice(Math.floor(Math.random() * fs.length), 1); fs.push(...jobFacts(1, fs.map((q) => q.answer))); f = last(fs); }
-      for (let t = 0; !f && t < 1000; t++) {   // nothing fits the tracker's facts: any 2–9 facts
-        const any = shuffle([...prods.keys()]).slice(0, n - 1).map((v) => { const g = pick(prods.get(v)); return { op: '×', a: g.a, b: g.b, key: g.key, answer: g.answer, flip: Math.random() < 0.5 }; });
-        f = last(any); if (f) fs = any;
+      const fit = (fs) => { const L = fs.map((f) => f.answer); for (const pin of shuffle(L.map((_, i) => i))) { const P = picks(L, pin); if (P) return { pin, P }; } return null; };
+      let fs = jobFacts(n), got = fit(fs);
+      for (let t = 0; !got && t < 20; t++) { fs.splice(Math.floor(Math.random() * fs.length), 1); fs.push(...jobFacts(1, fs.map((q) => q.answer))); got = fit(fs); }
+      while (!got) {   // nothing fits the tracker's facts: any 2–9 facts, all different answers
+        const any = new Map(); for (let a = 2; a <= 9; a++) for (let b = a; b <= 9; b++) any.set(a * b, makeFact('×', a, b));
+        fs = shuffle([...any.values()]).slice(0, n).map((g) => ({ op: '×', a: g.a, b: g.b, key: g.key, answer: g.answer, flip: Math.random() < 0.5 })); got = fit(fs);
       }
-      const S = [...fs, f].sort((x, y) => x.answer - y.answer), L = S.map((q) => q.answer), on1 = share(L), half = L.reduce((s, v) => s + v, 0) / 2;
-      const at = shuffle(L.map((_, k) => k));   // at[l] = which of the sorted loads leg l's motor draws
-      const plugs = at.map((k, l) => ({ what: 'motor', leg: l, load: L[k], want: k === n - 1 || (on1 >> k) & 1 ? 0 : 1, fact: S[k], col: null }));
-      return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: half })), links: at.map((k) => (k === n - 1 ? 0 : -1)) };
+      fs = fs.slice(); const order = shuffle(fs.map((_, k) => k)), on1 = pick(pick(got.P)), L = fs.map((f) => f.answer), tot = L.reduce((s, v) => s + v, 0);
+      const s1 = L[got.pin] + on1.reduce((s, i) => s + L[i], 0), s2 = tot - s1, lo = 1 + Math.floor(Math.random() * 6);
+      const base = s1 < s2 ? [lo + s2 - s1, lo] : [lo, lo + s1 - s2], half = s1 + base[0];
+      // order[l] = which fact leg l's motor draws
+      const plugs = order.map((k, l) => ({ what: 'motor', leg: l, load: L[k], want: k === got.pin || on1.includes(k) ? 0 : 1, fact: fs[k], col: null }));
+      return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: half, base: base[k] })), links: order.map((k) => (k === got.pin ? 0 : -1)) };
     },
     miss: (p, q, Bd, j) => (BUILD_JOBS.balance.sum(Bd, j) + p.load > q.target ? 'over' : 'uneven'),
     wrong: (Bd) => { const i = Bd.plugs.findIndex((p, k) => Bd.links[k] < 0 && p.want === 1); return i >= 0 ? [i, 0] : null; },   // (a middle one on battery 1: over)
-    sum: (Bd, j) => Bd.plugs.reduce((s, p, k) => s + (Bd.links[k] === j ? p.load : 0), 0),
+    sum: (Bd, j) => (Bd.ports[j]?.base ?? 0) + Bd.plugs.reduce((s, p, k) => s + (Bd.links[k] === j ? p.load : 0), 0),   // (#102: and its base load, in math)
     ideaPort: (q, j, Bd) => ({ target: q.target, load: BUILD_JOBS.balance.sum(Bd, j) }) },
   // #42 Long barrels: line up the sights. Three scopes, each sighting along a line at its height (1–3); the target is at one
   // height. The right scope is the one on the target's line, so the barrel and the scope point along one line to it.
@@ -5358,7 +5367,8 @@ const BUILD_JOBS = {
     idea: (p) => ({ weight: p.stiff }), ideaPort: (q) => ({ lean: q.height }) },
   // #42 Brute: spread the armour's weight. Four plates' weights shared between the front and the back so each end carries
   // half and the centre of mass sits over the legs: the balance job's board, with plates for motors and the ends for
-  // batteries (the heaviest is on the front already)
+  // batteries (the heaviest is on the front already; #102, in math wiring any plate is, and the front carries the gun and
+  // the back the core, as the batteries carry the core and the radar)
   spread: { rounds: 1,
     deal(mode) { const Bd = BUILD_JOBS.balance.deal(mode, 0, {}); for (const p of Bd.plugs) { p.what = 'plate'; p.plate = p.leg; delete p.leg; } for (const q of Bd.ports) q.what = 'end'; return Bd; },
     miss: (p, q, Bd, j) => BUILD_JOBS.balance.miss(p, q, Bd, j), wrong: (Bd) => BUILD_JOBS.balance.wrong(Bd),
@@ -9994,7 +10004,11 @@ const Garage = {
       if (q.what === 'battery' || q.what === 'end') {   // (#42: or an end of the Brute, front or back, carrying its plates' weight)
         const sum = BUILD_JOBS.balance.sum(Bd, j), full = sum === q.target, meter = M ? `<b class="ld">${sum}/${q.target}</b>` : `<span class="ldp meter">${Array.from({ length: q.target }, (_, k) => `<i class="${k < sum ? 'on' : ''}"></i>`).join('')}</span>`;
         const end = q.what === 'end', what = end ? (j ? 'the back' : 'the front') : `battery ${j + 1}`;
-        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${end ? PARTS.armour.hex : PARTS.battery.hex}" aria-label="${what}: ${sum} of ${q.target}"><span class="bpf">${icon(end ? (j ? 'down' : 'up') : 'battery')}</span>${meter}</button>`;
+        // (#102, math: the part it carries besides the motors / plates, its base load, counted in the meter; the same part
+        // on that battery or end every time)
+        const [bic, bname] = end ? (j ? ['core', 'the core'] : ['gun', 'the gun']) : j ? ['radar', 'the radar'] : ['core', 'the core'];
+        const based = q.base != null, also = based ? `, ${bname} on it too` : '', chip = based ? `<span class="bbase">${icon(bic, { label: bname })}</span>` : '';
+        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${end ? PARTS.armour.hex : PARTS.battery.hex}" aria-label="${what}: ${sum} of ${q.target}${also}"><span class="bpf">${icon(end ? (j ? 'down' : 'up') : 'battery')}${chip}</span>${meter}</button>`;
       }
       const [ic, hex, name] = q.what === 'controller' ? ['brain', '#ff7ad9', 'controller socket'] : q.what === 'pump' ? ['power', PARTS.wiring.hex, 'pump socket'] : ['motor', PARTS.motor.hex, 'motor'];
       return `<button class="bport${linked ? ' in' : ''}${c}" data-port="${j}" style="--pc:${hex}" aria-label="${name} ${j + 1}"><span class="bpf">${icon(ic)}</span>${tag}</button>`;
