@@ -997,6 +997,7 @@
   .sq4.on { --hc: var(--yellow); } .sq4.ok { --hc: var(--green); }
   .ld { font: 900 24px 'Asap', sans-serif; color: var(--yellow); text-shadow: 2px 2px 0 var(--ink); white-space: nowrap; }
   .ldp { display: grid; grid-template-columns: repeat(3, 9px); gap: 3px; } .ldp i { width: 9px; height: 9px; border-radius: 50%; background: var(--yellow); }
+  .bbase { font-size: .7em; opacity: .85; margin-left: 2px; }   /* #102: a battery's base load, what else it powers */
   .ldp.meter { grid-template-columns: repeat(5, 9px); } .ldp.meter i { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); } .ldp.meter i.on { background: var(--green); border-color: var(--green); }
   .bdone { flex: 1; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 64px; }
   .glift.sparkle { animation: liftSparkle .8s ease-in-out 3; }
@@ -1728,6 +1729,10 @@ const isProj = (S) => !!S && !!(S.part || S.of);
 //                much tips it 'over' the other way, too little leaves it 'under')
 //   'spread'   = spread the armour's weight: the plates' weights shared between the front and the back so each end carries
 //                half and the centre of mass sits over the legs (the balance job's board: 'over' / 'uneven')
+// #102: in math wiring every job needs the times facts. The port shows the job's test (the pad's height, the load, the leg
+// stepping, the rotor spinning, the seam welded ...) and its answer; each plug shows only its fact, so only the facts say
+// which plug is right (the picture never does). Balance and spread: each load is a fact's answer. Every link answers the
+// plug's fact in the facts tracker, as a Quick Fix wire does. Colour wiring is unchanged.
 //   'weld'     = weld the plates in order: a seam is welded; weld the one across from it next, so the heat pulls both sides
 //                evenly (a seam beside it 'warp's the plate). Round 2 asks about the other pair of seams
 const BUILDS = {
@@ -5042,7 +5047,8 @@ const Builds = {
     // (#91: ctx.step = the recipe's step, which tells a job about the Mk II's legs: legwire's legs, gait's tripod, balance's motors)
     const JD = BUILD_JOBS[st.job], rounds = JD.rounds, ctx = { step: st }, boards = [];
     for (let r = 0; r < rounds; r++) boards.push(JD.deal(mode, r, ctx));
-    return (this.job = { shape: S.id, step: k, who, job: st.job, ic: st.ic, mode, round: 0, rounds, boards, tries: 0, miss: null, log: [] });
+    // (#102: last = when the board was last free to answer: made, last answered, or back in view; the answer clock)
+    return (this.job = { shape: S.id, step: k, who, job: st.job, ic: st.ic, mode, round: 0, rounds, boards, tries: 0, miss: null, log: [], last: Facts.now(), view: null });
   },
   // why there's no job for shape id now
   noJob(id) {
@@ -5057,20 +5063,24 @@ const Builds = {
   // is done, and after the last round the job's step is done (saved). Wrong: a buzz and the miss shown (BUILD_JOBS' miss:
   // e.g. the spring went 'over' or 'under' the pad, the gear 'stall's or is 'slow', or the plug and port don't match):
   // nothing is spent, try again.
-  link(id, i, j) {
+  // #102: in math wiring every link answers the plug's fact, as a Quick Fix wire does (Facts.answer: it lands in the
+  // child's record and today's practice, and moves the fact's stage). Timed from when the board was last free to answer
+  // (J.last; ms overrides it, for tests). A table cheer or an unlock's toast it brings is held while the garage is open.
+  link(id, i, j, ms) {
     const J = this.jobFor(id); if (!J) return { ok: false, why: this.noJob(id) };
     const Bd = J.boards[J.round], p = Bd.plugs[i], q = Bd.ports[j];
     if (!p || !q) return { ok: false, why: 'no such plug or port', plug: i, port: j };
     if (Bd.links[i] >= 0) return { ok: false, why: 'in already', plug: i };
     J.tries++;
+    const fact = J.mode === 'math' && p.fact ? this.answerFact(J, Bd, i, j, ms) : null;
     if (p.want !== j) {
       J.miss = { plug: i, port: j, how: BUILD_JOBS[J.job].miss(p, q, Bd, j) };
-      J.log.push({ round: J.round, plug: i, port: j, right: false });
+      J.log.push({ round: J.round, plug: i, port: j, right: false, ...(fact ? { key: fact.key, value: fact.value, ms: fact.ms } : {}) });
       if (!Game.manual) Sfx.buzz();
       if (Garage.on) { Garage.bsel = -1; Garage.draw(); Garage.flash(null, 'bad', `.bplug[data-plug="${i}"]`); }
-      return { ok: false, why: 'wrong', miss: J.miss.how, plug: i, port: j, round: J.round };
+      return { ok: false, why: 'wrong', miss: J.miss.how, plug: i, port: j, round: J.round, fact };
     }
-    Bd.links[i] = j; J.miss = null; J.log.push({ round: J.round, plug: i, port: j, right: true });
+    Bd.links[i] = j; J.miss = null; J.log.push({ round: J.round, plug: i, port: j, right: true, ...(fact ? { key: fact.key, value: fact.value, ms: fact.ms } : {}) });
     const roundDone = Bd.plugs.every((pl, k) => pl.want < 0 || Bd.links[k] >= 0);
     let stepDone = false;
     if (roundDone) {
@@ -5081,7 +5091,23 @@ const Builds = {
     const built = stepDone && this.rec(J.shape).step >= buildOf(J.shape).length;
     if (Garage.on) { Garage.bcur = 0; Garage.bsel = -1; Garage.draw(); }
     if (built) this.finish(J.shape);
-    return { ok: true, plug: i, port: j, roundDone, round: J.round, stepDone, step: this.stepOf(J.shape), built };
+    return { ok: true, plug: i, port: j, roundDone, round: J.round, stepDone, step: this.stepOf(J.shape), built, fact };
+  },
+  // #102: record plug i's fact as answered by linking it to port j: the value the link says it is. Right: its answer. Wrong:
+  // the port's answer (a decoy's, or the tripod's first answer not linked yet), or for a battery the load still to go on it
+  // (never the plug's, or the link would be right). Returns what Facts.answer said (null with nobody playing).
+  answerFact(J, Bd, i, j, ms) {
+    const p = Bd.plugs[i], q = Bd.ports[j], now = Facts.now(), t = ms ?? Math.max(0, now - (J.last ?? now));
+    J.last = now;
+    let value = p.fact.answer;
+    if (p.want !== j) {
+      if (q.target != null) value = q.target - BUILD_JOBS.balance.sum(Bd, j);
+      else if (Array.isArray(q.answer)) value = q.answer.find((a) => !Bd.plugs.some((pl, k) => Bd.links[k] === j && pl.fact?.answer === a)) ?? q.answer[0];
+      else value = q.answer;
+      if (value === p.fact.answer) value = null;   // (can't happen: a safety net, so a wrong link is never a right answer)
+    }
+    const res = Facts.rec ? Facts.answer(p.fact, value, t) : null;
+    return res && { key: res.key, value, right: res.right, from: res.from, to: res.to, ms: Math.round(t), cheer: res.cheer, unlocked: res.unlocked };
   },
   // the right link for the board now's next wanted plug, as [plug, port] (the hooks' default answer)
   answer(id) {
@@ -5126,11 +5152,13 @@ const Builds = {
   },
 };
 // n multiplication facts for a job board in math wiring, each with a different answer: the tracker picks them from the
-// child's open steps (as a Quick Fix board does), any 2–9 fact if it has none left. The answers aren't recorded (#89).
-function jobFacts(n) {
+// child's open steps (as a Quick Fix board does), any 2–9 fact if it has none left. #102: every link on the board answers
+// a plug's fact and is recorded (Builds.link), as a Quick Fix wire is. have = answers already on the board (none of the
+// new facts has one of them).
+function jobFacts(n, have = []) {
   const out = [];
   for (let i = 0; i < n; i++) {
-    const taken = new Set(out.map((f) => f.answer)), clash = [];
+    const taken = new Set([...have, ...out.map((f) => f.answer)]), clash = [];
     for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (taken.has(a * b)) clash.push(makeFact('×', a, b).key);
     let f = Facts.rec ? Facts.next({ exclude: clash, ops: ['×'] }) : null;
     if (!f || taken.has(f.answer)) {
@@ -5149,22 +5177,26 @@ const LEGS4 = LEGS6.slice(0, 4);   // the Spider's legs, as LEG_KITS.spider buil
 const legSide = (l) => (l % 2 ? 1 : -1);   // (#91: the Mk II's middle legs too: 4 is left, 5 right)
 const legEnd = (l) => (l < 2 ? 1 : l < 4 ? -1 : 0);   // #91: front 1, back -1, middle 0
 // three plugs at levels 1, 2, 3 (soft to stiff, weak to strong, few turns to many) and one test at one of their levels
-// (never the same level twice in a row): only the plug at the test's level is right. In math wiring each plug's fact's
-// answer gets bigger with its level, and the test shows the right one's answer.
+// (never the same level twice in a row): only the plug at the test's level is right. In math wiring (#102) the test shows
+// the right one's answer, and the plugs show only their facts, in a shuffled order, the facts given to the levels at
+// random: the picture shows the test (the pad's height, the load, the sag ...) but not which plug matches it, so only the
+// facts tell.
 function levelBoard(mode, ctx, what, port, extra = {}) {
   let lv; do lv = Math.floor(Math.random() * 3); while (lv === ctx.last); ctx.last = lv;
-  const facts = mode === 'math' ? jobFacts(3).sort((a, b) => a.answer - b.answer) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3);
-  return { plugs: [0, 1, 2].map((i) => ({ what, stiff: i + 1, want: i === lv ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] })),
+  const facts = mode === 'math' ? shuffle(jobFacts(3)) : null, cols = shuffle([0, 1, 2, 3]).slice(0, 3);   // (#102: the tracker's order says nothing)
+  const plugs = [0, 1, 2].map((i) => ({ what, stiff: i + 1, want: i === lv ? 0 : -1, fact: facts?.[i] ?? null, col: cols[i] }));
+  return { plugs: facts ? shuffle(plugs) : plugs,
     ports: [{ what: port, height: lv + 1, answer: facts ? facts[lv].answer : null, col: cols[lv], ...extra }], links: [-1, -1, -1] };
 }
 // n plugs each wired to its own port (of = whose port it is): shuffled so no port sits straight across from its own plug;
-// in math wiring a decoy answer too
+// in math wiring a decoy answer too. #102: in math wiring the ports are shuffled with no such rule, so where a port sits
+// says nothing at all about whose it is (not straight across would say it isn't that plug's): only the answers tell.
 function wireBoard(mode, n, plug, port) {
   const facts = mode === 'math' ? jobFacts(n) : null, cols = shuffle([0, 1, 2, 3]).slice(0, n);
   const ports = Array.from({ length: n }, (_, i) => ({ ...port(i), of: i, answer: facts ? facts[i].answer : null, col: cols[i] }));
   if (facts) { const used = new Set(facts.map((f) => f.answer)); let d = facts[0].answer + facts[0].a; while (used.has(d)) d++; ports.push({ ...port(-1), of: -1, answer: d, col: null }); }
   let order = shuffle(ports.map((_, j) => j));
-  for (let t = 0; t < 30 && order.some((j, pos) => pos < n && j === pos); t++) order = shuffle(order);
+  for (let t = 0; !facts && t < 30 && order.some((j, pos) => pos < n && j === pos); t++) order = shuffle(order);
   const P = order.map((j) => ports[j]);
   return { plugs: Array.from({ length: n }, (_, i) => ({ ...plug(i), want: P.findIndex((q) => q.of === i), fact: facts?.[i] ?? null, col: cols[i] })), ports: P, links: Array(n).fill(-1) };
 }
@@ -5217,15 +5249,19 @@ const BUILD_JOBS = {
     miss: (p, q) => (legSide(p.leg) === legSide(q.leg) ? 'tip-side' : q.tripod && legEnd(p.leg) !== legEnd(q.leg) ? 'pair' : 'tip-end') },
   // Spider: the 4 leg motors' loads shared between 2 batteries so each carries half. The heaviest is on battery 1 already;
   // loads a < b < c < d with a + d = b + c, so the lightest joins it and the middle two go on battery 2 (the only way). Too
-  // much on a battery is 'over'; anything else that can't come out even is 'uneven'. In math wiring the loads are numbers
-  // to add (up to 9); in colour wiring they're dots to count (up to 6).
-  // #91: the Mk II's 6 leg motors (ctx.step.motors): loads 1–9 (math) or 1–6 dots (colour, at most 10 a battery), repeats
+  // much on a battery is 'over'; anything else that can't come out even is 'uneven'. In math wiring (#102) each load is a
+  // fact's answer (math, below); in colour wiring they're dots to count (up to 6).
+  // #91: the Mk II's 6 leg motors (ctx.step.motors): loads 1–6 dots (colour, at most 10 a battery; #102: facts in math), repeats
   // allowed, dealt only where there's exactly one way to share them with the heaviest pinned on battery 1 (counting which
   // motors, so two equal loads never swap), with at least one more on battery 1 and two on battery 2. Pinned and wanted by
   // motor, not by load.
+  // #102: in math wiring every motor's load is a fact's answer (BUILD_JOBS.balance.math), so each load is worked out. Any
+  // motor can be the pinned one, and each battery carries a base load too (a part it powers), shown only in its meter.
   balance: { rounds: 1,
     deal(mode, r, ctx) {
-      if ((ctx?.step?.motors || 4) !== 4) return BUILD_JOBS.balance.six(mode);
+      const n = ctx?.step?.motors || 4;
+      if (mode === 'math') return BUILD_JOBS.balance.math(n);
+      if (n !== 4) return BUILD_JOBS.balance.six(mode);
       const max = mode === 'math' ? 9 : 6, sets = [];
       for (let a = 1; a <= max; a++) for (let b = a + 1; b <= max; b++) for (let c = b + 1; c <= max; c++) { const d = b + c - a; if (d > c && d <= max) sets.push([a, b, c, d]); }
       const [a, b, c, d] = sets[Math.floor(Math.random() * sets.length)], loads = shuffle([a, b, c, d]), half = a + d;
@@ -5252,9 +5288,51 @@ const BUILD_JOBS = {
       const plugs = at.map((k, l) => ({ what: 'motor', leg: l, load: S.loads[k], want: k === 5 || (S.on1 >> k) & 1 ? 0 : 1, fact: null, col: null }));
       return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: S.half })), links: at.map((k) => (k === 5 ? 0 : -1)) };
     },
+    // #102: math wiring's board for n motors (4 or 6): each motor's load is a fact's answer, all different, all n facts from
+    // the tracker (jobFacts). Dad's call (#107, tighten): nothing on the board but the facts' answers may say which motors go
+    // with the pinned one, so a child who guesses sizes from the facts (4 × 9 looks big) does no better than chance:
+    //   - the pinned motor is any of them, not the heaviest;
+    //   - which others join it on battery 1 is picked at random: how many first (1 to n - 3, so battery 2 gets 2 or more),
+    //     then which, among every way that's allowed;
+    //   - each battery then gets a base load (what else it powers: the core on battery 1, the radar on battery 2; the
+    //     Brute's gun at the front and its core at the back) that makes the two halves equal. It's in the meter's number
+    //     only, so the meter shows what's on it now and the half (e.g. 39/60), and the gap is the answer to find.
+    // A set of facts and a pin is kept only if every allowed pick would be the only way to fill battery 1 (no other set of
+    // motors adds up to the same), and every pick's half is at most CAP (n: 99 for 4 motors, 150 for 6). So the pick
+    // stays a fair draw whatever the facts are: a set that would have to skip a pick is dealt again, never the pick.
+    // If no pin fits, one of the tracker's facts is swapped for another (up to 20 times), then any 2–9 facts.
+    math(n) {
+      const CAP = n === 4 ? 99 : 150, pick = (l) => l[Math.floor(Math.random() * l.length)];
+      // the allowed picks for loads L with motor pin pinned, by how many join it: lists of motor indexes; null if one
+      // isn't the only way or is over CAP
+      const picks = (L, pin) => {
+        const c = L.map((_, i) => i).filter((i) => i !== pin), k = c.length, tot = L.reduce((s, v) => s + v, 0), seen = new Map(), by = [];
+        const sum = (m) => c.reduce((s, i, b) => s + ((m >> b) & 1 ? L[i] : 0), 0), size = (m) => c.filter((_, b) => (m >> b) & 1).length;
+        for (let m = 0; m < 1 << k; m++) { const s = sum(m); seen.set(s, (seen.get(s) || 0) + 1); }
+        for (let m = 1; m < 1 << k; m++) {
+          const z = size(m); if (z < 1 || k - z < 2) continue;
+          const s1 = L[pin] + sum(m); if (seen.get(sum(m)) > 1 || Math.max(s1, tot - s1) + 6 > CAP) return null;
+          (by[z] ||= []).push(c.filter((_, b) => (m >> b) & 1));
+        }
+        return by.filter(Boolean);
+      };
+      const fit = (fs) => { const L = fs.map((f) => f.answer); for (const pin of shuffle(L.map((_, i) => i))) { const P = picks(L, pin); if (P) return { pin, P }; } return null; };
+      let fs = jobFacts(n), got = fit(fs);
+      for (let t = 0; !got && t < 20; t++) { fs.splice(Math.floor(Math.random() * fs.length), 1); fs.push(...jobFacts(1, fs.map((q) => q.answer))); got = fit(fs); }
+      while (!got) {   // nothing fits the tracker's facts: any 2–9 facts, all different answers
+        const any = new Map(); for (let a = 2; a <= 9; a++) for (let b = a; b <= 9; b++) any.set(a * b, makeFact('×', a, b));
+        fs = shuffle([...any.values()]).slice(0, n).map((g) => ({ op: '×', a: g.a, b: g.b, key: g.key, answer: g.answer, flip: Math.random() < 0.5 })); got = fit(fs);
+      }
+      fs = fs.slice(); const order = shuffle(fs.map((_, k) => k)), on1 = pick(pick(got.P)), L = fs.map((f) => f.answer), tot = L.reduce((s, v) => s + v, 0);
+      const s1 = L[got.pin] + on1.reduce((s, i) => s + L[i], 0), s2 = tot - s1, lo = 1 + Math.floor(Math.random() * 6);
+      const base = s1 < s2 ? [lo + s2 - s1, lo] : [lo, lo + s1 - s2], half = s1 + base[0];
+      // order[l] = which fact leg l's motor draws
+      const plugs = order.map((k, l) => ({ what: 'motor', leg: l, load: L[k], want: k === got.pin || on1.includes(k) ? 0 : 1, fact: fs[k], col: null }));
+      return { plugs, ports: [0, 1].map((k) => ({ what: 'battery', of: k, target: half, base: base[k] })), links: order.map((k) => (k === got.pin ? 0 : -1)) };
+    },
     miss: (p, q, Bd, j) => (BUILD_JOBS.balance.sum(Bd, j) + p.load > q.target ? 'over' : 'uneven'),
     wrong: (Bd) => { const i = Bd.plugs.findIndex((p, k) => Bd.links[k] < 0 && p.want === 1); return i >= 0 ? [i, 0] : null; },   // (a middle one on battery 1: over)
-    sum: (Bd, j) => Bd.plugs.reduce((s, p, k) => s + (Bd.links[k] === j ? p.load : 0), 0),
+    sum: (Bd, j) => (Bd.ports[j]?.base ?? 0) + Bd.plugs.reduce((s, p, k) => s + (Bd.links[k] === j ? p.load : 0), 0),   // (#102: and its base load, in math)
     ideaPort: (q, j, Bd) => ({ target: q.target, load: BUILD_JOBS.balance.sum(Bd, j) }) },
   // #42 Long barrels: line up the sights. Three scopes, each sighting along a line at its height (1–3); the target is at one
   // height. The right scope is the one on the target's line, so the barrel and the scope point along one line to it.
@@ -5289,7 +5367,8 @@ const BUILD_JOBS = {
     idea: (p) => ({ weight: p.stiff }), ideaPort: (q) => ({ lean: q.height }) },
   // #42 Brute: spread the armour's weight. Four plates' weights shared between the front and the back so each end carries
   // half and the centre of mass sits over the legs: the balance job's board, with plates for motors and the ends for
-  // batteries (the heaviest is on the front already)
+  // batteries (the heaviest is on the front already; #102, in math wiring any plate is, and the front carries the gun and
+  // the back the core, as the batteries carry the core and the radar)
   spread: { rounds: 1,
     deal(mode) { const Bd = BUILD_JOBS.balance.deal(mode, 0, {}); for (const p of Bd.plugs) { p.what = 'plate'; p.plate = p.leg; delete p.leg; } for (const q of Bd.ports) q.what = 'end'; return Bd; },
     miss: (p, q, Bd, j) => BUILD_JOBS.balance.miss(p, q, Bd, j), wrong: (Bd) => BUILD_JOBS.balance.wrong(Bd),
@@ -9105,7 +9184,9 @@ const Progress = {
   // ---- the table cheer: tables (e.g. [7]) just all Mastered for child C. A banner with the table's nine
   // facts popping in as gold stars, confetti, sparks round the mech and a fanfare. It stays up PARENT.cheer ms
   // and doesn't block play.
+  // #102: while the garage is open (a build job's answer) it waits, and plays when the garage closes (cheerFlush)
   cheer(tables, C) {
+    if (Garage.on) { const h = this.cheerHeld; this.cheerHeld = { tables: [...new Set([...(h && h.child === (C?.id ?? null) ? h.tables : []), ...tables])], child: C?.id ?? null, C }; return null; }
     const prev = this.cheering && this.cheering.child === C?.id ? this.cheering.tables : [];
     const all = [...new Set([...prev, ...tables])];
     this.cheering = { tables: all, child: C?.id ?? null, at: Facts.now() };
@@ -9119,6 +9200,11 @@ const Progress = {
     clearTimeout(this.cheerT);
     this.cheerT = setTimeout(() => { this.cheering = null; $('cheer').classList.remove('on'); }, PARENT.cheer);
     this.drawBadge(); if (this.mode === 'grid') this.drawGrid();
+  },
+  // #102: play the table cheer held while the garage was open (its tables, or null if there was none)
+  cheerFlush() {
+    const h = this.cheerHeld; if (!h || Garage.on) return null;
+    this.cheerHeld = null; this.cheer(h.tables, h.C); return h.tables;
   },
   // ---- the parent view
   holdStart() {
@@ -9519,6 +9605,7 @@ const Garage = {
   // the keys / pad cursor on the build (a part chip, or on a job a plug, then a port); the plug picked on a job (-1 none);
   // a drag going on (pointer); the shape being cheered as built; frames = each shape's frame for the lift, made once
   bp: null, bpick: null, bcur: 0, bsel: -1, drag: null, bcheer: null, bcheerT: null, frames: {}, spotXY: {},
+  jobShown: null, jobWas: null,   // #102: the job whose board the last draw showed (and the one before it)
   // whoever is playing's garage (their record's; before anyone is picked, a loose one for this session)
   rec() { return Facts.rec ? fillGarage(Facts.rec).garage : this.loose; },
   // a part went into the bag: count it on the wall, with where it came from (a robot type or 'meadow')
@@ -9553,7 +9640,7 @@ const Garage = {
     Progress.holdStop();
     if (from === 'clear') setPause(true);
     this.on = true; this.from = from; this.tab = 'trophies'; this.liftT = 0; this.drawn = {}; this.cur = 0; this.scur = 0; this.prow = 0;
-    this.bp = null; this.bpick = null; this.bcur = 0; this.bsel = -1;   // #89: the cards first
+    this.bp = null; this.bpick = null; this.bcur = 0; this.bsel = -1; this.jobShown = null;   // #89: the cards first
     this.lcur = Math.max(0, this.legOpts().indexOf(Shapes.rec().legs));   // B2: the 🦿 pick starts on the legs on now
     $('gWall').scrollTop = 0;   // (#42: the 🦿 wall scrolls; it opens at the top)
     document.body.classList.add('garage'); $('garage').classList.add('on');
@@ -9569,14 +9656,16 @@ const Garage = {
   close() {
     if (!this.on) return { ok: false, why: 'closed' };
     const from = this.from;
-    this.on = false; this.from = null;
+    this.on = false; this.from = null; this.jobShown = null;
     if (this.cheering) this.cheerStop();
     if (this.bcheer) this.cheerBuildStop();
     this.dragEnd(); this.bp = null; this.bpick = null;   // #89
     document.body.classList.remove('garage'); $('garage').classList.remove('on');
     if (from === 'clear') setPause(false); else Title.draw();
     if (!Game.manual) Sfx.click();
-    return { ok: true, to: from };
+    // #102: a table cheer or an unlock's toast that a job's answer brought, held while the garage was open, plays now
+    const held = { cheer: Progress.cheerFlush(), toast: Adv.flush() };
+    return { ok: true, to: from, held };
   },
   setTab(t) {
     const T = GARAGE_TABS.find((x) => x.id === t || x.icon === t) || GARAGE_TABS[t];
@@ -9850,6 +9939,9 @@ const Garage = {
     // a job: its plugs on the left (springs, gears, tensioners, legs, leg motors), its ports on the right (the test pad, the
     // pushing test, a tread, the motors, the controller, the leg already stepping, the batteries)
     const J = Builds.jobFor(id), Bd = J.boards[J.round], M = J.mode === 'math';
+    // #102: the board coming (back) into view starts its answer clock, so time spent away from it isn't thinking time
+    if (this.jobWas !== J) J.last = Facts.now();
+    this.jobShown = J;
     // a plug's or port's tag: in math wiring a plug's fact or a port's answer; in colour wiring its wire's colour and shape
     const shp = (c, fill) => `<span class="wsh" style="--wc:${WIRE_COLORS[c].hex}">${FixUI.icon(c, fill, '#14182a')}</span>`;
     const face = (p) => (p.fact ? `<span class="fact">${factText(p.fact)}</span>` : p.col != null ? shp(p.col, '#fff') : '');
@@ -9866,27 +9958,34 @@ const Garage = {
     // (#42) a rotor's spin (the turn arrows, flipped for the other way) and a plate's four seams as a square, one side lit
     const spin = (d) => `<span class="bpf spin${d < 0 ? ' ccw' : ''}">${icon('rotor')}${icon('swap')}</span>`;
     const seam = (k, cls = 'on') => `<span class="sq4 ${cls}" data-s="${k}"></span>`;
+    // #102: in math wiring a plug shows only its fact (and what it is: a spring, a gear, a rotor ...), never its idea (its
+    // level, the leg it is, its spin, its seam, its load): the port shows the test, and only the facts say which plug
+    // matches it. What a plug is wired from stays (the Hopper's left or right spring, the Spider leg whose motor it is,
+    // a fist's valve, the leg motor on a battery), as that never says which port. H = hidden in math wiring.
+    const H = M;
     const PLUG = {
-      spring: (p, i) => [PARTS.spring.hex, `spring ${i + 1}${p.stiff ? ', stiffness ' + p.stiff : ''}`,`<span class="bpf">${icon(p.side ? (p.side < 0 ? 'back' : 'play') : 'spring')}${p.side ? icon('spring') : ''}</span>${p.stiff ? bars(p.stiff) : ''}`],
-      gear: (p) => [PARTS.motor.hex, `${['high', 'middle', 'low'][p.stiff - 1]} gear: strength ${p.stiff}, speed ${4 - p.stiff}`,
-        `<span class="bpf gsz" style="--g:${p.stiff}">${icon('motor')}</span><span class="gbars"><span class="gbar">${icon('smash')}${bars(p.stiff)}</span><span class="gbar">${icon('speed')}${bars(4 - p.stiff, 'stiff fast')}</span></span>`],
-      tensioner: (p) => [PARTS.wiring.hex, `tensioner, ${p.stiff} turns`, `<span class="bpf">${icon('wrench')}</span>${bars(p.stiff)}`],
-      leg: (p) => [J.job === 'legwire' ? PARTS.motor.hex : '#ffd83d', `${LEGS6[p.leg]} leg${p.joint ? ' ' + p.joint + ' motor' : ''}`, `${J.job === 'legwire' ? `<span class="bpf">${icon('motor')}</span>` : ''}${legs(p.leg)}`],
-      motor: (p) => [PARTS.motor.hex, `${LEGS6[p.leg]} leg motor, load ${p.load}`, `<span class="bpf">${icon('motor')}</span>${legs(p.leg)}${load(p.load)}`],
+      spring: (p, i) => [PARTS.spring.hex, `spring ${i + 1}${p.stiff && !H ? ', stiffness ' + p.stiff : ''}`,`<span class="bpf">${icon(p.side ? (p.side < 0 ? 'back' : 'play') : 'spring')}${p.side ? icon('spring') : ''}</span>${p.stiff && !H ? bars(p.stiff) : ''}`],
+      gear: (p) => (H ? [PARTS.motor.hex, 'gear', `<span class="bpf">${icon('motor')}</span>`] : [PARTS.motor.hex, `${['high', 'middle', 'low'][p.stiff - 1]} gear: strength ${p.stiff}, speed ${4 - p.stiff}`,
+        `<span class="bpf gsz" style="--g:${p.stiff}">${icon('motor')}</span><span class="gbars"><span class="gbar">${icon('smash')}${bars(p.stiff)}</span><span class="gbar">${icon('speed')}${bars(4 - p.stiff, 'stiff fast')}</span></span>`]),
+      tensioner: (p) => [PARTS.wiring.hex, H ? 'tensioner' : `tensioner, ${p.stiff} turns`, `<span class="bpf">${icon('wrench')}</span>${H ? '' : bars(p.stiff)}`],
+      leg: (p) => (H && J.job === 'gait' ? ['#ffd83d', 'a leg', `<span class="bpf">${icon('walker')}</span>`]
+        : [J.job === 'legwire' ? PARTS.motor.hex : '#ffd83d', `${LEGS6[p.leg]} leg${p.joint ? ' ' + p.joint + ' motor' : ''}`, `${J.job === 'legwire' ? `<span class="bpf">${icon('motor')}</span>` : ''}${legs(p.leg)}`]),
+      motor: (p) => [PARTS.motor.hex, `${LEGS6[p.leg]} leg motor${H ? '' : ', load ' + p.load}`, `<span class="bpf">${icon('motor')}</span>${legs(p.leg)}${H ? '' : load(p.load)}`],
       // #42: the torso and arm shapes' jobs
-      scope: (p, i) => [PARTS.scope.hex, `scope ${i + 1}, sighting at height ${p.stiff}`, `<span class="bpf">${icon('scope')}</span>${bars(p.stiff)}`],
-      piston: (p) => ['#c9ced8', `piston size ${p.stiff}: push ${p.stiff}, speed ${4 - p.stiff}`,
-        `<span class="bpf gsz" style="--g:${p.stiff}">${icon('punch')}</span><span class="gbars"><span class="gbar">${icon('knock')}${bars(p.stiff)}</span><span class="gbar">${icon('speed')}${bars(4 - p.stiff, 'stiff fast')}</span></span>`],
+      scope: (p, i) => [PARTS.scope.hex, H ? `scope ${i + 1}` : `scope ${i + 1}, sighting at height ${p.stiff}`, `<span class="bpf">${icon('scope')}</span>${H ? '' : bars(p.stiff)}`],
+      piston: (p) => (H ? ['#c9ced8', 'piston', `<span class="bpf">${icon('punch')}</span>`] : ['#c9ced8', `piston size ${p.stiff}: push ${p.stiff}, speed ${4 - p.stiff}`,
+        `<span class="bpf gsz" style="--g:${p.stiff}">${icon('punch')}</span><span class="gbars"><span class="gbar">${icon('knock')}${bars(p.stiff)}</span><span class="gbar">${icon('speed')}${bars(4 - p.stiff, 'stiff fast')}</span></span>`]),
       valve: (p) => [PARTS.wiring.hex, `${p.side < 0 ? 'left' : 'right'} fist's ${p.valve} valve`, `<span class="bpf">${icon(p.side < 0 ? 'back' : 'play')}${icon(p.valve === 'push' ? 'punch' : 'swap')}</span>`],
-      rotor: (p) => [PARTS.rotor.hex, `rotor spinning ${p.spin > 0 ? 'clockwise' : 'anticlockwise'}, speed ${p.speed}`, `${spin(p.spin)}${bars(p.speed)}`],
-      trim: (p) => ['#c9ced8', `trim weight ${p.stiff}`, `<span class="bpf">${icon('armour')}</span>${bars(p.stiff)}`],
-      plate: (p) => [PARTS.armour.hex, `armour plate ${p.plate + 1}, weight ${p.load}`, `<span class="bpf">${icon('armour')}</span>${load(p.load)}`],
-      seam: (p) => ['#ff6a2a', `the ${SEAMS[p.seam]} seam`, `<span class="bpf">${icon('flame')}</span>${seam(p.seam)}`],
+      rotor: (p) => [PARTS.rotor.hex, H ? 'rotor' : `rotor spinning ${p.spin > 0 ? 'clockwise' : 'anticlockwise'}, speed ${p.speed}`, H ? `<span class="bpf">${icon('rotor')}</span>` : `${spin(p.spin)}${bars(p.speed)}`],
+      trim: (p) => ['#c9ced8', H ? 'trim weight' : `trim weight ${p.stiff}`, `<span class="bpf">${icon('armour')}</span>${H ? '' : bars(p.stiff)}`],
+      plate: (p) => [PARTS.armour.hex, `armour plate ${p.plate + 1}${H ? '' : ', weight ' + p.load}`, `<span class="bpf">${icon('armour')}</span>${H ? '' : load(p.load)}`],
+      seam: (p) => ['#ff6a2a', H ? 'a seam' : `the ${SEAMS[p.seam]} seam`, `<span class="bpf">${icon('flame')}</span>${H ? '' : seam(p.seam)}`],
     };
     const plugs = Bd.plugs.map((p, i) => {
       const inn = Bd.links[i] >= 0, [hex, what, inner] = PLUG[p.what](p, i);
       const miss = J.miss && J.miss.plug === i ? `<span class="bmiss">${icon(MISS_IC[J.miss.how] || 'cross')}</span>` : '';
-      return `<button class="bplug${inn ? ' in' : ''}${this.bsel === i ? ' pick' : ''}${cur === 'plug:' + i ? ' cur' : ''}" data-plug="${i}"${p.leg != null ? ` data-leg="${LEGS6[p.leg]}"` : ''}${p.load != null ? ` data-load="${p.load}"` : ''} style="--pc:${hex}" aria-label="${what}">`
+      const leg = p.leg != null && !(H && J.job === 'gait'), ld = p.load != null && !H;   // (#102: not the gait's leg, nor a load, in math wiring)
+      return `<button class="bplug${inn ? ' in' : ''}${this.bsel === i ? ' pick' : ''}${cur === 'plug:' + i ? ' cur' : ''}" data-plug="${i}"${leg ? ` data-leg="${LEGS6[p.leg]}"` : ''}${ld ? ` data-load="${p.load}"` : ''} style="--pc:${hex}" aria-label="${what}">`
         + `${inner}${face(p)}${miss}${inn ? `<span class="bok">${icon('check')}</span>` : ''}</button>`;
     }).join('');
     const ports = Bd.ports.map((q, j) => {
@@ -9905,7 +10004,11 @@ const Garage = {
       if (q.what === 'battery' || q.what === 'end') {   // (#42: or an end of the Brute, front or back, carrying its plates' weight)
         const sum = BUILD_JOBS.balance.sum(Bd, j), full = sum === q.target, meter = M ? `<b class="ld">${sum}/${q.target}</b>` : `<span class="ldp meter">${Array.from({ length: q.target }, (_, k) => `<i class="${k < sum ? 'on' : ''}"></i>`).join('')}</span>`;
         const end = q.what === 'end', what = end ? (j ? 'the back' : 'the front') : `battery ${j + 1}`;
-        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${end ? PARTS.armour.hex : PARTS.battery.hex}" aria-label="${what}: ${sum} of ${q.target}"><span class="bpf">${icon(end ? (j ? 'down' : 'up') : 'battery')}</span>${meter}</button>`;
+        // (#102, math: the part it carries besides the motors / plates, its base load, counted in the meter; the same part
+        // on that battery or end every time)
+        const [bic, bname] = end ? (j ? ['core', 'the core'] : ['gun', 'the gun']) : j ? ['radar', 'the radar'] : ['core', 'the core'];
+        const based = q.base != null, also = based ? `, ${bname} on it too` : '', chip = based ? `<span class="bbase">${icon(bic, { label: bname })}</span>` : '';
+        return `<button class="bport batt${full ? ' in' : ''}${c}" data-port="${j}" data-sum="${sum}" data-target="${q.target}" style="--pc:${end ? PARTS.armour.hex : PARTS.battery.hex}" aria-label="${what}: ${sum} of ${q.target}${also}"><span class="bpf">${icon(end ? (j ? 'down' : 'up') : 'battery')}${chip}</span>${meter}</button>`;
       }
       const [ic, hex, name] = q.what === 'controller' ? ['brain', '#ff7ad9', 'controller socket'] : q.what === 'pump' ? ['power', PARTS.wiring.hex, 'pump socket'] : ['motor', PARTS.motor.hex, 'motor'];
       return `<button class="bport${linked ? ' in' : ''}${c}" data-port="${j}" style="--pc:${hex}" aria-label="${name} ${j + 1}"><span class="bpf">${icon(ic)}</span>${tag}</button>`;
@@ -10116,6 +10219,7 @@ const Garage = {
   // ---- the HTML layer: tabs, the wall (or the 🔒), who's on the lift
   draw() {
     if (!this.on) return;
+    this.jobWas = this.jobShown; this.jobShown = null;   // (#102: was the job's board in view before this draw)
     $('gTabs').innerHTML = GARAGE_TABS.map((T) => `<button class="gtab${T.id === this.tab ? ' on' : ''}${T.locked ? ' locked' : ''}" data-t="${T.id}" aria-label="${T.name}${T.locked ? ': coming soon' : ''}">${icon(T.ic)}<small>${T.name}</small>${T.locked ? `<i class="lk">${icon('lock')}</i>` : ''}</button>`).join('');
     const T = GARAGE_TABS.find((x) => x.id === this.tab);
     for (const c of ['trophies', 'mech', 'squad', 'paint', 'body']) $('gWall').classList.toggle(c, T.id === c);
@@ -10670,10 +10774,10 @@ const Adv = {
     this.toast(ids);
   },
   // show what's pending, once no fix panel is up (FixUI.close and the sim tick call this)
-  flush() { if (this.pending && !FixUI.mode && !Garage.on) { const ids = this.pending; this.pending = null; this.toast(ids); } },
+  flush() { if (this.pending && !FixUI.mode && !Garage.on) { const ids = this.pending; this.pending = null; return this.toast(ids); } return null; },
+  // (#102: while the garage is open, a build job's answer can reach a milestone too: its toast waits for the garage to close)
   toast(ids) {
-    if (Garage.on) return null;
-    if (FixUI.mode) { this.pending = [...new Set([...(this.pending || []), ...ids])]; return null; }
+    if (FixUI.mode || Garage.on) { this.pending = [...new Set([...(this.pending || []), ...ids])]; return null; }
     const last = advOf(ids[ids.length - 1]);
     this.toastIds = ids.slice();
     $('advToast').innerHTML = `<span class="ti">${ids.map((id) => icon(advOf(id).ic)).join('')}</span><span class="tw"><b>${ids.map((id) => advOf(id).name).join(' · ')}</b><small>${icon('star')}${last.at} ${icon('arrow')} ${icon('wrench')}</small></span>`;
@@ -11179,7 +11283,8 @@ window.__rb = {
   // done); 'wrong' = one wrong link (nothing spent, the job stays; its miss shows the job's idea: 'over' / 'under',
   // 'stall' / 'slow', 'slip' / 'jam', 'tip-side' / 'tip-end', 'over' / 'uneven', or 'wrong'). Stops at the job's end.
   // Refused: 'parts first' (its parts aren't all in), 'built', 'coming soon', 'no job'. Returns each link's result and the
-  // build after
+  // build after. #102: a link may be [plug, port, ms]: in math wiring its fact is answered in ms (left out: timed as a tap
+  // is); each result's fact = what the facts tracker recorded (null in colour wiring)
   buildJob(shape, answers) {
     const S = buildProjOf(shape), J0 = S && Builds.jobFor(S.id);   // (#91: or 'mk2')
     if (!J0) return { ok: false, why: Builds.noJob(shape), build: Builds.status(shape) };
@@ -11188,7 +11293,7 @@ window.__rb = {
     for (let t = 0; t < 20; t++) {
       if (Builds.stepOf(S.id) !== step) break;
       const a = todo ? todo.shift() : Builds.answer(S.id); if (!a) break;
-      results.push(Builds.link(S.id, a[0], a[1]));
+      results.push(Builds.link(S.id, a[0], a[1], a[2]));
     }
     return { ok: results.length > 0 && results.every((r) => r.ok), results, stepDone: Builds.stepOf(S.id) > step, build: Builds.status(S.id), bag: { ...Game.bag } };
   },
