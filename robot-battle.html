@@ -3711,9 +3711,9 @@ function jumpPass(m, J, gy, p) {
 // #71: what the Spider's feet may not stand in, near mech m (centre within reach + its radius): every blocking circle in
 // obstacles (a tree, rock, fence circle; top = its height over the ground under its prop, as jumpPass reads it: a fence
 // section is built level at its middle's height), every robot on the ground (its radius,
-// no top; not a flier or one mid-hop), every other mech. SPIDER_FOOT: a foot's size (r, round its middle: the pad and the
-// claw) and its sole (how far under the foot's middle it stands)
-const SPIDER_FOOT = { r: 0.55, sole: 0.3, clear: 0.05 };   // (clear: a foot it places stands at least this far off)
+// no top; not a flier or one mid-hop), every other mech. SPIDER_FOOT: r, a margin round the foot's own outline (footPrint:
+// its pad, its claw, and on a 🐏 foot the ram plate and spikes) and its sole (how far under the foot's middle it stands)
+const SPIDER_FOOT = { r: 0.05, sole: 0.3, clear: 0.05 };   // (clear: a foot it places stands at least this far off)
 function footBlockers(m, reach = Infinity) {
   const B = [], x = m.pos.x, z = m.pos.z, near = (q, r) => Math.hypot(q.x - x, q.z - z) - r < reach;
   for (const o of obstacles) if (near(o, o.r)) { const p = o.prop || o; B.push({ x: o.x, z: o.z, r: o.r, top: groundH(p.x, p.z) + o.h, kind: o.kind, id: o.prop?.id ?? null }); }
@@ -3721,11 +3721,58 @@ function footBlockers(m, reach = Infinity) {
   for (const q of Game.mechs) if (q !== m && near(q.pos, MECH.radius)) B.push({ x: q.pos.x, z: q.pos.z, r: MECH.radius, top: Infinity, kind: 'mech', id: null });
   return B;
 }
-// how far a foot at p (its middle, world) is clear of blockers B (m; 0 or less = inside one): its edge to the nearest circle
-// whose top is above its sole
-function footGapOf(p, B) {
+// #71 review: each Spider foot's outline on the ground, read off the model (every piece in the foot: the pad, the claw that
+// reaches 0.8 m ahead, and on a 🐏 foot its plate and spikes), as [x, z] round the foot's middle in its own (level) frame:
+// the outermost of its pieces' points (a hull, thinned to a few corners: what's cut off is under 2 cm, inside SPIDER_FOOT.r).
+// Made again whenever the upgrade pieces are (md.up)
+function footPrint(md) {
+  if (md.footPrintOf === md.up && md.legs[0]?.print) return;
+  const inv = new THREE.Matrix4(), rel = new THREE.Matrix4(), v = new V3();
+  for (const L of md.legs) {
+    L.foot.updateWorldMatrix(true, true); inv.copy(L.foot.matrixWorld).invert();
+    const pts = [];
+    L.foot.traverse((o) => {
+      if (!o.isMesh) return;
+      const P = o.geometry.attributes.position; rel.multiplyMatrices(inv, o.matrixWorld);
+      for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i).applyMatrix4(rel); pts.push([v.x, v.z]); }
+    });
+    pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], hi = [];
+    for (const p of pts) { while (lo.length > 1 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+    for (const p of pts.slice().reverse()) { while (hi.length > 1 && cross(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+    const H = [...lo.slice(0, -1), ...hi.slice(0, -1)];
+    for (;;) {   // drop the corner that sticks out least, while that's under 2 cm
+      let k = -1, least = 0.02;
+      if (H.length > 3) H.forEach((p, i) => { const a = H[(i + H.length - 1) % H.length], b = H[(i + 1) % H.length], d = cross(a, b, p) / (Math.hypot(b[0] - a[0], b[1] - a[1]) || 1); if (Math.abs(d) < least) { least = Math.abs(d); k = i; } });
+      if (k < 0) break; H.splice(k, 1);
+    }
+    L.print = H;
+  }
+  md.footPrintOf = md.up;
+}
+// foot L's outline as world offsets from its middle, with the mech facing yaw (the foot is kept level: it faces as the body)
+function footOffsets(L, yaw) {
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const O = (L.print || [[0, 0]]).map(([x, z]) => [x * c + z * s, -x * s + z * c]);
+  O.ext = Math.max(...O.map(([x, z]) => Math.hypot(x, z)));   // (how far it reaches from the middle: a blocker further off than that is skipped)
+  return O;
+}
+// how far a foot at p (its middle, world; O = its outline's offsets, footOffsets: a convex polygon, or one point) is clear of
+// blockers B (m; 0 or less = inside one): its outline's edge to the nearest circle whose top is above its sole
+function footGapOf(p, B, O = [[0, 0]]) {
   let g = Infinity;
-  for (const b of B) if (p.y - SPIDER_FOOT.sole < b.top) g = Math.min(g, Math.hypot(p.x - b.x, p.z - b.z) - b.r - SPIDER_FOOT.r);
+  for (const b of B) {
+    if (p.y - SPIDER_FOOT.sole >= b.top) continue;
+    const x = b.x - p.x, z = b.z - p.z; if (Math.hypot(x, z) - (O.ext ?? 0) - b.r - SPIDER_FOOT.r >= g) continue;
+    let d = Infinity, inside = O.length > 2;
+    for (let i = 0; i < O.length; i++) {
+      const [ax, az] = O[i], [bx, bz] = O[(i + 1) % O.length], ex = bx - ax, ez = bz - az, ll = ex * ex + ez * ez;
+      const t = ll ? clamp(((x - ax) * ex + (z - az) * ez) / ll, 0, 1) : 0;
+      d = Math.min(d, Math.hypot(x - ax - ex * t, z - az - ez * t));
+      if (ex * (z - az) - ez * (x - ax) < 0) inside = false;   // (the hull runs anticlockwise in x, z: inside is to the left of every edge)
+    }
+    g = Math.min(g, (inside ? -d : d) - b.r - SPIDER_FOOT.r);
+  }
   return g;
 }
 // how far (x, z) is outside smashable p's real footprint (0 = over it): a fence section's box, else its circles
@@ -4222,22 +4269,25 @@ const LEG_KITS = {
     probe(md) { const L = md.legs.find((l) => l.f > 0 && l.s > 0); return { hip: r3(L.hip.rotation.z), coxa: r3(L.coxa.rotation.y) }; },
     // #71: its feet never stand in a tree, rock, fence, robot or mech. The body still collides as MECH.radius (so the kick,
     // rams and reach are as ever); after the pose (gait, kick, tuck, power-down), each foot that would be inside something
-    // (footBlockers: its circle, below its top, within SPIDER_FOOT.r of the foot) is placed clear instead: the nearest clear
+    // (footBlockers: its circle, below its top, within SPIDER_FOOT.r of the foot's outline, footPrint: the pad, the claw out
+    // ahead, and the 🐏 plate and spikes on a ram foot) is placed clear instead: the nearest clear
     // spot (shorter, or swung a little fore or aft round it), found by reach h out along the leg and swing f at the coxa, at
     // the same height in the pelvis's frame (so a planted foot stays planted), and the hip and knee set to reach it (2-bone
-    // IK, the knee up as built). Close enough in (SPIDER_FOOT: under 1.75 m from the middle) is clear by construction:
-    // nothing comes within MECH.radius of the body. A foot may also tuck up over what it's passing, in a jump or straddling
+    // IK, the knee up as built). Drawn in close to the body there is nearly always a clear spot, since nothing comes within
+    // MECH.radius of the body (if there isn't, the least-inside one is taken). A foot may also tuck up over what it's passing, in a jump or straddling
     // a fence just jumped (the body's over it then, so nowhere near is clear at ground height). md.feetFixed = the feet placed this frame
     place(md, m) {
       md.feetFixed = 0;
       const B = footBlockers(m, 7.5); if (!B.length) return;
       const v = new V3(), { L1, L2 } = this;
+      footPrint(md);
       for (const L of md.legs) {
+        const O = footOffsets(L, m.legHeading);
         L.base.updateWorldMatrix(true, false);
         const W = L.base.matrixWorld, t1 = L.hip.rotation.z, t2 = L.knee.rotation.z, f0 = L.coxa.rotation.y;
         const h0 = L1 * Math.sin(t1) + L2 * Math.sin(t1 + t2), y0 = -L1 * Math.cos(t1) - L2 * Math.cos(t1 + t2);
         const at = (h, f, dy = 0) => v.set(h * Math.cos(f), y0 + dy, -h * Math.sin(f)).applyMatrix4(W);
-        if (footGapOf(at(h0, f0), B) > 0) continue;
+        if (footGapOf(at(h0, f0), B, O) > 0) continue;
         // [h, f, dy, how far that is from where the gait put it]. It may also tuck up (dy, as far as the leg reaches) over what
         // it's passing: in a jump (as readily as it steps short), or on the ground only when no spot at ground height is clear
         // (straddling a fence it has just jumped: the body's over it then)
@@ -4250,7 +4300,7 @@ const LEG_KITS = {
         let pick = null, most = -Infinity;
         const lifts = [0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8];
         for (const set of m.hop ? [[0, ...lifts]] : [[0], lifts]) {
-          for (const c of spots(set)) { const g = footGapOf(at(c[0], c[1], c[2]), B); if (g > SPIDER_FOOT.clear) { pick = c; most = Infinity; break; } if (g > most) { most = g; pick = c; } }
+          for (const c of spots(set)) { const g = footGapOf(at(c[0], c[1], c[2]), B, O); if (g > SPIDER_FOOT.clear) { pick = c; most = Infinity; break; } if (g > most) { most = g; pick = c; } }
           if (most === Infinity) break;
         }
         if (!pick) continue;
@@ -11763,11 +11813,11 @@ window.__rb = {
   spiderFeet(i = 0) {
     const m = Game.humans[i]?.mech, md = m?.model; if (md?.legShape !== 'spider') return null;
     syncMechModel(m); md.root.updateMatrixWorld(true);
-    const B = footBlockers(m), v = new V3();
+    const B = footBlockers(m), v = new V3(); footPrint(md);
     const feet = md.legs.map((L) => {
-      L.foot.getWorldPosition(v);
-      const inside = B.filter((b) => v.y - SPIDER_FOOT.sole < b.top && Math.hypot(v.x - b.x, v.z - b.z) < b.r + SPIDER_FOOT.r).map((b) => b.kind + ':' + b.id);
-      return { name: L.name, x: r3(v.x), y: r3(v.y), z: r3(v.z), gap: r3(footGapOf(v, B)), inside };
+      L.foot.getWorldPosition(v); const O = footOffsets(L, m.legHeading);
+      const inside = B.filter((b) => footGapOf(v, [b], O) <= 0).map((b) => b.kind + ':' + b.id);
+      return { name: L.name, x: r3(v.x), y: r3(v.y), z: r3(v.z), gap: r3(footGapOf(v, B, O)), inside };
     });
     const body = Math.min(Infinity, ...obstacles.map((o) => Math.hypot(m.pos.x - o.x, m.pos.z - o.z) - o.r - MECH.radius));
     return { feet, inside: feet.filter((f) => f.inside.length).length, minGap: Math.min(...feet.map((f) => f.gap)), fixed: md.feetFixed || 0, body: r3(body), legs: md.legs.length };
