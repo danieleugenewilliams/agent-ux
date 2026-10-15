@@ -2763,11 +2763,11 @@ const Facts = {
     return out;
   },
   // a parent resets child c: their record starts again from blank (the Quick Fix setting is kept: it's a
-  // setting, not progress; so is the garage: trophies and upgrades earned stay earned). Only that child's
-  // record is touched; Guest has none.
+  // setting, not progress; so is the garage: trophies and upgrades earned stay earned; #58: and so is the saved squad,
+  // which the squad in the meadow would write back anyway). Only that child's record is touched; Guest has none.
   reset(c) {
     const C = childOf(c); if (!C || C.guest) return { ok: false, why: C ? 'guest keeps nothing' : 'no such child' };
-    const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.garage = was.garage;
+    const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.garage = was.garage; r.squad = was.squad; r.squadGone = was.squadGone;
     if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else store.set('facts.' + C.id, r);
     return { ok: true, child: C.id };
   },
@@ -3159,8 +3159,13 @@ const Backup = {
     for (const e of b.squad) if (!gone.has(e.id) && !squad.some((q) => q.id === e.id) && squad.length < REPAIR.squadMax) squad.push(e);
     return { squad: squad.slice(0, REPAIR.squadMax), squadGone };
   },
-  // #58: Use the backup's record r, but destroyed is final: a squadbot gone for good on this device (here) stays gone
+  // #58: Use the backup's record r, but destroyed is final: a squadbot gone for good on this device (here) stays gone. A
+  // backup record from before #58 (a format-1 file: no squad in it) says nothing about the squad, so this device's
+  // squad and its gone list are kept as they are
   keepGone(r, here) {
+    if (isObj(r) && r.squad == null && r.squadGone == null && isObj(here) && (here.squad != null || here.squadGone != null)) {
+      const out = clone(r); if (here.squad != null) out.squad = clone(here.squad); if (here.squadGone != null) out.squadGone = clone(here.squadGone); return out;
+    }
     if (!isObj(here) || !Array.isArray(here.squadGone) || !here.squadGone.length) return r;
     const out = clone(r), m = this.mergeSquad({ squad: [], squadGone: here.squadGone }, out);
     out.squadGone = m.squadGone; out.squad = (Array.isArray(out.squad) ? fillSquad({ squad: clone(out.squad), squadGone: m.squadGone }).squad : []);
@@ -6345,13 +6350,14 @@ function pickChild(c) {
   if (c == null) { if (Game.pilot) return { ok: false, why: 'playing' }; Game.child = null; Title.draw(); return { ok: true, child: null }; }
   const C = childOf(c);
   if (!C) return { ok: false, why: 'no such child' };
+  // #58: switching child swaps the whole squad: the last child's is saved to their record and leaves the meadow (their
+  // squadbots are kept; their recruits, and Guest's whole squad, are gone), then this child's saved squad comes in
+  // beside the mech
   const was = Game.child;
-  if (was && was !== C) Squad.sync();   // #58: the squad saved to whoever was playing before their record goes
+  if (was !== C) { if (was) Squad.sync(); Squad.clear(); }
   Facts.load(C); Game.child = C; store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
   applyUpgrades({ swap: true });   // G2: their upgrades on the mech (a fresh Guest has none); #68: the damage taken stays
-  // #58: switching child swaps the whole squad: the last child's leaves the meadow (their squadbots are saved; their
-  // recruits, and Guest's whole squad, are gone) and this child's saved squad comes in beside the mech
-  if (was !== C) { Squad.clear(); Squad.bring(); }
+  if (was !== C) Squad.bring();
   Title.draw();
   return { ok: true, child: C.id };
 }
