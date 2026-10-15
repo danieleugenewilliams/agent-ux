@@ -4292,15 +4292,17 @@ const LEG_KITS = {
         // it's passing: in a jump (as readily as it steps short), or on the ground only when no spot at ground height is clear
         // (straddling a fence it has just jumped: the body's over it then)
         const reach = (h, dy) => { const D = Math.hypot(h, y0 + dy); return D > L2 - L1 + 0.05 && D < L1 + L2 - 0.05; };
-        const spots = (dys) => {
+        const spots = (dys, K = 6) => {
           const c = [];
-          for (const dy of dys) for (let i = 0, n = Math.ceil(h0 / 0.25); i <= n; i++) { const h = Math.max(0, h0 - i * 0.25); if (reach(h, dy)) for (let k = -6; k <= 6; k++) c.push([h, f0 + k * 0.1, dy, h0 - h + Math.abs(k) * 0.1 * Math.max(1, h) + dy]); }
+          for (const dy of dys) for (let i = 0, n = Math.ceil(h0 / 0.25); i <= n; i++) { const h = Math.max(0, h0 - i * 0.25); if (reach(h, dy)) for (let k = -K; k <= K; k++) c.push([h, f0 + k * 0.1, dy, h0 - h + Math.abs(k) * 0.1 * Math.max(1, h) + dy]); }
           return c.sort((a, b) => a[3] - b[3]);
         };
         let pick = null, most = -Infinity;
         const lifts = [0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8];
-        for (const set of m.hop ? [[0, ...lifts]] : [[0], lifts]) {
-          for (const c of spots(set)) { const g = footGapOf(at(c[0], c[1], c[2]), B, O); if (g > SPIDER_FOOT.clear) { pick = c; most = Infinity; break; } if (g > most) { most = g; pick = c; } }
+        // (last of all, a swing twice as far: a 🐏 foot's plate reaches 1.2 m ahead of the foot, so close in by the body isn't
+        // always clear for it, and swung round it can be)
+        for (const [set, K] of m.hop ? [[[0, ...lifts], 6], [[0, ...lifts], 12]] : [[[0], 6], [lifts, 6], [[0, ...lifts], 12]]) {
+          for (const c of spots(set, K)) { const g = footGapOf(at(c[0], c[1], c[2]), B, O); if (g > SPIDER_FOOT.clear) { pick = c; most = Infinity; break; } if (g > most) { most = g; pick = c; } }
           if (most === Infinity) break;
         }
         if (!pick) continue;
@@ -4912,11 +4914,13 @@ const Body = {
       const rm = this.rough(sec, t, kind);
       set(M, 'roughnessMap', rm); set(M, 'aoMap', t >= 3 ? rm : null);
       // #71: from tier 2 the stencils in colour on the paint (and under a finish): the number in the trim colour, or on a
-      // trim-painted part (where trim wouldn't show) the body colour; gold's own trim and body under gold
+      // trim-painted part (where trim wouldn't show: the chest plate, knee pads, ram plates) in black ink (Dad's call on #110:
+      // option C); gold's own trim under gold. The ink is this material's uniform, not in the map, so the map's cache key
+      // (section and tier) still holds and a repaint makes no new map
       if (painted && t >= 2) {
         const pn = md.paintNow || Garage.paintNow(), gold = fin === 'gold', onTrim = o.userData.paint === 'trim';
         set(M, 'map', this.stencil(sec, Math.min(t, 3)));
-        this.stencilOn(M, onTrim ? (gold ? ADV.gold : pn.body) : gold ? ADV.goldTrim : pn.trim);
+        this.stencilOn(M, onTrim ? BODY.ink : gold ? ADV.goldTrim : pn.trim);
       } else if (M.map?.userData?.stencil) set(M, 'map', null);
       if (M.isMeshPhysicalMaterial) { M.clearcoat = BODY.cc; M.clearcoatRoughness = BODY.ccRough; }
       // tier 4: the paint's seams and status lights glow in the section's colour; heat glows up the exhaust stacks
