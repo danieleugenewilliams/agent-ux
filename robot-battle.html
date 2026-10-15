@@ -240,12 +240,26 @@
   @media (max-width: 700px) { .pilot { width: 104px; font-size: 17px; } .pilot img { width: 80px; height: 80px; } #start .logo { font-size: 44px; } #start .keys { display: none; } }
   /* ---------- WHO'S PLAYING: a big tile per child before the pilot pick; then a chip (◀ back) and the wiring setting ---------- */
   #start .ask { display: none; margin-top: 22px; font: 900 30px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
-  #start .kids { display: none; margin: 18px auto 0; flex-wrap: wrap; justify-content: center; gap: 22px; width: min(1000px, 94vw); }
+  /* #49: up to 12 profiles, then Guest, then ➕: a grid, 4 a row (3 on a phone), each row --th tall, that scrolls after 3 rows
+     (and sooner on a short screen), so the logo always shows; Title.inView keeps the cursor's tile in view */
+  #start .kids { --tw: 168px; --th: 184px; --gap: 18px; display: none; margin: 12px auto 0; grid-template-columns: repeat(4, var(--tw)); grid-auto-rows: var(--th); justify-content: center; gap: var(--gap);
+    padding: 10px 16px 14px; max-height: min(calc(3 * var(--th) + 2 * var(--gap) + 26px), calc(100dvh - 200px)); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; pointer-events: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.45) transparent; }
   #start.who .ask { display: block; }
-  #start.who .kids { display: flex; }
+  #start.who .kids { display: grid; }
+  #start.who .keys { display: none; }
+  /* (#49: who's playing is a menu: the HUD behind it hides, so up to 14 tiles have the screen; the parent button stays) */
+  #start.on.who ~ :is(#hud, #hurt) { visibility: hidden; }
   #start.who .pilots, #start.who .kidbar { display: none; }
   .pilot.kid { width: 200px; padding: 14px 8px 14px; font-size: 30px; }
   .pilot.kid .face { width: 150px; height: 150px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 84px; background: var(--ink); box-shadow: inset 0 0 0 6px var(--c), 0 0 22px var(--c); pointer-events: none; }
+  #start .kids .pilot.kid { width: var(--tw); height: var(--th); padding: 12px 6px; font-size: 24px; justify-content: center; }
+  #start .kids .pilot.kid .face { width: 110px; height: 110px; font-size: 62px; flex: none; }
+  #start .kids .pilot.kid span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pilot.kid.add { color: #fff; }
+  .pilot.kid.add .face { background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 5px rgba(255,255,255,.75); }
+  .pilot.kid.add.full { opacity: .6; }
+  .pilot.kid.shake { animation: shake .3s; }
   #start .kidbar { display: flex; margin-top: 18px; align-items: center; justify-content: center; gap: 14px; }
   .chip { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px 0 8px; border-radius: 28px; border: 4px solid var(--ink); background: rgba(20,24,42,.78); color: var(--c, #fff); cursor: pointer;
     box-shadow: 0 5px 0 var(--ink), inset 0 0 0 3px var(--c, #fff); font: 900 22px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
@@ -258,6 +272,48 @@
   #wireB i { font-style: normal; opacity: .35; }
   #wireB i.on { opacity: 1; }
   @media (max-width: 700px) { .pilot.kid { width: 128px; font-size: 22px; } .pilot.kid .face { width: 96px; height: 96px; font-size: 54px; } #start .ask { font-size: 24px; } }
+  @media (max-width: 700px) { #start .kids { --tw: min(108px, 27vw); --th: 140px; --gap: 12px; grid-template-columns: repeat(3, var(--tw)); padding: 10px 10px 14px; max-height: min(calc(3 * var(--th) + 2 * var(--gap) + 26px), calc(100dvh - 150px)); }
+    #start .kids .pilot.kid { font-size: 18px; padding: 8px 4px; } #start .kids .pilot.kid .face { width: 76px; height: 76px; font-size: 42px; } }
+  @media (max-height: 500px) { #start .logo { font-size: 36px; } #start .ask { margin-top: 8px; font-size: 22px; }
+    #start .kids { --th: 116px; --tw: 132px; --gap: 12px; margin-top: 6px; max-height: calc(100dvh - 116px); }
+    #start .kids .pilot.kid { font-size: 17px; padding: 6px 4px; gap: 4px; } #start .kids .pilot.kid .face { width: 66px; height: 66px; font-size: 36px; } }
+  /* #49: the maker, over the title: a live tile and the name, the pad's A–Z board (only once a pad is in use), the 16 icons, the
+     10 colours, ✖ ✔. It scrolls on a short screen (Maker.draw keeps the cursor in view). The cursor: a dashed yellow ring */
+  #start .maker { --c: #fff; display: none; position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; pointer-events: auto; padding: 16px; background: rgba(12,14,28,.9); }
+  #start.make .maker { display: flex; }
+  #start.make .wrap { visibility: hidden; }
+  .maker .mkIn { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .maker .mkTop { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+  .maker .mkPrev { cursor: default; width: 170px; font-size: 26px; transform: none !important; }
+  .maker .mkPrev .face { width: 116px; height: 116px; font-size: 66px; }
+  .maker .mkNameCol { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .maker .mkName { display: flex; align-items: center; gap: 8px; height: 66px; padding: 0 16px; border-radius: 22px; border: 5px solid var(--ink); background: #fff; color: var(--ink); font-size: 30px; box-shadow: 0 5px 0 var(--ink), inset 0 0 0 4px var(--c); }
+  .maker .mkName:has(.cur) { outline: 5px dashed var(--yellow); outline-offset: 4px; }
+  .maker #mkName { width: 10.5ch; border: 0; outline: 0; background: transparent; color: var(--ink); font: 900 32px 'Asap', sans-serif; }
+  .maker .mkWhy { min-height: 30px; display: flex; align-items: center; gap: 6px; font: 900 20px 'Asap', sans-serif; color: #ff8a96; text-shadow: 2px 2px 0 var(--ink); visibility: hidden; }
+  .maker .mkWhy.on { visibility: visible; }
+  .maker [data-mk] { cursor: pointer; }
+  .maker button { border: 4px solid var(--ink); color: var(--ink); font: 900 24px 'Asap', sans-serif; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .maker button.cur { outline: 5px dashed var(--yellow); outline-offset: 3px; }
+  .maker .mkBoard { display: none; grid-template-columns: repeat(9, 46px); gap: 6px; }
+  .maker .mkBoard.on { display: grid; }
+  .maker .mkBoard button { height: 46px; border-radius: 12px; background: #fff; box-shadow: 0 4px 0 var(--ink); }
+  .maker .mkIcons { display: grid; grid-template-columns: repeat(8, 58px); gap: 8px; }
+  .maker .mkIcons button { width: 58px; height: 58px; border-radius: 50%; background: var(--ink); font-size: 34px; box-shadow: inset 0 0 0 3px rgba(255,255,255,.3); }
+  .maker .mkIcons button.on { box-shadow: inset 0 0 0 5px var(--c), 0 0 16px var(--c); }
+  .maker .mkColors { display: grid; grid-template-columns: repeat(10, 46px); gap: 8px; }
+  .maker .mkColors button { width: 46px; height: 46px; border-radius: 50%; background: var(--c); }
+  .maker .mkColors button.on { box-shadow: 0 0 0 4px #fff, 0 0 18px var(--c); }
+  .maker .mkActs { display: flex; gap: 26px; }
+  .maker .mkActs button { width: 84px; height: 84px; border-radius: 50%; font-size: 44px; box-shadow: 0 6px 0 var(--ink); }
+  .maker .mkX { background: #ff4d5e; } .maker .mkOk { background: var(--green); }
+  @media (max-width: 700px) { .maker .mkIcons { grid-template-columns: repeat(8, 38px); gap: 5px; } .maker .mkIcons button { width: 38px; height: 38px; font-size: 22px; border-width: 3px; }
+    .maker .mkColors { grid-template-columns: repeat(10, 29px); gap: 5px; } .maker .mkColors button { width: 29px; height: 29px; border-width: 3px; }
+    .maker .mkBoard { grid-template-columns: repeat(9, 34px); gap: 4px; } .maker .mkBoard button { height: 40px; font-size: 20px; border-width: 3px; }
+    .maker .mkPrev { width: 128px; font-size: 20px; } .maker .mkPrev .face { width: 84px; height: 84px; font-size: 48px; } .maker #mkName { font-size: 26px; } }
+  @media (max-height: 500px) { #start .maker { padding: 8px; } .maker .mkIn { gap: 8px; } .maker .mkPrev { width: 120px; font-size: 18px; padding: 6px; } .maker .mkPrev .face { width: 64px; height: 64px; font-size: 36px; }
+    .maker .mkName { height: 54px; } .maker .mkActs button { width: 64px; height: 64px; font-size: 34px; } .maker .mkBoard button { height: 36px; } .maker .mkIcons { grid-template-columns: repeat(16, 40px); gap: 5px; }
+    .maker .mkIcons button { width: 40px; height: 40px; font-size: 24px; } }
   /* ---------- HUD: the pilot's helmet portrait beside the hearts; parts found in the grass ---------- */
   #hud .health .who { display: none; flex-direction: column; align-items: center; gap: 1px; font: 900 15px 'Asap', sans-serif; color: var(--c, #fff); text-shadow: 1px 1px 0 var(--ink); }
   #hud .health .who.on { display: flex; }
@@ -1199,6 +1255,22 @@
       <div class="hint"><div class="key wide"><i data-ic="space"></i></div><small><i data-ic="smash"></i></small></div>
       <div class="hint"><div class="key">R</div><small><i data-ic="wrench"></i><i data-ic="energy"></i></small></div>
       <div class="hint"><i data-ic="pad"></i></div>
+    </div>
+  </div>
+  <!-- #49: the maker (from ➕ on who's playing): a live tile, the name (the pad's A–Z board under it), an icon, a colour, ✖ ✔ -->
+  <div class="maker" id="maker" role="dialog" aria-label="New player">
+    <div class="mkIn">
+      <div class="mkTop">
+        <div class="pilot kid mkPrev" id="mkPrev"></div>
+        <div class="mkNameCol">
+          <label class="mkName"><i data-ic="tag"></i><input id="mkName" data-mk="name" maxlength="10" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-label="Name"></label>
+          <div class="mkWhy" id="mkWhy" role="status"></div>
+        </div>
+      </div>
+      <div class="mkBoard" id="mkBoard"></div>
+      <div class="mkIcons" id="mkIcons"></div>
+      <div class="mkColors" id="mkColors"></div>
+      <div class="mkActs"><button class="mkX" data-mk="back" aria-label="Back"><i data-ic="cross"></i></button><button class="mkOk" data-mk="ok" aria-label="Save"><i data-ic="check"></i></button></div>
     </div>
   </div>
 </div>
@@ -2500,14 +2572,117 @@ const srange = (a, b) => a + (b - a) * srand();
 // re-keying anyone's record.
 // ===========================================================================
 // The children. Progress belongs to the child, not the pilot, and is saved per child;
-// Guest saves nothing. icon and hex are placeholders the family can swap here. wiring:
-// each child's default Quick Fix setting ('math' or 'colour'), which they can change.
-const CHILDREN = [
-  { id: 'orion',  name: 'Orion',  hex: '#3fb4ff', ic: 'bow', ladder: 'orion',  wiring: 'math' },
-  { id: 'apollo', name: 'Apollo', hex: '#ff8a1f', ic: 'sun', ladder: 'apollo', wiring: 'math' },
-  { id: 'guest',  name: 'Guest',  hex: '#c9d2e3', ic: 'smile', ladder: 'apollo', wiring: 'colour', guest: true },
-];
-const childOf = (c) => (CHILDREN.includes(c) ? c : Number.isInteger(c) ? CHILDREN[c] : CHILDREN.find((q) => q.id === String(c).toLowerCase() || q.name.toLowerCase() === String(c).toLowerCase())) || null;
+// Guest saves nothing. wiring: each child's default Quick Fix setting ('math' or 'colour'), which they can change.
+// #49: anyone can make a profile now. The profiles are saved as robotbattle.profiles: [{ id, name, icon, hex, ladder,
+// wiring, created }], in the order they were made, at most PROFILE.max. CHILDREN is that list (each entry with its icon as
+// ic, as the rest of the game reads it) plus Guest, last. CHILDREN and its entries are the same objects for the whole page
+// (childOf, Facts.peek and Facts.as compare by identity): a new profile is spliced in before Guest, never a new array.
+// Seeding: when robotbattle.profiles doesn't exist yet, it's made once with Orion and Apollo as they were before #49 (their
+// ids, so their records robotbattle.facts.orion / .apollo are theirs as they stand: nothing is moved or rewritten). Once the
+// list exists seeding never runs again, so a profile removed (#50) stays removed.
+// A new profile: a random id ('p_' + base36: a name can't hold '_', so an id is never some other profile's name), the
+// apollo ladder (×1, ×2 first) and math wiring. A name: 1–10 letters, digits or spaces, not "Guest", not one already used
+// (any case). PROFILE.icons / colors: what the maker offers (16 icons from the icon set, 10 colours).
+const PROFILE = {
+  max: 12, nameMax: 10, ladder: 'apollo', wiring: 'math',
+  icons: ['bow', 'sun', 'moon', 'star', 'rocket', 'robot', 'flame', 'gem', 'shield', 'bolt', 'swirl', 'flag', 'trophy', 'dice', 'spider', 'sparkle'],
+  colors: ['#3fb4ff', '#ff8a1f', '#ff4d5e', '#ffd83d', '#4cd964', '#b06bff', '#ff6ec7', '#3ff0ff', '#b8f04a', '#c8834a'],
+  seed: [
+    { id: 'orion',  name: 'Orion',  icon: 'bow', hex: '#3fb4ff', ladder: 'orion',  wiring: 'math' },
+    { id: 'apollo', name: 'Apollo', icon: 'sun', hex: '#ff8a1f', ladder: 'apollo', wiring: 'math' },
+  ],
+};
+const GUEST = { id: 'guest', name: 'Guest', hex: '#c9d2e3', ic: 'smile', ladder: 'apollo', wiring: 'colour', guest: true };
+const CHILDREN = [GUEST];
+// a CHILDREN entry from an entry, an index (a tile's place), an id or a name (any case); ids are looked for first
+const childOf = (c) => {
+  if (c == null) return null;
+  if (CHILDREN.includes(c)) return c;
+  if (Number.isInteger(c)) return CHILDREN[c] || null;
+  const s = String(c).toLowerCase();
+  return CHILDREN.find((q) => q.id === s) || CHILDREN.find((q) => q.name.toLowerCase() === s) || null;
+};
+const Profiles = {
+  // a name as typed, tidied: spaces at the ends dropped and runs of them made one
+  tidy(name) { return String(name ?? '').replace(/\s+/g, ' ').trim(); },
+  okName(name) { return new RegExp(`^[\\p{L}\\p{N} ]{1,${PROFILE.nameMax}}$`, 'u').test(name); },
+  // one saved entry, checked: the entry as it should be kept, or null if it can't be one
+  clean(p) {
+    if (!p || typeof p !== 'object' || typeof p.id !== 'string' || !/^[a-z0-9_]{1,40}$/.test(p.id) || p.id === GUEST.id) return null;
+    const name = this.tidy(p.name);
+    if (!this.okName(name) || name.toLowerCase() === GUEST.name.toLowerCase()) return null;
+    const hex = typeof p.hex === 'string' && /^#[0-9a-f]{6}$/i.test(p.hex) ? p.hex.toLowerCase() : PROFILE.colors[0];
+    return { id: p.id, name, icon: typeof p.icon === 'string' && ICONS[p.icon] ? p.icon : PROFILE.icons[0], hex,
+      ladder: LADDERS[p.ladder] ? p.ladder : PROFILE.ladder, wiring: ['math', 'colour'].includes(p.wiring) ? p.wiring : PROFILE.wiring, created: Number.isFinite(p.created) ? p.created : 0 };
+  },
+  // a list, checked: each entry clean, ids and names once each (any case), at most PROFILE.max
+  cleanList(list) {
+    const out = [];
+    for (const p of Array.isArray(list) ? list : []) {
+      const q = this.clean(p);
+      if (q && out.length < PROFILE.max && !out.some((o) => o.id === q.id || o.name.toLowerCase() === q.name.toLowerCase())) out.push(q);
+    }
+    return out;
+  },
+  // the saved list. None yet: seeded once (Orion and Apollo) and saved. One that can't be read: whoever has a record here
+  // (Orion and Apollo as seeded, anyone else as a plain profile), not written until something changes
+  read() {
+    let raw = null; try { raw = localStorage.getItem('robotbattle.profiles'); } catch (e) {}
+    if (raw == null) { const list = PROFILE.seed.map((p) => ({ ...p, created: Date.now() })); store.set('profiles', list); return list; }
+    let v = null; try { v = JSON.parse(raw); } catch (e) {}
+    if (Array.isArray(v)) return this.cleanList(v);
+    const ids = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const m = /^robotbattle\.facts\.([a-z0-9_]+)$/.exec(localStorage.key(i) || ''); if (m && m[1] !== GUEST.id) ids.push(m[1]); } } catch (e) {}
+    return this.cleanList(ids.sort().map((id) => PROFILE.seed.find((p) => p.id === id) || { id, name: id.replace(/^p_/, '').slice(0, PROFILE.nameMax), icon: PROFILE.icons[0], hex: PROFILE.colors[0] }));
+  },
+  // the list as saved now: the profiles in CHILDREN (Guest left out)
+  list() { return CHILDREN.filter((C) => !C.guest).map((C) => ({ id: C.id, name: C.name, icon: C.ic, hex: C.hex, ladder: C.ladder, wiring: C.wiring, created: C.created })); },
+  // CHILDREN from list: the entries already there kept (the same objects, brought up to date), new ones made, the rest dropped
+  sync(list) {
+    const keep = new Map(CHILDREN.map((C) => [C.id, C])), out = [];
+    for (const p of list) { const C = keep.get(p.id) || {}; Object.assign(C, { id: p.id, name: p.name, hex: p.hex, ic: p.icon, ladder: p.ladder, wiring: p.wiring, created: p.created }); out.push(C); }
+    CHILDREN.splice(0, CHILDREN.length, ...out, GUEST);
+  },
+  load() { this.sync(this.read()); return CHILDREN; },
+  save() { store.set('profiles', this.list()); },
+  count() { return CHILDREN.length - 1; },
+  full() { return this.count() >= PROFILE.max; },
+  // why name can't be a new profile's name (null: it can)
+  nameWhy(name) {
+    const n = this.tidy(name);
+    if (!n) return 'no name';
+    if (n.toLowerCase() === GUEST.name.toLowerCase()) return 'reserved';
+    if (!this.okName(n)) return 'bad name';
+    if (CHILDREN.some((C) => !C.guest && C.name.toLowerCase() === n.toLowerCase())) return 'name taken';
+    return null;
+  },
+  // an icon and a colour nobody has yet (the first free of each in PROFILE's order; the least used once all are taken)
+  suggest() {
+    const used = (k, v) => CHILDREN.filter((C) => !C.guest && C[k] === v).length;
+    const least = (arr, k) => arr.reduce((b, v) => (used(k, v) < used(k, b) ? v : b), arr[0]);
+    return { icon: least(PROFILE.icons, 'ic'), color: least(PROFILE.colors, 'hex') };
+  },
+  // a new id: random, never Guest's or one in use (here, or in taken: ids about to be added)
+  newId(taken = []) {
+    for (;;) { const id = 'p_' + Math.random().toString(36).slice(2, 8); if (id.length > 4 && !CHILDREN.some((C) => C.id === id) && !taken.includes(id)) return id; }
+  },
+  // icon: a name in PROFILE.icons or an index into it; color: a hex in PROFILE.colors or an index
+  iconOf(i) { return Number.isInteger(i) ? PROFILE.icons[i] ?? null : PROFILE.icons.includes(i) ? i : null; },
+  colorOf(c) { const h = typeof c === 'string' ? c.toLowerCase() : c; return Number.isInteger(h) ? PROFILE.colors[h] ?? null : PROFILE.colors.includes(h) ? h : null; },
+  // make one (icon / color left out: suggested): { ok, id, name, icon, color } or { ok: false, why: 'full' | 'no name' |
+  // 'reserved' | 'name taken' | 'bad name' (a character that isn't a letter, digit or space, or too long) | 'no such icon' |
+  // 'no such color' }. It's saved at once; its record is made the first time it plays (Facts.load), as Orion's was.
+  add(name, icon, color) {
+    if (this.full()) return { ok: false, why: 'full' };
+    const why = this.nameWhy(name); if (why) return { ok: false, why };
+    const s = this.suggest(), ic = icon == null ? s.icon : this.iconOf(icon), hex = color == null ? s.color : this.colorOf(color);
+    if (!ic) return { ok: false, why: 'no such icon' };
+    if (!hex) return { ok: false, why: 'no such color' };
+    const p = { id: this.newId(), name: this.tidy(name), icon: ic, hex, ladder: PROFILE.ladder, wiring: PROFILE.wiring, created: Date.now() };
+    this.sync([...this.list(), p]); this.save();
+    return { ok: true, id: p.id, name: p.name, icon: ic, color: hex };
+  },
+};
 // fast: an answer under this (ms) counts toward Known and Mastered; slow: a Mastered fact answered
 // slower than this drops to Known. reviewDays: the spacing of Known / Mastered reviews. missBack: a
 // missed fact comes back this soon (ms). newMax: New facts in play at once. familiar: the share of picks
@@ -2538,6 +2713,7 @@ const LADDERS = {
     { op: '×', range: [1, 9], kind: 'steady' },
   ],
 };
+Profiles.load();   // #49: CHILDREN = the saved profiles (seeded once with Orion and Apollo), then Guest
 // The operations (multiplication only), and the spellings answer() / nextFact() accept for them
 const OPS = { '×': { calc: (a, b) => a * b, lo: 1, hi: 9 } };
 const OP_ALIAS = { x: '×', X: '×', '*': '×', '×': '×' };
@@ -2973,7 +3149,14 @@ const canon = (v) => (Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : is
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const Backup = {
   // the child a facts.<id> key belongs to (Guest included, so the caller can drop it); null for any other key
-  kidOf(key) { const m = /^facts\.(.+)$/.exec(key); return m ? CHILDREN.find((C) => C.id === m[1]) || { id: m[1], unknown: true } : null; },
+  // (#49: or a profile the backup brings that isn't on this device: one of incoming, Backup.incoming's list)
+  kidOf(key, incoming = []) { const m = /^facts\.(.+)$/.exec(key); return m ? CHILDREN.find((C) => C.id === m[1]) || incoming.find((C) => C.id === m[1]) || { id: m[1], unknown: true } : null; },
+  // #49: the profiles in a backup's data (its robotbattle.profiles) that this device doesn't have (by id), as CHILDREN-like
+  // entries ({ id, name, ic, hex, ladder, wiring, created, incoming: true }). A file made before #49 has no list: none
+  incoming(data) {
+    return Profiles.cleanList(isObj(data) ? data.profiles : null).filter((p) => !CHILDREN.some((C) => C.id === p.id))
+      .map((p) => ({ id: p.id, name: p.name, ic: p.icon, hex: p.hex, ladder: p.ladder, wiring: p.wiring, created: p.created, incoming: true }));
+  },
   // a key Guest owns: its record, or the who-played-last setting when that was Guest
   guestKey(key, v) { return this.kidOf(key)?.guest || (key === 'child' && !!childOf(v)?.guest); },
   // the export object from a storage snapshot ({ key without the prefix: raw string }). A value that won't parse is left
@@ -3030,18 +3213,21 @@ const Backup = {
     if (!Number.isInteger(obj.format) || obj.format < 1) return no("it doesn't say which backup format it is");
     if (obj.format > BACKUP.format) return no(`a newer version of the game made it (format ${obj.format}); this game reads format ${BACKUP.format}`);
     if (!isObj(obj.data)) return no('it has no progress in it');
-    const kids = {}, settings = {}, skipped = [];
+    const kids = {}, settings = {}, skipped = [], incoming = this.incoming(obj.data);
+    if (obj.data.profiles != null && !Array.isArray(obj.data.profiles)) return no('its list of players is damaged');
     for (const k of Object.keys(obj.data)) {
-      const v = obj.data[k], K = this.kidOf(k);
+      const v = obj.data[k], K = this.kidOf(k, incoming);
       if (this.guestKey(k, v)) continue;                       // Guest's: never restored
       if (K?.unknown) return no(`it has a record for "${String(K.id).slice(0, 20)}", who isn't in this game`);
       if (K) { const why = this.checkRec(v, K); if (why) return no(why); kids[K.id] = v; }
-      else if (k === 'child') { if (typeof v !== 'string' || !childOf(v)) return no('its last player is damaged'); settings.child = v; }
+      else if (k === 'child') { if (typeof v !== 'string' || !(childOf(v) || incoming.some((C) => C.id === v))) return no('its last player is damaged'); settings.child = v; }
+      else if (k === 'profiles') continue;                     // #49: the players: incoming (the ones this device doesn't have)
       else if (k === 'pilot') { if (typeof v !== 'string') return no('its last pilot is damaged'); settings.pilot = v; }
       else skipped.push(k);
     }
     if (!Object.keys(kids).length) return no("it has nobody's progress in it");
-    return { ok: true, kids, settings, skipped, meta: { exported: typeof obj.exported === 'string' ? obj.exported : null, device: typeof obj.device === 'string' ? obj.device : null, format: obj.format } };
+    if (Profiles.count() + incoming.length > PROFILE.max) return no(`it would make more than ${PROFILE.max} players on this device (it brings ${incoming.length} new: ${incoming.map((C) => C.name).join(', ')})`);
+    return { ok: true, kids, settings, skipped, incoming, meta: { exported: typeof obj.exported === 'string' ? obj.exported : null, device: typeof obj.device === 'string' ? obj.device : null, format: obj.format } };
   },
   // "keep the best" of two records of one child: dev (this device's) and bak (the backup's), both passing checkRec.
   // Never lowers anything either side has. Pure: a new record; neither input is changed. merge(r, r) is r.
@@ -3194,9 +3380,19 @@ const Backup = {
   plan(v, choices, dev) {
     if (!v?.ok) return { ok: false, why: v?.why ?? 'nothing to restore' };
     const writes = [], kids = [];
-    for (const C of CHILDREN.filter((q) => !q.guest)) {
+    // #49: a profile the backup brings that this device doesn't have is added (after this device's, in the backup's order);
+    // one whose name a profile here already has (another device's "Max") gets a number on its name ("Max 2")
+    const inc = (v.incoming || []).map((C) => ({ ...C })), names = new Set(CHILDREN.filter((q) => !q.guest).map((q) => q.name.toLowerCase()));
+    for (const C of inc) {
+      let nm = C.name;
+      for (let n = 2; names.has(nm.toLowerCase()); n++) nm = C.name.slice(0, PROFILE.nameMax - String(n).length - 1).trim() + ' ' + n;
+      if (nm !== C.name) C.renamed = C.name;
+      C.name = nm; names.add(nm.toLowerCase());
+    }
+    if (inc.length) writes.push({ key: 'profiles', value: [...Profiles.list(), ...inc.map((C) => ({ id: C.id, name: C.name, icon: C.ic, hex: C.hex, ladder: C.ladder, wiring: C.wiring, created: C.created }))] });
+    for (const C of [...CHILDREN.filter((q) => !q.guest), ...inc]) {
       const bak = v.kids[C.id] ?? null, here = dev.kids[C.id] ?? null;
-      if (!bak && !here) continue;
+      if (!bak && !here && !C.incoming) continue;
       const choice = this.choiceFor(choices, C.id);
       if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
       // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone)
@@ -3205,10 +3401,10 @@ const Backup = {
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
       const lower = a && z ? BACKUP.rise.filter((k) => z[k] < a[k]) : [];
-      kids.push({ child: C.id, name: C.name, choice, inBackup: !!bak, write, device: a, backup: this.count(bak), result: z, lower });
+      kids.push({ child: C.id, name: C.name, ic: C.ic, hex: C.hex, newProfile: !!C.incoming, renamed: C.renamed ?? null, choice, inBackup: !!bak || !!C.incoming, write, device: a, backup: this.count(bak), result: z, lower });
     }
     for (const k of ['child', 'pilot']) if (v.settings[k] != null && dev.settings[k] == null) writes.push({ key: k, value: v.settings[k] });
-    return { ok: true, writes, summary: { kids, settings: { ...v.settings }, skipped: [...v.skipped], meta: { ...v.meta }, writes: writes.map((w) => w.key) } };
+    return { ok: true, writes, summary: { kids, settings: { ...v.settings }, skipped: [...v.skipped], meta: { ...v.meta }, writes: writes.map((w) => w.key), added: inc.map((C) => C.id) } };
   },
   // ---- the parts that touch the browser (D4 has its own) ----
   // every robotbattle.* key in storage, raw: { key without the prefix: string }
@@ -3260,6 +3456,7 @@ const Backup = {
     if (!write) return { ok: true, preview: true, summary: p.summary };
     const res = this.apply(p.writes);
     if (!res.ok) return { ok: false, why: res.why, summary: p.summary };
+    if (p.writes.some((w) => w.key === 'profiles')) { const was = Title.tiles()[Title.kid]; Profiles.load(); Title.drawKids(was); Title.draw(); }   // #49: the players it brought
     const C = Facts.child;
     if (C && !C.guest && p.writes.some((w) => w.key === 'facts.' + C.id)) {
       Facts.load(C); applyUpgrades({ swap: true });
@@ -3486,6 +3683,8 @@ const SCHEMES = [
 const SOLO_EXTRA = { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], camL: [], camR: [], fire: ['Enter'], wpn: [], fix: [], parts: [], bag: [], mend: [], jump: [] };
 const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Quote', 'Tab', 'Enter']);
 addEventListener('keydown', (e) => {
+  // #49: the maker is up: every key goes to it first (its name box is an input too, and Enter there must not confirm a robot's name)
+  if (Maker.on && Title.on) { Maker.key(e); return; }
   // typing a robot's name: the keys spell the name and don't drive the mech
   if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
   // the garage is open: keys go to it (Esc / G close, ◀ ▶ pick a tab), not the game
@@ -6308,41 +6507,89 @@ function setPause(on) {
 // startGame(), the same path as __rb.start(pilot). On the pilot pick, the ◀ chip, Esc /
 // Backspace or pad B goes back to who's playing. The sim already runs behind it, so
 // the mech idles in the meadow.
+// #49: who's playing has a tile per profile (in the order they were made), then Guest, then ➕ (the maker: Maker below;
+// at PROFILE.max it shows 🔒 12/12 and a tap buzzes). The tiles wrap (4 a row, 3 on a phone) and scroll after 3 rows,
+// keeping the cursor in view; ◀ ▶ ▲ ▼ (and A D W S, the d-pad) move it. kid = the cursor, a tile's place (CHILDREN's
+// index; CHILDREN.length is ➕). It starts on the last player on this device (robotbattle.child), or on Guest when there's
+// none or that profile is gone. Nothing is picked until the child confirms (a tap, Enter / Space, pad A or Start).
 // ===========================================================================
 const Title = {
-  cur: 0, kid: 0,
+  cur: 0, kid: null,
   get on() { return $('start').classList.contains('on'); },
+  // the tiles: [ids in order], ➕ as '+'
+  tiles() { return [...CHILDREN.map((C) => C.id), '+']; },
   build() {
     const last = pilotOf(store.get('pilot', '')); this.cur = last ? PILOTS.indexOf(last) : 0;
-    const kid = childOf(store.get('child', '')); this.kid = kid ? CHILDREN.indexOf(kid) : 0;
-    $('kids').innerHTML = CHILDREN.map((C) => `<button class="pilot kid" data-k="${C.id}" aria-label="${C.name}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${C.name}</span></button>`).join('');
+    if (this.kid == null) this.home();
+    this.drawKids();
     $('pilots').innerHTML = PILOTS.map((P) => `<button class="pilot" data-p="${P.id}" aria-label="${P.name}" style="--c:${P.hex}"><img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span></button>`).join('');
     this.draw();
+  },
+  // the cursor's starting place: the last player on this device, else Guest
+  home() { const kid = childOf(store.get('child', '')); this.kid = CHILDREN.indexOf(kid || GUEST); return this.kid; },
+  // (#49: the cursor stays on the same tile when tiles come in before it: keep = its id before the change)
+  drawKids(keep) {
+    const full = Profiles.full();
+    if (keep != null && this.tiles().includes(keep)) this.kid = this.tiles().indexOf(keep);
+    $('kids').innerHTML = CHILDREN.map((C) => `<button class="pilot kid" data-k="${C.id}" aria-label="${esc(C.name)}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${esc(C.name)}</span></button>`).join('')
+      + `<button class="pilot kid add${full ? ' full' : ''}" data-k="+" aria-label="${full ? `Full: ${PROFILE.max} of ${PROFILE.max}` : 'New player'}" style="--c:#ffffff">`
+      + `<b class="face">${icon(full ? 'lock' : 'plus')}</b><span>${full ? `${PROFILE.max}/${PROFILE.max}` : ''}</span></button>`;
+    this.kid = clamp(this.kid ?? 0, 0, CHILDREN.length);
   },
   draw() {
     const title = !Game.pilot, st = $('start'), C = Game.child;
     st.classList.toggle('title', title);
     st.classList.toggle('who', title && !C);
+    st.classList.toggle('make', title && !C && Maker.on);
     [...$('kids').children].forEach((b, i) => b.classList.toggle('cur', i === this.kid));
+    if (title && !C && !Maker.on) this.inView();
     [...$('pilots').children].forEach((b, i) => b.classList.toggle('cur', i === this.cur));
     const P = Game.pilot, who = $('who');
     if (P && who.dataset.p !== P.id) { who.dataset.p = P.id; who.style.setProperty('--c', P.hex); who.innerHTML = `<img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span>`; }
     const kb = $('kidB');
-    if (C && kb.dataset.k !== C.id) { kb.dataset.k = C.id; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">${icon('back')}</span><b class="face">${icon(C.ic)}</b><span>${C.name}</span>`; }
+    if (C && (kb.dataset.k !== C.id || kb.dataset.n !== C.name)) { kb.dataset.k = C.id; kb.dataset.n = C.name; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">${icon('back')}</span><b class="face">${icon(C.ic)}</b><span>${esc(C.name)}</span>`; }
     [...$('wireB').children].forEach((i) => i.classList.toggle('on', i.dataset.w === wiringMode()));
     Progress.drawBadge();
     drawPauseMenu();
-    $('parentB').classList.toggle('on', this.on);   // the parent button: title / pause screen only
+    $('parentB').classList.toggle('on', this.on && !Maker.on);   // the parent button: title / pause screen only (#49: not over the maker)
   },
+  // scroll the tiles so the cursor's tile shows whole
+  inView() {
+    const box = $('kids'), b = box.children[this.kid]; if (!b || box.scrollHeight <= box.clientHeight) return;
+    const pad = 12, top = b.offsetTop - box.offsetTop, bot = top + b.offsetHeight;
+    if (top - pad < box.scrollTop) box.scrollTop = Math.max(0, top - pad);
+    else if (bot + pad > box.scrollTop + box.clientHeight) box.scrollTop = bot + pad - box.clientHeight;
+  },
+  // tiles a row, as laid out now (the CSS grid's columns)
+  cols() { const n = getComputedStyle($('kids')).gridTemplateColumns.split(' ').filter((c) => c && c !== 'none').length; return n || (innerWidth <= 700 ? 3 : 4); },
+  // move the cursor: dx along the tiles (wrapping), dy a row up or down (wrapping top to bottom); returns the new place
+  move(dx, dy) {
+    const n = CHILDREN.length + 1, c = this.cols();
+    let k = this.kid;
+    if (dx) k = (k + dx + n) % n;
+    if (dy > 0) k = k + c < n ? k + c : Math.floor(k / c) < Math.floor((n - 1) / c) ? n - 1 : k % c;
+    if (dy < 0) { if (k - c >= 0) k -= c; else { const last = Math.floor((n - 1) / c) * c + (k % c); k = last < n ? last : n - 1; } }
+    if (k !== this.kid) { this.kid = k; this.draw(); if (!Game.manual) Sfx.click(); }
+    return k;
+  },
+  // confirm the tile under the cursor: a child's tile picks them; ➕ opens the maker (buzzes when full). how: what did it
+  // ('pad' shows the maker's letter board)
+  activate(how) {
+    if (this.kid < CHILDREN.length) { Sfx.unlock(); if (!Game.manual) Sfx.click(); return pickChild(CHILDREN[this.kid].id); }
+    return Maker.open(how);
+  },
+  // pad Start on who's playing: picks the tile under the cursor (in the maker: saves); then the pilot
+  start() { if (Maker.on) return Maker.save(); if (!Game.child) return this.activate('pad'); return startGame(PILOTS[this.cur].id); },
   // keys and pad on the title (not in manual mode: checks use __rb.player / __rb.start)
   input(pad) {
     if (Game.manual || !this.on || Progress.mode || Garage.on) return;
+    if (Maker.on) { if (pad) Maker.pad(pad); return; }
     const kp = (...c) => c.some((k) => keysPressed.has(k));
     const d = (kp('ArrowRight', 'KeyD') || pad?.rightP ? 1 : 0) - (kp('ArrowLeft', 'KeyA') || pad?.leftP ? 1 : 0);
     if (!Game.pilot && !Game.child) {
-      const n = CHILDREN.length;
-      if (d) { this.kid = (this.kid + d + n) % n; this.draw(); Sfx.click(); }
-      if (kp('Enter', 'Space') || pad?.aP) { pickChild(CHILDREN[this.kid].id); Sfx.unlock(); Sfx.click(); }
+      const dy = (kp('ArrowDown', 'KeyS') || pad?.downP ? 1 : 0) - (kp('ArrowUp', 'KeyW') || pad?.upP ? 1 : 0);
+      if (d || dy) this.move(d, dy);
+      if (kp('Enter', 'Space') || pad?.aP) this.activate(pad?.aP ? 'pad' : 'keys');
     } else if (!Game.pilot) {
       const n = PILOTS.length;
       if (kp('Escape', 'Backspace') || pad?.bP) { pickChild(null); Sfx.click(); return; }
@@ -6351,6 +6598,154 @@ const Title = {
     } else if (kp('KeyT') || pad?.yP) Progress.openGrid('pause');      // ⭐ my facts
     else if (kp('KeyG') || pad?.xP) Garage.open('pause');             // 🔧 the garage
     else if (kp('Enter') || pad?.aP) startPlay();
+  },
+};
+// #49: the maker, from the ➕ tile: an icon (PROFILE.icons) and a colour (PROFILE.colors), with a live tile preview (it
+// starts on an icon and a colour nobody has yet), and a name (Profiles.nameWhy's rules). The keyboard types the name (into
+// its box, wherever the cursor is); touch uses the device's keyboard (a tap on the box); the pad gets an A–Z letter board.
+// The cursor (keys and pad) moves over the box, the board, the icons, the colours and ✖ ✔ by where they are on screen
+// (◀ ▶ ▲ ▼, the d-pad); an icon or colour is picked as the cursor lands on it. Enter: a letter types it, ✖ goes back, anything
+// else saves; pad A: the same, but on an icon or colour it only picks it. Pad X deletes a letter, B goes back, Start saves. Esc goes back. ✔ saves the
+// profile and goes on to the pilot pick (as that child: pickChild); a name that can't be one buzzes and says why.
+const MAKER_WHY = { 'no name': ['tag', 'Type a name'], 'name taken': ['tag', 'That name is taken'], reserved: ['tag', 'Guest is taken'],
+  'bad name': ['tag', 'Letters and numbers only'], full: ['lock', `${PROFILE.max} players is the most`] };
+const Maker = {
+  on: false, name: '', icon: null, color: null, why: null, at: 'name', board: false,
+  init() {
+    const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    $('mkBoard').innerHTML = L.map((c) => `<button data-mk="key:${c}" aria-label="${c}">${c}</button>`).join('') + `<button data-mk="key: " class="sp" aria-label="Space">${icon('space')}</button>`;
+    $('mkIcons').innerHTML = PROFILE.icons.map((n) => `<button data-mk="icon:${n}" aria-label="${n}">${icon(n)}</button>`).join('');
+    $('mkColors').innerHTML = PROFILE.colors.map((h) => `<button data-mk="color:${h}" aria-label="colour ${h}" style="--c:${h}"></button>`).join('');
+    const m = $('maker');
+    m.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const b = e.target.closest('[data-mk]'); if (!b) return;
+      if (e.detail === 0 && !e.pointerType) return;   // the keys (Enter / Space on a focused button): Maker.key has it
+      this.at = b.dataset.mk;
+      if (this.at === 'name') { this.draw(); return; }
+      this.activate();
+      // (a mouse leaves the typing in the box; a tap doesn't, so the device's keyboard only comes up on a tap on the box)
+      if (this.on && e.pointerType === 'mouse' && !this.at.startsWith('key:')) $('mkName').focus({ preventScroll: true });
+    });
+    m.addEventListener('focusin', (e) => { const b = e.target.closest('[data-mk]'); if (b && b.dataset.mk !== this.at) { this.at = b.dataset.mk; this.pickAt(); this.draw(); } });
+    $('mkName').addEventListener('input', (e) => { this.setName(e.target.value); });
+  },
+  // what the hooks see: null when shut
+  status() { return this.on ? { name: this.name, icon: this.icon, color: this.color, why: this.why, board: this.board, at: this.at } : null; },
+  open(how) {
+    if (Profiles.full()) { if (!Game.manual) Sfx.buzz(); const b = $('kids').lastElementChild; b?.classList.remove('shake'); void b?.offsetWidth; b?.classList.add('shake'); return { ok: false, why: 'full' }; }
+    if (Game.pilot || Game.child) return { ok: false, why: 'not on who\'s playing' };
+    const s = Profiles.suggest();
+    Object.assign(this, { on: true, name: '', icon: s.icon, color: s.color, why: null, at: 'name', board: how === 'pad' || padConnected() });
+    Title.kid = CHILDREN.length;
+    $('mkName').value = '';
+    $('maker').scrollTop = 0;
+    Title.draw(); this.draw();
+    if (how !== 'pad' && how !== 'touch') $('mkName').focus({ preventScroll: true });
+    if (!Game.manual) { Sfx.unlock(); Sfx.click(); }
+    return { ok: true, maker: this.status() };
+  },
+  close() {
+    if (!this.on) return { ok: false, why: 'not open' };
+    this.on = false; $('mkName').blur(); Title.kid = CHILDREN.length; Title.draw();
+    if (!Game.manual) Sfx.click();
+    return { ok: true };
+  },
+  setName(v) {
+    const n = String(v ?? '').replace(/[^\p{L}\p{N} ]/gu, '').replace(/^ +/, '').replace(/ {2,}/g, ' ').slice(0, PROFILE.nameMax);
+    this.name = n; this.why = null;
+    if ($('mkName').value !== n) $('mkName').value = n;
+    this.draw();
+    return n;
+  },
+  type(ch) { if (this.name.length >= PROFILE.nameMax) { if (!Game.manual) Sfx.buzz(); return this.name; } if (!Game.manual) Sfx.click(); return this.setName(this.name + ch); },
+  del() { return this.setName(this.name.slice(0, -1)); },
+  // the icon or colour under the cursor is the one picked
+  pickAt() {
+    const [k, v] = this.at.split(/:(.*)/s);
+    if (k === 'icon') this.icon = v; else if (k === 'color') this.color = v;
+  },
+  activate() {
+    const [k, v] = this.at.split(/:(.*)/s);
+    if (k === 'key') return this.type(this.name === '' || this.name.endsWith(' ') ? v : v.toLowerCase());   // (Max, not MAX)
+    if (k === 'back') return this.close();
+    if (k === 'icon' || k === 'color') { this.pickAt(); this.draw(); if (!Game.manual) Sfx.click(); return { ok: true }; }
+    return this.save();
+  },
+  save() {
+    if (!this.on) return { ok: false, why: 'not open' };
+    const res = Profiles.add(this.name, this.icon, this.color);
+    if (!res.ok) {
+      this.why = res.why; this.draw();
+      if (!Game.manual) Sfx.buzz();
+      const el = $('mkPrev'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+      return res;
+    }
+    this.on = false; $('mkName').blur();
+    Title.drawKids();
+    pickChild(res.id);   // on to the pilot pick, as the new profile
+    if (!Game.manual) Sfx.unlock();
+    return res;
+  },
+  // the cursor's spots, on screen now (the board only when it shows)
+  spots() { return [...$('maker').querySelectorAll('[data-mk]')].filter((el) => el.getClientRects().length); },
+  // move the cursor to the nearest spot that way (dx, dy: -1, 0, 1); none that way: wrap to the far end of the row / column
+  move(dx, dy) {
+    const all = this.spots(), cur = all.find((el) => el.dataset.mk === this.at) || all[0]; if (!cur) return;
+    const c = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, h: r.height, w: r.width }; };
+    const p = c(cur), score = (q) => { const ax = (q.x - p.x) * dx + (q.y - p.y) * dy, off = dx ? Math.abs(q.y - p.y) : Math.abs(q.x - p.x); return ax > 4 ? ax + off * 3 : Infinity; };
+    let best = null, bs = Infinity;
+    for (const el of all) { if (el === cur) continue; const s = score(c(el)); if (s < bs) { bs = s; best = el; } }
+    if (!best) {   // wrap: the farthest spot the other way in the same row (◀ ▶) or column (▲ ▼)
+      let far = -Infinity;
+      for (const el of all) { const q = c(el), same = dx ? Math.abs(q.y - p.y) < p.h / 2 : Math.abs(q.x - p.x) < Math.max(p.w, q.w) / 2; const back = -((q.x - p.x) * dx + (q.y - p.y) * dy); if (el !== cur && same && back > far) { far = back; best = el; } }
+    }
+    if (!best) return;
+    this.at = best.dataset.mk; this.pickAt(); this.draw();
+    if (document.activeElement && document.activeElement !== $('mkName') && $('maker').contains(document.activeElement)) best.focus({ preventScroll: true });
+    if (!Game.manual) Sfx.click();
+  },
+  draw() {
+    if (!this.on) return;
+    const P = $('mkPrev'), shown = this.name.trim();
+    P.style.setProperty('--c', this.color);
+    P.innerHTML = `<b class="face">${icon(this.icon)}</b><span>${shown ? esc(shown) : '&nbsp;'}</span>`;
+    $('maker').style.setProperty('--c', this.color);
+    $('mkBoard').classList.toggle('on', this.board);
+    for (const el of $('maker').querySelectorAll('[data-mk]')) {
+      const k = el.dataset.mk;
+      el.classList.toggle('cur', k === this.at);
+      el.classList.toggle('on', k === 'icon:' + this.icon || k === 'color:' + this.color);
+    }
+    const w = this.why && MAKER_WHY[this.why];
+    $('mkWhy').innerHTML = w ? `${icon('warn')}${icon(w[0])}<span>${w[1]}</span>` : '';
+    $('mkWhy').classList.toggle('on', !!w);
+    const el = this.spots().find((q) => q.dataset.mk === this.at), box = $('maker');
+    if (el && box.scrollHeight > box.clientHeight) {
+      const r = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+      if (r.top < b.top + 8) box.scrollTop -= b.top + 8 - r.top; else if (r.bottom > b.bottom - 8) box.scrollTop += r.bottom - (b.bottom - 8);
+    }
+  },
+  // the keys while the maker is up (every key comes here first: Enter must not confirm a robot's name)
+  key(e) {
+    const inBox = e.target === $('mkName'), c = e.code;
+    if (c === 'Escape') { e.preventDefault(); if (!e.repeat) this.close(); return; }
+    // (Enter: a letter types it, ✖ goes back, anything else saves, an icon or colour under the cursor included: it's picked)
+    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (!e.repeat) { if (/^(icon|color):/.test(this.at)) this.save(); else this.activate(); } return; }
+    const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[c];
+    if (d) { if (inBox && this.at === 'name' && d[0]) return; e.preventDefault(); this.move(...d); return; }
+    if (c === 'Tab' || inBox) return;   // typing in the box is the browser's (the input event tidies it)
+    if (c === 'Backspace') { e.preventDefault(); this.del(); return; }
+    if (e.key && e.key.length === 1 && /[\p{L}\p{N} ]/u.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); this.type(e.key.toUpperCase() === e.key || this.name ? e.key : e.key.toUpperCase()); }
+  },
+  // the pad while the maker is up (Start is gatherInput's: it saves)
+  pad(pad) {
+    if (!this.board) { this.board = true; this.draw(); }
+    if (pad.bP) { this.close(); return; }
+    if (pad.xP) { this.del(); return; }
+    const dx = (pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), dy = (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0);
+    if (dx || dy) this.move(dx, dy);
+    if (pad.aP) this.activate();
   },
 };
 // Who's playing: load child `c`'s record (an id, a name or an index into CHILDREN) and go on to the
@@ -9039,7 +9434,7 @@ function gatherInput(dt) {
     // The title's own keys and pad (◀ ▶, A, B) go to Title.input, and while it's up (outside manual mode)
     // the mech isn't driven.
     if (pad && pad.startP) {
-      if (!Game.pilot && h.idx === 0 && !Game.manual) { if (!Game.child) pickChild(CHILDREN[Title.kid].id); else startGame(PILOTS[Title.cur].id); }
+      if (!Game.pilot && h.idx === 0 && !Game.manual) Title.start();   // (#49: in the maker it saves; on ➕ it opens the maker)
       else setPause(!Game.paused);
     }
     if (tpad && tpad.pauseP && !Game.paused) setPause(true);   // #94: the controller's pause (it only shows in play)
@@ -10080,7 +10475,7 @@ const BackupUI = {
       a.href = url; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60e3);
-      this.msg = { ok: true, text: kids.length ? `Saved ${name}: ${kids.map((id) => childOf(id).name).join(' and ')}.` : `Saved ${name}. Nobody has progress on this device yet.` };
+      this.msg = { ok: true, text: kids.length ? `Saved ${name}: ${andList(kids.map((id) => childOf(id)?.name ?? id))}.` : `Saved ${name}. Nobody has progress on this device yet.` };
     } catch (e) { this.msg = { ok: false, text: "This browser wouldn't save the file." }; }
     this.last = { name, bytes: text.length, kids };
     Progress.drawParent();
@@ -10134,7 +10529,7 @@ const BackupUI = {
       + `<p>Saves ${this.kidNames()}'s progress to a file, or loads one back. Guest's is never saved.</p>`
       + `<div class="pbakmsg${m && !m.ok ? ' bad' : ''}" id="pBakMsg">${m ? icon(m.ok ? 'check' : 'warn') + `<span>${esc(m.text)}</span>` : ''}</div></div>`;
   },
-  kidNames() { return Progress.kids().map((C) => C.name).join(' and '); },
+  kidNames() { return andList(Progress.kids().map((C) => C.name)); },
   // the summary over the parent view (or why the file can't be used)
   draw() {
     const el = $('pRestore'); if (!el) return;
@@ -10151,8 +10546,8 @@ const BackupUI = {
     let h = `<h3>${icon('up')}<span>Restore ${esc(this.name)}</span></h3><div class="meta">Made ${esc(when)}${S.meta.device ? ' on ' + esc(S.meta.device) : ''}. Nothing changes until you tap Restore.</div>`;
     const asked = this.asked();
     for (const q of S.kids) {
-      const C = childOf(q.child), k = asked.indexOf(q);
-      h += `<div class="rkid${k === this.cur && asked.length > 1 ? ' cur' : ''}" style="--c:${C.hex}" data-child="${C.id}"><div class="who">${icon(C.ic)}<b>${C.name}</b></div>`;
+      const C = childOf(q.child) || { id: q.child, name: q.name, ic: q.ic, hex: q.hex }, k = asked.indexOf(q);   // (#49: or a player the backup brings)
+      h += `<div class="rkid${k === this.cur && asked.length > 1 ? ' cur' : ''}" style="--c:${C.hex}" data-child="${C.id}"><div class="who">${q.newProfile ? icon('plus', { label: 'new player' }) : ''}${icon(C.ic)}<b>${esc(C.name)}</b>${q.renamed ? `<small>(${esc(q.renamed)} here)</small>` : ''}</div>`;
       if (!q.inBackup) { h += `<div class="note">Not in this backup: ${C.name}'s progress here stays as it is.</div></div>`; continue; }
       h += `<div class="rtab"><span></span><span class="h">This device</span><span class="h">Backup</span><span class="h">After</span>`;
       for (const R of RESTORE_ROWS) {
@@ -10196,6 +10591,8 @@ const BackupUI = {
     };
   },
 };
+// #49: names in a sentence: 'Orion and Apollo', 'Max, Orion and Apollo'
+const andList = (n) => (n.length > 2 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n.join(' and '));
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // HUD: speed bars and legs-vs-torso compass
@@ -11912,7 +12309,15 @@ function nextWave() {
 }
 $('nextB').addEventListener('click', (e) => { e.stopPropagation(); if (Waves.showing) nextWave(); });
 $('pilots').addEventListener('click', (e) => { const b = e.target.closest('.pilot'); if (b) { e.stopPropagation(); startGame(b.dataset.p); } });
-$('kids').addEventListener('click', (e) => { const b = e.target.closest('.kid'); if (b) { e.stopPropagation(); Sfx.unlock(); Sfx.click(); pickChild(b.dataset.k); } });
+// (#49: a click from the keys, Enter / Space on a focused tile, is Title.input's; a tile that gets focus takes the cursor)
+$('kids').addEventListener('click', (e) => {
+  const b = e.target.closest('.kid'); if (!b) return;
+  e.stopPropagation();
+  if (e.detail === 0 && !e.pointerType) return;
+  Title.kid = [...$('kids').children].indexOf(b); Title.draw();
+  Title.activate(e.pointerType === 'touch' ? 'touch' : 'mouse');
+});
+$('kids').addEventListener('focusin', (e) => { const b = e.target.closest('.kid'); if (b && !Game.child) { const i = [...$('kids').children].indexOf(b); if (i !== Title.kid) { Title.kid = i; Title.draw(); } } });
 // ◀ on the pilot pick: back to who's playing (on the pause screen the chip only shows who it is)
 $('kidB').addEventListener('click', (e) => { e.stopPropagation(); if (!Game.pilot) { Sfx.click(); pickChild(null); } });
 $('wireB').addEventListener('click', (e) => { e.stopPropagation(); Sfx.click(); setWiring(wiringMode() === 'math' ? 'colour' : 'math'); });
@@ -11994,6 +12399,7 @@ window.__rb = {
   BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
   CAM_FAR,   // (#103)
+  Profiles, PROFILE, Title, Maker, Backup,   // (#49)
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // #70: the sounds as played: thud = Sfx.thud calls so far (every source: footfalls, landings, props, robots; none in manual
   // mode, which plays no sound), roll = the level 🚜 Tracks' rolling loop was last set to (0 = silent), rolling, and with audio
@@ -12053,6 +12459,21 @@ window.__rb = {
   // pick who's playing ('orion', 'apollo', 'guest', any case, or an index), as a tap on their tile does:
   // loads their record and goes on to the pilot pick; null goes back to who's playing (title only)
   player(name) { const res = pickChild(name); return { ...res, title: this.state().title, wiring: wiringMode(), facts: Facts.summary() }; },
+  // #49: the profiles, in tile order (Guest and ➕ aren't profiles): [{ id, name, icon, hex, ladder, wiring, created }]
+  profiles() { return Profiles.list(); },
+  // #49: make a profile, as the maker's ✔ does but without picking it: { ok, id } or { ok: false, why: 'full' | 'name taken' |
+  // 'no name' | 'reserved' | 'bad name' | 'no such icon' | 'no such color' }. icon / color: a name / hex from the maker's sets
+  // (or an index into them); left out, the maker's suggestion (one nobody has yet)
+  addProfile(name, icon, color) { const was = Title.tiles()[Title.kid], res = Profiles.add(name, icon, color); if (res.ok) { Title.drawKids(was); Title.draw(); } return res; },
+  // #49: the maker: 'open' (as ➕ does; refused when full), 'close' (✖), 'save' (✔), 'name' (v = the name as typed), 'type' (v = a
+  // letter, as the pad's board types it), 'del', 'icon' / 'color' (v = one of the sets). Returns state().who
+  maker(what, v) {
+    const A = { open: () => (Title.kid = CHILDREN.length, Title.activate('hook')), close: () => Maker.close(), save: () => Maker.save(), name: () => Maker.setName(v), type: () => Maker.type(v), del: () => Maker.del(),
+      icon: () => { if (Maker.on && PROFILE.icons.includes(v)) { Maker.icon = v; Maker.draw(); } }, color: () => { if (Maker.on && Profiles.colorOf(v)) { Maker.color = Profiles.colorOf(v); Maker.draw(); } } }[what];
+    if (!A) return { ok: false, why: 'no such action' };
+    const res = A();
+    return { res, who: this.state().who };
+  },
   // the current child's record (a copy), with summary: the ladder, stage counts of the open facts, in play
   facts() { return Facts.rec ? { ...JSON.parse(JSON.stringify(Facts.rec)), summary: Facts.summary() } : null; },
   // record an answer: value given for a × b in ms milliseconds (op defaults to '×'; a fact object works too:
@@ -12580,6 +13001,11 @@ window.__rb = {
       // who's playing (null until picked), their Quick Fix setting, and math = it's math wiring
       child: Game.child ? { id: Game.child.id, name: Game.child.name, color: Game.child.hex, guest: !!Game.child.guest } : null,
       children: CHILDREN.map((C) => C.name),
+      // #49: who's playing: the tiles' ids in order (profiles, 'guest', then '+' for ➕), the cursor's tile (cur: its id; at: its place),
+      // the maker (null, or { name, icon, color, why, board: the pad's letter board shows, at: the maker's cursor }), full = 12 profiles,
+      // rows = tiles a row as laid out, scroll = the tiles' { top, height, view } (view: the height that shows)
+      who: { tiles: Title.tiles(), cur: Title.tiles()[Title.kid] ?? null, at: Title.kid, maker: Maker.status(), full: Profiles.full(), rows: Title.cols(),
+        scroll: { top: $('kids').scrollTop, height: $('kids').scrollHeight, view: $('kids').clientHeight } },
       wiring: wiringMode(), math: wiringMode() === 'math',
       factStep: Facts.rec ? Facts.rec.step : null,
       // M4: the open overlay (null | 'grid' | 'parent'), where the grid was opened from ('hud' | 'pause'), the ⭐ badge's
@@ -12633,6 +13059,7 @@ FixUI.init();
 Progress.init();
 BackupUI.init();
 Garage.init();
+Maker.init();             // #49: the profile maker's board, icons and colours
 applyUpgrades();          // G2: nobody picked yet, so a bare mech (levels all 0)
 onResize();
 Title.build();
