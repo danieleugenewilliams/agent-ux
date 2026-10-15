@@ -3264,7 +3264,17 @@ const Backup = {
     if (C && !C.guest && p.writes.some((w) => w.key === 'facts.' + C.id)) {
       Facts.load(C); applyUpgrades({ swap: true });
       // #58: the squad as restored: its squadbots back from the record (recruits, and one down on its rescue clock, stay as they are)
-      if (Game.child === C) { Squad.clear((r) => !r.saved || r.state === 'down'); Squad.bring(); }
+      // (the restored squadbots come first: a recruit, newest first, then a powered-down squadbot the restored record
+      // doesn't have, makes room for one that the cap would leave out of the meadow, because the next save writes the
+      // squad from the meadow and would drop it from the record for good)
+      if (Game.child === C) {
+        Squad.clear((r) => !r.saved || r.state === 'down');
+        const S = Squad.rec()?.squad ?? [], want = S.filter((e) => !e.down && !Game.squad.some((q) => q.uid === e.id)).length;
+        const spare = [...Game.squad.filter((r) => !r.saved).reverse(), ...Game.squad.filter((r) => r.saved && !S.some((e) => e.id === r.uid))];
+        const go = spare.slice(0, Math.max(0, Game.squad.length + want - REPAIR.squadMax));
+        if (go.length) Squad.clear((r) => !go.includes(r));
+        Squad.bring();
+      }
     }
     return { ok: true, summary: p.summary };
   },
