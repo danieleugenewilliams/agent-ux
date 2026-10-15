@@ -10479,8 +10479,9 @@ const Progress = {
       + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div></div>`
       + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
-      + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}`
-      + `<button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${esc(D.name)}</button><button class="pbtn remove" data-act="remove">${icon('bin')} Remove ${esc(D.name)}</button></div></div></div>`
+      + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}</div>`
+      // (#50: 🗑️ Reset and 🗑️ Remove side by side, on a row of their own)
+      + `<div class="pact pdanger"><button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${esc(D.name)}</button><button class="pbtn remove" data-act="remove">${icon('bin')} Remove ${esc(D.name)}</button></div></div></div>`
       + BackupUI.html();   // #69: back up and restore (every child, not just this tab's)
     const cf = $('pConfirm'); cf.classList.toggle('on', this.confirm || !!this.rm); $('parentPanel').classList.toggle('locked', this.confirm || !!this.rm);
     // #50: 🗑️ Remove asks first, as Reset does: their icon and name, their ⭐ count, and that it can't be undone
