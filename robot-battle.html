@@ -6810,7 +6810,9 @@ function pickChild(c) {
   // beside the mech
   const was = Game.child;
   if (was !== C) { if (was) Squad.sync(); Squad.clear(); }
-  Facts.load(C); Game.child = C; store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
+  // (#50: a profile removed since this page read the list, say in another tab, isn't written back as the last player:
+  // robotbattle.child naming nobody would make every backup of this device refused, "its last player is damaged")
+  Facts.load(C); Game.child = C; if (C.guest || Profiles.saved(C.id)) store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
   applyUpgrades({ swap: true });   // G2: their upgrades on the mech (a fresh Guest has none); #68: the damage taken stays
   if (was !== C) Squad.bring();
   Title.draw();
