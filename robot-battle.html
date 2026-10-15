@@ -3091,6 +3091,9 @@ const Backup = {
     // the summary should show them now), waiting for their cheer
     // (#72: and the metals they and the merged leg shapes have earned; the metal picked is the device's, else the backup's,
     // as clone(gd) and the fill-in above give it, and the 👑's switch likewise)
+    // (the 👑's switch is saved only when off, so a device with the 👑 on has none, and the fill-in above would take a
+    // backup's off over it: the device's, when the device has the 👑)
+    if (arr(gd.unlocks).includes('gold')) { if (gd.crown === false) g.crown = false; else delete g.crown; }
     const n = this.count(out).mastered;
     if (!Array.isArray(g.fresh)) g.fresh = [];
     latchInto(g, n);
