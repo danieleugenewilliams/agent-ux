@@ -4255,7 +4255,7 @@ const LEG_KITS = {
         }
         if (!pick) continue;
         const [h, f, dy] = pick, y = y0 + dy, c2 = clamp((h * h + y * y - L1 * L1 - L2 * L2) / (2 * L1 * L2), -1, 1), k2 = -Math.acos(c2);
-        L.coxa.rotation.y = f; L.knee.rotation.z = k2; L.hip.rotation.z = Math.atan2(y, h) - Math.atan2(-L1 - L2 * Math.cos(k2), L2 * Math.sin(k2));
+        L.coxa.rotation.y = f; L.knee.rotation.z = k2; L.hip.rotation.z = this.rest.hip + wrapAngle(Math.atan2(y, h) - Math.atan2(-L1 - L2 * Math.cos(k2), L2 * Math.sin(k2)) - this.rest.hip);   // (the turn nearest the rest pose's, so look.pose reads as the gait's)
         this.level(L); md.feetFixed++;
       }
     },
