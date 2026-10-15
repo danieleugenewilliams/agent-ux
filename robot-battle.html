@@ -3708,6 +3708,26 @@ function jumpPass(m, J, gy, p) {
   if (gy + J.y >= top) { (m.over ||= new Set()).add(p); return 'over'; }
   return J.v < 0 ? 'stomp' : 'bump';
 }
+// #71: what the Spider's feet may not stand in, near mech m (centre within reach + its radius): every blocking circle in
+// obstacles (a tree, rock, fence circle; top = its height over the ground under its prop, as jumpPass reads it: a fence
+// section is built level at its middle's height), every robot on the ground (its radius,
+// no top; not a flier or one mid-hop), every other mech. SPIDER_FOOT: a foot's size (r, round its middle: the pad and the
+// claw) and its sole (how far under the foot's middle it stands)
+const SPIDER_FOOT = { r: 0.55, sole: 0.3, clear: 0.05 };   // (clear: a foot it places stands at least this far off)
+function footBlockers(m, reach = Infinity) {
+  const B = [], x = m.pos.x, z = m.pos.z, near = (q, r) => Math.hypot(q.x - x, q.z - z) - r < reach;
+  for (const o of obstacles) if (near(o, o.r)) { const p = o.prop || o; B.push({ x: o.x, z: o.z, r: o.r, top: groundH(p.x, p.z) + o.h, kind: o.kind, id: o.prop?.id ?? null }); }
+  for (const r of Game.robots) if (!r.air && !ROBOT_TYPES[r.type].flies && near(r.pos, r.spec.radius)) B.push({ x: r.pos.x, z: r.pos.z, r: r.spec.radius, top: Infinity, kind: 'robot', id: r.id });
+  for (const q of Game.mechs) if (q !== m && near(q.pos, MECH.radius)) B.push({ x: q.pos.x, z: q.pos.z, r: MECH.radius, top: Infinity, kind: 'mech', id: null });
+  return B;
+}
+// how far a foot at p (its middle, world) is clear of blockers B (m; 0 or less = inside one): its edge to the nearest circle
+// whose top is above its sole
+function footGapOf(p, B) {
+  let g = Infinity;
+  for (const b of B) if (p.y - SPIDER_FOOT.sole < b.top) g = Math.min(g, Math.hypot(p.x - b.x, p.z - b.z) - b.r - SPIDER_FOOT.r);
+  return g;
+}
 // how far (x, z) is outside smashable p's real footprint (0 = over it): a fence section's box, else its circles
 function footGap(p, x, z) {
   const F = p.foot;
@@ -3835,6 +3855,8 @@ const TORSO_KITS = {
 //   🧲 pod (and it's the arm that punches)
 //   plate     🛡️ the shoulder plate { at (x is s ×), size };  decal  G3's spot on top of the shoulder { x, y, z, size }
 //   cable     B1's tier-4 cable bundle down the arm [x (s ×), y, z]
+//   ram       #71: 🐏 the ram plate on the outside of each forearm (in fore, so it punches and recoils with it): x = how far out
+//             (s ×) by side [left, right], since the 🧲 pod and the gun housing differ; y, z its middle
 //   recoil    how far the cannon arm kicks back (z) and up (pitch) on a round;  punch  how far the punch throws (pitch, reach)
 //   gun / pod where its rounds start: the cannon's two barrels (side ± spread, out from the middle), the rail gun (side), the
 //             🧲 pod (side, on the left), each y m over the feet, 0.5 m ahead of the middle (shotSock: moved with the torso's
@@ -3843,6 +3865,7 @@ const ARM_KITS = {
   // 🔫 today's twin cannon (right) and rocket pod (left), as they always were
   standard: {
     sock: { plate: { at: [0.25, 0.78, 0], size: [1.25, 0.3, 1.5] }, decal: { x: 0.2, y: 0.97, z: 0, size: 0.82 }, cable: [0.3, 0, 0],
+      ram: { x: [0.69, 0.59], y: 0, z: -0.75 },
       recoil: { z: 0.55, pitch: 0.09 }, punch: { pitch: 1.45, reach: 0.9 }, gun: { side: 2.4, spread: 0.2, y: 4.4 }, pod: { side: 2.4, y: 4.4 } },
     build(shoulder, s, paint, metal) {
       const out = { flashes: [], muzzles: [], muzzleLight: null, pod: null };
@@ -3876,6 +3899,7 @@ const ARM_KITS = {
   // on the left
   fists: {
     sock: { plate: { at: [0.3, 1.0, 0], size: [1.45, 0.3, 1.7] }, decal: { x: 0.25, y: 1.19, z: 0, size: 0.9 }, cable: [0.42, 0, 0],
+      ram: { x: [0.81, 0.81], y: -0.1, z: -0.95 },
       recoil: { z: 0.35, pitch: 0.06 }, punch: { pitch: 1.45, reach: 1.1 }, gun: { side: 2.7, spread: 0.25, y: 5.08 }, pod: { side: 2.7, y: 5.15 } },
     build(shoulder, s, paint, metal) {
       const out = { flashes: [], muzzles: [], muzzleLight: null, pod: null };
@@ -3910,6 +3934,7 @@ const ARM_KITS = {
   // the left
   barrels: {
     sock: { plate: { at: [0.2, 0.66, 0], size: [1.1, 0.26, 1.4] }, decal: { x: 0.18, y: 0.83, z: 0, size: 0.72 }, cable: [0.25, 0, 0],
+      ram: { x: [0.61, 0.51], y: 0, z: -0.9 },
       recoil: { z: 0.75, pitch: 0.12 }, punch: { pitch: 1.45, reach: 0.8 }, gun: { side: 2.55, spread: 0.17, y: 4.5 }, pod: { side: 2.55, y: 4.5 } },
     build(shoulder, s, paint, metal) {
       const out = { flashes: [], muzzles: [], muzzleLight: null, pod: null };
@@ -4143,6 +4168,7 @@ const LEG_KITS = {
   // (FR + BR + ML, then FL + BL + MR: front and back on one side with the middle on the other).
   spider: {
     rest: { hip: 1.87, knee: -1.65 },
+    L1: 2.1, L2: 4.5,   // #71: the thigh (hip to knee) and the shin (knee to foot), as built below
     build(pelvis, paint, metal, opts = {}) {
       const legs = [], six = !!opts.six, splay = six ? 0.78 : 0.62, fore = six ? 0.95 : 0.75;
       const at = [[1, -1], [1, 1], [-1, -1], [-1, 1], ...(six ? [[0, -1], [0, 1]] : [])];   // [f, s]: the front pair, the back pair, (the middle pair)
@@ -4194,6 +4220,45 @@ const LEG_KITS = {
     // powered down its legs splay out flat
     down(md, sl) { for (const L of md.legs) { L.hip.rotation.z -= 0.35 * sl; L.knee.rotation.z += 0.2 * sl; this.level(L); } },
     probe(md) { const L = md.legs.find((l) => l.f > 0 && l.s > 0); return { hip: r3(L.hip.rotation.z), coxa: r3(L.coxa.rotation.y) }; },
+    // #71: its feet never stand in a tree, rock, fence, robot or mech. The body still collides as MECH.radius (so the kick,
+    // rams and reach are as ever); after the pose (gait, kick, tuck, power-down), each foot that would be inside something
+    // (footBlockers: its circle, below its top, within SPIDER_FOOT.r of the foot) is placed clear instead: the nearest clear
+    // spot (shorter, or swung a little fore or aft round it), found by reach h out along the leg and swing f at the coxa, at
+    // the same height in the pelvis's frame (so a planted foot stays planted), and the hip and knee set to reach it (2-bone
+    // IK, the knee up as built). Close enough in (SPIDER_FOOT: under 1.75 m from the middle) is clear by construction:
+    // nothing comes within MECH.radius of the body. A foot may also tuck up over what it's passing, in a jump or straddling
+    // a fence just jumped (the body's over it then, so nowhere near is clear at ground height). md.feetFixed = the feet placed this frame
+    place(md, m) {
+      md.feetFixed = 0;
+      const B = footBlockers(m, 7.5); if (!B.length) return;
+      const v = new V3(), { L1, L2 } = this;
+      for (const L of md.legs) {
+        L.base.updateWorldMatrix(true, false);
+        const W = L.base.matrixWorld, t1 = L.hip.rotation.z, t2 = L.knee.rotation.z, f0 = L.coxa.rotation.y;
+        const h0 = L1 * Math.sin(t1) + L2 * Math.sin(t1 + t2), y0 = -L1 * Math.cos(t1) - L2 * Math.cos(t1 + t2);
+        const at = (h, f, dy = 0) => v.set(h * Math.cos(f), y0 + dy, -h * Math.sin(f)).applyMatrix4(W);
+        if (footGapOf(at(h0, f0), B) > 0) continue;
+        // [h, f, dy, how far that is from where the gait put it]. It may also tuck up (dy, as far as the leg reaches) over what
+        // it's passing: in a jump (as readily as it steps short), or on the ground only when no spot at ground height is clear
+        // (straddling a fence it has just jumped: the body's over it then)
+        const reach = (h, dy) => { const D = Math.hypot(h, y0 + dy); return D > L2 - L1 + 0.05 && D < L1 + L2 - 0.05; };
+        const spots = (dys) => {
+          const c = [];
+          for (const dy of dys) for (let i = 0, n = Math.ceil(h0 / 0.25); i <= n; i++) { const h = Math.max(0, h0 - i * 0.25); if (reach(h, dy)) for (let k = -6; k <= 6; k++) c.push([h, f0 + k * 0.1, dy, h0 - h + Math.abs(k) * 0.1 * Math.max(1, h) + dy]); }
+          return c.sort((a, b) => a[3] - b[3]);
+        };
+        let pick = null, most = -Infinity;
+        const lifts = [0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8];
+        for (const set of m.hop ? [[0, ...lifts]] : [[0], lifts]) {
+          for (const c of spots(set)) { const g = footGapOf(at(c[0], c[1], c[2]), B); if (g > SPIDER_FOOT.clear) { pick = c; most = Infinity; break; } if (g > most) { most = g; pick = c; } }
+          if (most === Infinity) break;
+        }
+        if (!pick) continue;
+        const [h, f, dy] = pick, y = y0 + dy, c2 = clamp((h * h + y * y - L1 * L1 - L2 * L2) / (2 * L1 * L2), -1, 1), k2 = -Math.acos(c2);
+        L.coxa.rotation.y = f; L.knee.rotation.z = k2; L.hip.rotation.z = Math.atan2(y, h) - Math.atan2(-L1 - L2 * Math.cos(k2), L2 * Math.sin(k2));
+        this.level(L); md.feetFixed++;
+      }
+    },
   },
   // 🚜 a track unit each side on a sprung strut: treads round a drive wheel (back), an idler (front) and road wheels, a
   // dozer blade on the front. ⚙️ goes on the drive wheel, ➰ is the suspension, 🐏 is the blade, 🛡️ the strut's plates.
@@ -4490,12 +4555,31 @@ const BODY_SECTIONS = [
 // size: map size (px) by quality; bonus: the G4 unlocks that raise every section, and by how much
 const BODY = { names: ['Toy', 'Metal', 'Bolted', 'Worn', 'Battle-ready'], max: 4, points: 3, env: [1, 0.35, 0.45, 0.65, 0.65], fin: [1, 1, 1.1, 1.25, 1.25],
   normal: [1, 0.55, 0.75, 0.9, 0.9], cc: 0.45, ccRough: 0.2, seam: 1.6, heat: 1.8, size: { full: 512, lite: 256 }, bonus: [['shield', 2], ['jets', 1]],
+  hazard: '#ffc21a', ink: '#14161c', stencilMetal: 0.15,   // #71: the stencils' colours: hazard yellow and black chevrons; on a mirror finish the stencil is paint (this metalness)
   flip: 1500, cheer: 3400 };   // #43: the garage's tier-up: the old look shows for flip ms (the lift is up by then), then the new one; the banner stays cheer ms in all
 // each section's panels: where its seams cross the plate (fractions of the square), its seed and its stencil
 const BODY_PANEL = { legs: { v: [0.5], h: [0.62], seed: 11, code: 'RB-L2' }, torso: { v: [0.34, 0.66], h: [0.5], seed: 23, code: 'RB-T4' },
   arms: { v: [], h: [0.4, 0.75], seed: 37, code: 'RB-A2' }, core: { v: [0.2, 0.4, 0.6, 0.8], h: [], seed: 53, code: 'RB-C5' } };
+// #71: the coloured stencils' shader change (Body.stencilOn): the map is a mask (Body.stencil), mixed over the paint's colour
+// instead of multiplying it: red = hazard yellow, green = black, blue = the trim colour (each material's own uniforms), and
+// where it's on, the metal is paint's (rbMetal), so a chrome or gold mirror still shows it. this = the material
+function stencilCompile(sh) {
+  Object.assign(sh.uniforms, Body.stU.get(this));
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', '#include <common>\nuniform vec3 rbTrim;\nuniform vec3 rbHazard;\nuniform vec3 rbInk;\nuniform float rbMetal;')
+    .replace('#include <map_fragment>', `float rbMask = 0.0;
+#ifdef USE_MAP
+  vec4 rbSt = texture2D( map, vMapUv );
+  diffuseColor.rgb = mix( diffuseColor.rgb, rbInk, rbSt.g );
+  diffuseColor.rgb = mix( diffuseColor.rgb, rbHazard, rbSt.r );
+  diffuseColor.rgb = mix( diffuseColor.rgb, rbTrim, rbSt.b );
+  rbMask = clamp( rbSt.r + rbSt.g + rbSt.b, 0.0, 1.0 );
+#endif`)
+    .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n  metalnessFactor = mix( metalnessFactor, rbMetal, rbMask );');
+}
+function stencilKey() { return 'rb-stencil'; }
 const Body = {
-  mode: 'auto', q: null, preview: null, hold: null, cache: new Map(), made: 0, twin: new WeakMap(), src: new WeakMap(),
+  mode: 'auto', q: null, preview: null, hold: null, cache: new Map(), made: 0, twin: new WeakMap(), src: new WeakMap(), stU: new WeakMap(),
   // ---- the rule
   points(g = Garage.rec()) {
     const lv = upLevels(g), max = Object.fromEntries(UPGRADES.map((U) => [U.id, U.max]));
@@ -4671,6 +4755,33 @@ const Body = {
       return new THREE.CanvasTexture(c);
     });
   },
+  // #71: a section's coloured stencil, from tier 2 (lv 2; lv 3 = worn: chipped where the paint chips). A mask, not colours,
+  // so it's cached by section and tier like the grey maps and a repaint makes no new map: red = hazard yellow (the
+  // chevrons), green = black (the band behind them), blue = the number (in the paint's trim colour). stencilCompile mixes
+  // them over the paint, so they show in their own colours on any paint and finish
+  stencil(sec, lv) {
+    return this.tex(`c:${sec}:${lv}`, (c, S, u) => {
+      const P = BODY_PANEL[sec], g = c.getContext('2d');
+      g.fillStyle = '#000'; g.fillRect(0, 0, S, S);
+      let x1 = 24 * u; for (let x = 24 * u; x < S - 40 * u; x += 28 * u) x1 = x + 28 * u;
+      g.fillStyle = '#00ff00'; g.fillRect(24 * u, S - 46 * u, x1 - 24 * u, 20 * u);
+      g.fillStyle = '#ff0000'; this.chevrons(g, S, u);
+      g.fillStyle = '#0000ff'; g.font = `900 ${22 * u}px sans-serif`; g.textBaseline = 'top'; g.fillText(P.code, 26 * u, 26 * u);
+      if (lv >= 3) {   // the paint's chips (rough's, the same spots) take the stencil off too
+        const w = this.rnd(P.seed * 13 + 3); g.fillStyle = '#000';
+        for (let i = 0; i < 34; i++) { const [x, y] = this.edgeSpot(w, S, u); g.beginPath(); g.arc(x, y, (2 + w() * 6) * u, 0, Math.PI * 2); g.fill(); }
+      }
+      const t = new THREE.CanvasTexture(c); t.anisotropy = 4; t.userData.stencil = true; return t;
+    });
+  },
+  // #71: the stencil on painted material M: its map is the mask (stencil()), and stencilCompile (one shader for all, by its
+  // cache key) mixes it over the colour instead of multiplying; trim = the number's colour, this material's own uniform
+  stencilOn(M, trim) {
+    let U = this.stU.get(M);
+    if (!U) { U = { rbTrim: { value: new THREE.Color() }, rbHazard: { value: new THREE.Color(BODY.hazard) }, rbInk: { value: new THREE.Color(BODY.ink) }, rbMetal: { value: BODY.stencilMetal } }; this.stU.set(M, U); }
+    U.rbTrim.value.set(trim);
+    if (M.onBeforeCompile !== stencilCompile) { M.onBeforeCompile = stencilCompile; M.customProgramCacheKey = stencilKey; M.needsUpdate = true; }
+  },
   // the tier-4 glow masks (white glows, black doesn't): a section's seams and three status lights, or a stack's heat
   mask(sec) {
     return this.tex(`m:${sec}`, (c, S, u) => {
@@ -4732,8 +4843,9 @@ const Body = {
       let M = o.material; if (!M?.isMeshStandardMaterial || M.transparent) continue;
       const t = T[sec], painted = !!o.userData.painted;
       if (!painted && M.emissive.getHex() && !M.userData.tierGlow) continue;   // its own glow (a visor, a vent, a cell): as built
-      // an upgrade piece wears the shared mat() cache: as built at tier 0, this mech's own copy (one per section) above
-      if (o.userData.upgrade) {
+      // an upgrade piece wears the shared mat() cache: as built at tier 0, this mech's own copy (one per section) above.
+      // (#71: a painted one, a ram plate, already wears this mech's paint copy, so it's dressed as the paint is)
+      if (o.userData.upgrade && !painted) {
         const src = this.src.get(o) ?? M;
         if (!t) { if (o.material !== src) o.material = src; continue; }
         this.src.set(o, src);
@@ -4749,6 +4861,13 @@ const Body = {
       M.normalScale.setScalar(t ? BODY.normal[t] : 1);
       const rm = this.rough(sec, t, kind);
       set(M, 'roughnessMap', rm); set(M, 'aoMap', t >= 3 ? rm : null);
+      // #71: from tier 2 the stencils in colour on the paint (and under a finish): the number in the trim colour, or on a
+      // trim-painted part (where trim wouldn't show) the body colour; gold's own trim and body under gold
+      if (painted && t >= 2) {
+        const pn = md.paintNow || Garage.paintNow(), gold = fin === 'gold', onTrim = o.userData.paint === 'trim';
+        set(M, 'map', this.stencil(sec, Math.min(t, 3)));
+        this.stencilOn(M, onTrim ? (gold ? ADV.gold : pn.body) : gold ? ADV.goldTrim : pn.trim);
+      } else if (M.map?.userData?.stencil) set(M, 'map', null);
       if (M.isMeshPhysicalMaterial) { M.clearcoat = BODY.cc; M.clearcoatRoughness = BODY.ccRough; }
       // tier 4: the paint's seams and status lights glow in the section's colour; heat glows up the exhaust stacks
       const glow = t === 4 && (painted || ['back', 'stack'].includes(o.userData.core)) ? (o.userData.core === 'stack' ? 'heat' : 'seam') : null;
@@ -4815,7 +4934,11 @@ const Body = {
         envMap: all((x) => !!x.M.envMap), envMapIntensity: rep ? r3(rep.envMapIntensity) : null, clearcoat: B.paint ? (B.paint.isMeshPhysicalMaterial ? r3(B.paint.clearcoat) : 0) : null,
         physical: B.paint ? !!B.paint.isMeshPhysicalMaterial : null, lit: lights.filter((L) => L.mat.emissiveIntensity > 0.1).length, glows: lights.length,
         color: rep ? '#' + rep.color.getHexString() : null, frame: B.frame ? '#' + B.frame.color.getHexString() : null,
-        size: rep?.normalMap?.image?.width ?? null, extras: (md.tierX || []).filter((o) => o.userData.bodyX === S.id && o.parent).length, meshes: B.mats.length }];
+        size: rep?.normalMap?.image?.width ?? null, extras: (md.tierX || []).filter((o) => o.userData.bodyX === S.id && o.parent).length, meshes: B.mats.length,
+        // #71: the coloured stencils: how many painted materials wear one (of painted), and the paint's (its map's size, and
+        // the number's colour; null where it has none)
+        stencils: B.mats.filter((x) => x.painted && x.M.map?.userData?.stencil).length, paintedMats: B.mats.filter((x) => x.painted).length,
+        stencil: B.paint?.map?.userData?.stencil ? { size: B.paint.map.image.width, trim: '#' + this.stU.get(B.paint).rbTrim.value.getHexString(), shader: B.paint.onBeforeCompile === stencilCompile } : null }];
     }));
   },
   // what model md costs to draw: one call per visible mesh (per material group), and its triangles
@@ -4898,9 +5021,20 @@ function dressUpgrades(md, lv, adv = {}) {
     for (let i = 0; i <= 80; i++) { const t = i / 80, q = t * Math.PI * (8 + 2 * sp); pts.push(new V3(Math.cos(q) * 0.24, (t - 0.5) * h, Math.sin(q) * 0.24)); }
     at('spring', 'spring', L, new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 160, 0.05 + 0.02 * sp, 6), mat(hex('spring'), metal)));
   }
-  // 🐏 a ram plate in each ram socket (the toes; the spider's front feet; the tracks' blades)
+  // 🐏 a ram plate in each ram socket (the toes; the spider's front feet; the tracks' blades). #71: and one on the outside of
+  // each forearm (kind 'armram', its spikes 'armspike', in the arm set's own socket md.asock.ram), so the feet's counts read as
+  // before. Every plate is painted (the trim role) and takes the finish, and each section's plates share one source material
+  // of this model's own (md.ramSrc: made once, kept through every rebuild), so the feet's (legs) and the arms' (arms) each
+  // get their own painted copy and wear their own section's tier
+  const ramMat = (sec) => ((md.ramSrc ||= {})[sec] ||= new THREE.MeshStandardMaterial({ color: hex('ram'), metalness: 0.8, roughness: 0.25 }));
+  const painted = (o, sec) => { o.material = ramMat(sec); o.userData.paint = 'trim'; return o; };
+  if (ra) for (const A of md.arms) {
+    const R = md.asock.ram, x = A.s * R.x[A.s < 0 ? 0 : 1];
+    put('armram', A.fore, painted(rbox(0.22, 0.5 + 0.15 * ra, 1.3 + 0.25 * ra, 0.08, hex('ram')), 'arms'), x, R.y, R.z, 'arm');
+    if (ra >= 2) for (const z of [-0.4, 0.4]) put('armspike', A.fore, new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 10), mat('#ffd83d')), x + A.s * 0.36, R.y, R.z + z, 'arm').rotation.z = -A.s * Math.PI / 2;
+  }
   if (ra) for (const L of md.sockLegs) {
-    at('ram', 'ram', L, rbox(1.3 + 0.25 * ra, 0.5 + 0.15 * ra, 0.3, 0.1, hex('ram'), { metalness: 0.8, roughness: 0.25 }));
+    painted(at('ram', 'ram', L, rbox(1.3 + 0.25 * ra, 0.5 + 0.15 * ra, 0.3, 0.1, hex('ram'), { metalness: 0.8, roughness: 0.25 })), 'legs');
     if (ra >= 2) for (const x of [-0.4, 0.4]) { const R = L.sock.ram, sc = R.sc || 1, o = put('spike', R.p, new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 10), mat('#ffd83d')), R.x + x * sc, R.y, R.tip, 'ram'); o.rotation.x = -Math.PI / 2; if (R.sc) o.scale.setScalar(sc); }
   }
   // 🚀 jet nozzles on the back, a flame under each (shown while the second jump burns)
@@ -4927,6 +5061,7 @@ function dressUpgrades(md, lv, adv = {}) {
   for (const o of up.meshes) o.traverse((q) => { if (q.isMesh) { q.castShadow = true; q.receiveShadow = true; } });
   if (md.bubble) { md.bubble.castShadow = false; md.bubble.receiveShadow = false; }
   md.lights.push(...up.lights);
+  if (md.paintMats) adoptPaint(md);   // #71: the ram plates join the paint (paintMech then colours them, and the finish)
   return up;
 }
 // what the upgrade pieces on model md are, read back from the model: how many of each kind are on it
@@ -5791,6 +5926,7 @@ function syncMechModel(m) {
     } else K.kick(md, e);   // B2: the leg piece's kick (the tracks' blade shove)
   }
   if (sl > 0) for (const A of md.arms) A.arm.rotation.x -= 0.7 * sl;
+  K.place?.(md, m);   // #71: the Spider's feet placed clear of whatever they'd stand in
   // B2: the pose the legs are in now, read back for the hooks (look.pose)
   md.pose = { mode: m.state === 'down' ? 'down' : sw?.w === 'kick' ? 'kick' : m.hop ? 'air' : 'walk', ...K.probe(md) };
 }
@@ -11618,6 +11754,40 @@ window.__rb = {
   // player i's mech jumps, as C / L / a stick pressed in do (refused without spring legs, powered down, or in the air;
   // G4: in the air with jump jets, once more: jet: true)
   jump(i = 0) { return { ...jumpMech(Game.humans[i]), player: this.state().players[i] ?? null }; },
+  // #71: player i's Spider feet against everything they may not stand in (footBlockers: every blocking tree, rock and fence
+  // circle, every robot on the ground, every other mech), read from the model's own matrices after it's posed for the sim
+  // as it stands now (syncMechModel, as a frame draws it, so step() alone is enough). Per foot: name, where (x, y, z), gap
+  // (m from its edge to the nearest thing it's below the top of; 0 or less = inside it) and inside ([kind:id] it's in).
+  // inside = feet inside something (0 always), minGap, fixed = feet placed clear this frame, body = the body's own gap to the
+  // nearest obstacle circle (MECH.radius; 0 = touching it). null on any other leg shape
+  spiderFeet(i = 0) {
+    const m = Game.humans[i]?.mech, md = m?.model; if (md?.legShape !== 'spider') return null;
+    syncMechModel(m); md.root.updateMatrixWorld(true);
+    const B = footBlockers(m), v = new V3();
+    const feet = md.legs.map((L) => {
+      L.foot.getWorldPosition(v);
+      const inside = B.filter((b) => v.y - SPIDER_FOOT.sole < b.top && Math.hypot(v.x - b.x, v.z - b.z) < b.r + SPIDER_FOOT.r).map((b) => b.kind + ':' + b.id);
+      return { name: L.name, x: r3(v.x), y: r3(v.y), z: r3(v.z), gap: r3(footGapOf(v, B)), inside };
+    });
+    const body = Math.min(Infinity, ...obstacles.map((o) => Math.hypot(m.pos.x - o.x, m.pos.z - o.z) - o.r - MECH.radius));
+    return { feet, inside: feet.filter((f) => f.inside.length).length, minGap: Math.min(...feet.map((f) => f.gap)), fixed: md.feetFixed || 0, body: r3(body), legs: md.legs.length };
+  },
+  // #71: the 🐏 ram plates on player 0's mech, read back from the model: each plate's kind ('ram' on a foot, 'armram' on an
+  // arm), section and tier (as Body.secOf and the tiers say), colour, finish (metalness, roughness, envMap), and its B1 maps
+  // (normal, roughness, stencil) and clear-coat; plus the spikes (level 2) and the paint and finish on now
+  ramLook() {
+    const md = Game.humans[0]?.mech?.model; if (!md?.up) return null;
+    const T = Body.tiers(), live = md.up.meshes.filter((o) => o.parent);
+    const plates = live.filter((o) => ['ram', 'armram'].includes(o.userData.upgrade)).map((o) => {
+      const M = o.material, sec = Body.secOf(md, o);
+      return { kind: o.userData.upgrade, sec, tier: T[sec], painted: !!o.userData.painted, color: '#' + M.color.getHexString(), metalness: r3(M.metalness), roughness: r3(M.roughness),
+        envMap: !!M.envMap, normalMap: !!M.normalMap, roughnessMap: !!M.roughnessMap, physical: !!M.isMeshPhysicalMaterial, clearcoat: M.isMeshPhysicalMaterial ? r3(M.clearcoat) : 0,
+        stencil: !!M.map?.userData?.stencil, inPaint: [...md.paintMats.trim.values()].includes(M) };
+    });
+    return { plates, arms: plates.filter((q) => q.kind === 'armram').length, feet: plates.filter((q) => q.kind === 'ram').length,
+      spikes: { arms: live.filter((o) => o.userData.upgrade === 'armspike').length, feet: live.filter((o) => o.userData.upgrade === 'spike').length },
+      legs: md.legShape, armShape: md.armShape, paint: md.paintNow ? { ...md.paintNow } : null, finish: md.finish ?? null };
+  },
   // the Quick Fix setting for whoever is playing: 'math' or 'colour'
   wiring(mode) { return mode == null ? { wiring: wiringMode() } : setWiring(mode); },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
