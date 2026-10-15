@@ -798,6 +798,25 @@
   .decal .dtint { position: absolute; inset: 0; margin: auto; transform: scale(1.2); background: var(--tc); mix-blend-mode: multiply; pointer-events: none;
     -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
   .swatch.on, .decal.on { outline: 4px solid #fff; outline-offset: 2px; transform: scale(1.1); }
+  /* #72: the plating row: a swatch per metal (its colour, lit top left like metal, and its icon), the one shown ringed; one
+     not earned yet dark with a 🔒 and its milestone. Then the energy the best metal gives. The 👑's switch: ✖ / ✔, the lit one on */
+  .metal, .crownsw { position: relative; flex: none; width: 46px; height: 46px; padding: 0; border-radius: 12px; border: 4px solid var(--ink); cursor: pointer; box-shadow: 0 3px 0 var(--ink);
+    display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, color-mix(in srgb, var(--mc) 55%, #fff), var(--mc) 55%, color-mix(in srgb, var(--mc) 70%, #000)); }
+  .metal .ic, .crownsw > .ic { width: 30px; height: 30px; margin: 0; pointer-events: none; }
+  .metal.locked, .crownsw.locked { background: #3a3f52; }
+  .metal.locked > .ic, .crownsw.locked > .ic { opacity: .35; filter: grayscale(1); }
+  .metal .mlk, .crownsw .mlk { position: absolute; right: -6px; top: -8px; pointer-events: none; } .metal .mlk .ic, .crownsw .mlk .ic { width: 18px; height: 18px; margin: 0; }
+  .metal .mat, .crownsw .mat { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); font: 900 12px 'Asap', sans-serif; color: var(--yellow); white-space: nowrap; pointer-events: none;
+    text-shadow: 1px 1px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); } .metal .mat .ic, .crownsw .mat .ic { width: 11px; height: 11px; margin: 0; }
+  .metal.on { outline: 4px solid #fff; outline-offset: 2px; transform: scale(1.1); }
+  .metal.bad, .crownsw.bad { animation: shake .3s; }
+  .pbonus { align-self: center; margin-left: 4px; font: 900 20px 'Asap', sans-serif; color: #fff; white-space: nowrap; text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink); }
+  .pbonus .ic { width: 22px; height: 22px; margin: 0 2px 0 0; vertical-align: -4px; }
+  .crownsw { --mc: #ffc21a; width: auto; padding: 0 6px; gap: 4px; }
+  .crownsw .ctog { display: flex; gap: 2px; padding: 2px; border-radius: 10px; background: rgba(20,24,42,.85); }
+  .crownsw .ctog i { display: flex; width: 22px; height: 22px; border-radius: 8px; align-items: center; justify-content: center; opacity: .45; }
+  .crownsw .ctog i.on { opacity: 1; background: var(--yellow); color: var(--ink); }
+  .crownsw .ctog .ic { width: 16px; height: 16px; margin: 0; }
   /* B1: the 🦿 Body tab. A row per section: its icon, its tier as pips (part colour for upgrades, yellow for mastery),
      the tier's name, and the icons that raise it (🔢 lit, with its +1 / +2, once mastery adds to every section) */
   .gwall.body { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
@@ -878,6 +897,8 @@
     .prow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 24px; } .plab small { font-size: 10px; }
     .psw { gap: 5px; } .swatch, .decal { width: 36px; height: 36px; border-width: 3px; } .decal img, .decal .ic, .decal .dtint { width: 26px; height: 26px; }
+    .metal, .crownsw { width: 36px; height: 36px; border-width: 3px; } .crownsw { width: auto; } .metal .ic, .crownsw > .ic { width: 24px; height: 24px; } .pbonus { font-size: 16px; } .pbonus .ic { width: 18px; height: 18px; }
+    .crownsw .ctog i { width: 18px; height: 18px; } .crownsw .ctog .ic { width: 13px; height: 13px; } .metal .mat, .crownsw .mat { font-size: 10px; bottom: -8px; }
     .gwall.body { gap: 6px; justify-content: flex-start; }
     .brow { gap: 6px; padding: 4px 6px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 3px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
@@ -917,6 +938,8 @@
     .prow { gap: 6px; padding: 3px 6px; border-width: 3px; border-radius: 14px; }
     .plab { width: 40px; font-size: 22px; } .plab small { font-size: 10px; }
     .psw { gap: 5px; } .swatch, .decal { width: 32px; height: 32px; border-width: 3px; } .decal img, .decal .ic, .decal .dtint { width: 24px; height: 24px; }
+    .metal, .crownsw { width: 32px; height: 32px; border-width: 3px; } .crownsw { width: auto; } .metal .ic, .crownsw > .ic { width: 22px; height: 22px; } .pbonus { font-size: 15px; } .pbonus .ic { width: 16px; height: 16px; }
+    .crownsw .ctog i { width: 16px; height: 16px; } .crownsw .ctog .ic { width: 12px; height: 12px; } .metal .mat, .crownsw .mat { font-size: 10px; bottom: -8px; }
     .gwall.body { gap: 5px; }
     .brow { gap: 8px; padding: 2px 8px; border-width: 3px; border-radius: 14px; }
     .brow .pips { gap: 4px; } .brow .pips i { width: 16px; height: 16px; border-width: 2px; }
@@ -1653,17 +1676,51 @@ const upgradeOf = (n) => { const s = String(n ?? '').toLowerCase(); return UPGRA
 //              no spring legs, the jump button gives one jet-powered jump of `jet` m instead. Either way × the leg shape's jump
 //   fusion ⚡  recharge: weapons recharge 20% faster (added to the power cells' 10% a level), and the core glows
 //   shield 🛡️  shield: a bubble that blocks the next 3 hits, back to 3 each wave
-//   gold   👑  gold: the whole mech turns gold, and squadmates glow gold
+//   gold   👑  gold: the gold crown, a look (#72: no energy, and it can be switched off in 🎨): the whole mech turns gold,
+//              and squadmates glow gold. Its id stays 'gold' (what every saved record holds)
 // toast: how long the in-play toast stays (ms); cheer: how long the garage's cheer stays (ms)
 const ADVANCED = [
   { id: 'chrome', icon: '✨', ic: 'sparkle', name: 'Chrome plating', at: 9, hex: '#dfe7f2', fxIc: '{energy}+25' },
   { id: 'jets', icon: '🚀', ic: 'rocket', name: 'Jump jets', at: 18, hex: '#ff6a2a', fxIc: '{jump}{jump}' },
   { id: 'fusion', icon: '⚡', ic: 'fusion', name: 'Fusion core', at: 27, hex: '#3ff0ff', fxIc: '{timer}+20%' },
   { id: 'shield', icon: '🛡️', ic: 'shield', name: 'Shield emitter', at: 36, hex: '#56B4E9', fxIc: '{bubble}×3' },
-  { id: 'gold', icon: '👑', ic: 'crown', name: 'Gold plating', at: 45, hex: '#ffc21a', fxIc: '{crown}' },
+  { id: 'gold', icon: '👑', ic: 'crown', name: 'Gold crown', at: 45, hex: '#ffc21a', fxIc: '{crown}' },
 ];
 const ADV = { energy: 25, jet: 2.6, flame: 0.6, recharge: 0.2, shield: 3, gold: '#ffc21a', goldTrim: '#ffe27a', goldFrame: '#b8860b', toast: 3500, cheer: 4500 };
-const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || null; };
+// #72 (#67 item 1): the plating metals, a ladder, each stronger than the last (Dad: the boys know from Minecraft that gold is
+// weak). Each comes with the advanced part of its milestone (with = that part's id: latched with it, so a fact slipping back
+// never takes a metal away, and a record that already holds the part gets the metal on load). Carbon Alloy (alien tech) needs
+// the 👑 (all 45 Mastered) and every leg shape built, whichever comes last. Chrome keeps its id ('chrome', the ✨ part's own).
+// Only the best metal earned gives energy (past the armour cap, as chrome did): its bonus replaces the lower ones. Any metal
+// earned can be picked in 🎨 for its look (rec.garage.metal; null = the best earned). Plating covers the frame, the trim and the
+// joints; paint stays on the body panels. col / metal / rough = its look; wear = how it wears from realism tier 3 (B1):
+// scuff (chrome dulls), scratch (gold), rust (iron, at the edges), brushed (steel), chip (carbon chips to a glowing under-layer)
+const METALS = [
+  { id: 'chrome', ic: 'sparkle', name: 'Chrome', at: 9, with: 'chrome', energy: 25, col: '#e4ebf5', metal: 0.95, rough: 0.08, wear: 'scuff' },
+  { id: 'goldplate', ic: 'goldbar', name: 'Gold', at: 18, with: 'jets', energy: 35, col: '#e9b42a', metal: 0.85, rough: 0.24, wear: 'scratch' },
+  { id: 'iron', ic: 'ironbar', name: 'Iron', at: 27, with: 'fusion', energy: 50, col: '#585c64', metal: 0.6, rough: 0.58, wear: 'rust' },
+  { id: 'steel', ic: 'steelbar', name: 'Steel', at: 36, with: 'shield', energy: 65, col: '#a2aab8', metal: 0.9, rough: 0.34, wear: 'brushed' },
+  { id: 'carbon', ic: 'carbon', name: 'Carbon Alloy', at: 45, with: 'gold', shapes: true, energy: 80, col: '#2a2e38', metal: 0.45, rough: 0.3, wear: 'chip', glow: '#3ff0ff' },
+];
+// glow: Carbon Alloy's seams from tier 1 and its chips from tier 3 (× the mech's glow, so it darkens on a power-down)
+const METAL = { seam: 0.7, chip: 1.5, rust: '#9a4a22' };
+const metalOf = (n) => { const s = String(n ?? '').toLowerCase(); return METALS.find((M) => M.id === s || M.name.toLowerCase() === s || M.ic === s) || null; };
+// every unlock id a record can hold, in order: the advanced parts, then the metals that aren't one of them
+const UNLOCK_IDS = [...ADVANCED.map((A) => A.id), ...METALS.map((M) => M.id).filter((id) => !ADVANCED.some((A) => A.id === id))];
+// an advanced part or (#72) a metal, by id, icon or name (the part first: 'chrome' is both, and 'gold' is the 👑)
+const advOf = (n) => { const s = String(n ?? '').toLowerCase(); return ADVANCED.find((A) => A.id === s || A.icon === n || A.name.toLowerCase() === s) || METALS.find((M) => M.id === s || M.name.toLowerCase() === s) || null; };
+// #72: every leg shape built (the Walker is free), for Carbon Alloy
+const legsAll = (g) => LEG_SHAPES.every((S) => !S.part || (Array.isArray(g?.body?.unlocked) && g.body.unlocked.includes(S.id)));
+// #72: whether garage g has earned metal M (from what it has latched: the part it comes with, and Carbon's leg shapes)
+const metalEarned = (M, g) => Array.isArray(g?.unlocks) && g.unlocks.includes(M.with) && (!M.shapes || legsAll(g));
+// #72: the metals garage g holds (METALS order), the best of them, the one shown (the pick if it's held, else the best) and
+// the energy the best gives
+function metalsOf(g) {
+  const un = Array.isArray(g?.unlocks) ? g.unlocks : [], earned = METALS.filter((M) => un.includes(M.id)), best = earned[earned.length - 1] ?? null;
+  const pick = earned.find((M) => M.id === g?.metal) ?? null, shown = pick ?? best;
+  return { earned: earned.map((M) => M.id), best: best?.id ?? null, shown: shown?.id ?? null, picked: pick?.id ?? null, bonus: best?.energy ?? 0,
+    crown: { got: un.includes('gold'), on: un.includes('gold') && g?.crown !== false } };
+}
 // B2 body shop: leg shapes, swapped in the garage's 🦿 tab (free, instant). Each unlocked when the trophy wall's lifetime count
 // of its part reached `need` (#89: now each is built instead, BUILDS; part / need stay for the one-time latch), and changes the mech's stats by these multipliers (or,
 // for energy, adds; after the 250 armour cap, as chrome does). Stats multiply: the base mech × the shape × the G2 level, so a
@@ -1721,7 +1778,7 @@ const secOfShape = (id) => (legShapeOf(id) ? 'legs' : ['torso', 'arms'].find((k)
 // #70: what the garage's cheer shows for id: a G4 advanced part (at = its milestone), or a body shape
 // built (#67 item 14: the legs, and B3's torso and arm shapes; sec = its section). null for anything else
 const unlockOf = (id) => {
-  const A = ADVANCED.find((q) => q.id === id); if (A) return { id, ic: A.ic, name: A.name, at: A.at, sec: null };
+  const A = ADVANCED.find((q) => q.id === id) ?? METALS.find((q) => q.id === id); if (A) return { id, ic: A.ic, name: A.name, at: A.at, sec: null };   // (#72: or a metal)
   const sec = secOfShape(id), S = sec && shapeOf(sec, id);
   return S?.part ? { id, ic: S.ic, name: S.name, at: null, sec } : null;
 };
@@ -2130,7 +2187,7 @@ const ICON_GRADS = {
   steel: ['#f4f7fb', '#8b95aa'], dark: ['#9aa4b8', '#4a5368'], gold: ['#ffe98a', '#f0a000'], red: ['#ff8a96', '#e0283c'],
   orange: ['#ffc07a', '#e8670a'], green: ['#9af5b9', '#1fb85a'], blue: ['#9cc8ff', '#2f6fe0'], purple: ['#c3a8ff', '#6a3fe6'],
   pink: ['#ffa8cf', '#e23d86'], yellow: ['#fff09a', '#f2b90c'], cyan: ['#b4fbff', '#1cc8e0'], teal: ['#7fe0c8', '#1f8a72'],
-  wire: ['#a8dcff', '#2f8fd0'], violet: ['#d9cbff', '#8a6cf0'],
+  wire: ['#a8dcff', '#2f8fd0'], violet: ['#d9cbff', '#8a6cf0'], iron: ['#c4c8cf', '#5c616b'], carbon: ['#545b6c', '#14161c'],   // (#72: the metals)
 };
 const ICON_DEFS = Object.entries(ICON_GRADS).map(([k, [a, b]]) => `<linearGradient id="rbg-${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`).join('');
 // markup helpers: a filled, outlined shape; the same without an outline (n); a highlight band; a thick line with an
@@ -2267,6 +2324,15 @@ const ICONS = {
     + pa('M9.4 15.2 L12 21.8 L14.6 15.2 Z', G('orange')) + ci(12, 8.6, 1.9, G('cyan')) + hl('M10 6 L9.6 11'))],
   shield: ['shield', [], pa('M2.8 17 A9.2 9.2 0 0 1 21.2 17 Z', G('cyan')) + re(7.6, 16.6, 8.8, 4.8, 1.4, G('steel')) + hl('M5.6 13.4 A6.4 6.4 0 0 1 10.6 8.4') + cn(12, 19, 1.2, '#3ff0ff')],
   bubble: ['bubble', ['🫧'], ci(12, 12, 9, G('cyan')) + hl('M6.6 10.4 A5.8 5.8 0 0 1 10.4 6.6') + cn(15.6, 15.4, 1.4, '#fff')],
+  // #72: the plating metals (✨ chrome is sparkle): a gold ingot, an iron one rusting at its corner, a steel one with its
+  // brushed grain, and a Carbon Alloy plate (a dark hex, its seams glowing cyan)
+  goldbar: ['gold', [], pa('M2.8 18.6 L6.4 9 L17.6 9 L21.2 18.6 Z', G('gold')) + pa('M6.4 9 L8.6 5.4 L15.4 5.4 L17.6 9 Z', G('yellow')) + hl('M7.8 10.8 L5.6 16.6')],
+  ironbar: ['iron', [], pa('M2.8 18.6 L6.4 9 L17.6 9 L21.2 18.6 Z', G('iron')) + pa('M6.4 9 L8.6 5.4 L15.4 5.4 L17.6 9 Z', G('steel'))
+    + cn(16.4, 15.6, 1.9, '#a8501f') + cn(19, 17, 1.1, '#a8501f') + cn(14.2, 17.4, 0.9, '#c46a2c') + hl('M7.8 10.8 L5.6 16.6')],
+  steelbar: ['steel', [], pa('M2.8 18.6 L6.4 9 L17.6 9 L21.2 18.6 Z', G('steel')) + pa('M6.4 9 L8.6 5.4 L15.4 5.4 L17.6 9 Z', G('steel'))
+    + '<path d="M8.6 12.2 L17.6 12.2 M7.6 14.6 L18.4 14.6 M6.8 17 L19.2 17" fill="none" stroke="#5c616b" stroke-opacity=".55" stroke-width="0.8"/>' + hl('M7.8 10.8 L5.6 16.6')],
+  carbon: ['carbon alloy', [], pa('M12 2.6 L20.2 7.3 L20.2 16.7 L12 21.4 L3.8 16.7 L3.8 7.3 Z', G('carbon'))
+    + '<path d="M12 2.6 L12 21.4 M3.8 7.3 L20.2 16.7 M20.2 7.3 L3.8 16.7" fill="none" stroke="#3ff0ff" stroke-opacity=".85" stroke-width="1.1"/>' + cn(12, 12, 1.8, '#b4fbff')],
   crown: ['gold', ['👑'], pa('M2.6 7.6 L7.4 12 L12 4 L16.6 12 L21.4 7.6 L19.4 18.4 L4.6 18.4 Z', G('gold')) + re(4.4, 17.4, 15.2, 3.8, 1, G('gold')) + cn(12, 12.4, 1.5, '#ff4d5e') + hl('M5.6 11.4 L6.6 16')],
   smash: ['smash', ['💥'], pa(starD(12, 12, 10.6, 5, 8, -90), G('orange')) + pn(starD(12, 12, 6, 3, 8, -67.5), '#ffe066')],
   // I2: redrawn: a dish tipped up on its post, its feed horn, and the signal going out
@@ -2515,13 +2581,28 @@ function fillGarage(r) {
   const p = g.paint;
   g.paint = p && typeof p === 'object' && paintColour(p.body) && paintColour(p.trim) && decalOf(p.decal) ? { body: paintColour(p.body), trim: paintColour(p.trim), decal: decalOf(p.decal).id } : null;
   // G4: unlocks kept as known advanced-part ids, once each, in ADVANCED order; fresh only ever holds unlocked ones
-  const ids = ADVANCED.map((A) => A.id), un = Array.isArray(g.unlocks) ? g.unlocks : [];
+  // (#72: and the metals', after them: UNLOCK_IDS)
+  const ids = UNLOCK_IDS, un = Array.isArray(g.unlocks) ? g.unlocks : [];
   g.unlocks = ids.filter((id) => un.includes(id));
   bodyRec(g);   // B2: the body shop (equipped and unlocked shapes)
   // #70: and the body shapes built with the garage shut (their cheer waits too): only ones unlocked, once each
   const fr = Array.isArray(g.fresh) ? g.fresh : [];
   g.fresh = [...ids.filter((id) => fr.includes(id) && g.unlocks.includes(id)), ...g.body.unlocked.filter((id) => fr.includes(id))];
+  // #72: the metal picked for its look: one this record holds, or null (the best held). The 👑's switch: false = off; left
+  // out = on (so a record saved before #72 looks as it did)
+  if (!METALS.some((M) => M.id === g.metal && g.unlocks.includes(M.id))) g.metal = null;
+  if (g.crown !== false) delete g.crown;
   return r;
+}
+// G4 / #72: latch into garage g what Mastered count n has earned: every advanced part whose milestone n has reached, then
+// every metal its part (and, for Carbon Alloy, the leg shapes) has earned. Never takes one away. The new ones also go in
+// g.fresh, for the garage's cheer; a new metal is the one shown (g.metal back to the best). Returns the ids newly latched.
+function latchInto(g, n) {
+  const got = [], add = (id) => { if (!g.unlocks.includes(id)) { g.unlocks.push(id); g.fresh.push(id); got.push(id); } };
+  for (const A of ADVANCED) if (n >= A.at) add(A.id);
+  for (const M of METALS) if (metalEarned(M, g)) add(M.id);
+  if (got.some((id) => METALS.some((M) => M.id === id))) g.metal = null;
+  return got;
 }
 const Facts = {
   child: null, rec: null, offset: 0, rand: Math.random, onCheer: null, onUnlock: null,
@@ -2550,8 +2631,7 @@ const Facts = {
   // the cheer the next time the garage opens. Returns the ids newly earned. The caller saves.
   latch() {
     if (!this.rec || !this.child || this.child.guest) return [];
-    const g = fillGarage(this.rec).garage, n = this.mastery()?.mastered ?? 0, got = [];
-    for (const A of ADVANCED) if (n >= A.at && !g.unlocks.includes(A.id)) { g.unlocks.push(A.id); g.fresh.push(A.id); got.push(A.id); }
+    const g = fillGarage(this.rec).garage, n = this.mastery()?.mastered ?? 0, got = latchInto(g, n);   // (#72: and the metals)
     if (got.length) fillGarage(this.rec);   // back in ADVANCED order
     return got;
   },
@@ -3009,8 +3089,11 @@ const Backup = {
     }
     // the advanced parts the merged facts have earned (Facts.latch's rule: picking the child would latch them anyway, and
     // the summary should show them now), waiting for their cheer
+    // (#72: and the metals they and the merged leg shapes have earned; the metal picked is the device's, else the backup's,
+    // as clone(gd) and the fill-in above give it, and the 👑's switch likewise)
     const n = this.count(out).mastered;
-    for (const A of ADVANCED) if (n >= A.at && !g.unlocks.includes(A.id)) { g.unlocks.push(A.id); g.fresh.push(A.id); }
+    if (!Array.isArray(g.fresh)) g.fresh = [];
+    latchInto(g, n);
     return fillGarage(out);
   },
   // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
@@ -4510,21 +4593,22 @@ function decalTex(kind, trim, emblem, body = trim) {
 // sockets (one see-through square each, pushed just off the surface). p = { body, trim, decal } (Garage.paintNow()).
 function paintMech(md, p, pilot = Game.pilot) {
   if (!md?.paintMats) return null;
-  // G4: gold plating turns the whole mech gold over its paint; chrome plating (or gold) gives the painted parts a mirror
-  // finish: fully metal and smooth, reflecting a room (advEnv) so it shines instead of going dark. Off again for a
-  // child without them (each material keeps how it was built)
-  const fin = md.finish ?? null, gold = fin === 'gold';
+  // G4: the 👑 (finish 'gold') turns the whole mech gold over its paint. #72: a metal (finish = its id) plates the frame (the
+  // dark joints, limbs and guns between the paint) and the trim in that metal, and the paint stays on the body panels; each
+  // plated part is the metal's colour, fully metal and as smooth as that metal is, reflecting a room (advEnv) so it shines
+  // instead of going dark. Off again for a child without one (each material keeps how it was built)
+  const fin = md.finish ?? null, gold = fin === 'gold', MT = gold ? null : METALS.find((M) => M.id === fin) ?? null;
   for (const c of md.paintMats.body.values()) c.color.set(gold ? ADV.gold : p.body);
-  for (const c of md.paintMats.trim.values()) c.color.set(gold ? ADV.goldTrim : p.trim);
+  for (const c of md.paintMats.trim.values()) c.color.set(gold ? ADV.goldTrim : MT ? MT.col : p.trim);
   for (const role of ['body', 'trim']) for (const c of md.paintMats[role].values()) {
     const b = c.userData.base ||= { metalness: c.metalness, roughness: c.roughness };
-    const env = fin ? advEnv() : null;
-    c.metalness = fin ? (gold ? 0.8 : 0.95) : b.metalness; c.roughness = fin ? (gold ? 0.28 : 0.08) : b.roughness; c.envMapIntensity = fin ? 1.6 : 1;
+    const on = gold || (MT && role === 'trim'), env = on ? advEnv() : null;
+    c.metalness = on ? (gold ? 0.8 : MT.metal) : b.metalness; c.roughness = on ? (gold ? 0.28 : MT.rough) : b.roughness; c.envMapIntensity = on ? 1.6 : 1;
     if (c.envMap !== env) { c.envMap = env; c.needsUpdate = true; }
   }
-  // gold plating golds the frame too (the dark joints, limbs and guns between the paint), on this mech's own copies of
-  // those materials (made the first time it's needed; the cached mat() ones are shared with robots and never changed)
-  if (gold || md.frameMats) {
+  // the frame, on this mech's own copies of those materials (made the first time it's needed; the cached mat() ones are
+  // shared with robots and never changed)
+  if (gold || MT || md.frameMats) {
     if (!md.frameMats) {
       md.frameMats = new Map();
       md.root.traverse((o) => {
@@ -4540,8 +4624,9 @@ function paintMech(md, p, pilot = Game.pilot) {
       });
     }
     for (const c of md.frameMats.values()) {
-      const b = c.userData.base, env = gold ? advEnv() : null;
+      const b = c.userData.base, env = gold || MT ? advEnv() : null;
       if (gold) { c.color.set(ADV.goldFrame); c.metalness = 0.8; c.roughness = 0.35; c.envMapIntensity = 1.6; }
+      else if (MT) { c.color.set(MT.col); c.metalness = MT.metal; c.roughness = Math.max(0.12, MT.rough); c.envMapIntensity = 1.6; }
       else { c.color.copy(b.color); c.metalness = b.metalness; c.roughness = b.roughness; c.envMapIntensity = 1; }
       if (c.envMap !== env) { c.envMap = env; c.needsUpdate = true; }
     }
@@ -4568,10 +4653,12 @@ function paintLook(md) {
   const hexes = (role) => [...new Set([...md.paintMats[role].values()].map((c) => '#' + c.color.getHexString()))];
   const meshes = { body: 0, trim: 0 }; md.root.traverse((o) => { if (o.isMesh && o.userData.painted) meshes[o.userData.paint]++; });
   const shown = md.decals ? md.decals.planes.filter((q) => q.visible && q.parent) : [];
-  const b0 = md.paintMats.body.values().next().value;   // G4: finish = 'chrome' | 'gold' | null, and the body's metal read back
+  const b0 = md.paintMats.body.values().next().value;   // G4: finish = 'gold' (#72: the 👑) | a metal's id | null, and the body's metal read back
+  const t0 = md.paintMats.trim.values().next().value;   // #72: and the trim's (plated under a metal)
   return { body: hexes('body'), trim: hexes('trim'), meshes, decal: shown.length ? md.paintNow?.decal ?? null : 'none', decals: shown.length,
     decalOn: shown.map((q) => (q.parent === md.torso ? 'back' : 'shoulder')),
     finish: md.finish ?? null, metalness: b0 ? r3(b0.metalness) : null, roughness: b0 ? r3(b0.roughness) : null, mirror: !!b0?.envMap,
+    trimMetal: t0 ? { metalness: r3(t0.metalness), roughness: r3(t0.roughness), mirror: !!t0.envMap } : null,
     frame: md.frameMats?.size ? [...new Set([...md.frameMats.values()].map((c) => '#' + c.color.getHexString()))] : null };   // G4: the frame's colours once gold has touched it
 }
 
@@ -4614,11 +4701,13 @@ const BODY_PANEL = { legs: { v: [0.5], h: [0.62], seed: 11, code: 'RB-L2' }, tor
   arms: { v: [], h: [0.4, 0.75], seed: 37, code: 'RB-A2' }, core: { v: [0.2, 0.4, 0.6, 0.8], h: [], seed: 53, code: 'RB-C5' } };
 // #71: the coloured stencils' shader change (Body.stencilOn): the map is a mask (Body.stencil), mixed over the paint's colour
 // instead of multiplying it: red = hazard yellow, green = black, blue = the trim colour (each material's own uniforms), and
-// where it's on, the metal is paint's (rbMetal), so a chrome or gold mirror still shows it. this = the material
+// where it's on, the metal is paint's (rbMetal), so a chrome or gold mirror still shows it. this = the material.
+// #72: and iron's rust: where the roughness map's blue is dark (Body.rough's rust kind), rust's colour (rbRust) over it, while
+// rbRustK is 1 (iron's plating from tier 3; a frame material with no stencil wears this shader for it too)
 function stencilCompile(sh) {
   Object.assign(sh.uniforms, Body.stU.get(this));
   sh.fragmentShader = sh.fragmentShader
-    .replace('#include <common>', '#include <common>\nuniform vec3 rbTrim;\nuniform vec3 rbHazard;\nuniform vec3 rbInk;\nuniform float rbMetal;')
+    .replace('#include <common>', '#include <common>\nuniform vec3 rbTrim;\nuniform vec3 rbHazard;\nuniform vec3 rbInk;\nuniform float rbMetal;\nuniform vec3 rbRust;\nuniform float rbRustK;')
     .replace('#include <map_fragment>', `float rbMask = 0.0;
 #ifdef USE_MAP
   vec4 rbSt = texture2D( map, vMapUv );
@@ -4626,6 +4715,9 @@ function stencilCompile(sh) {
   diffuseColor.rgb = mix( diffuseColor.rgb, rbHazard, rbSt.r );
   diffuseColor.rgb = mix( diffuseColor.rgb, rbTrim, rbSt.b );
   rbMask = clamp( rbSt.r + rbSt.g + rbSt.b, 0.0, 1.0 );
+#endif
+#ifdef USE_ROUGHNESSMAP
+  diffuseColor.rgb = mix( diffuseColor.rgb, rbRust, ( 1.0 - texture2D( roughnessMap, vRoughnessMapUv ).b ) * rbRustK );
 #endif`)
     .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n  metalnessFactor = mix( metalnessFactor, rbMetal, rbMask );');
 }
@@ -4778,22 +4870,37 @@ const Body = {
   // a section's roughness (green) and grime (red, read as an ao map) in one map, for kind 'frame' (brushed, from tier
   // 1), 'paint' (the stencil glossy from tier 2, chips to shiny bare metal from 3) or 'chrome' (chrome and gold: the
   // stencil from 2, dull scuffs from 3). null where that kind has none yet
+  // #72: and a metal's plating from tier 3, worn its own way: kind 'p-<wear>' on a painted (trim) part, 'f-<wear>' on the
+  // frame, wear = scuff (chrome: dull scuffs), scratch (gold: fine scratches), rust (iron: rough rust patches at the edges,
+  // dark in the blue channel, which the stencil shader turns rust-coloured), brushed (steel: brushed grain and long
+  // scratches) or chip (carbon: glossy chips, where chipGlow glows). Blue is 255 (no rust) everywhere else
   rough(sec, t, kind) {
-    const lv = t >= 3 ? 3 : kind === 'frame' ? (t >= 1 ? 1 : 0) : t >= 2 ? 2 : 0;
+    const wear = /^[pf]-/.test(kind) ? kind.slice(2) : null, frame = kind === 'frame' || kind.startsWith('f-');
+    const lv = t >= 3 ? 3 : frame ? (t >= 1 ? 1 : 0) : t >= 2 ? 2 : 0;
     if (!lv) return null;
     return this.tex(`r:${sec}:${kind}:${lv}`, (c, S, u) => {
       const P = BODY_PANEL[sec], w = this.rnd(P.seed * 13 + lv), e = 7 * u;
       const layer = () => { const q = document.createElement('canvas'); q.width = q.height = S; return q.getContext('2d', { willReadFrequently: true }); };
-      const rg = layer(), ag = layer(), line = (g, x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
-      rg.fillStyle = kind === 'frame' ? '#cdcdcd' : kind === 'chrome' && lv >= 3 ? '#b4b4b4' : '#ffffff'; rg.fillRect(0, 0, S, S);
-      if (kind === 'frame') for (let y = 0; y < S; y += 1.5 * u) { const v = 170 + Math.floor(w() * 70); rg.strokeStyle = `rgb(${v},${v},${v})`; rg.lineWidth = u; line(rg, 0, y, S, y + (w() - 0.5) * 4 * u); }
-      if (kind !== 'frame') {
+      const rg = layer(), ag = layer(), bg = layer(), line = (g, x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
+      rg.fillStyle = frame ? '#cdcdcd' : (kind === 'chrome' || wear === 'scuff') && lv >= 3 ? '#b4b4b4' : wear === 'brushed' ? '#d4d4d4' : '#ffffff'; rg.fillRect(0, 0, S, S);
+      if (frame || wear === 'brushed') for (let y = 0; y < S; y += 1.5 * u) { const v = 170 + Math.floor(w() * 70); rg.strokeStyle = `rgb(${v},${v},${v})`; rg.lineWidth = u; line(rg, 0, y, S, y + (w() - 0.5) * 4 * u); }
+      if (!frame) {
         rg.fillStyle = '#969696'; rg.font = `900 ${22 * u}px sans-serif`; rg.textBaseline = 'top'; rg.fillText(P.code, 26 * u, 26 * u);
         this.chevrons(rg, S, u);
       }
       ag.fillStyle = '#ffffff'; ag.fillRect(0, 0, S, S);
+      bg.fillStyle = '#ffffff'; bg.fillRect(0, 0, S, S);
       if (lv >= 3) {
+        const ws = this.rnd(P.seed * 17 + 5);   // (#72: the metals' wear spots, the same ones chipGlow lights)
         if (kind === 'paint') { rg.fillStyle = '#3c3c3c'; for (let i = 0; i < 34; i++) { const [x, y] = this.edgeSpot(w, S, u); rg.beginPath(); rg.arc(x, y, (2 + w() * 6) * u, 0, Math.PI * 2); rg.fill(); } }
+        else if (wear === 'scratch') { rg.strokeStyle = '#ffffff'; rg.lineWidth = 0.8 * u; for (let i = 0; i < 90; i++) { const x = ws() * S, y = ws() * S, a = ws() * Math.PI, L = (20 + ws() * 60) * u; line(rg, x, y, x + Math.cos(a) * L, y + Math.sin(a) * L); } }
+        else if (wear === 'brushed') { rg.strokeStyle = '#ffffff'; rg.lineWidth = 1.2 * u; for (let i = 0; i < 14; i++) { const x = ws() * S, y = ws() * S, a = (ws() - 0.5) * 0.6, L = (60 + ws() * 120) * u; line(rg, x, y, x + Math.cos(a) * L, y + Math.sin(a) * L); } }
+        else if (wear === 'rust') {
+          rg.fillStyle = '#ffffff'; bg.fillStyle = '#000000'; bg.filter = `blur(${2 * u}px)`;
+          for (let i = 0; i < 46; i++) { const [x, y] = this.edgeSpot(ws, S, u), r = (4 + ws() * 9) * u; for (const g of [rg, bg]) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); } }
+          bg.filter = 'none';
+        }
+        else if (wear === 'chip') { rg.fillStyle = '#4a4a4a'; for (let i = 0; i < 34; i++) { const [x, y] = this.edgeSpot(ws, S, u), r = (2 + ws() * 5) * u; rg.beginPath(); rg.arc(x, y, r, 0, Math.PI * 2); rg.fill(); } }
         else { rg.strokeStyle = '#ffffff'; rg.lineWidth = 1.5 * u; for (let i = 0; i < 40; i++) { const x = w() * S, y = w() * S, a = w() * Math.PI, L = (8 + w() * 36) * u; line(rg, x, y, x + Math.cos(a) * L, y + Math.sin(a) * L); } }
         // grime: dark in the seams and creeping up from the bottom
         ag.strokeStyle = '#6c6c6c'; ag.lineWidth = 7 * u; ag.filter = `blur(${3 * u}px)`;
@@ -4801,10 +4908,23 @@ const Body = {
         ag.filter = 'none';
         const gr = ag.createLinearGradient(0, S, 0, S * 0.7); gr.addColorStop(0, 'rgba(90,90,90,0.8)'); gr.addColorStop(1, 'rgba(90,90,90,0)'); ag.fillStyle = gr; ag.fillRect(0, S * 0.7, S, S * 0.3);
       }
-      const r = rg.getImageData(0, 0, S, S).data, a = ag.getImageData(0, 0, S, S).data, g = c.getContext('2d'), out = g.createImageData(S, S), o = out.data;
-      for (let i = 0; i < o.length; i += 4) { o[i] = a[i]; o[i + 1] = r[i]; o[i + 2] = 255; o[i + 3] = 255; }
+      const r = rg.getImageData(0, 0, S, S).data, a = ag.getImageData(0, 0, S, S).data, b = bg.getImageData(0, 0, S, S).data, g = c.getContext('2d'), out = g.createImageData(S, S), o = out.data;
+      for (let i = 0; i < o.length; i += 4) { o[i] = a[i]; o[i + 1] = r[i]; o[i + 2] = b[i]; o[i + 3] = 255; }
       g.putImageData(out, 0, 0);
       return new THREE.CanvasTexture(c);
+    });
+  },
+  // #72: Carbon Alloy's glow on its plated frame, from tier 3: the seams (as mask's) and its chips (rough's chip spots), white
+  // where it glows, in the section's own map
+  chipGlow(sec) {
+    return this.tex(`g:${sec}`, (c, S, u) => {
+      const P = BODY_PANEL[sec], g = c.getContext('2d'), e = 7 * u, ws = this.rnd(P.seed * 17 + 5), line = (x0, y0, x1, y1) => { g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
+      g.fillStyle = '#000'; g.fillRect(0, 0, S, S);
+      g.strokeStyle = '#fff'; g.lineWidth = 2 * u; g.strokeRect(e, e, S - 2 * e, S - 2 * e);
+      for (const x of P.v) line(x * S, e, x * S, S - e);
+      for (const y of P.h) line(e, y * S, S - e, y * S);
+      g.fillStyle = '#fff'; for (let i = 0; i < 34; i++) { const [x, y] = this.edgeSpot(ws, S, u), r = (2 + ws() * 5) * u; g.beginPath(); g.arc(x, y, r * 0.75, 0, Math.PI * 2); g.fill(); }
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
     });
   },
   // #71: a section's coloured stencil, from tier 2 (lv 2; lv 3 = worn: chipped where the paint chips). A mask, not colours,
@@ -4828,10 +4948,11 @@ const Body = {
   },
   // #71: the stencil on painted material M: its map is the mask (stencil()), and stencilCompile (one shader for all, by its
   // cache key) mixes it over the colour instead of multiplying; trim = the number's colour, this material's own uniform
-  stencilOn(M, trim) {
+  stencilOn(M, trim, rust = 0) {
     let U = this.stU.get(M);
-    if (!U) { U = { rbTrim: { value: new THREE.Color() }, rbHazard: { value: new THREE.Color(BODY.hazard) }, rbInk: { value: new THREE.Color(BODY.ink) }, rbMetal: { value: BODY.stencilMetal } }; this.stU.set(M, U); }
-    U.rbTrim.value.set(trim);
+    if (!U) { U = { rbTrim: { value: new THREE.Color() }, rbHazard: { value: new THREE.Color(BODY.hazard) }, rbInk: { value: new THREE.Color(BODY.ink) }, rbMetal: { value: BODY.stencilMetal },
+      rbRust: { value: new THREE.Color(METAL.rust) }, rbRustK: { value: 0 } }; this.stU.set(M, U); }
+    U.rbTrim.value.set(trim); U.rbRustK.value = rust;   // (#72: iron's rust, 0 or 1)
     if (M.onBeforeCompile !== stencilCompile) { M.onBeforeCompile = stencilCompile; M.customProgramCacheKey = stencilKey; M.needsUpdate = true; }
   },
   // the tier-4 glow masks (white glows, black doesn't): a section's seams and three status lights, or a stack's heat
@@ -4887,7 +5008,10 @@ const Body = {
     md.lights = md.lights.filter((L) => !L.tier);
     for (const x of md.tierX || []) x.removeFromParent();
     md.tierX = []; md.pieceMats ||= new Map();
-    const gilt = fin === 'gold' && md.frameMats ? new Set(md.frameMats.values()) : null;
+    // #72: what's plated: under the 👑 (finish 'gold') the whole mech, gold; under a metal its frame and trim. W = how the
+    // plating wears from tier 3 (the 👑 as gold does)
+    const crown = fin === 'gold', MT = crown ? null : METALS.find((q) => q.id === fin) ?? null, W = crown ? 'scratch' : MT?.wear ?? null;
+    const gilt = (crown || MT) && md.frameMats ? new Set(md.frameMats.values()) : null;
     const set = (M, k, v) => { if (M[k] !== v) { M[k] = v; M.needsUpdate = true; } };
     const meshes = []; md.root.traverse((o) => { if (o.isMesh) meshes.push(o); });
     for (const o of meshes) {
@@ -4906,12 +5030,15 @@ const Body = {
         o.material = M = c;
       }
       if (painted) M = this.paintClass(md, o, t >= 2);
-      const finOn = painted ? !!fin : !!gilt?.has(M), kind = painted ? (fin ? 'chrome' : 'paint') : 'frame';
+      const finOn = painted ? crown || (!!MT && o.userData.paint === 'trim') : !!gilt?.has(M);
+      const kind = painted ? (finOn ? (t >= 3 ? 'p-' + W : 'chrome') : 'paint') : finOn && t >= 3 ? 'f-' + W : 'frame';
+      const rust = finOn && W === 'rust' && t >= 3 ? 1 : 0;   // (#72: iron's rust, in the stencil shader)
       set(M, 'envMap', t || finOn ? advEnv() : null);
       M.envMapIntensity = finOn ? 1.6 * BODY.fin[t] : t ? BODY.env[t] : 1;
-      set(M, 'normalMap', t ? this.normal(sec, Math.min(t, 3), painted && !!fin) : null);
+      set(M, 'normalMap', t ? this.normal(sec, Math.min(t, 3), finOn && ['scuff', 'scratch', 'brushed'].includes(W)) : null);
       M.normalScale.setScalar(t ? BODY.normal[t] : 1);
       const rm = this.rough(sec, t, kind);
+      M.userData.wearKind = rm ? kind : null; M.userData.plated = finOn;   // (#72: read back by plating())
       set(M, 'roughnessMap', rm); set(M, 'aoMap', t >= 3 ? rm : null);
       // #71: from tier 2 the stencils in colour on the paint (and under a finish): the number in the trim colour, or on a
       // trim-painted part (where trim wouldn't show: the chest plate, knee pads, ram plates) in black ink (Dad's call on #110:
@@ -4920,15 +5047,25 @@ const Body = {
       if (painted && t >= 2) {
         const pn = md.paintNow || Garage.paintNow(), gold = fin === 'gold', onTrim = o.userData.paint === 'trim';
         set(M, 'map', this.stencil(sec, Math.min(t, 3)));
-        this.stencilOn(M, onTrim ? BODY.ink : gold ? ADV.goldTrim : pn.trim);
-      } else if (M.map?.userData?.stencil) set(M, 'map', null);
+        this.stencilOn(M, onTrim ? BODY.ink : gold ? ADV.goldTrim : pn.trim, rust);
+      } else {
+        if (M.map?.userData?.stencil) set(M, 'map', null);
+        if (rust) this.stencilOn(M, BODY.ink, 1); else if (this.stU.get(M)) this.stU.get(M).rbRustK.value = 0;   // (#72: a frame part's rust)
+      }
       if (M.isMeshPhysicalMaterial) { M.clearcoat = BODY.cc; M.clearcoatRoughness = BODY.ccRough; }
       // tier 4: the paint's seams and status lights glow in the section's colour; heat glows up the exhaust stacks
       const glow = t === 4 && (painted || ['back', 'stack'].includes(o.userData.core)) ? (o.userData.core === 'stack' ? 'heat' : 'seam') : null;
+      // #72: Carbon Alloy's plated frame glows faintly cyan in its seams from tier 1, and in its chips too from tier 3 (wear:
+      // a light like the tier's, dimmed by a power-down, not one of the section's tier-4 glows)
+      const cg = !glow && !painted && finOn && MT?.glow && t >= 1;
       if (glow) {
         const k = glow === 'heat' ? BODY.heat : BODY.seam, S = BODY_SECTIONS.find((q) => q.id === sec);
         M.userData.tierGlow = glow; M.emissive.set(glow === 'heat' ? '#ff6a2a' : S.hex); set(M, 'emissiveMap', glow === 'heat' ? this.heat() : this.mask(sec));
         M.emissiveIntensity = k * glowNow; md.lights.push({ mat: M, k, tier: true, sec });
+      } else if (cg) {
+        const k = t >= 3 ? METAL.chip : METAL.seam;
+        M.userData.tierGlow = 'carbon'; M.emissive.set(MT.glow); set(M, 'emissiveMap', t >= 3 ? this.chipGlow(sec) : this.mask(sec));
+        M.emissiveIntensity = k * glowNow; md.lights.push({ mat: M, k, tier: true, sec, wear: true });
       } else if (M.userData.tierGlow) {
         delete M.userData.tierGlow; M.emissive.set(0); set(M, 'emissiveMap', null); M.emissiveIntensity = glowNow;
       }
@@ -4983,7 +5120,7 @@ const Body = {
       if (o.userData.paint === 'body' && !B.paint) B.paint = M; else if (!o.userData.painted && !o.userData.upgrade && !B.frame) B.frame = M;
     });
     return Object.fromEntries(BODY_SECTIONS.map((S) => {
-      const B = out[S.id], rep = B.paint || B.frame, all = (f) => B.mats.length > 0 && B.mats.every(f), lights = md.lights.filter((L) => L.tier && L.sec === S.id);
+      const B = out[S.id], rep = B.paint || B.frame, all = (f) => B.mats.length > 0 && B.mats.every(f), lights = md.lights.filter((L) => L.tier && !L.wear && L.sec === S.id);
       return [S.id, { normalMap: all((x) => !!x.M.normalMap), roughnessMap: all((x) => x.painted || !!x.M.roughnessMap), paintRough: B.paint ? !!B.paint.roughnessMap : null, aoMap: all((x) => !!x.M.aoMap),
         envMap: all((x) => !!x.M.envMap), envMapIntensity: rep ? r3(rep.envMapIntensity) : null, clearcoat: B.paint ? (B.paint.isMeshPhysicalMaterial ? r3(B.paint.clearcoat) : 0) : null,
         physical: B.paint ? !!B.paint.isMeshPhysicalMaterial : null, lit: lights.filter((L) => L.mat.emissiveIntensity > 0.1).length, glows: lights.length,
@@ -5009,7 +5146,22 @@ const Body = {
   status(md = Game.humans[0]?.mech?.model) {
     const T = this.tiers();
     return { tiers: T, rule: this.rule(), hold: this.hold ? { ...this.hold } : null, points: this.points(), bonus: this.bonus(), names:Object.fromEntries(Object.entries(T).map(([k, t]) => [k, BODY.names[t]])),
-      quality: this.quality(), mode: this.mode, preview: this.preview, size: BODY.size[this.quality()], mats: this.look(md), cost: this.cost(md) };
+      quality: this.quality(), mode: this.mode, preview: this.preview, size: BODY.size[this.quality()], mats: this.look(md), cost: this.cost(md), plating: this.plating(md) };
+  },
+  // #72: the plating as the mech shows it, read back from its materials: finish (as paintLook's), and per section the plated
+  // materials (plated), the wear maps on them (kinds: 'p-<wear>' / 'f-<wear>' from tier 3, 'chrome' / 'frame' below), how
+  // many wear iron's rust (rust) and how many glow in Carbon Alloy's seams or chips now (glow: lit, of glows)
+  plating(md = Game.humans[0]?.mech?.model) {
+    if (!md?.paintMats) return null;
+    const out = Object.fromEntries(BODY_SECTIONS.map((S) => [S.id, { plated: 0, kinds: new Set(), rust: 0, glows: 0, lit: 0 }]));
+    md.root.traverse((o) => {
+      const M = o.isMesh && o.material; if (!M?.isMeshStandardMaterial || o.userData.decal || o.userData.bodyX) return;
+      const B = out[this.secOf(md, o)]; if (!B || !M.userData.plated) return;
+      B.plated++; if (M.userData.wearKind) B.kinds.add(M.userData.wearKind);
+      if (this.stU.get(M)?.rbRustK.value) B.rust++;
+    });
+    for (const L of md.lights) if (L.wear && out[L.sec]) { out[L.sec].glows++; if (L.mat.emissiveIntensity > 0.1) out[L.sec].lit++; }
+    return { finish: md.finish ?? null, sections: Object.fromEntries(Object.entries(out).map(([k, B]) => [k, { ...B, kinds: [...B.kinds].sort() }])) };
   },
 };
 
@@ -5165,8 +5317,8 @@ function feetLook(md) {
 // G2: whoever is playing's upgrades on player 0's mech: energy (a rise in maxHealth is a rise in health too, so
 // buying 🛡️ on a full mech fills it to the new top; a powered-down mech stays at 0), top speed (its own spec),
 // and the look. m.upg = the levels the weapons, the kick, self-repair and the jump read.
-// G4: and whoever is playing's advanced parts: m.adv = { id: unlocked } (chrome's energy, the jets, the fusion core, the
-// shield, gold), the finish (md.finish), and the squad's gold glow. The shield fills when it's first on for this child.
+// G4: and whoever is playing's advanced parts: m.adv = { id: unlocked } (the jets, the fusion core, the shield, the 👑; #72: the
+// plating metals in m.metal, the best one's energy), the finish (md.finish), and the squad's gold glow. The shield fills when it's first on for this child.
 // B2: and whoever is playing's leg shape: the model is rebuilt with it if it's not on already (swapModel), and its trade-off
 // (m.fx, shapeFx) goes into the stats: energy added after the armour cap, and top speed, acceleration and leg turn in the
 // mech's own spec (the base mech × the shape × the motors). The kick, the jump, walking damage and knock-back read m.fx.
@@ -5186,7 +5338,9 @@ function applyUpgrades(opts = {}) {
   const adv = m.adv = Object.fromEntries(ADVANCED.map((A) => [A.id, Garage.has(A.id)]));
   const who = Game.child?.id ?? null;
   if (!adv.shield) { m.shield = 0; m.shieldFor = null; } else if (m.shieldFor !== who) { m.shield = ADV.shield; m.shieldFor = who; }
-  const max = MECH_HEALTH + UPGRADE.energy * lv.armour + (adv.chrome ? ADV.energy : 0) + fx.energy + tfx.energy, d = max - m.maxHealth;   // (#42: the torso's energy too)
+  // #72: the plating's energy is the best metal earned's, whichever one is shown (m.metal: earned, best, shown, bonus, crown)
+  const mt = m.metal = metalsOf(Garage.rec());
+  const max = MECH_HEALTH + UPGRADE.energy * lv.armour + mt.bonus + fx.energy + tfx.energy, d = max - m.maxHealth;   // (#42: the torso's energy too)
   if (d) {
     m.maxHealth = max;
     if (m.state === 'down') m.damage.hull = Math.max(0, m.damage.hull + d);
@@ -5202,7 +5356,8 @@ function applyUpgrades(opts = {}) {
   m.spec = lv.motor || shape !== 'walker' || tsh !== 'standard' ? { ...MECH, topSpeed: MECH.topSpeed * (1 + UPGRADE.speed * lv.motor) * fx.topSpeed * tfx.topSpeed, accel: MECH.accel * fx.accel,
     legTurn: MECH.legTurn * fx.legTurn, turnSlow: fx.turnSlow, torsoTurn: MECH.torsoTurn * tfx.torsoTurn } : undefined;
   dressUpgrades(m.model, lv, adv);
-  m.model.finish = adv.gold ? 'gold' : adv.chrome ? 'chrome' : null;
+  // (#72: the finish is 'gold' while the 👑 is on (the whole mech gold, as G4's was), else the metal shown, or null)
+  m.model.finish = mt.crown.on ? 'gold' : mt.shown;
   paintMech(m.model, Garage.paintNow());   // G3: and their paint (G4: in its finish)
   squadGlow();
   return lv;
@@ -5490,9 +5645,15 @@ const Builds = {
     const isNew = !U && !b.unlocked.includes(id);
     if (U) b.spiderLegs = U.legs;
     else if (isNew) { b.unlocked.push(id); if (!Garage.on) (g.fresh ||= []).push(id); }
-    bodyRec(g); Facts.save();
+    bodyRec(g);
+    // #72: the last leg shape built can be what Carbon Alloy was waiting for (the 👑 already in): latched now (Facts.latch,
+    // so it's in garage.fresh). Its cheer is the garage's, after the build's (cheerBuildStop plays what's fresh); with the
+    // garage shut (the hooks only) it's the in-play toast, as a milestone's is
+    const got = isNew && legShapeOf(id) ? Facts.latch() : [];
+    Facts.save();
     if (Garage.on) Garage.cheerBuild(id);
     Shapes.equip(U ? 'legs' : secOfShape(id) ?? 'legs', U ? U.of : id);   // (#42: a torso or arm shape goes on its own section)
+    if (got.length) { if (Garage.on) applyUpgrades(); else Adv.unlocked(got); }
     return true;
   },
 };
@@ -5738,8 +5899,9 @@ const kickDmg = (m) => WEAPON.kick.dmg * (1 + UPGRADE.kick * (m?.upg?.ram || 0))
 const punchDmg = (m) => (m?.afx && m.afx.punch !== 1 ? WEAPON.punch.dmg * m.afx.punch : WEAPON.punch.dmg);
 // G4 gold plating: every squadmate glows gold while whoever is playing has it; otherwise its own colour again (kept in
 // r.ownGlow). Only the glow colour: a squadmate's r.gold (a fast fix, with its extra energy) is its own and untouched.
+// #72: the 👑's glow, while it's switched on
 function squadGlow() {
-  const gold = !!Game.humans[0]?.mech?.adv?.gold;
+  const gold = !!Game.humans[0]?.mech?.metal?.crown?.on;
   for (const r of Game.squad) {
     r.ownGlow ??= r.glowColor;
     const want = gold ? ADV.gold : r.ownGlow;
@@ -9956,6 +10118,8 @@ function updateHud() {
 // own renderer into each box's rectangle while the garage is open, under a see-through
 // HTML layer that carries the counts, the icons and the buttons.
 // ===========================================================================
+// G3: the 🎨 tab's rows, top to bottom (#72: and the plating metal, and the 👑's switch)
+const PAINT_ROWS = ['body', 'trim', 'decal', 'plating', 'crown'];
 const GARAGE_TABS = [
   { id: 'trophies', icon: '🏆', ic: 'trophy', name: 'Trophies' },
   { id: 'mech', icon: '🦾', ic: 'mech', name: 'Mech' },
@@ -10090,7 +10254,7 @@ const Garage = {
     const wrap = (i, n) => (n ? (i + d + n) % n : 0);
     let out;
     if (this.tab === 'squad') { const o = this.squadOptions(); this.scur = wrap(this.scur, o.length); out = o[this.scur] ? o[this.scur].id + ':' + o[this.scur].up : null; }
-    else if (this.tab === 'paint') { this.prow = wrap(this.prow, 3); out = ['body', 'trim', 'decal'][this.prow]; }
+    else if (this.tab === 'paint') { this.prow = wrap(this.prow, PAINT_ROWS.length); out = PAINT_ROWS[this.prow]; }
     else if (this.tab === 'body' && this.bp) { const o = this.buildOptions(); this.bcur = wrap(this.bcur, o.length); out = o[this.bcur] ?? null; }   // #89: a part chip, a plug or a port
     else if (this.tab === 'body') {   // B2: the leg card picked (#91: or the Spider's Mk II chip; #42: or a torso or arms card, along its own row)
       const o = this.bodyOpts(), row = this.bodyRows()[this.bodyAt().r], i = row.indexOf(o[this.lcur]);
@@ -10108,7 +10272,10 @@ const Garage = {
     if (this.tab === 'body') return this.cardTap(this.bodyOpts()[this.lcur]);   // B2: equip the leg card picked (#89: or open its blueprint; #91: or the Mk II chip; #42: or a torso or arms card)
     if (this.tab === 'squad') { const o = this.squadOptions()[this.scur]; return o ? this.squadBuy(o.id, o.up) : { ok: false, why: 'no squad' }; }
     if (this.tab === 'paint') {
-      const p = this.paintNow(), row = ['body', 'trim', 'decal'][this.prow];
+      const p = this.paintNow(), row = PAINT_ROWS[this.prow];
+      // #72: the plating row puts on the next metal earned (round the end); the 👑's row switches it
+      if (row === 'plating') { const M = metalsOf(this.rec()), i = M.earned.indexOf(M.shown); return this.setPlating(M.earned.length ? M.earned[(i + 1) % M.earned.length] : METALS[0].id); }
+      if (row === 'crown') return this.setCrown();
       const next = row === 'decal' ? DECALS[(DECALS.findIndex((D) => D.id === p.decal) + 1) % DECALS.length].id : PALETTE[(PALETTE.indexOf(p[row]) + 1) % PALETTE.length];
       return this.setPaint({ [row]: next });
     }
@@ -10250,7 +10417,8 @@ const Garage = {
     clearTimeout(this.bcheerT); const id = this.bcheer; this.bcheer = null;
     $('gCheer').classList.remove('on'); $('gLift').classList.remove('sparkle');
     if (this.bp === id) { this.bp = null; this.lreveal = true; }   // (#42: back on the cards, the new card in view)
-    if (this.on) { this.dress(); this.draw(); this.tierPlay(); }   // (#43: a tier-up waiting for the lift)
+    // (#43: a tier-up waiting for the lift. #72: a metal the build earned, Carbon Alloy, cheers first; the tier-up after it)
+    if (this.on) { this.dress(); this.draw(); if (!((this.rec().fresh || []).some((f) => advOf(f)) && this.cheerNew())) this.tierPlay(); }
   },
   // ---- dragging (mouse and touch): a part chip onto its glowing spot on the lift, or a plug onto a port. The picture that
   // follows the pointer lives outside the wall (a redraw doesn't lose it); a drop anywhere else springs it back. A tap
@@ -10484,7 +10652,42 @@ const Garage = {
     return { unlocks: un, mastered: n, goal: ms?.goal ?? null, guest: !!Game.child?.guest,
       next: nx ? { id: nx.id, at: nx.at, left: Math.max(0, nx.at - n) } : null, fresh: (this.rec().fresh ?? []).filter((id) => advOf(id)),   // (#70: shapes' are in Shapes.status().fresh)
       cheer: this.cheering ? this.cheering.slice() : null, toast: Adv.toastIds ? Adv.toastIds.slice() : null, toastPending: Adv.pending ? Adv.pending.slice() : null,
-      parts: ADVANCED.map((A) => ({ id: A.id, icon: A.ic, at: A.at, got: un.includes(A.id) })) };   // (I2: icon = its icon's name)
+      parts: ADVANCED.map((A) => ({ id: A.id, icon: A.ic, at: A.at, got: un.includes(A.id) })),   // (I2: icon = its icon's name)
+      metals: this.metalStatus() };
+  },
+  // #72: the plating metals: earned (ids, METALS order), best, shown, picked (null = the best), bonus = the energy past the
+  // armour cap (the best's), crown = the 👑 { got, on }; per metal its milestone, energy and whether it's earned; next = the
+  // next metal to earn (its milestone, how many facts are left, and for Carbon Alloy the leg shapes still to build)
+  metalStatus() {
+    const g = this.rec(), M = metalsOf(g), guest = !!Game.child?.guest, n = Game.child && !guest ? Facts.mastery()?.mastered ?? 0 : 0;
+    const nx = METALS.find((q) => !M.earned.includes(q.id)), legs = LEG_SHAPES.filter((S) => S.part && !g.body?.unlocked?.includes(S.id)).map((S) => S.id);
+    return { ...M, metals: METALS.map((q) => ({ id: q.id, icon: q.ic, at: q.at, energy: q.energy, got: M.earned.includes(q.id), shapes: !!q.shapes })),
+      next: nx && !guest ? { id: nx.id, at: nx.at, left: Math.max(0, nx.at - n), legs: nx.shapes ? legs : [] } : null };
+  },
+  // #72: show metal id (an id, name or icon name; null or 'best' = whichever is best, from now on) as the plating, as a tap on
+  // its swatch in 🎨 does. Free, saved, on the mech straight away. Energy doesn't change: it's always the best metal's.
+  // Refused with nothing changed: 'no such metal', or 'not earned'
+  setPlating(id) {
+    const g = this.rec(), M = id == null || id === 'best' ? null : metalOf(id);
+    if (id != null && id !== 'best' && !M) return { ok: false, why: 'no such metal', metal: id, metals: METALS.map((q) => q.id) };
+    if (M && !metalsOf(g).earned.includes(M.id)) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', `.metal[data-v="${M.id}"]`); return { ok: false, why: 'not earned', metal: M.id, at: M.at };  }
+    g.metal = M?.id ?? null; Facts.save();
+    applyUpgrades();
+    if (this.on) { this.dress(); this.draw(); }
+    if (!Game.manual) Sfx.tone(880, 0.07, 'triangle', 0.06, 1320);
+    return { ok: true, ...metalsOf(g) };
+  },
+  // #72: switch the 👑 on or off (on left out: the other way round), as its switch in 🎨 does. Free, saved. Refused, 'not
+  // earned', before 45 facts are Mastered
+  setCrown(on) {
+    const g = this.rec(), M = metalsOf(g);
+    if (!M.crown.got) { if (!Game.manual) Sfx.buzz(); this.flash(null, 'bad', '.crownsw'); return { ok: false, why: 'not earned', at: advOf('gold').at }; }
+    const want = on == null ? !M.crown.on : !!on;
+    if (want) delete g.crown; else g.crown = false;
+    Facts.save(); applyUpgrades();
+    if (this.on) { this.dress(); this.draw(); }
+    if (!Game.manual) Sfx.tone(want ? 988 : 660, 0.08, 'triangle', 0.06, want ? 1480 : 440);
+    return { ok: true, ...metalsOf(g) };
   },
   // the cheer for parts earned since the garage last opened (garage.fresh): a banner of them over the bay with confetti
   // and a fanfare, their shelf slots glowing. Played once: fresh is emptied and saved. #70: and the body shapes built while
@@ -10698,7 +10901,17 @@ const Garage = {
       const dec = DECALS.map((D) => { const t = D.id !== 'none';
         return `<button class="decal${p.decal === D.id ? ' on' : ''}${t ? ' tint' : ''}" data-row="decal" data-v="${D.id}" aria-label="${D.name}" style="--tc:${p.trim}">${icon(D.ic)}${t ? `<i class="dtint" style="--m:${iconURL(D.ic)}"></i>` : ''}</button>`; }).join('');
       // (I2: body is a roller and trim a brush: 🤖 is the squad's and ✨ chrome's)
-      $('gWall').innerHTML = row(0, 'body', 'roller', 'Body', sw('body')) + row(1, 'trim', 'brush', 'Trim', sw('trim')) + row(2, 'decal', 'tag', 'Decal', dec);
+      // #72: the plating row: a swatch per metal in its own colour and icon (the one shown ringed; one not earned yet dark, with
+      // 🔒 and its milestone, ⭐N), then the energy the best one gives ({energy}+N); and the 👑's switch (🔒 ⭐45 till earned)
+      const MS = this.metalStatus();
+      const met = METALS.map((M) => { const got = MS.earned.includes(M.id);
+        return `<button class="metal${got ? '' : ' locked'}${MS.shown === M.id ? ' on' : ''}" data-row="plating" data-v="${M.id}" style="--mc:${M.col}" aria-label="${M.name}${got ? '' : `: ${M.at} facts mastered${M.shapes ? ' and every leg shape' : ''}`}">${icon(M.ic)}`
+          + `${got ? '' : `<i class="mlk">${icon('lock')}</i><b class="mat">${icon('star')}${M.at}</b>`}</button>`; }).join('')
+        + `<b class="pbonus" aria-label="energy plus ${MS.bonus}">${icText(`{energy}+${MS.bonus}`)}</b>`;
+      const C = MS.crown, crw = `<button class="crownsw${C.got ? '' : ' locked'}${C.on ? ' on' : ''}" data-row="crown" role="switch" aria-checked="${C.on}" aria-label="Gold crown${C.got ? (C.on ? ': on' : ': off') : ': 45 facts mastered'}">`
+        + `${icon('crown')}${C.got ? `<span class="ctog"><i class="${C.on ? '' : 'on'}">${icon('cross')}</i><i class="${C.on ? 'on' : ''}">${icon('check')}</i></span>` : `<i class="mlk">${icon('lock')}</i><b class="mat">${icon('star')}${advOf('gold').at}</b>`}</button>`;
+      $('gWall').innerHTML = row(0, 'body', 'roller', 'Body', sw('body')) + row(1, 'trim', 'brush', 'Trim', sw('trim')) + row(2, 'decal', 'tag', 'Decal', dec)
+        + row(3, 'plating', 'sparkle', 'Plating', met) + row(4, 'crown', 'crown', 'Crown', crw);
     } else if (T.id === 'body' && this.bp) {
       $('gWall').innerHTML = this.drawBuild();   // #89: the open blueprint
     } else if (T.id === 'body') {
@@ -10835,8 +11048,15 @@ const Garage = {
       warn: el.querySelector('.swarn') ? icRead(el.querySelector('.swarn')) : null, rows: Object.fromEntries([...el.querySelectorAll('.srow')].map((r) => [r.dataset.up, rowOf(r)])) }));
     const prows = [...W.querySelectorAll('.prow')];
     // (I2: icon = the row's own icon; icons = each decal swatch's icon, which were pictures (imgs) on main)
-    const paint = prows.length ? Object.fromEntries(prows.map((el) => { const on = el.querySelector('.on'); return [el.dataset.row, { on: on ? (el.dataset.row === 'decal' ? on.dataset.v : PALETTE[+on.dataset.v]) : null, n: el.querySelectorAll('.swatch, .decal').length, picked: el.classList.contains('cur'),
-      icon: ic(el.querySelector('.plab')), icons: [...el.querySelectorAll('.decal svg.ic')].map((s) => s.dataset.icon) }]; })) : null;
+    // (#72: the plating row: on = the metal shown, n = its swatches, icons = each one's icon, locked = the ones not earned (with
+    // their milestones, mile), bonus = the energy shown; the crown row: on = the switch on, locked, its icon)
+    const paint = prows.length ? Object.fromEntries(prows.map((el) => { const row = el.dataset.row, on = el.querySelector(row === 'crown' ? '.crownsw.on' : '.on');
+      if (row === 'plating') return [row, { on: on?.dataset.v ?? null, n: el.querySelectorAll('.metal').length, picked: el.classList.contains('cur'), icon: ic(el.querySelector('.plab')),
+        icons: [...el.querySelectorAll('.metal > svg.ic')].map((s) => s.dataset.icon), locked: [...el.querySelectorAll('.metal.locked')].map((b) => b.dataset.v),
+        mile: Object.fromEntries([...el.querySelectorAll('.metal.locked')].map((b) => [b.dataset.v, icRead(b.querySelector('.mat'))])), bonus: icRead(el.querySelector('.pbonus')) }];
+      if (row === 'crown') { const b = el.querySelector('.crownsw'); return [row, { on: !!on, locked: b.classList.contains('locked'), picked: el.classList.contains('cur'), icon: ic(el.querySelector('.plab')), mile: b.querySelector('.mat') ? icRead(b.querySelector('.mat')) : null }]; }
+      return [row, { on: on ? (row === 'decal' ? on.dataset.v : PALETTE[+on.dataset.v]) : null, n: el.querySelectorAll('.swatch, .decal').length, picked: el.classList.contains('cur'),
+        icon: ic(el.querySelector('.plab')), icons: [...el.querySelectorAll('.decal svg.ic')].map((s) => s.dataset.icon) }]; })) : null;
     // G4: the advanced shelf as shown: per part, unlocked, the milestone and words shown on an outline (null once lit),
     // what it does (lit), next = the one to earn next (its progress bar's fill), new = glowing for the cheer, drawn = the 3D
     const advanced = Object.fromEntries([...W.querySelectorAll('.aslot')].map((el) => [el.dataset.adv, { got: el.dataset.got === '1', at: +el.dataset.at,
@@ -10927,7 +11147,7 @@ const Garage = {
       upgrades: this.levels(), offer: this.offer(), cur: UPGRADES[this.cur].id,
       // G3: per squadmate its upgrades, what the next level of each needs, and what they do; the 🤖 pick; paint
       squad: Game.squad.map((r) => ({ id: r.id, type: r.type, name: r.name, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, offer: this.squadOffer(r), effects: squadEffects(r) })),
-      scur: this.squadOptions()[this.scur] ?? null, paint: this.paintNow(), prow: ['body', 'trim', 'decal'][this.prow],
+      scur: this.squadOptions()[this.scur] ?? null, paint: this.paintNow(), prow: PAINT_ROWS[this.prow], plating: this.metalStatus(),   // (#72: the metals)
       // #89: the blueprint open in the 🦿 tab (null: the cards), the part picked, the plug picked (-1 none), the build being cheered
       blueprint: { open: this.bp, pick: this.bpick, plug: this.bsel, cur: this.bp ? this.buildOptions()[this.bcur] ?? null : null, cheer: this.bcheer, drag: this.drag ? { kind: this.drag.kind, v: this.drag.v } : null },
       // #42: the 🦿 card the keys / pad have picked ('walker' ... 'mk2', 'torso:<id>', 'arms:<id>') and the section showing
@@ -11099,8 +11319,11 @@ const Garage = {
       const sr = e.target.closest('.srow'), pv = e.target.closest('.swatch, .decal'), pr = e.target.closest('.prow');
       if (b && b.classList.contains('sbuy')) { e.stopPropagation(); if (!b.classList.contains('max')) this.squadBuy(+b.dataset.id, b.dataset.up); return; }
       if (sr) { e.stopPropagation(); const i = this.squadOptions().findIndex((o) => o.id === +sr.dataset.id && o.up === sr.dataset.up); if (i >= 0) { this.scur = i; this.draw(); } return; }
-      if (pv) { e.stopPropagation(); const row = pv.dataset.row; this.prow = ['body', 'trim', 'decal'].indexOf(row); this.setPaint({ [row]: row === 'decal' ? pv.dataset.v : +pv.dataset.v }); return; }
-      if (pr) { e.stopPropagation(); this.prow = ['body', 'trim', 'decal'].indexOf(pr.dataset.row); this.draw(); return; }
+      if (pv) { e.stopPropagation(); const row = pv.dataset.row; this.prow = PAINT_ROWS.indexOf(row); this.setPaint({ [row]: row === 'decal' ? pv.dataset.v : +pv.dataset.v }); return; }
+      // #72: a metal's swatch shows it (a locked one shakes); the 👑's switch switches it
+      const pm = e.target.closest('.metal, .crownsw');
+      if (pm) { e.stopPropagation(); this.prow = PAINT_ROWS.indexOf(pm.dataset.row); if (pm.dataset.row === 'crown') this.setCrown(); else this.setPlating(pm.dataset.v); return; }
+      if (pr) { e.stopPropagation(); this.prow = PAINT_ROWS.indexOf(pr.dataset.row); this.draw(); return; }
       // #89: on a blueprint, ◀ goes back to the cards; a part chip, plug or port tapped with the keys (Enter on a focused
       // button: a pointer's tap comes through pointerup); a tap on a motor (port) with a plug picked links them. (A click with
       // detail 0 isn't always the keys: Chrome's touch emulation sends a tap's click with detail 0 and pointerType 'touch',
@@ -11554,7 +11777,7 @@ function robotState(r) {
   };
 }
 window.__rb = {
-  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, TierToast, Body, BODY, BODY_SECTIONS, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
+  Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, METALS, METAL, metalsOf, TierToast, Body, BODY, BODY_SECTIONS, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
   BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
   CAM_FAR,   // (#103)
@@ -11580,7 +11803,7 @@ window.__rb = {
     const fx = (s) => (String(s ?? '').match(/\{(\w+)\}/g) || []).map((x) => x.slice(1, -1)), V = (o) => Object.values(o);
     const u = {
       WEAPON: V(WEAPON).map((W) => W.ic), PARTS: V(PARTS).map((P) => P.ic), AREA_IC: V(AREA_IC), HEAL_IC: V(HEAL_IC), UPGRADES: UPGRADES.flatMap((U) => fx(U.fxIc)),
-      ADVANCED: ADVANCED.flatMap((A) => [A.ic, ...fx(A.fxIc)]), LEG_SHAPES: LEG_SHAPES.map((S) => S.ic), BODY_SHAPES: V(BODY_SHAPES).flat().map((S) => S.ic),
+      ADVANCED: ADVANCED.flatMap((A) => [A.ic, ...fx(A.fxIc)]), METALS: METALS.map((M) => M.ic), LEG_SHAPES: LEG_SHAPES.map((S) => S.ic), BODY_SHAPES: V(BODY_SHAPES).flat().map((S) => S.ic),
       SQUAD_JOB: V(SQUAD_JOB).flatMap((J) => fx(J.fxIc)), DECALS: DECALS.map((D) => D.ic), PUZZLES: V(PUZZLES).map((P) => P.ic), CHAIN: V(CHAIN.tiles).map((T) => T.ic),
       SYMPTOMS: V(SYMPTOMS).map((S) => S.ic), emblems: PILOTS.map((P) => P.emblemIc), CHILDREN: CHILDREN.map((C) => C.ic), BODY_SECTIONS: BODY_SECTIONS.map((S) => S.ic),
       ROBOT_TYPES: V(ROBOT_TYPES).map((T) => T.ic), STAGE_LOOK: V(STAGE_LOOK).map((S) => S.ic), GARAGE_TABS: GARAGE_TABS.map((T) => T.ic),
@@ -11743,7 +11966,23 @@ window.__rb = {
     if (child == null) return Garage.advStatus();
     const C = childOf(child); if (!C) return null;
     const r = Facts.peek(C), fr = r.garage.fresh;   // (#70: shapeFresh = the body shapes built and waiting for the garage's cheer)
-    return { child: C.id, unlocks: r.garage.unlocks.slice(), fresh: fr.filter((id) => advOf(id)), shapeFresh: fr.filter((id) => !advOf(id)), mastered: Facts.mastery(C).mastered };
+    return { child: C.id, unlocks: r.garage.unlocks.slice(), fresh: fr.filter((id) => advOf(id)), shapeFresh: fr.filter((id) => !advOf(id)), mastered: Facts.mastery(C).mastered,
+      metals: metalsOf(r.garage) };   // (#72: earned, best, shown, picked, bonus, crown, as saved)
+  },
+  // ---- #72: the plating metals ----
+  // show metal id on player 0's mech, as a tap on its swatch in 🎨 does (free; the garage needn't be open): 'chrome' |
+  // 'goldplate' (or 'gold', its name) | 'iron' | 'steel' | 'carbon', or 'best' / null for whichever is best. Left out
+  // (undefined), just reads. Refused (why: 'no such metal' | 'not earned') with nothing changed. The energy never changes with
+  // it: it's the best metal's. Returns the metals (Garage.metalStatus), and the mech's energy, finish and plating as shown
+  plating(id) {
+    const res = id === undefined ? { ok: true } : Garage.setPlating(id), m = Game.humans[0]?.mech;
+    return { ...res, metals: Garage.metalStatus(), maxHealth: m?.maxHealth ?? null, paint: paintLook(m?.model), plating: Body.plating(m?.model) };
+  },
+  // switch the 👑 on (true) or off (false), as its switch in 🎨 does; left out, the other way round. Refused ('not earned')
+  // before 45 Mastered. Returns as plating() does, and squadGlow = each squadmate's glow colour now
+  crown(on) {
+    const res = Garage.setCrown(on), m = Game.humans[0]?.mech;
+    return { ...res, metals: Garage.metalStatus(), maxHealth: m?.maxHealth ?? null, paint: paintLook(m?.model), squadGlow: Game.squad.map((r) => r.glowColor) };
   },
   // ---- B1: the body shop's realism tiers ----
   // the map quality: 'full' (512 px maps), 'lite' (256 px) or 'auto' (lite on a coarse pointer or a screen under 900 px
@@ -12057,6 +12296,7 @@ window.__rb = {
           // G4: the advanced parts on this mech (id: on), shield = hits it will still block this wave, blocked = hits blocked
           // so far, and what the model shows: the jets (and their flames lit now), the core, the bubble
           adv: { ...(m.adv || {}) }, shield: m.shield || 0, blocked: m.blocked || 0,
+          metal: m.metal ? JSON.parse(JSON.stringify(m.metal)) : null,   // #72: the metals on this mech (metalsOf): earned, best, shown, bonus, crown
           advLook: m.model ? { jets: m.model.flames?.length || 0, flames: m.model.flames?.filter((f) => f.visible).length || 0, core: !!m.model.core?.parent, bubble: !!m.model.bubble?.visible } : null,
           look: upgradeLook(m.model) && { ...upgradeLook(m.model), ...shapeLook(m.model, m) },   // (#42: and the torso and arms, shapeLook)
           lastShot: m.lastShot ? { ...m.lastShot } : null,   // #42: the last round, rail shot or 🧲 round this mech fired: where it started, how fast, how far
