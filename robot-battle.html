@@ -308,7 +308,7 @@
   .maker .mkActs button { width: 84px; height: 84px; border-radius: 50%; font-size: 44px; box-shadow: 0 6px 0 var(--ink); }
   .maker .mkX { background: #ff4d5e; } .maker .mkOk { background: var(--green); }
   @media (max-width: 700px) { .maker .mkIcons { grid-template-columns: repeat(8, 38px); gap: 5px; } .maker .mkIcons button { width: 38px; height: 38px; font-size: 22px; border-width: 3px; }
-    .maker .mkColors { grid-template-columns: repeat(10, 29px); gap: 5px; } .maker .mkColors button { width: 29px; height: 29px; border-width: 3px; }
+    .maker .mkColors { grid-template-columns: repeat(5, 44px); gap: 8px; } .maker .mkColors button { width: 44px; height: 44px; border-width: 3px; }
     .maker .mkBoard { grid-template-columns: repeat(9, 34px); gap: 4px; } .maker .mkBoard button { height: 40px; font-size: 20px; border-width: 3px; }
     .maker .mkPrev { width: 128px; font-size: 20px; } .maker .mkPrev .face { width: 84px; height: 84px; font-size: 48px; } .maker #mkName { font-size: 26px; } }
   @media (max-height: 500px) { #start .maker { padding: 8px; } .maker .mkIn { gap: 8px; } .maker .mkPrev { width: 120px; font-size: 18px; padding: 6px; } .maker .mkPrev .face { width: 64px; height: 64px; font-size: 36px; }
@@ -2673,6 +2673,9 @@ const Profiles = {
   // 'reserved' | 'name taken' | 'bad name' (a character that isn't a letter, digit or space, or too long) | 'no such icon' |
   // 'no such color' }. It's saved at once; its record is made the first time it plays (Facts.load), as Orion's was.
   add(name, icon, color) {
+    // (the list as saved now first: one another tab added since this page read it must not be written over, which would
+    // leave its record with no profile, and every backup of this device refused for it)
+    this.load();
     if (this.full()) return { ok: false, why: 'full' };
     const why = this.nameWhy(name); if (why) return { ok: false, why };
     const s = this.suggest(), ic = icon == null ? s.icon : this.iconOf(icon), hex = color == null ? s.color : this.colorOf(color);
@@ -3448,6 +3451,9 @@ const Backup = {
   // check, plan and (with a choice) write a restore: __rb.restore and the parent view's ✔ both come here. choices left
   // out = a preview: the summary, and nothing is written. Whoever is playing is reloaded from what was written.
   restore(input, choices, write = choices != null) {
+    // (#49: the players as saved now: one another tab added is this device's, not one the backup brings, and isn't dropped
+    // from the list a restore writes)
+    if (Profiles.read().map((p) => p.id).join() !== Profiles.list().map((p) => p.id).join()) { const was = Title.tiles()[Title.kid]; Profiles.load(); Title.drawKids(was); Title.draw(); }
     const v = this.validate(input);
     if (!v.ok) return { ok: false, why: v.why, summary: null };
     Squad.sync(); Facts.save();
