@@ -1718,7 +1718,7 @@ const shapeOf = (sec, n) => { if (sec === 'legs') return legShapeOf(n); const s 
   return BODY_SHAPES[sec]?.find((S) => S.id === s || S.icon === n || S.name.toLowerCase() === s || S.alias?.includes(s)) || null; };
 // #42: the section a (new) shape id is for: 'legs' | 'torso' | 'arms' (the 'standard' ones are in both torso and arms: null)
 const secOfShape = (id) => (legShapeOf(id) ? 'legs' : ['torso', 'arms'].find((k) => id !== 'standard' && BODY_SHAPES[k].some((S) => S.id === id)) ?? null);
-// #70: what an unlock's toast and the garage's cheer show for id: a G4 advanced part (at = its milestone), or a body shape
+// #70: what the garage's cheer shows for id: a G4 advanced part (at = its milestone), or a body shape
 // built (#67 item 14: the legs, and B3's torso and arm shapes; sec = its section). null for anything else
 const unlockOf = (id) => {
   const A = ADVANCED.find((q) => q.id === id); if (A) return { id, ic: A.ic, name: A.name, at: A.at, sec: null };
@@ -5054,9 +5054,8 @@ const Shapes = {
   tierStatus() { const b = this.rec();
     return { queued: b.tierUps.filter((u) => !u.played).map((u) => ({ ...u })), played: b.tierUps.filter((u) => u.played).map((u) => ({ ...u })), seen: { ...b.tierSeen },
       playing: Garage.tcheer ? Garage.tcheer.map((u) => ({ ...u })) : null, flipped: Garage.tflipped, toast: TierToast.dom() }; },
-  // #70: fresh = shapes built with the garage shut, waiting for its cheer (in garage.fresh); toast = what the unlock toast shows
-  // now (part or shape ids) and toastPending = held for a fix panel or the garage
-  status() { const b = this.rec(); return { fresh: (Garage.rec().fresh ?? []).filter((id) => b.unlocked.includes(id)), toast: Adv.toastIds?.slice() ?? null, toastPending: Adv.pending?.slice() ?? null,
+  // #70: fresh = shapes built with the garage shut (only the hooks can), waiting for its cheer (in garage.fresh)
+  status() { const b = this.rec(); return { fresh: (Garage.rec().fresh ?? []).filter((id) => b.unlocked.includes(id)),
     tierUps: this.tierStatus(), next: Body.next(), equipped: { legs: b.legs, torso: b.torso, arms: b.arms }, unlocked: b.unlocked.slice(), offer: this.offer(), torso: this.offerOf('torso'), arms: this.offerOf('arms'), builds: JSON.parse(JSON.stringify(b.builds)), trophyLatch: !!b.trophyLatch,
     mk2: { open: this.open(legShapeOf('spider')), built: upBuilt(b, 'mk2'), on: b.spiderLegs === 6, legs: b.spiderLegs, wearing: b.legs === 'spider' ? b.spiderLegs : null, build: Builds.brief('mk2') } }; },
   // #91: how many legs the Spider wears (4, or 6 once its Mk II is built and switched on)
@@ -5294,16 +5293,15 @@ const Builds = {
   // the frame, now moving, through the cheer; then the blueprint shuts and the lift shows the mech on its new legs.
   // #91: an upgrade project (the Mk II) unlocks nothing new: its last step done is what built means; it switches its shape
   // onto the new legs (6) and puts that shape on
-  // #70 (#67 item 14): a shape newly unlocked toasts in play (Adv.toast: held while the garage or a fix panel is open, so a
-  // build finished in the garage toasts as play resumes), and gets the garage's cheer once: cheerBuild now if the garage is
-  // open, otherwise it waits in garage.fresh (saved) for the next time the garage opens. The Mk II unlocks no shape: no toast
+  // #70 (#67 item 14): a shape newly unlocked gets the garage's cheer once: cheerBuild now if the garage is open (the real
+  // path: builds are done in the garage), otherwise (the hooks only) it waits in garage.fresh (saved) for the next time the
+  // garage opens. No in-play toast (Dad, PR #109: the build cheer is the one cheer). The Mk II unlocks no shape
   finish(id) {
     const b = Shapes.rec(), U = BUILD_UPS.find((q) => q.id === id), g = Garage.rec();
     const isNew = !U && !b.unlocked.includes(id);
     if (U) b.spiderLegs = U.legs;
     else if (isNew) { b.unlocked.push(id); if (!Garage.on) (g.fresh ||= []).push(id); }
     bodyRec(g); Facts.save();
-    if (isNew) Adv.toast([id]);
     if (Garage.on) Garage.cheerBuild(id);
     Shapes.equip(U ? 'legs' : secOfShape(id) ?? 'legs', U ? U.of : id);   // (#42: a torso or arm shape goes on its own section)
     return true;
@@ -11033,8 +11031,6 @@ function advPiece(id) {
 }
 // G4: the in-play toast when a fact's answer reaches a milestone: the part's icon and name, its milestone, and 🔧 (it's
 // waiting in the garage). Up for ADV.toast ms; the garage opening takes it down. The unlock is on the mech straight away.
-// #70: a body shape built (Builds.finish) toasts here too: its icon, name and 🎉 ✔, held the same way (and, since a build is
-// finished in the garage, held till the garage closes)
 // A milestone is crossed by answering a fact on a Quick Fix board, so while a board (or any fix panel) is open the toast
 // waits (pending) and shows once it closes, so it never covers a plug, the keypad or a puzzle.
 const Adv = {
@@ -11049,10 +11045,9 @@ const Adv = {
   // (#102: while the garage is open, a build job's answer can reach a milestone too: its toast waits for the garage to close)
   toast(ids) {
     if (FixUI.mode || Garage.on) { this.pending = [...new Set([...(this.pending || []), ...ids])]; return null; }
-    // (#70: a shape built shows the same way: its icon and name, then 🎉 ✔ (built and on the mech) in place of a milestone)
-    const U = ids.map(unlockOf).filter(Boolean), A = U.filter((u) => u.at != null).pop();
+    const last = advOf(ids[ids.length - 1]);
     this.toastIds = ids.slice();
-    $('advToast').innerHTML = `<span class="ti">${U.map((u) => icon(u.ic)).join('')}</span><span class="tw"><b>${U.map((u) => u.name).join(' · ')}</b><small>${A ? `${icon('star')}${A.at} ${icon('arrow')} ${icon('wrench')}` : `${icon('party')} ${icon('check')}`}</small></span>`;
+    $('advToast').innerHTML = `<span class="ti">${ids.map((id) => icon(advOf(id).ic)).join('')}</span><span class="tw"><b>${ids.map((id) => advOf(id).name).join(' · ')}</b><small>${icon('star')}${last.at} ${icon('arrow')} ${icon('wrench')}</small></span>`;
     const el = $('advToast'); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
     const m = Game.humans[0]?.mech;
     if (m) Sparks.burst(m.pos.x, m.pos.y + 9, m.pos.z, 40, SPARK_GLINT, 8);
