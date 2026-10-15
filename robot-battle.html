@@ -94,6 +94,8 @@
   #hud .mate { position: relative; }   /* #59: its energy bar along the bottom edge; dark while it's powered down */
   #hud .mate .mhp { position: absolute; left: 14px; right: 14px; bottom: 3px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
   #hud .mate .mhp b { display: block; height: 100%; width: 100%; border-radius: 3px; background: var(--green); font-size: 0; }
+  #hud .mate .rcr { position: absolute; right: -8px; top: -10px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--ink, #14182a); border: 2px solid #ffd83d; font-size: 16px; line-height: 0; }   /* #58: a recruit's chevron */
+  #hud .mate .rcr .ic { margin: 0; vertical-align: top; }
   #hud .mate.down { opacity: .7; background: rgba(10,12,20,.8); filter: grayscale(.6); }
   #hud .bagb { position: relative; width: 62px; height: 62px; border-radius: 50%; border: 4px solid var(--ink); background: var(--yellow); font-size: 32px; cursor: pointer; box-shadow: 0 5px 0 var(--ink); }
   #hud .bagb small, .panel .ok small { position: absolute; right: -6px; bottom: -6px; width: 26px; height: 26px; border-radius: 7px; background: #fff; color: var(--ink); font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
@@ -1115,6 +1117,7 @@
   html.tp-mode #hud .mate { font-size: 0; gap: 0; padding: 4px 9px 10px; border-width: 2px; }
   html.tp-mode #hud .mate b { font-size: calc(22px * var(--tpu)); }
   html.tp-mode #hud .mate .mhp { left: 6px; right: 6px; height: 4px; }
+  html.tp-mode #hud .mate .rcr { right: -7px; top: -7px; width: calc(18px * var(--tpu)); height: calc(18px * var(--tpu)); font-size: calc(12px * var(--tpu)); border-width: 2px; }
   @media (orientation: portrait) { html.tp-mode #hud .right { left: max(16px, env(safe-area-inset-left)); right: 16px; top: calc(max(12px, env(safe-area-inset-top)) + 18px + 36px * var(--tpu)); } }
   /* the wave chip, small, just left of ⏸ */
   html.tp-mode #hud .wave { right: calc(max(16px, env(safe-area-inset-right)) + 10px + 44px * var(--tpu)); top: calc(max(12px, env(safe-area-inset-top)) + 22px * var(--tpu)); bottom: auto; translate: 0 -50%;
@@ -2253,6 +2256,8 @@ const ICONS = {
   family: ['parents', ['👪'], ci(16.4, 6.6, 3.2, G('pink')) + pa('M11.2 21.4 L11.2 15.8 Q11.2 11.4 16.4 11.4 Q21.6 11.4 21.6 15.8 L21.6 21.4 Z', G('pink')) + ci(7.6, 6.6, 3.2, G('blue')) + pa('M2.4 21.4 L2.4 15.8 Q2.4 11.4 7.6 11.4 Q12.8 11.4 12.8 15.8 L12.8 21.4 Z', G('blue')) + hl('M4.6 14.6 L4.6 18')],
   lock: ['locked', ['🔒'], ln('M7.6 10.4 L7.6 7.6 Q7.6 3.2 12 3.2 Q16.4 3.2 16.4 7.6 L16.4 10.4', G('steel'), 2.4, 'butt') + re(4.4, 10, 15.2, 11.4, 2.6, G('gold')) + cn(12, 14.6, 1.7, INK) + rn(11.2, 15, 1.6, 3.6, 0.6, INK) + hl('M6.6 12.4 L6.6 18')],
   home: ['home', ['🏠'], pa('M5.2 10 L18.8 10 L18.8 21.4 L5.2 21.4 Z', '#eef1f7') + re(10, 14.4, 4, 7, 1, '#3a4157') + pa('M2.4 11.6 L12 3 L21.6 11.6 Z', G('orange')) + hl('M6 9.8 L11.6 5')],
+  // #58: a recruit (a squadmate that hasn't earned its saved place yet): a rank chevron, gold, on its squad chip
+  recruit: ['recruit', [], pa('M2.6 9.6 L12 3.2 L21.4 9.6 L21.4 14.6 L12 8.2 L2.6 14.6 Z', G('gold')) + pa('M5.6 17.2 L12 12.8 L18.4 17.2 L18.4 21 L12 16.6 L5.6 21 Z', G('orange')) + hl('M4.6 10.4 L11 6')],
   sleep: ['sleeping', ['💤'], pa('M2.8 10.2 L13 10.2 L13 12.8 L7.6 18.6 L13 18.6 L13 21.2 L2.8 21.2 L2.8 18.6 L8.2 12.8 L2.8 12.8 Z', G('cyan')) + pa('M14.4 2.8 L21.2 2.8 L21.2 4.8 L17.4 8.9 L21.2 8.9 L21.2 10.9 L14.4 10.9 L14.4 8.9 L18.2 4.8 L14.4 4.8 Z', G('cyan'))],
   warn: ['warning', ['⚠️', '⚠'], pa('M12 2.8 L21.8 20.6 L2.2 20.6 Z', G('yellow')) + rn(10.9, 8.4, 2.2, 6.6, 1.1, INK) + cn(12, 17.4, 1.3, INK)],
   robot: ['robot', ['🤖'], ln('M12 3.4 L12 5.6', G('dark'), 1.4) + ci(12, 2.8, 1.5, G('red')) + re(1.8, 10, 2.6, 5.4, 1, G('dark')) + re(19.6, 10, 2.6, 5.4, 1, G('dark')) + re(4, 5.6, 16, 14.4, 4, G('steel'))
@@ -2594,6 +2599,32 @@ function fillGarage(r) {
   if (g.crown !== false) delete g.crown;
   return r;
 }
+// #58: the saved squad, in the child's record (added with ||= the first time it's read, so valid() and v are untouched and
+// a record saved before #58 keeps everything else): squad = the squadbots, each { id (its own, kept for good: not the
+// meadow's robot id, which starts again each session), type, name, gold, glow (its own colour), upg: { plating, job },
+// health, damage: { area: amount }, down (powered down on its rescue clock when it was saved), at (when it was recruited),
+// wave (the wave it was recruited in) }, at most REPAIR.squadMax; squadGone = the squadbots gone for good, { id, how:
+// 'time' | 'parts' (destroyMate) | 'home' (sendHome) | 'reload' (down when the game reloaded), at }, the last
+// SQUAD_SAVE.goneMax, so a backup's merge can never bring one back. Anything that isn't that shape is dropped.
+const SQUAD_SAVE = { goneMax: 60 };
+const isHex = (c) => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
+function squadEntry(e) {
+  if (!e || typeof e !== 'object' || typeof e.id !== 'string' || !e.id || !ROBOT_TYPES[e.type]) return null;
+  const n = (v, lo = 0) => (Number.isFinite(v) ? Math.max(lo, v) : lo), lv = (v) => clamp(Math.floor(n(v)), 0, SQUAD_UP.max);
+  const name = typeof e.name === 'string' && e.name.trim() ? e.name.trim().slice(0, 12) : 'Robot';
+  return { id: e.id.slice(0, 40), type: e.type, name, gold: !!e.gold, glow: isHex(e.glow) ? e.glow : null,
+    upg: { plating: lv(e.upg?.plating), job: lv(e.upg?.job) }, health: n(e.health), damage: Object.fromEntries(AREAS.map((a) => [a, n(e.damage?.[a])])),
+    down: !!e.down, at: n(e.at), wave: Math.floor(n(e.wave)) };
+}
+function fillSquad(r) {
+  r.squad ||= []; r.squadGone ||= [];
+  const gone = (Array.isArray(r.squadGone) ? r.squadGone : []).filter((g) => g && typeof g === 'object' && typeof g.id === 'string' && g.id);
+  r.squadGone = gone.slice(-SQUAD_SAVE.goneMax).map((g) => ({ id: g.id.slice(0, 40), how: typeof g.how === 'string' ? g.how : 'gone', at: Number.isFinite(g.at) ? g.at : 0 }));
+  const out = [], ids = new Set(r.squadGone.map((g) => g.id));
+  for (const e of Array.isArray(r.squad) ? r.squad : []) { const q = squadEntry(e); if (q && !ids.has(q.id) && out.length < REPAIR.squadMax) { ids.add(q.id); out.push(q); } }
+  r.squad = out;
+  return r;
+}
 // G4 / #72: latch into garage g what Mastered count n has earned: every advanced part whose milestone n has reached, then
 // every metal its part (and, for Carbon Alloy, the leg shapes) has earned. Never takes one away. The new ones also go in
 // g.fresh, for the garage's cheer; a new metal is the one shown (g.metal back to the best). Returns the ids newly latched.
@@ -2619,6 +2650,7 @@ const Facts = {
     if (!this.valid(r, C)) r = this.blank(C);
     r.practice ||= {}; r.opened ||= []; r.cheered ||= {}; fillGarage(r);   // a record saved before G1 gets an empty garage
     r.puzzles ||= { seq: 0, seen: {} };                                   // P3-1: when each puzzle type was last seen
+    fillSquad(r);                                                         // #58: the saved squad (none before #58)
     this.child = C; this.rec = r;
     this.advance(); const got = this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
     // #43: and any tier rise this record holds that hasn't been checked: a milestone just latched, or a backup's merge (which
@@ -2670,7 +2702,7 @@ const Facts = {
     const r = C.guest ? null : store.get('facts.' + C.id, null);
     const out = this.valid(r, C) ? r : this.blank(C);
     out.practice ||= {}; out.opened ||= []; out.cheered ||= {}; fillGarage(out);
-    out.puzzles ||= { seq: 0, seen: {} };
+    out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out);
     return out;
   },
   // run fn with child c as the tracker's child (on the live record if c is playing; otherwise on their saved
@@ -2919,15 +2951,18 @@ const Facts = {
 // Storage D1 (#69): back up and restore. Backup is plain data and rules: no DOM, and it reads no live game state
 // (everything comes in as arguments), so D4's import into the server can use validate / merge / plan as they are.
 // Only Backup.apply writes to storage, and only after a choice: the parent view's ✔ Restore, or __rb.restore with one.
-// A backup file: { app: 'robot-battle', format: 1, exported: ISO time, device: a short label, data: { key: value } }.
+// A backup file: { app: 'robot-battle', format: 2, exported: ISO time, device: a short label, data: { key: value } }.
 // data holds every robotbattle.* key in storage (the key without the prefix, the value parsed). On main today that's
-// facts.<child> (each child's record: the fact tracker, the garage with its trophies, upgrades, paint, unlocks and body)
-// and the settings child (who played last) and pilot (the last pilot). The squad, the bag and the meadow aren't saved
-// by the game, so they aren't in a backup. Guest is never in one: facts.guest is dropped, and so is child = 'guest'.
+// facts.<child> (each child's record: the fact tracker, the garage with its trophies, upgrades, paint, unlocks and body,
+// and #58's saved squad: squad and squadGone) and the settings child (who played last) and pilot (the last pilot). The
+// bag and the meadow aren't saved by the game, so they aren't in a backup. Guest is never in one: facts.guest is
+// dropped, and so is child = 'guest'.
+// #58 (#80 answer 3): format 2 is the format with the saved squad in it. A format-1 file (made before #58) still
+// restores: its records just have no squad, so Keep the best keeps this device's squad as it is.
 // ===========================================================================
 // rise: the counts (Backup.count) that only ever go up with play, so a restore that lowers one says so. (Known and
 // Learning aren't among them: a fact moving on to Mastered leaves them.)
-const BACKUP = { app: 'robot-battle', format: 1, prefix: 'robotbattle.', maxBytes: 5e6, choices: ['device', 'backup', 'best'],
+const BACKUP = { app: 'robot-battle', format: 2, prefix: 'robotbattle.', maxBytes: 5e6, choices: ['device', 'backup', 'best'],
   rise: ['mastered', 'answered', 'step', 'parts', 'upgrades', 'unlocks', 'shapes', 'minutes'] };
 // keys that would reach an object's prototype rather than be its own (a hand-edited file could carry one)
 const ownKeys = (o) => (o && typeof o === 'object' ? Object.keys(o).filter((k) => k !== '__proto__' && k !== 'constructor' && k !== 'prototype') : []);
@@ -2976,6 +3011,8 @@ const Backup = {
       if (g.paint != null && !isObj(g.paint)) return `${C.name}'s garage is damaged`;
       for (const k of ownKeys(g.trophies)) if (!isObj(g.trophies[k]) || !Number.isFinite(g.trophies[k].n ?? 0)) return `${C.name}'s garage is damaged`;
     }
+    // #58: the saved squad, when the record has one (a record saved before #58 has none): lists of entries
+    for (const f of ['squad', 'squadGone']) if (r[f] != null && (!Array.isArray(r[f]) || !r[f].every(isObj))) return `${C.name}'s squad is damaged`;
     return null;
   },
   // check a backup (the file's text, or the object) before anything is written: { ok, why, kids: { id: record },
@@ -3024,6 +3061,12 @@ const Backup = {
   //             if this device has none); #89 body.builds: per shape each part's count and the step, the more;
   //             body.trophyLatch: done if either has done it; #91 the Mk II's build is one of body.builds (so it's
   //             built if either side's is), and body.spiderLegs, the 4 / 6 switch, is an equipped shape's: this device's
+  //   #58 squadGone  every squadbot gone for good on either side (the earliest time each), the last SQUAD_SAVE.goneMax
+  //   #58 squad      the squadbots either side has, less any gone for good on either side: this device's first, in its
+  //             order, then the backup's that this device hasn't, in theirs, at most REPAIR.squadMax (so this device's
+  //             squad is never cut for the backup's). One on both sides (the same id): this device's (its name, health and
+  //             damage: where it is now), with each upgrade the higher and gold if either is gold. A format-1 file has no
+  //             squad, so this device's squad stays as it is
   //   anything else (a field a later slice adds): this device's, the backup's where this device has none
   merge(dev, bak) {
     const out = clone(dev), b = clone(bak);
@@ -3060,6 +3103,8 @@ const Backup = {
     for (const f of ['cheered', 'hints']) if (dev[f] || bak[f]) out[f] = byKey(dev[f], bak[f], (p, q) => Math.min(num(p), num(q)));
     if (dev.puzzles || bak.puzzles) out.puzzles = clone(num(bak.puzzles?.seq) > num(dev.puzzles?.seq) ? bak.puzzles : dev.puzzles);
     if (dev.created != null && bak.created != null) out.created = Math.min(num(dev.created), num(bak.created));
+    // #58: the saved squad
+    if (dev.squad != null || bak.squad != null || dev.squadGone != null || bak.squadGone != null) Object.assign(out, this.mergeSquad(dev, bak));
     // the garage
     const gd = isObj(dev.garage) ? dev.garage : blankGarage(), gb = isObj(bak.garage) ? bak.garage : blankGarage(), g = out.garage = clone(gd);
     for (const k of ownKeys(gb)) if (g[k] === undefined) g[k] = clone(gb[k]);
@@ -3099,6 +3144,28 @@ const Backup = {
     latchInto(g, n);
     return fillGarage(out);
   },
+  // #58: the squad part of merge(dev, bak): { squad, squadGone }, by merge's rule (pure)
+  mergeSquad(dev, bak) {
+    const d = fillSquad({ squad: clone(dev.squad), squadGone: clone(dev.squadGone) }), b = fillSquad({ squad: clone(bak.squad), squadGone: clone(bak.squadGone) });
+    const G = new Map();
+    for (const g of [...d.squadGone, ...b.squadGone]) if (!G.has(g.id) || g.at < G.get(g.id).at) G.set(g.id, g);
+    const squadGone = [...G.values()].sort((p, q) => p.at - q.at).slice(-SQUAD_SAVE.goneMax), gone = new Set(G.keys()), squad = [];
+    for (const e of d.squad) {
+      if (gone.has(e.id)) continue;
+      const o = b.squad.find((q) => q.id === e.id);
+      if (o) { e.upg = { plating: Math.max(e.upg.plating, o.upg.plating), job: Math.max(e.upg.job, o.upg.job) }; e.gold = e.gold || o.gold; }
+      squad.push(e);
+    }
+    for (const e of b.squad) if (!gone.has(e.id) && !squad.some((q) => q.id === e.id) && squad.length < REPAIR.squadMax) squad.push(e);
+    return { squad: squad.slice(0, REPAIR.squadMax), squadGone };
+  },
+  // #58: Use the backup's record r, but destroyed is final: a squadbot gone for good on this device (here) stays gone
+  keepGone(r, here) {
+    if (!isObj(here) || !Array.isArray(here.squadGone) || !here.squadGone.length) return r;
+    const out = clone(r), m = this.mergeSquad({ squad: [], squadGone: here.squadGone }, out);
+    out.squadGone = m.squadGone; out.squad = (Array.isArray(out.squad) ? fillSquad({ squad: clone(out.squad), squadGone: m.squadGone }).squad : []);
+    return out;
+  },
   // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
   count(r) {
     if (!r) return null;
@@ -3110,6 +3177,7 @@ const Backup = {
       step: r.step, unlocks: Array.isArray(g.unlocks) ? g.unlocks.length : 0, shapes: Array.isArray(g.body?.unlocked) ? g.body.unlocked.length : 0,
       parts: ownKeys(g.trophies).reduce((t, k) => t + num(g.trophies[k]?.n), 0), upgrades: ownKeys(g.upgrades).reduce((t, k) => t + num(g.upgrades[k]), 0),
       minutes: Math.round(ownKeys(r.practice).reduce((t, k) => t + num(r.practice[k]), 0) / 6e3) / 10,
+      squad: Array.isArray(r.squad) ? r.squad.length : 0,   // #58: squadbots saved (not in BACKUP.rise: one can be destroyed)
     };
   },
   // a choice per child: 'device' (keep this device's), 'backup' (use the backup's) or 'best' (keep the best). choices is
@@ -3126,7 +3194,8 @@ const Backup = {
       if (!bak && !here) continue;
       const choice = this.choiceFor(choices, C.id);
       if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
-      const res = !bak || choice === 'device' ? here : choice === 'backup' || !here ? bak : this.merge(here, bak);
+      // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone)
+      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepGone(bak, here) : this.merge(here, bak);
       const write = !!bak && canon(res) !== canon(here);
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
@@ -3159,7 +3228,7 @@ const Backup = {
     return dev + ' · ' + br;
   },
   // the backup of this device, now (whoever is playing saved first)
-  now() { Facts.save(); return this.make(this.raw(), { exported: new Date().toISOString(), device: this.deviceName() }); },
+  now() { Squad.sync(); Facts.save(); return this.make(this.raw(), { exported: new Date().toISOString(), device: this.deviceName() }); },
   // the file's name: robot-battle-backup-<today's date>.json (the real date, not the tracker's test clock)
   fileName() { return `robot-battle-backup-${Facts.date(Date.now())}.json`; },
   // write every change, or none: each key's old value is kept first, and if any write fails (storage full or blocked)
@@ -3180,14 +3249,18 @@ const Backup = {
   restore(input, choices, write = choices != null) {
     const v = this.validate(input);
     if (!v.ok) return { ok: false, why: v.why, summary: null };
-    Facts.save();
+    Squad.sync(); Facts.save();
     const p = this.plan(v, choices, this.device());
     if (!p.ok) return { ok: false, why: p.why, summary: null };
     if (!write) return { ok: true, preview: true, summary: p.summary };
     const res = this.apply(p.writes);
     if (!res.ok) return { ok: false, why: res.why, summary: p.summary };
     const C = Facts.child;
-    if (C && !C.guest && p.writes.some((w) => w.key === 'facts.' + C.id)) { Facts.load(C); applyUpgrades({ swap: true }); }
+    if (C && !C.guest && p.writes.some((w) => w.key === 'facts.' + C.id)) {
+      Facts.load(C); applyUpgrades({ swap: true });
+      // #58: the squad as restored: its squadbots back from the record (recruits, and one down on its rescue clock, stay as they are)
+      if (Game.child === C) { Squad.clear((r) => !r.saved || r.state === 'down'); Squad.bring(); }
+    }
     return { ok: true, summary: p.summary };
   },
 };
@@ -6207,6 +6280,7 @@ const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], b
 // The start screen is the title (pick a pilot) until a pilot is picked, then the pause screen (▶)
 function setPause(on) {
   Game.paused = on;
+  if (on) Squad.sync();   // #58: the squad's damage saved on pause
   $('start').classList.toggle('on', on);
   Title.draw(); Waves.draw();
   if (on && document.pointerLockElement) document.exitPointerLock();
@@ -6271,8 +6345,13 @@ function pickChild(c) {
   if (c == null) { if (Game.pilot) return { ok: false, why: 'playing' }; Game.child = null; Title.draw(); return { ok: true, child: null }; }
   const C = childOf(c);
   if (!C) return { ok: false, why: 'no such child' };
+  const was = Game.child;
+  if (was && was !== C) Squad.sync();   // #58: the squad saved to whoever was playing before their record goes
   Facts.load(C); Game.child = C; store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
   applyUpgrades({ swap: true });   // G2: their upgrades on the mech (a fresh Guest has none); #68: the damage taken stays
+  // #58: switching child swaps the whole squad: the last child's leaves the meadow (their squadbots are saved; their
+  // recruits, and Guest's whole squad, are gone) and this child's saved squad comes in beside the mech
+  if (was !== C) { Squad.clear(); Squad.bring(); }
   Title.draw();
   return { ok: true, child: C.id };
 }
@@ -7034,6 +7113,7 @@ function mateDown(r) {
   powerDown(r);
   r.downT = MATE_DOWN.time; r.mateDowns = (r.mateDowns || 0) + 1;
   Waves.check();
+  if (r.saved) Squad.sync();                             // #58: saved down, so a reload now can't dodge its rescue clock
 }
 // #59: rescued. Its Quick Fix is done: back in its place in the squad with MATE_DOWN.rescue of its energy (mended across
 // its damage areas), keeping its name, upgrades and gold
@@ -7047,13 +7127,14 @@ function rescueMate(r) {
   Sparks.burst(r.pos.x, r.pos.y + 3.5, r.pos.z, 50, SPARK_ZAP, 9);
   if (!Game.manual) Sfx.fixed();
   Waves.check();
+  if (r.saved) Squad.sync();                             // #58: up again in the save
 }
 // #59: a squadmate is destroyed, gone for good: its rescue clock ran out (how 'time') or its parts were taken
 // ('parts'). It leaves the squad and the meadow, the ones left close up their places, and Game.lost keeps a note.
 // The only other way a squadmate leaves the squad is sendHome (sent home to make room: not destroyed, but gone too).
 function destroyMate(r, how) {
   if (!Game.squad.includes(r)) return false;
-  Game.lost.push({ id: r.id, name: r.name, type: r.type, how, wave: Game.wave, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 } });
+  Game.lost.push({ id: r.id, uid: r.uid ?? null, saved: !!r.saved, name: r.name, type: r.type, how, wave: Game.wave, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 } });
   if (r.repairBy) cancelRepair(r.repairBy);
   Game.squad.splice(Game.squad.indexOf(r), 1);
   Game.squad.forEach((q, k) => { q.ai.slot = k; });
@@ -7070,6 +7151,7 @@ function destroyMate(r, how) {
     if (!Game.manual) Sfx.salvage();
     Waves.check();
   }
+  Squad.gone(r, how);                                    // #58: and out of the saved squad straight away, for good
   return true;
 }
 // Mend up to `amount` health from source `src` ('parts' | 'ally' | 'kit' | 'reboot').
@@ -7143,6 +7225,7 @@ function repairSelf(h, picks, mate) {
   for (const [a, amt] of Object.entries(mend)) mended += healMech(m, amt, 'parts', a);
   Sparks.burst(m.pos.x, bodyTop(m), m.pos.z, 30, SPARK_MEND, 7);
   if (!Game.manual) Sfx.mendParts();
+  if (m.saved) Squad.sync();                             // #58: a squadbot's mending saved
   return { ok: true, used: picks.slice(), mended: Math.round(mended * 1000) / 1000 };
 }
 
@@ -8236,7 +8319,113 @@ function sendHome(r) {
   Impacts.flash(new V3(r.pos.x, r.pos.y + 3, r.pos.z), 4);
   removeRobot(r);
   if (!Game.manual) Sfx.home();
+  Squad.gone(r, 'home');                                 // #58: and out of the saved squad, for good
   return true;
+}
+// ===========================================================================
+// #58: the saved squad. A robot fixed into the squad is a recruit (r.saved false, a chevron on its chip). It earns its
+// saved place, becoming a squadbot (r.saved true), when a wave after the one it was recruited in (r.recruitWave) clears
+// with it in the squad and running (Squad.earn, from Waves.check). Only squadbots are saved, in the child's record
+// (fillSquad), each with its own id (r.uid). The save is written when one earns its place, at each wave's end, when one
+// is upgraded or mended, when one powers down or is rescued, when one leaves the squad, on pause, on a child switch, and
+// when the page is hidden or closed. Guest's squad is never saved.
+// What leaves the saved squad for good (Squad.gone, written straight away): destroyMate (its rescue clock ran out:
+// 'time'; its parts were taken: 'parts'), sendHome ('home'), and a squadbot that was powered down on its rescue clock
+// when the game reloaded ('reload', #76 question 6). Each goes in the record's squadGone, so no merge brings it back.
+// ===========================================================================
+const Squad = {
+  // the record the live squad belongs to: whoever is playing's (null for Guest, nobody, or while Facts.as has another
+  // child's record out)
+  rec() { const C = Game.child; return C && !C.guest && Facts.child === C && Facts.rec ? fillSquad(Facts.rec) : null; },
+  newId() { return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); },
+  // a live squadbot as it's saved
+  entry(r) {
+    return { id: r.uid, type: r.type, name: r.name, gold: !!r.gold, glow: isHex(r.ownGlow ?? r.glowColor) ? r.ownGlow ?? r.glowColor : null, upg: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 },
+      health: Math.round(r.health * 1000) / 1000, damage: Object.fromEntries(AREAS.map((a) => [a, Math.round(r.damage[a] * 1000) / 1000])), down: r.state === 'down', at: r.recruitAt || 0, wave: r.recruitWave || 0 };
+  },
+  // write the live squad's squadbots into the record and save it. Returns whether it wrote
+  sync() {
+    const rec = this.rec(); if (!rec) return false;
+    rec.squad = Game.squad.filter((r) => r.saved && r.uid).map((r) => this.entry(r)).slice(0, REPAIR.squadMax);
+    Facts.save();
+    return true;
+  },
+  // squadmate r has left the squad for good (how: 'time' | 'parts' | 'home'): a squadbot goes in squadGone; then the save
+  gone(r, how) {
+    const rec = this.rec(); if (!rec) return false;
+    if (r.saved && r.uid && !rec.squadGone.some((g) => g.id === r.uid)) { rec.squadGone.push({ id: r.uid, how, at: Facts.now() }); rec.squadGone = rec.squadGone.slice(-SQUAD_SAVE.goneMax); }
+    return this.sync();
+  },
+  // a wave is cleared: every recruit running in the squad that was recruited in an earlier wave has earned its place.
+  // end = the wave has just cleared (its end: the save is written even if nobody earned). Returns the ids that earned
+  earn(end) {
+    const got = [];
+    for (const r of Game.squad) if (!r.saved && r.state === 'ally' && Game.wave > (r.recruitWave ?? 0)) { r.saved = true; got.push(r.id); }
+    if (got.length || end) this.sync();
+    return got;
+  },
+  // take the live squad out of the meadow without it being destroyed or sent home (a child switch, a restore): keep(r)
+  // says which stay. Any Quick Fix or parts pick under way is dropped first
+  clear(keep = () => false) {
+    for (const h of Game.humans) if (h.repair) cancelRepair(h);
+    for (const r of Game.squad.filter((q) => !keep(q))) { Game.squad.splice(Game.squad.indexOf(r), 1); if (r.repairBy) cancelRepair(r.repairBy); removeRobot(r); }
+    Game.squad.forEach((q, k) => { q.ai.slot = k; });
+    updateHud.squadKey = null;
+  },
+  // bring whoever is playing's saved squad into the meadow beside the mech. A squadbot saved powered down is lost
+  // ('reload'). One already in the meadow (the same id) isn't brought twice. Returns the robots brought
+  bring() {
+    const rec = this.rec(), out = []; if (!rec || !Game.humans[0]) return out;
+    let lost = false;
+    for (const e of rec.squad) {
+      if (Game.squad.some((q) => q.uid === e.id)) continue;
+      if (e.down) { rec.squadGone.push({ id: e.id, how: 'reload', at: Facts.now() }); lost = true; continue; }
+      if (Game.squad.length >= REPAIR.squadMax) break;
+      out.push(reviveMate(e));
+    }
+    if (lost) { rec.squadGone = rec.squadGone.slice(-SQUAD_SAVE.goneMax); this.sync(); }
+    if (out.length) squadGlow();
+    updateHud.squadKey = null;
+    return out;
+  },
+  // the saved squad as the record on this device holds it (for __rb.squadSave): null for Guest or nobody
+  saved() {
+    const C = Game.child; if (!C || C.guest) return null;
+    const r = store.get('facts.' + C.id, null); if (!Facts.valid(r, C)) return null;
+    const f = fillSquad(JSON.parse(JSON.stringify(r)));
+    return { child: C.id, squad: f.squad, gone: f.squadGone, raw: { squad: r.squad ?? null, squadGone: r.squadGone ?? null } };
+  },
+};
+// the squad's damage saved when the page is hidden or closed (a reload, a tab shut)
+document.addEventListener('visibilitychange', () => { if (document.hidden) Squad.sync(); });
+addEventListener('pagehide', () => Squad.sync());
+// #58: a saved squadbot back in the meadow, as fixRobot leaves a squadmate (without the board, the sounds or the name
+// panel): its own id, name, colour, gold, upgrades (squadEnergy: its energy with them) and damage, beside and behind the mech
+function reviveMate(e) {
+  const p = Game.humans[0].mech, T = ROBOT_TYPES[e.type], k = Game.squad.length;
+  let x = p.pos.x, z = p.pos.z;
+  for (let t = 0; t < 12; t++) {
+    const a = p.legHeading + Math.PI + (k - 1) * 0.7 + (t ? (Math.random() - 0.5) * 1.6 : 0), d = 7 + (t ? Math.random() * 4 : 0);
+    x = p.pos.x - Math.sin(a) * d; z = p.pos.z - Math.cos(a) * d;
+    if (!obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + 2.5)) break;
+  }
+  const r = spawnRobot(e.type, x, z);
+  if (T.flies) { r.lift = T.alt; r.pos.y += T.alt; r.orbitA = 0; }
+  if (e.glow) setGlowColor(r, e.glow);
+  r.uid = e.id; r.saved = true; r.recruitWave = e.wave; r.recruitAt = e.at;
+  r.gold = e.gold; r.downs = 1;                          // (it was beaten once, to be fixed: it drops no repair kit again)
+  r.upg = { plating: e.upg.plating, job: e.upg.job };
+  r.maxHealth = squadEnergy(r);
+  r.state = 'ally'; r.leader = Game.humans[0];
+  r.harm = {}; for (const a of AREAS) r.damage[a] = e.damage[a] || 0;
+  r.health = clamp(e.health, 1, r.maxHealth);
+  r.ai = { think: 0, mode: 'follow', slot: k };
+  r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
+  r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow;
+  setRobotName(r, e.name);
+  Game.squad.push(r);
+  r.ownGlow = r.glowColor;
+  return r;
 }
 function cancelRepair(h) {
   const rp = h.repair; if (!rp) return;
@@ -8355,6 +8544,7 @@ function fixRobot(h, r) {
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
   r.harm = {}; for (const a of AREAS) r.damage[a] = 0;   // #59: no damage yet (its harm as a squadmate sets the board if it powers down)
   r.upg = { plating: 0, job: 0 };                        // G3: its own garage upgrades start at none
+  r.uid = Squad.newId(); r.saved = false; r.recruitWave = Game.wave; r.recruitAt = Facts.now();   // #58: a recruit, until it earns its place
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
   r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
   r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow;   // its own colour (or gold), held steady (the glitch flicker is gone)
@@ -9845,6 +10035,7 @@ const RESTORE_ROWS = [
   { k: 'mastered', ic: 'mastered', name: 'Mastered' }, { k: 'known', ic: 'known', name: 'Known' }, { k: 'answered', ic: 'check', name: 'Facts tried' },
   { k: 'step', ic: 'arrow', name: 'Step' }, { k: 'parts', ic: 'bolt', name: 'Parts found' }, { k: 'upgrades', ic: 'upgrade', name: 'Upgrades' },
   { k: 'unlocks', ic: 'sparkle', name: 'Unlocks' }, { k: 'shapes', ic: 'legs', name: 'Leg shapes' }, { k: 'minutes', ic: 'timer', name: 'Minutes' },
+  { k: 'squad', ic: 'squad', name: 'Squadbots' },   // #58
 ];
 const BackupUI = {
   open: false, text: null, name: null, why: null, sum: null, choices: {}, cur: 0, msg: null, last: null,
@@ -10041,7 +10232,7 @@ function updateHud() {
   // #59: under the name, its energy bar. Powered down, the tag goes dark with a sleep icon, a warning one as its
   // rescue clock runs out
   const downIc = (r) => (r.state !== 'down' ? null : r.downT > ROBOT.warnTime ? 'sleep' : 'warn');
-  const goHome = h.repair?.home, sk = Game.squad.map((r) => r.id + ':' + r.name + ':' + (downIc(r) ?? '')).join('|') + '/' + (goHome?.id ?? '');
+  const goHome = h.repair?.home, sk = Game.squad.map((r) => r.id + ':' + r.name + ':' + (downIc(r) ?? '') + ':' + (r.saved ? 's' : 'r')).join('|') + '/' + (goHome?.id ?? '');
   if (sk !== updateHud.squadKey) {
     updateHud.squadKey = sk; const el = $('squad'); el.textContent = '';
     for (const r of Game.squad) {
@@ -10050,6 +10241,7 @@ function updateHud() {
       if (r !== goHome) { d.style.borderColor = r.glowColor; d.style.boxShadow = dn ? 'none' : `0 0 10px ${r.glowColor}`; }
       const b = document.createElement('b'); b.innerHTML = icon(r === goHome ? 'home' : dn || ROBOT_TYPES[r.type].ic); d.append(b, r.name);
       if (r.gold && r !== goHome) d.insertAdjacentHTML('beforeend', icon('goldstar'));   // 🌟 after the name
+      if (!r.saved && r !== goHome) d.insertAdjacentHTML('beforeend', `<i class="rcr">${icon('recruit')}</i>`);   // #58: a recruit's chevron, on its corner
       d.insertAdjacentHTML('beforeend', '<i class="mhp"><b></b></i>');
       el.append(d);
     }
@@ -10830,6 +11022,7 @@ const Garage = {
     if (U.id === 'plating') { const max = squadEnergy(r), d = max - r.maxHealth; r.maxHealth = max; if (r.state === 'down') r.damage.hull += d; else r.health = clamp(r.health + d, 1, max); }
     if (this.on) { const i = this.squadOptions().findIndex((o) => o.id === r.id && o.up === U.id); if (i >= 0) this.scur = i; this.draw(); this.flash(null, 'got', `.scard[data-id="${r.id}"]`); }
     if (!Game.manual) { Sfx.mendParts(); Sfx.tone(523, 0.12, 'square', 0.06, 784, 0.32); }
+    if (r.saved) Squad.sync();   // #58: a squadbot's upgrade saved
     return { ok: true, id: r.id, up: U.id, level: lv + 1, part, spent: SQUAD_UP.cost, left: Game.bag[part] || 0, effects: squadEffects(r) };
   },
   // ---- G3: paint. Whoever is playing's paint (the mech as built when they've none)
@@ -11656,6 +11849,7 @@ const Waves = {
     const was = Game.cleared;
     Game.cleared = Game.wave >= 1 && !Game.robots.some((r) => r.state !== 'ally' && !Game.squad.includes(r));
     if (Game.cleared !== was) this.draw();
+    if (Game.cleared) Squad.earn(!was);           // #58: recruits from an earlier wave earn their place; the wave's end is saved
     return Game.cleared;
   },
   stats() {
@@ -12193,6 +12387,10 @@ window.__rb = {
     else res = r ? { ok: sendHome(r), home: id, now: true } : { ok: false, why: 'not in squad' };
     return { ...res, squad: this.state().squad, ui: FixUI.mode, repair: this.state().repair };
   },
+  // #58: the saved squad for whoever is playing, as this device's storage holds it: { child, squad: [{ id, type, name,
+  // gold, glow, upg, health, damage, down, at, wave }], gone: [{ id, how, at }], raw: the record's own fields }; null for
+  // Guest (never saved) or nobody
+  squadSave() { return Squad.saved(); },
   // the clear screen's ▶: bring in the next wave. Refused until the meadow is cleared; from wave 0
   // (manual mode, where start() spawns nothing) it brings out wave 1, the opening spawn.
   nextWave() { const res = nextWave(); return { ...res, cleared: Game.cleared, clear: Waves.stats(), robots: this.state().robots.length }; },
@@ -12321,8 +12519,11 @@ window.__rb = {
         // times powered down and rescued, the areas worth a part (needs, as players' needs), and its chip as drawn
         damage: Object.fromEntries(AREAS.map((a) => [a, r3(r.damage[a])])), hitsTaken: r.hitsTaken, down: r.state === 'down', rescueIn: r.state === 'down' ? r3(r.downT) : null,
         downs: r.mateDowns || 0, rescues: r.rescues || 0,
+        // #58: uid = its own id, kept in the save (id is this session's); saved = a squadbot (in the save), recruit = not yet
+        // (it earns its place when a wave after recruitWave clears with it running)
+        uid: r.uid ?? null, saved: !!r.saved, recruit: !r.saved, recruitWave: r.recruitWave ?? null,
         needs: r.state === 'ally' ? AREAS.filter((a) => hurtIn(r, a)).map((a) => ({ area: a, part: partFor(a) ?? null, have: Game.bag[partFor(a)] || 0 })) : [],
-        chip: (() => { const c = $('squad').children[Game.squad.indexOf(r)]; return c ? { bar: parseFloat(c.querySelector('.mhp b')?.style.width) || 0, down: c.classList.contains('down'), icon: c.querySelector('b svg')?.dataset.icon ?? null } : null; })() })),
+        chip: (() => { const c = $('squad').children[Game.squad.indexOf(r)]; return c ? { bar: parseFloat(c.querySelector('.mhp b')?.style.width) || 0, down: c.classList.contains('down'), icon: c.querySelector('b svg')?.dataset.icon ?? null, recruit: !!c.querySelector('.rcr svg[data-icon="recruit"]') } : null; })() })),
       lost: Game.lost.map((q) => ({ ...q, upgrades: { ...q.upgrades } })),   // #59: squadmates destroyed this session ({ id, name, type, how: 'time' | 'parts', wave, upgrades })
       parts: Game.parts,                                  // total parts collected (the HUD's 🔩)
       bag: { ...Game.bag },                               // parts collected, by kind: { armour: 2, ram: 1 }
