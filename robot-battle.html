@@ -588,8 +588,19 @@
   #parent .panel { width: min(800px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; padding: 12px 16px 16px; border-color: #c06bff; box-shadow: 0 0 30px rgba(192,107,255,.45); font: 700 16px 'Asap', sans-serif; }
   #parent .panel.locked { overflow: hidden; }
   #parent .top { gap: 10px; font-size: 32px; }
-  .ptabs { display: flex; gap: 10px; flex: 1; justify-content: center; }
-  .ptab { opacity: .55; height: 50px; font-size: 19px; }
+  /* #50: a chip per profile (up to 12): they wrap onto more rows; the view opens on whoever is playing */
+  #parent .top { align-items: flex-start; }
+  /* (more than 3: the chips take a row of their own under 👪 and ✖, the whole panel wide, and a little smaller) */
+  #parent .top.many { flex-wrap: wrap; row-gap: 4px; }
+  #parent .top.many .ptabs { order: 3; flex: 1 1 100%; }
+  #parent .top.many .ptab { height: 46px; font-size: 17px; padding: 0 12px 0 6px; gap: 6px; }
+  #parent .top.many .ptab .face { width: 30px; height: 30px; font-size: 18px; }
+  /* (on a phone two a row: a very wide name ends in … there; the name is on the panel's buttons too) */
+  @media (max-width: 560px) { #parent .top.many .ptabs { gap: 8px 6px; } #parent .top.many .ptab { flex: 0 1 auto; max-width: calc(50% - 3px); font-size: 15px; padding: 0 10px 0 5px; } }
+  .ptabs { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; min-width: 0; justify-content: center; padding-bottom: 5px; }
+  .ptab { opacity: .55; height: 50px; font-size: 19px; max-width: 100%; }
+  .ptab > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ptab:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
   .ptab.on { opacity: 1; }
   .ptab .face { width: 34px; height: 34px; font-size: 20px; }
   .psum { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 4px 0 10px; font-size: 17px; }
@@ -617,6 +628,10 @@
   .pbtn.step { background: var(--cyan); color: var(--ink); }
   .pbtn.reset { background: #ff4d5e; color: #fff; }
   .pbtn.keep { background: #fff; color: var(--ink); }
+  .pbtn.remove { background: #8a1f2b; color: #fff; }   /* #50: 🗑️ Remove, beside 🗑️ Reset (darker: it takes the player away) */
+  .pnone { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 8px 8px; text-align: center; font-size: 19px; }   /* #50: no profiles yet */
+  .pnone .big { font-size: 64px; color: var(--yellow); }
+  .pnone .hint { display: flex; align-items: center; gap: 6px; font-size: 17px; opacity: .85; }
   .pbtn.off { filter: grayscale(1) brightness(.6); cursor: not-allowed; }
   .pconfirm { display: none; position: absolute; inset: 0; z-index: 2; border-radius: 20px; background: rgba(20,24,42,.97); flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px; text-align: center; font-size: 19px; }
   .pconfirm.on { display: flex; }
@@ -653,7 +668,7 @@
   .rkid .note { font-size: 14px; opacity: .75; }
   .prestore .pact { justify-content: center; margin-top: 4px; flex: none; }
   .pbtn.go { background: var(--green); color: var(--ink); }
-  @media (max-width: 560px) { #parent .top { font-size: 26px; } .ptab { font-size: 16px; padding: 0 10px 0 6px; } .pslow { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { #parent .top { font-size: 26px; } .ptabs { gap: 8px 6px; } .ptab { font-size: 16px; height: 46px; padding: 0 10px 0 6px; gap: 6px; } .ptab .face { width: 30px; height: 30px; } .pslow { grid-template-columns: 1fr; } }
   /* ---------- GARAGE (G1): the bay over the game canvas, which draws the lift and the trophies in their boxes.
      The layer is see-through where the 3D shows; everything else of the game is hidden while it's open ---------- */
   body.garage #hud, body.garage #start, body.garage #clear, body.garage #parentB, body.garage #downOv, body.garage #hurt { display: none !important; }
@@ -682,7 +697,7 @@
      drawn a fifth bigger; :where() so a screen's own rules still win), with only the side margins where a line was 1em
      tall. The title and pause screens, and the parent view's buttons (D1's already had icons), take .ic's own size, which
      already matched there; text glyphs that were narrower than an icon (◀ ✖ ⏭ ⏱) get a small negative side margin */
-  :where(#clear, #grid, #parent :is(.top, .psum, .pconfirm > span), #cheer) .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
+  :where(#clear, #grid, #parent :is(.top, .psum, .pconfirm > span, .pnone), #cheer) .ic { --mx: max(0px, min(1.75px, calc((23px - 1em) / 2))); transform: scale(1.2);
     margin: max(.15em, min(calc(.15em + 3.5px), calc(23px - .85em))) var(--mx) calc(.16em + 1px); vertical-align: calc(-.31em - 1px); }
   :where(#clear, #grid, #parent, #cheer) :is(.head > span, .stars > i, .face, .kface, .cell) > .ic { margin: 0 var(--mx); vertical-align: top; }
   :where(#kidB) .back > .ic { margin-inline: -.075em; }
@@ -2685,6 +2700,34 @@ const Profiles = {
     this.sync([...this.list(), p]); this.save();
     return { ok: true, id: p.id, name: p.name, icon: ic, color: hex };
   },
+  // #50: id is still in the saved list (a list that's missing or can't be read: yes, as read() would rebuild it from the
+  // records). Facts.save asks first, so a page left open on a profile removed elsewhere can't write its record back
+  saved(id) {
+    let v = null; try { const raw = localStorage.getItem('robotbattle.profiles'); if (raw == null) return true; v = JSON.parse(raw); } catch (e) { return true; }
+    return !Array.isArray(v) || v.some((p) => p && p.id === id);
+  },
+  // #50: a parent removes profile id (the parent view's 🗑️ Remove, once confirmed). Deleted: that profile from
+  // robotbattle.profiles and its record robotbattle.facts.<id>; robotbattle.child too when it was the last player (so the
+  // title starts on Guest). Nothing else is touched. Playing as them: play carries on as Guest first (pickChild swaps the
+  // record mid-game, as switching child does), so nothing writes their record back. The record goes before the list does:
+  // a profile left with no record plays blank, but a record left with no profile would make every backup refused.
+  // The list is re-read first (another tab's profile is kept). Removing everyone saves [], so seeding never runs again.
+  // Returns { ok, id, name, wasLast, wasPlaying } or { ok: false, why }
+  remove(id) {
+    this.load();
+    const C = CHILDREN.find((q) => !q.guest && q.id === String(id ?? '').toLowerCase());
+    if (!C) return { ok: false, why: String(id ?? '').toLowerCase() === GUEST.id ? 'guest keeps nothing' : 'no such child' };
+    const wasLast = store.get('child', null) === C.id, picked = Game.child === C, wasPlaying = picked && !!Game.pilot;
+    // (picked on the pilot pick, not playing yet: back to who's playing, with their squad gone from the meadow)
+    if (picked) { pickChild('guest'); if (!Game.pilot) pickChild(null); }
+    else if (Facts.child === C) Facts.load(GUEST);   // (back on who's playing after picking them: their record let go too)
+    try { localStorage.removeItem('robotbattle.facts.' + C.id); } catch (e) {}
+    let left = null; try { left = localStorage.getItem('robotbattle.facts.' + C.id); } catch (e) {}
+    if (left != null) return { ok: false, why: "this browser wouldn't delete it, so nothing was changed" };
+    if (wasLast || picked) { try { localStorage.removeItem('robotbattle.child'); } catch (e) {} }
+    this.sync(this.list().filter((p) => p.id !== C.id)); this.save();
+    return { ok: true, id: C.id, name: C.name, wasLast, wasPlaying };
+  },
 };
 // fast: an answer under this (ms) counts toward Known and Mastered; slow: a Mastered fact answered
 // slower than this drops to Known. reviewDays: the spacing of Known / Mastered reviews. missBack: a
@@ -2846,7 +2889,8 @@ const Facts = {
     if (got.length) fillGarage(this.rec);   // back in ADVANCED order
     return got;
   },
-  save() { if (this.rec && this.child && !this.child.guest) store.set('facts.' + this.child.id, this.rec); },
+  // (#50: not for a profile removed from the saved list since, say in another tab: its record stays deleted)
+  save() { if (this.rec && this.child && !this.child.guest && Profiles.saved(this.child.id)) store.set('facts.' + this.child.id, this.rec); },
   get steps() { return this.rec ? LADDERS[this.rec.ladder] : []; },
   get curStep() { return this.steps[this.rec.step - 1]; },
   // the last step is open and done: spaced reviews from here on
@@ -2947,7 +2991,7 @@ const Facts = {
   reset(c) {
     const C = childOf(c); if (!C || C.guest) return { ok: false, why: C ? 'guest keeps nothing' : 'no such child' };
     const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.garage = was.garage; r.squad = was.squad; r.squadGone = was.squadGone;
-    if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else store.set('facts.' + C.id, r);
+    if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else if (Profiles.saved(C.id)) store.set('facts.' + C.id, r);
     return { ok: true, child: C.id };
   },
   // a parent opens steps early, up to step n (M4's "open next step" button); never closes one
@@ -6766,7 +6810,9 @@ function pickChild(c) {
   // beside the mech
   const was = Game.child;
   if (was !== C) { if (was) Squad.sync(); Squad.clear(); }
-  Facts.load(C); Game.child = C; store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
+  // (#50: a profile removed since this page read the list, say in another tab, isn't written back as the last player:
+  // robotbattle.child naming nobody would make every backup of this device refused, "its last player is damaged")
+  Facts.load(C); Game.child = C; if (C.guest || Profiles.saved(C.id)) store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
   applyUpgrades({ swap: true });   // G2: their upgrades on the mech (a fresh Guest has none); #68: the damage taken stays
   if (was !== C) Squad.bring();
   Title.draw();
@@ -10217,7 +10263,9 @@ function legendHTML(rec) {
   return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('');
 }
 const Progress = {
-  mode: null, from: null, sel: null, cur: null, tab: null, psel: null, confirm: false, holdT: null, cheering: null, cheerT: null, badgeKey: null,
+  // (#50: rm = the profile 🗑️ Remove is asking about, null when it isn't; kept apart from Reset's confirm, so one
+  // button's ✔ can never do the other's)
+  mode: null, from: null, sel: null, cur: null, tab: null, psel: null, confirm: false, rm: null, holdT: null, cheering: null, cheerT: null, badgeKey: null,
   init() {
     $('masteryB').addEventListener('click', (e) => { e.stopPropagation(); this.openGrid('hud'); });
     $('gridB').addEventListener('click', (e) => { e.stopPropagation(); this.openGrid('pause'); });
@@ -10288,7 +10336,7 @@ const Progress = {
   close() {
     const m = this.mode, from = this.from; if (!m) return false;
     this.holdStop();
-    this.mode = this.from = null; this.confirm = false; this.psel = null; BackupUI.reset();
+    this.mode = this.from = null; this.confirm = false; this.rm = null; this.psel = null; BackupUI.reset();
     $('grid').classList.remove('on'); $('parent').classList.remove('on'); $('pConfirm').classList.remove('on'); $('parentPanel').classList.remove('locked');
     if (m === 'grid' && from === 'hud') startPlay(); else Title.draw();
     if (!Game.manual) Sfx.click();
@@ -10300,7 +10348,9 @@ const Progress = {
   key(e) {
     if (e.code === 'Tab' || (this.mode === 'parent' && e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
     if (this.mode === 'parent' && BackupUI.open) { BackupUI.key(e); return 'used'; }   // #69: the restore summary has the keys
-    if (e.code === 'Escape') { if (this.confirm) this.act('cancel', this.tab); else this.close(); return 'used'; }
+    if (e.code === 'Escape') { if (this.confirm || this.rm) this.act('cancel', this.tab); else this.close(); return 'used'; }
+    // #50: ◀ ▶ (and A D) move along the profile chips, wrapping
+    if (this.mode === 'parent' && ['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) { this.stepTab(e.code === 'ArrowRight' || e.code === 'KeyD' ? 1 : -1, true); return 'used'; }
     if (this.mode === 'grid') {
       if (e.code === 'KeyT') { if (!e.repeat) this.close(); return 'used'; }
       const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1], KeyA: [-1, 0], KeyD: [1, 0], KeyW: [0, -1], KeyS: [0, 1] }[e.code];
@@ -10314,7 +10364,9 @@ const Progress = {
     if (!pad) return;
     if (this.mode === 'parent' && BackupUI.open) { BackupUI.pad(pad); return; }   // #69: the restore summary has the pad
     if (this.mode === 'grid' && (pad.upP || pad.downP || pad.leftP || pad.rightP)) this.move((pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0));
-    if (pad.bP || pad.startP || (this.mode === 'grid' && pad.yP)) { if (this.confirm) this.act('cancel', this.tab); else this.close(); }
+    // #50: the d-pad's ◀ ▶ (or LB / RB) move along the profile chips
+    if (this.mode === 'parent' && (pad.leftP || pad.rightP || pad.lbP || pad.rbP)) this.stepTab(pad.rightP || pad.rbP ? 1 : -1);
+    if (pad.bP || pad.startP || (this.mode === 'grid' && pad.yP)) { if (this.confirm || this.rm) this.act('cancel', this.tab); else this.close(); }
   },
   // the ⭐ badge on the HUD and its twin on the pause screen: mastered out of the goal (nothing for Guest)
   drawBadge() {
@@ -10357,21 +10409,33 @@ const Progress = {
   },
   holdStop() { if (this.holdT) { clearTimeout(this.holdT); this.holdT = null; } $('parentB').classList.remove('holding'); },
   kids() { return CHILDREN.filter((C) => !C.guest); },
+  // #50: the next (d = 1) or last (-1) profile's chip, wrapping; not while a confirm or the restore summary is up. focus:
+  // the keyboard did it (the chip takes focus, so Enter / Tab go on from there). The chip is scrolled into view
+  stepTab(d, focus) {
+    const K = this.kids(); if (this.mode !== 'parent' || this.confirm || this.rm || BackupUI.open || !K.length) return null;
+    const i = K.findIndex((C) => C.id === this.tab), C = K[((i < 0 ? 0 : i + d) + K.length) % K.length];
+    this.act('tab', C.id);
+    const b = $('pTabs').querySelector('.ptab.on');
+    if (b) { if (focus) b.focus({ preventScroll: true }); b.scrollIntoView({ block: 'nearest' }); }
+    return C.id;
+  },
   // open the parent view on whoever is playing (or the first child); outside the title / pause screen it pauses first
+  // (#50: with no profiles at all, it says so: tab is null)
   openParent(c) {
     if (Garage.on) return false;
     if (this.mode === 'grid') this.close();
     if (this.mode) return false;
     if (!Title.on) setPause(true);
     const C = childOf(c), K = C && !C.guest ? C : Game.child && !Game.child.guest ? Game.child : this.kids()[0];
-    this.mode = 'parent'; this.tab = K.id; this.psel = null; this.confirm = false;
+    this.mode = 'parent'; this.tab = K?.id ?? null; this.psel = null; this.confirm = false; this.rm = null;
     $('parent').classList.add('on'); $('parentPanel').scrollTop = 0; this.drawParent();
     if (!Game.manual) Sfx.click();
     return true;
   },
   // what the parent view shows for child c, straight from the record (nothing is written)
   data(c) {
-    const C = childOf(c), rec = Facts.peek(C), steps = LADDERS[rec.ladder], days = Facts.days(rec, PARENT.days), td = days[days.length - 1];
+    const C = childOf(c); if (!C || C.guest) return null;
+    const rec = Facts.peek(C), steps = LADDERS[rec.ladder], days = Facts.days(rec, PARENT.days), td = days[days.length - 1];
     return {
       id: C.id, name: C.name, mastery: Facts.mastery(C), step: rec.step, steps: steps.length, stepName: stepName(steps[rec.step - 1]),
       next: rec.step < steps.length ? { step: rec.step + 1, name: stepName(steps[rec.step]) } : null,
@@ -10398,8 +10462,16 @@ const Progress = {
   },
   drawParent() {
     if (this.mode !== 'parent') return;
+    if (this.tab != null && !this.kids().some((C) => C.id === this.tab)) this.tab = this.kids()[0]?.id ?? null;   // (#50: theirs was removed)
+    $('pTabs').parentElement.classList.toggle('many', this.kids().length > 3);
+    $('pTabs').innerHTML = this.kids().map((C) => `<button class="chip ptab${C.id === this.tab ? ' on' : ''}" data-k="${C.id}" aria-label="${esc(C.name)}" aria-pressed="${C.id === this.tab}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${esc(C.name)}</span></button>`).join('');
+    // #50: no profiles yet: say so, and where to make one (the backup section stays: a restore can bring players back)
+    if (this.tab == null) {
+      this.confirm = false; this.rm = null; $('pConfirm').classList.remove('on');
+      $('pBody').innerHTML = `<div class="pnone" id="pNone"><span class="big">${icon('smile')}</span><b>No players yet</b><span class="hint">Tap ${icon('plus', { label: 'new player' })} on the title to make one.</span></div>` + BackupUI.html();
+      BackupUI.draw(); return;
+    }
     const D = this.data(this.tab), rec = Facts.peek(this.tab);
-    $('pTabs').innerHTML = this.kids().map((C) => `<button class="chip ptab${C.id === this.tab ? ' on' : ''}" data-k="${C.id}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${C.name}</span></button>`).join('');
     const p = this.psel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? rec.facts[f.key]?.s ?? 'new' : null;
     const info = !p ? '<span class="dim">Tap a fact for its time</span>'
       : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`;
@@ -10409,25 +10481,42 @@ const Progress = {
       + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div></div>`
       + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
-      + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}`
-      + `<button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${D.name}</button></div></div></div>`
+      + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}</div>`
+      // (#50: 🗑️ Reset and 🗑️ Remove side by side, on a row of their own)
+      + `<div class="pact pdanger"><button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${esc(D.name)}</button><button class="pbtn remove" data-act="remove">${icon('bin')} Remove ${esc(D.name)}</button></div></div></div>`
       + BackupUI.html();   // #69: back up and restore (every child, not just this tab's)
-    const cf = $('pConfirm'); cf.classList.toggle('on', this.confirm); $('parentPanel').classList.toggle('locked', this.confirm);
-    if (this.confirm) cf.innerHTML = `<span class="big">${icon('bin')}${icon(childOf(this.tab).ic)}</span><span>Reset <b>${D.name}</b>? Every fact goes back to New (${icon('star')} ${D.mastery.mastered}/${D.mastery.goal}, step ${D.step}), with the minutes and the cheers. This can't be undone.</span>`
+    const cf = $('pConfirm'); cf.classList.toggle('on', this.confirm || !!this.rm); $('parentPanel').classList.toggle('locked', this.confirm || !!this.rm);
+    // #50: 🗑️ Remove asks first, as Reset does: their icon and name, their ⭐ count, and that it can't be undone
+    if (this.rm) cf.innerHTML = `<span class="big">${icon('bin')}${icon(childOf(this.rm).ic)}</span><span>Remove <b>${esc(D.name)}</b> from this device? Their player and all their progress go (${icon('star')} ${D.mastery.mastered}/${D.mastery.goal}, step ${D.step}, their garage and squad). This can't be undone.</span>`
+      + `<div class="pact"><button class="pbtn keep" data-act="cancel">${icon('cross')} Keep</button><button class="pbtn remove" data-act="confirmRemove">${icon('bin')} Remove ${esc(D.name)}</button></div>`;
+    else if (this.confirm) cf.innerHTML = `<span class="big">${icon('bin')}${icon(childOf(this.tab).ic)}</span><span>Reset <b>${D.name}</b>? Every fact goes back to New (${icon('star')} ${D.mastery.mastered}/${D.mastery.goal}, step ${D.step}), with the minutes and the cheers. This can't be undone.</span>`
       + `<div class="pact"><button class="pbtn keep" data-act="cancel">${icon('cross')} Keep</button><button class="pbtn reset" data-act="confirm">${icon('bin')} Reset ${D.name}</button></div>`;
     BackupUI.draw();   // #69: the restore summary over it, when it's up
   },
   // the parent view's buttons (and __rb.parentDo): 'tab' (show child c), 'step' (open their next step),
-  // 'reset' (ask), 'confirm' (reset them, once asked), 'cancel' (don't)
+  // 'reset' (ask), 'confirm' (reset them, once asked), 'cancel' (don't: Reset's or Remove's),
+  // #50: 'remove' (ask), 'confirmRemove' (remove them, once asked about them: Profiles.remove)
   act(what, c) {
     if (this.mode !== 'parent') return { ok: false, why: 'parent view closed' };
+    if (what === 'cancel' && c == null && this.tab == null) { this.confirm = false; this.rm = null; this.drawParent(); return { ok: true }; }
     const C = childOf(c ?? this.tab); if (!C || C.guest) return { ok: false, why: 'no such child' };
     let res = { ok: true };
-    if (what === 'tab') { this.tab = C.id; this.psel = null; this.confirm = false; }
+    if (what === 'tab') { this.tab = C.id; this.psel = null; this.confirm = false; this.rm = null; }
     else if (what === 'step') res = Facts.as(C, () => (Facts.rec.step < Facts.steps.length ? Facts.openStep(Facts.rec.step + 1) : { ok: false, why: 'every step is open' }));
-    else if (what === 'reset') { this.tab = C.id; this.confirm = true; $('parentPanel').scrollTop = 0; }
-    else if (what === 'cancel') this.confirm = false;
-    else if (what === 'confirm') { if (!this.confirm || C.id !== this.tab) return { ok: false, why: 'not asked' }; res = Facts.reset(C); this.confirm = false; this.psel = null; }
+    else if (what === 'reset') { this.tab = C.id; this.confirm = true; this.rm = null; $('parentPanel').scrollTop = 0; }
+    else if (what === 'remove') { this.tab = C.id; this.rm = C.id; this.confirm = false; $('parentPanel').scrollTop = 0; }
+    else if (what === 'cancel') { this.confirm = false; this.rm = null; }
+    else if (what === 'confirm') { if (!this.confirm || this.rm || C.id !== this.tab) return { ok: false, why: 'not asked' }; res = Facts.reset(C); this.confirm = false; this.psel = null; }
+    else if (what === 'confirmRemove') {
+      if (!this.rm || this.confirm || C.id !== this.rm || C.id !== this.tab) return { ok: false, why: 'not asked' };
+      const K = this.kids(), i = K.indexOf(C), was = Title.tiles()[Title.kid];
+      res = Profiles.remove(C.id); this.rm = null; this.psel = null;
+      if (res.ok) {
+        const left = this.kids();
+        this.tab = (left[i] || left[i - 1] || left[0])?.id ?? null;   // the next chip along (the last one's: the one before)
+        Title.drawKids(was === C.id || res.wasLast ? GUEST.id : was);
+      }
+    }
     else return { ok: false, why: 'no such button' };
     if (!Game.manual) Sfx.click();
     this.drawParent(); this.drawBadge(); Title.draw();
@@ -10499,7 +10588,7 @@ const BackupUI = {
     this.open = true; this.text = text; this.name = String(name); this.choices = {}; this.cur = 0; this.msg = null;
     const p = text == null ? { ok: false, why: "it couldn't be read" } : Backup.restore(text);
     this.why = p.ok ? null : p.why; this.sum = p.ok ? p.summary : null;
-    Progress.confirm = false; $('parentPanel').scrollTop = 0;   // (the summary covers the panel from its top)
+    Progress.confirm = false; Progress.rm = null; $('parentPanel').scrollTop = 0;   // (the summary covers the panel from its top)
     Progress.drawParent();
     return { ok: p.ok, why: this.why, summary: this.sum };
   },
@@ -10532,14 +10621,14 @@ const BackupUI = {
     const m = this.msg;
     return `<div class="pbak" id="pBak"><h3>Backup</h3><div class="pact"><button class="pbtn bak" data-bk="backup">${icon('down', { label: 'download' })} Back up</button>`
       + `<button class="pbtn bak" data-bk="restore">${icon('up', { label: 'load' })} Restore</button></div>`
-      + `<p>Saves ${this.kidNames()}'s progress to a file, or loads one back. Guest's is never saved.</p>`
+      + `<p>${Progress.kids().length ? `Saves ${this.kidNames()}'s progress to a file, or loads one back.` : 'Nobody to save yet: Restore loads players back from a file.'} Guest's is never saved.</p>`
       + `<div class="pbakmsg${m && !m.ok ? ' bad' : ''}" id="pBakMsg">${m ? icon(m.ok ? 'check' : 'warn') + `<span>${esc(m.text)}</span>` : ''}</div></div>`;
   },
   kidNames() { return andList(Progress.kids().map((C) => C.name)); },
   // the summary over the parent view (or why the file can't be used)
   draw() {
     const el = $('pRestore'); if (!el) return;
-    el.classList.toggle('on', this.open); $('pBody').inert = this.open; $('parentPanel').classList.toggle('locked', this.open || Progress.confirm);
+    el.classList.toggle('on', this.open); $('pBody').inert = this.open; $('parentPanel').classList.toggle('locked', this.open || Progress.confirm || !!Progress.rm);
     if (!this.open) { el.textContent = ''; return; }
     if (!this.sum) {
       el.innerHTML = `<h3>${icon('warn')}<span>That file can't be restored</span></h3><div class="meta">${esc(this.name)}</div>`
@@ -12539,9 +12628,15 @@ window.__rb = {
   // returns what it shows for each child
   parent(open, child) {
     if (open === true) Progress.openParent(child); else if (open === false && Progress.mode === 'parent') Progress.close();
-    return { open: Progress.mode === 'parent', tab: Progress.tab, confirm: Progress.confirm, children: Progress.kids().map((C) => Progress.data(C)) };
+    // (#50: chips = the profiles shown as chips, read off the open view (from the list when it's shut); remove = the profile
+    // 🗑️ Remove is asking about; empty = no profiles, and the view says so)
+    const shown = Progress.mode === 'parent', K = Progress.kids();
+    const chips = shown ? [...$('pTabs').querySelectorAll('.ptab')].map((b) => { const C = childOf(b.dataset.k); return { id: b.dataset.k, name: C?.name, icon: C?.ic, hex: C?.hex, on: b.classList.contains('on') }; })
+      : K.map((C) => ({ id: C.id, name: C.name, icon: C.ic, hex: C.hex, on: false }));
+    return { open: shown, tab: Progress.tab, confirm: Progress.confirm, remove: Progress.rm, empty: !K.length, chips, children: K.map((C) => Progress.data(C)) };
   },
   // press a button in the open parent view: 'tab' | 'step' | 'reset' | 'confirm' | 'cancel', on child (the tab shown if left out)
+  // (#50: | 'remove' (asks) | 'confirmRemove' (removes the profile and its record, once asked about it))
   parentDo(what, child) { const res = Progress.act(what, child); return { ...res, view: this.parent() }; },
   // ---- storage D1 (#69): back up and restore ----
   // the backup of this device as an object, the same as the file ⬇ Back up downloads: { app, format, exported, device, data }
