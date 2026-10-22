@@ -527,6 +527,12 @@
   .cell.s-learning { background: repeating-linear-gradient(45deg, #ff8a1f 0 4px, #ffb468 4px 8px); }
   .cell.s-known { background: #3fb4ff; }
   .cell.s-mastered { background: #ffd83d; box-shadow: 0 0 10px rgba(255,216,61,.8); }
+  /* #115: a ⭐ that needs a polish keeps its gold; a small ✨ (the icon set's sparkle) sits on its corner on an ink disc */
+  .cell.pol { position: relative; }
+  .cell > .polm { position: absolute; right: -7px; top: -7px; width: max(18px, calc(var(--cs, 40px) * .56)); height: max(18px, calc(var(--cs, 40px) * .56));
+    border-radius: 50%; background: var(--ink); border: 2px solid var(--cyan); box-shadow: 0 0 6px rgba(63,240,255,.7); display: flex; align-items: center; justify-content: center;
+    pointer-events: none; z-index: 2; font-size: max(13px, calc(var(--cs, 40px) * .42)); }
+  .cell > .polm > .ic { margin: 0; vertical-align: top; }
   .cell.sel { outline: 4px solid #fff; outline-offset: 1px; position: relative; z-index: 1; }
   .cell.twin { outline: 3px dashed #fff; outline-offset: 1px; }
   .cell.cur { outline: 4px dashed var(--yellow); outline-offset: 1px; }
@@ -2791,7 +2797,10 @@ function stepFacts(st) {
 //   { op, a, b, s: stage, streak: right in a row, n: answers, right, ms: [recent times], hist: [1 right / 0 wrong],
 //     days: [day numbers with a right answer under 3 s], missDay: the day of its last miss (or too-slow
 //     answer), which doesn't count again; due: next review / miss return (epoch ms, 0 = none);
-//     box: index into FACT.reviewDays; miss: due is a miss coming back; last: when it was last answered }
+//     box: index into FACT.reviewDays; miss: due is a miss coming back; last: when it was last answered;
+//     #115, only on a Mastered fact, written when it slips and deleted when it's cleared: polish: when it slipped (a miss,
+//     or a right answer slower than FACT.slow). A ⭐ once earned is kept: a Mastered fact never drops a stage; it gets
+//     polish instead, is asked like a Known fact while it has it, and one fast right answer clears it }
 // Times are the tracker's clock: now() = Date.now() + offset, which __rb.clock(ms) moves for tests.
 // G1: the garage's part of a child's record (saved with it, so Guest's is never kept). trophies: every part
 // ever collected, by type: n = how many, from = where they came from (a robot type, or 'meadow' for a
@@ -2873,6 +2882,7 @@ const Facts = {
     r.practice ||= {}; r.opened ||= []; r.cheered ||= {}; fillGarage(r);   // a record saved before G1 gets an empty garage
     r.puzzles ||= { seq: 0, seen: {} };                                   // P3-1: when each puzzle type was last seen
     fillSquad(r);                                                         // #58: the saved squad (none before #58)
+    if (!C.guest) this.keepStars(r);                                      // #115: stars a cheered table shows were earned
     this.child = C; this.rec = r;
     this.advance(); const got = this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
     // #43: and any tier rise this record holds that hasn't been checked: a milestone just latched, or a backup's merge (which
@@ -2925,7 +2935,7 @@ const Facts = {
     const r = C.guest ? null : store.get('facts.' + C.id, null);
     const out = this.valid(r, C) ? r : this.blank(C);
     out.practice ||= {}; out.opened ||= []; out.cheered ||= {}; fillGarage(out);
-    out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out);
+    out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out); if (!C.guest) this.keepStars(out);   // (#115: as load will; not saved here)
     return out;
   },
   // run fn with child c as the tracker's child (on the live record if c is playing; otherwise on their saved
@@ -2943,9 +2953,9 @@ const Facts = {
   // parent view and the garage (#31) read this. Never writes; null for nobody.
   mastery(c) {
     const C = c == null ? this.child : childOf(c), rec = C && this.peek(C); if (!rec) return null;
-    const g = this.goal(rec); let m = 0;
-    g.forEach((k) => { if (rec.facts[k]?.s === 'mastered') m++; });
-    return { child: C.id, mastered: m, goal: g.size };
+    const g = this.goal(rec); let m = 0, p = 0;
+    g.forEach((k) => { if (rec.facts[k]?.s === 'mastered') { m++; if (rec.facts[k].polish) p++; } });
+    return { child: C.id, mastered: m, goal: g.size, polish: p };   // (#115: polish = how many of them need a polish)
   },
   // a fact's typical time (ms): the median of its last FACT.keepTimes answer times, counting only the right
   // answers among them when there is at least one (a quick wrong guess isn't "fast"); null if never answered
@@ -3007,7 +3017,7 @@ const Facts = {
     if (!this.rec || !['math', 'colour'].includes(mode)) return false;
     this.rec.wiring = mode; this.save(); return true;
   },
-  // move a fact down a stage (a miss, or a Mastered fact answered too slowly): it keeps the fast days that
+  // move a fact down a stage (a miss below Mastered; #115: a Mastered fact slips instead, and never drops): it keeps the fast days that
   // stage starts with (Learning 1, Known 2), and today no longer counts, so it climbs back on a later day
   demote(e, today) {
     const i = STAGES.indexOf(e.s);
@@ -3017,6 +3027,30 @@ const Facts = {
     e.days = keep ? before.slice(-keep) : [];
     e.missDay = today;
     if (e.s === 'known') e.box = 0;
+  },
+  // #115: a Mastered fact slips (a miss, or answered too slowly): it stays Mastered (its ⭐ and gold cell, every count),
+  // but its review box resets and it needs a polish, so practice brings it back sooner. today no longer counts as a fast day
+  slip(e, today, now) {
+    e.days = e.days.filter((d) => d < today); e.missDay = today; e.box = 0;
+    e.polish = now;
+  },
+  // #115: the facts on record r that need a polish (Mastered and slipped), by key
+  polished(r = this.rec) { return new Set(ownKeys(r?.facts || {}).filter((k) => r.facts[k]?.s === 'mastered' && r.facts[k].polish)); },
+  // #115: stars from before #115. A table's cheer plays only once all nine of its facts are Mastered (rec.cheered[t] is
+  // when it did), so a fact of a cheered table that is below Mastered now slipped under the old rule: its ⭐ comes back,
+  // with a polish mark. Nothing else is guessed. Idempotent (load and peek both run it); returns the keys restored
+  keepStars(r) {
+    const out = [], O = OPS['×'];
+    if (!r || !isObj(r.cheered) || !isObj(r.facts)) return out;
+    for (const t of ownKeys(r.cheered).map(Number)) {
+      if (!(t >= O.lo && t <= O.hi && Number.isInteger(t))) continue;
+      for (let n = O.lo; n <= O.hi; n++) {
+        const k = makeFact('×', t, n).key, e = r.facts[k];
+        if (isObj(e) && STAGES.includes(e.s) && e.s !== 'mastered') { e.s = 'mastered'; e.polish ||= r.cheered[t] || 1; out.push(k); }
+      }
+    }
+    if (out.length && Array.isArray(r.inPlay)) r.inPlay = r.inPlay.filter((k) => !out.includes(k));
+    return out;
   },
   // record an answer: value given for fact f in ms milliseconds
   answer(f, value, ms) {
@@ -3040,7 +3074,7 @@ const Facts = {
       if (check) {
         if (fast) { e.s = 'known'; e.box = 0; e.due = now + FACT.reviewDays[0] * DAY_MS; } else e.s = 'learning';
       } else if (e.s === 'mastered' && ms > FACT.slow) {
-        this.demote(e, today); review(0);
+        this.slip(e, today, now); review(0);   // #115: the ⭐ stays; its review box resets (back tomorrow)
       } else {
         // climb as far as the answers so far allow (2 right in a row; fast on 2 days; fast on a 3rd day)
         for (;;) {
@@ -3056,9 +3090,12 @@ const Facts = {
       }
     } else {
       e.streak = 0;
-      this.demote(e, today);
+      if (e.s === 'mastered') this.slip(e, today, now); else this.demote(e, today);   // #115: a Mastered fact keeps its ⭐
       e.miss = true; e.due = now + FACT.missBack;   // it comes back in a couple of minutes
     }
+    // #115: a fact that needed a polish, answered right under FACT.fast, shines again (the caller can cheer it)
+    const polished = !!(e.polish && fast && e.s === 'mastered');
+    if (polished || (e.polish && e.s !== 'mastered')) delete e.polish;
     // the New facts in play: a fact that moved up leaves; one that dropped to New joins (it's being taught),
     // and if that's one too many the newest that hasn't been missed steps back out
     const ip = this.rec.inPlay;
@@ -3075,7 +3112,7 @@ const Facts = {
     this.advance(); this.save();
     if (cheer.length) this.onCheer?.(cheer, this.child);
     if (unlocked.length) this.onUnlock?.(unlocked, this.child);
-    return { ok: true, op: f.op, a: f.a, b: f.b, key: f.key, value, answer: f.answer, right, fast, ms, from, to: e.s, due: e.due, step: this.rec.step, cheer, unlocked };
+    return { ok: true, op: f.op, a: f.a, b: f.b, key: f.key, value, answer: f.answer, right, fast, ms, from, to: e.s, due: e.due, step: this.rec.step, cheer, unlocked, polish: !!e.polish, polished };
   },
   // The next fact to ask. opts.exclude: facts already on the board (keys or { op, a, b }); opts.ops: only
   // these ops (what the asking UI can show). A missed fact whose couple of minutes are up comes first;
@@ -3119,6 +3156,8 @@ const Facts = {
     // today, so it never re-drills what the child just sorted. 'stretch' (asked for one wire a board, from wave 5): the
     // slowest Learning or Known fact by typical time, or else a New fact from the newest open step. 'mix': today's pick.
     const typ = (k) => this.typical(F[k]) ?? Infinity;
+    // #115: a Mastered fact that needs a polish is asked as a Known one is (as it was when a slip dropped it to Known)
+    const ps = (k) => (F[k].s === 'mastered' && F[k].polish ? 'known' : F[k].s);
     if (opts.band === 'warm' && this.curStep.kind !== 'check') {
       const l = fam.length > 1 ? fam.filter((k) => k !== R.last) : fam, fast = (x, y) => typ(x) - typ(y);
       const pick = l.filter((k) => ['known', 'mastered'].includes(F[k].s)).sort(fast)[0] ?? l.filter((k) => F[k].s === 'learning').sort(fast)[0];
@@ -3126,7 +3165,7 @@ const Facts = {
       if (fresh.length) return out(pickR(fresh), 'new');
     }
     if (opts.band === 'stretch') {
-      const slow = fam.filter((k) => ['learning', 'known'].includes(F[k].s)).sort((x, y) => typ(y) - typ(x));
+      const slow = fam.filter((k) => ['learning', 'known'].includes(ps(k))).sort((x, y) => typ(y) - typ(x));
       if (slow.length) return out(slow[0], 'stretch');
       const top = stepFacts(this.steps[R.step - 1]).map((f) => f.key).filter((k) => ok(k) && this.stage(k) === 'new' && !waiting(k));
       const pick = top.find((k) => R.inPlay.includes(k)) ?? (top.length ? top[Math.floor(this.rand() * top.length)] : null);
@@ -3146,8 +3185,8 @@ const Facts = {
     if (familiar && due.length) return out(due[0], 'review');
     if (familiar && fam.length) {
       const w = { learning: 3, known: 2, mastered: 1 }, l = fam.length > 1 ? fam.filter((k) => k !== R.last) : fam;
-      let t = this.rand() * l.reduce((s, k) => s + w[F[k].s], 0);
-      for (const k of l) { t -= w[F[k].s]; if (t <= 0) return out(k, 'familiar'); }
+      let t = this.rand() * l.reduce((s, k) => s + w[ps(k)], 0);
+      for (const k of l) { t -= w[ps(k)]; if (t <= 0) return out(k, 'familiar'); }
       return out(l[l.length - 1], 'familiar');
     }
     if (fresh.length) return out(pickR(fresh), checking ? 'check' : 'new');
@@ -8693,6 +8732,7 @@ function recordAnswer(r, i, value, ms) {
   const res = Facts.answer(f, value, t);
   W.log.push({ plug: i, key: f.key, value, right: res.right, fast: res.fast, ms: Math.round(t) });
   if (res.right && res.fast) Sparks.burst(r.pos.x, r.pos.y + 3.4, r.pos.z, MATHFIX.sparks, SPARK_GLINT, 7);   // fast: extra gold sparks
+  if (res.polished) { Sparks.burst(r.pos.x, r.pos.y + 4.4, r.pos.z, MATHFIX.sparks, SPARK_GLINT, 9); if (!Game.manual) Sfx.find(); }   // #115: a ⭐ polished: a small cheer
   if (!res.right) {                                       // a miss: the plug shows its right answer for a moment
     W.missed = true;
     const until = performance.now() + MATHFIX.show;
@@ -10244,14 +10284,15 @@ function confetti(box, n = 60) {
 // a × b with its stage's class, glyph and data-s. o.sel = [a, b] picked (b × a is marked as its twin);
 // o.cur = [a, b] the keyboard / gamepad cursor
 function gridHTML(rec, o = {}) {
-  const rows = Facts.grid(rec), done = new Set(TABLES.filter((t) => Facts.tableDone(rec, t)));
+  const pol = Facts.polished(rec), rows = Facts.grid(rec), done = new Set(TABLES.filter((t) => Facts.tableDone(rec, t)));
   const is = (p, a, b) => !!p && p[0] === a && p[1] === b;
   let h = '<i class="hd corner">×</i>' + TABLES.map((b) => `<i class="hd${done.has(b) ? ' done' : ''}">${b}</i>`).join('');
   rows.forEach((row, i) => {
     const a = TABLES[i];
     h += `<i class="hd${done.has(a) ? ' done' : ''}">${a}</i>` + row.map((s, j) => {
       const b = TABLES[j], cls = (is(o.sel, a, b) ? ' sel' : is(o.sel, b, a) ? ' twin' : '') + (is(o.cur, a, b) ? ' cur' : '');
-      return `<button class="cell s-${s}${cls}" data-a="${a}" data-b="${b}" data-s="${s}" aria-label="${a} × ${b}: ${STAGE_LOOK[s].name}">${icon(STAGE_LOOK[s].ic)}</button>`;
+      const p = pol.has(makeFact('×', a, b).key);   // #115: a ⭐ that needs a polish: a small ✨ on its corner
+      return `<button class="cell s-${s}${cls}${p ? ' pol' : ''}" data-a="${a}" data-b="${b}" data-s="${s}"${p ? ' data-p="1"' : ''} aria-label="${a} × ${b}: ${STAGE_LOOK[s].name}${p ? ', needs a polish' : ''}">${icon(STAGE_LOOK[s].ic)}${p ? `<span class="polm">${icon('sparkle')}</span>` : ''}</button>`;
     }).join('');
   });
   return h;
@@ -10260,7 +10301,9 @@ function gridHTML(rec, o = {}) {
 function legendHTML(rec) {
   const cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
   Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
-  return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('');
+  const np = Facts.polished(rec).size;   // #115: and, while any ⭐ needs one, the polish mark and how many
+  return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('')
+    + (np ? `<span class="lg" data-p="1" aria-label="needs a polish: ${np}"><i class="cell s-mastered pol">${icon('mastered')}<span class="polm">${icon('sparkle')}</span></i>Polish<b>${np}</b></span>` : '');
 }
 const Progress = {
   // (#50: rm = the profile 🗑️ Remove is asking about, null when it isn't; kept apart from Reset's confirm, so one
@@ -10315,16 +10358,16 @@ const Progress = {
     $('gridLegend').innerHTML = legendHTML(rec);
     // the fact picked and its typical time. No answer: the grid can be opened mid-repair, and it mustn't be a
     // times table to copy a typed plug's answer from (the parent view shows answers)
-    const p = this.sel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? Facts.stage(f.key) : null;
+    const p = this.sel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? Facts.stage(f.key) : null, pol = s === 'mastered' && !!e?.polish;
     $('gridInfo').innerHTML = !p ? `<span class="dim">${icon('tap')} ${icon('timer')}</span>`
-      : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${p[0]} × ${p[1]}</span><span>${icon('timer')} ${secs(Facts.typical(e))}</span>`;
+      : `<i class="cell s-${s}${pol ? ' pol' : ''}">${icon(STAGE_LOOK[s].ic)}${pol ? `<span class="polm">${icon('sparkle')}</span>` : ''}</i><span>${p[0]} × ${p[1]}</span><span>${icon('timer')} ${secs(Facts.typical(e))}</span>`;
   },
   // tap a cell (as a click on it does): pick that fact
   tapCell(a, b) {
     const f = makeFact('×', a, b);
     if (this.mode !== 'grid' || !f) return null;
     this.sel = [a, b]; this.drawGrid(); if (!Game.manual) Sfx.click();
-    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: icRead($('gridInfo')) };
+    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), polish: Facts.polished().has(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: icRead($('gridInfo')) };
   },
   // the keyboard's arrows / the d-pad move a cursor over the cells, picking each fact as it lands
   move(dx, dy) {
@@ -10443,7 +10486,7 @@ const Progress = {
       days: days.map((d) => ({ date: d.date, ms: Math.round(d.ms), min: +(d.ms / 60000).toFixed(2) })),
       todayMs: Math.round(td.ms), today: +(td.ms / 60000).toFixed(2),
       fixMs: (() => { const f = Facts.fixDays(rec, PARENT.days); return { today: f[f.length - 1].median, days: f }; })(),   // #48: median fix times
-      grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number),
+      grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number), polish: [...Facts.polished(rec)],   // #115: the ⭐ facts that need a polish
     };
   },
   // minutes a day for the last two weeks as a small bar chart (hand-drawn SVG); today's bar is blue, marked with a dot (I4: a
@@ -12613,15 +12656,17 @@ window.__rb = {
     const rec = Facts.peek(C), cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
     Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
     const box = Progress.mode === 'grid' && C === Game.child ? $('gridCells') : Progress.mode === 'parent' && Progress.tab === C.id ? $('pBody').querySelector('.fgrid') : null;
-    let dom = null;
-    if (box) { dom = TABLES.map(() => []); box.querySelectorAll('.cell').forEach((el) => { dom[+el.dataset.a - 1][+el.dataset.b - 1] = el.dataset.s; }); }
-    return { child: C.id, rows: Facts.grid(rec), counts: cnt, mastery: Facts.mastery(C), tables: TABLES.filter((t) => Facts.tableDone(rec, t)), cheered: Object.keys(rec.cheered || {}).map(Number), ui: Progress.mode, dom };
+    let dom = null, domPolish = null;
+    if (box) { dom = TABLES.map(() => []); domPolish = []; box.querySelectorAll('.cell').forEach((el) => { dom[+el.dataset.a - 1][+el.dataset.b - 1] = el.dataset.s; if (el.dataset.p && el.querySelector('.polm')) domPolish.push(`${el.dataset.a}x${el.dataset.b}`); }); }
+    // #115: polish = the keys of the ⭐ facts that need a polish; domPolish = the cells showing the mark ('axb', both twins)
+    return { child: C.id, rows: Facts.grid(rec), counts: cnt, polish: [...Facts.polished(rec)], domPolish, mastery: Facts.mastery(C), tables: TABLES.filter((t) => Facts.tableDone(rec, t)), cheered: Object.keys(rec.cheered || {}).map(Number), ui: Progress.mode, dom };
   },
   // open (true) or close (false) the child's grid, as the ⭐ badge (playing) or the pause screen's ⭐ does
   showGrid(on = true) { const ok = on ? Progress.openGrid() : Progress.close(); return { ok, ui: Progress.mode, from: Progress.from, paused: Game.paused, title: this.state().title }; },
   // tap cell a × b in the open grid: the fact and its typical time
   tapCell(a, b) { return Progress.tapCell(a, b); },
-  // mastered facts out of the goal for a child (whoever is playing if left out): { child, mastered, goal }.
+  // mastered facts out of the goal for a child (whoever is playing if left out): { child, mastered, goal, polish (#115: how
+  // many of the mastered need a polish) }.
   // The garage (#31) reads Facts.mastery, the same accessor.
   mastered(child) { return Facts.mastery(child); },
   // open (true, optionally on a child's tab) or close (false) the parent view, skipping the hold (a hook);
