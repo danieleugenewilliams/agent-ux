@@ -3443,6 +3443,26 @@ const Backup = {
     out.squadGone = m.squadGone; out.squad = (Array.isArray(out.squad) ? fillSquad({ squad: clone(out.squad), squadGone: m.squadGone }).squad : []);
     return out;
   },
+  // #115 (Dad's Option B): Use the backup's record r, but a ⭐ once earned is kept: every fact Mastered in this device's
+  // record (here, as the game would load it: keepStars first) that isn't Mastered in r, or isn't in r at all, comes from
+  // this device whole (its stage, fast days, review box, due, counts and any polish mark belong together) and leaves the
+  // New facts in play. A fact Mastered on both sides is the backup's, as before. Then the advanced parts and metals the
+  // Mastered count has earned are latched (latchInto: never takes one away); one this device had already cheered isn't
+  // cheered again. Everything else is r's. Pure: a new record (or r itself when nothing changes)
+  keepMastered(r, here) {
+    if (!isObj(r) || !isObj(r.facts) || !isObj(here) || !isObj(here.facts)) return r;
+    const h = clone(here); Facts.keepStars(h);
+    const keep = ownKeys(h.facts).filter((k) => isObj(h.facts[k]) && h.facts[k].s === 'mastered' && r.facts[k]?.s !== 'mastered');
+    if (!keep.length) return r;
+    const out = clone(r);
+    for (const k of keep) out.facts[k] = clone(h.facts[k]);
+    if (Array.isArray(out.inPlay)) out.inPlay = out.inPlay.filter((k) => !keep.includes(k));
+    fillGarage(out);
+    const g = out.garage, gd = isObj(here.garage) ? here.garage : {}, und = Array.isArray(gd.unlocks) ? gd.unlocks : [], fd = Array.isArray(gd.fresh) ? gd.fresh : [];
+    const got = latchInto(g, this.count(out).mastered);
+    g.fresh = g.fresh.filter((id) => !(got.includes(id) && und.includes(id) && !fd.includes(id)));
+    return fillGarage(out);
+  },
   // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
   count(r) {
     if (!r) return null;
@@ -3481,8 +3501,8 @@ const Backup = {
       if (!bak && !here && !C.incoming) continue;
       const choice = this.choiceFor(choices, C.id);
       if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
-      // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone)
-      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepGone(bak, here) : this.merge(here, bak);
+      // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone; #115: and its ⭐s: keepMastered)
+      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepMastered(this.keepGone(bak, here), here) : this.merge(here, bak);
       const write = !!bak && canon(res) !== canon(here);
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
