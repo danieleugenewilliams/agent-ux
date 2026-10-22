@@ -3461,6 +3461,13 @@ const Backup = {
     const g = out.garage, gd = isObj(here.garage) ? here.garage : {}, und = Array.isArray(gd.unlocks) ? gd.unlocks : [], fd = Array.isArray(gd.fresh) ? gd.fresh : [];
     const got = latchInto(g, this.count(out).mastered);
     g.fresh = g.fresh.filter((id) => !(got.includes(id) && und.includes(id) && !fd.includes(id)));
+    // nor are the cheers the kept ⭐s already had here: a table this device cheered that is all Mastered again keeps its
+    // cheer time (or its cheer would play again on the next answer), and a section's tier this device has already shown
+    // stays seen (or the latched parts' tier bonus would toast again at load; a tier above the rule just moves seen down)
+    out.cheered = isObj(out.cheered) ? out.cheered : {};
+    if (isObj(h.cheered)) for (const t of ownKeys(h.cheered)) if (!(t in out.cheered) && Facts.tableDone(out, Number(t))) out.cheered[t] = h.cheered[t];
+    const sh = gd.body?.tierSeen, so = g.body?.tierSeen;
+    if (isObj(sh) && isObj(so)) for (const k of ownKeys(sh)) if (Number.isInteger(sh[k]) && !(so[k] >= sh[k])) so[k] = sh[k];
     return fillGarage(out);
   },
   // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
