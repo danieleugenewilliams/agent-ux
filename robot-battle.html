@@ -562,6 +562,43 @@
   #hud .mastery small { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
   #start .gridb { position: relative; display: none; align-items: center; gap: 8px; height: 76px; padding: 0 20px; border-radius: 38px; border: 5px solid var(--ink); background: var(--yellow); color: var(--ink);
     font: 900 28px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 6px 0 var(--ink); }
+  /* #52: the bottom row on a phone or a small window, with keys and mouse (in touch mode #103 hides the weapons row, the
+     speed bars and the compass, so none of this applies there). The weapons row stays on screen and clear of the speed
+     bars and the compass:
+     - up to 900 px wide it's centred in the gap between them (not on the screen), and its slots (--ws) shrink to fit;
+     - a phone on its side: the speed bars slim down, so the slots stay big;
+     - a phone held upright (no gap wide enough): the weapons row has the bottom edge to itself, and the speed bars,
+       the compass, ⭐ and 🌊 sit above it */
+  @media (max-width: 900px) {
+    html:not(.tp-mode) #hud { --ws: min(66px, calc((100vw - 248px - 152px - 40px) / 5)); }
+    html:not(.tp-mode) #hud .weapons { left: 248px; right: 152px; transform: none; justify-content: center; gap: 8px; }
+    html:not(.tp-mode) #hud .wpn { width: var(--ws); height: var(--ws); font-size: calc(var(--ws) * .52); }
+  }
+  @media (max-height: 460px) and (min-width: 600px), (orientation: portrait) and (max-width: 699px) {
+    html:not(.tp-mode) #hud .speed { gap: 4px; padding: 10px 12px; }
+    html:not(.tp-mode) #hud .speed .ico { margin-right: 4px; }
+    html:not(.tp-mode) #hud .speed i { width: 10px; }
+  }
+  @media (max-height: 460px) and (min-width: 600px) {
+    html:not(.tp-mode) #hud { --ws: min(66px, calc((100vw - 212px - 152px - 40px) / 5)); }
+    html:not(.tp-mode) #hud .weapons { left: 212px; }
+    /* three long names wrap a chip onto a row of its own: it starts on the left, under the counters' row and clear of 🌊 */
+    html:not(.tp-mode) #hud .squad { justify-content: flex-start; }
+    html:not(.tp-mode) #hud .squad > .mate:first-child { margin-left: auto; }
+  }
+  @media (orientation: portrait) and (max-width: 699px) {
+    html:not(.tp-mode) #hud { --ws: min(66px, calc((100vw - 24px - 32px - 10px) / 5)); }
+    html:not(.tp-mode) #hud .weapons { left: 12px; right: 12px; bottom: 16px; }
+    html:not(.tp-mode) #hud :is(.speed, .compass) { bottom: calc(var(--ws) + 30px); }
+    html:not(.tp-mode) #hud .mastery { bottom: calc(var(--ws) + 120px); }
+    html:not(.tp-mode) #hud .wave { bottom: calc(var(--ws) + 162px); }
+  }
+  /* 360 wide: the health panel's bar is shorter, so 🔧 stays on screen, and 🔩 🔍 🎒 are a little smaller, so a
+     three-digit 🔩 count stays clear of the pilot */
+  @media (max-width: 380px) {
+    #hud .health .bar { width: 180px; }
+    #hud .counts { gap: 8px; } #hud .counts .parts { padding: 8px 10px; font-size: 24px; }
+  }
   /* a phone: the pause row (pilot, ⭐, ▶) shrinks to fit; ▶ stays the biggest target */
   @media (max-width: 560px) {
     #start .resume { gap: 12px; }
