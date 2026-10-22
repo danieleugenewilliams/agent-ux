@@ -579,9 +579,11 @@
     html:not(.tp-mode) #hud .speed .ico { margin-right: 4px; }
     html:not(.tp-mode) #hud .speed i { width: 10px; }
   }
-  @media (max-height: 460px) and (min-width: 600px) {
+  @media (max-height: 460px) and (min-width: 600px) and (max-width: 900px) {
     html:not(.tp-mode) #hud { --ws: min(66px, calc((100vw - 212px - 152px - 40px) / 5)); }
     html:not(.tp-mode) #hud .weapons { left: 212px; }
+  }
+  @media (max-height: 460px) and (min-width: 600px) {
     /* three long names wrap a chip onto a row of its own: it starts on the left, under the counters' row and clear of 🌊 */
     html:not(.tp-mode) #hud .squad { justify-content: flex-start; }
     html:not(.tp-mode) #hud .squad > .mate:first-child { margin-left: auto; }
@@ -593,10 +595,10 @@
     html:not(.tp-mode) #hud .mastery { bottom: calc(var(--ws) + 120px); }
     html:not(.tp-mode) #hud .wave { bottom: calc(var(--ws) + 162px); }
   }
-  /* 360 wide: the health panel's bar is shorter, so 🔧 stays on screen, and 🔩 🔍 🎒 are a little smaller, so a
-     three-digit 🔩 count stays clear of the pilot */
-  @media (max-width: 380px) {
-    #hud .health .bar { width: 180px; }
+  /* 360 wide: the health panel's bar is shorter, so 🔧 stays on screen. There, and on a small phone on its side, 🔩 🔍 🎒
+     are a little smaller, so a three-digit 🔩 count stays clear of the pilot (upright) or the health panel (on its side) */
+  @media (max-width: 380px) { #hud .health .bar { width: 180px; } }
+  @media (max-width: 380px), (max-height: 460px) and (min-width: 600px) and (max-width: 700px) {
     #hud .counts { gap: 8px; } #hud .counts .parts { padding: 8px 10px; font-size: 24px; }
   }
   /* a phone: the pause row (pilot, ⭐, ▶) shrinks to fit; ▶ stays the biggest target */
