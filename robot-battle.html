@@ -895,11 +895,11 @@
   .ucard .uhave.short { color: #ff4d5e; }
   .ucard .ukey { font: 800 13px 'Asap', sans-serif; padding: 2px 6px; border-radius: 7px; background: #fff; color: var(--ink); white-space: nowrap; }
   /* #120: a narrow card (four a row on a phone on its side): the cost and the bag's count on one line, the buy button
-     under them, the full width of the card */
+     under them, the full width of the card (36 px tall, as the phone-on-its-side buy button is) */
   .ucard { container-type: inline-size; }
   @container (max-width: 150px) {
     .ucard .ubot { flex-wrap: wrap; justify-content: space-between; row-gap: 3px; gap: 3px; }
-    .ucard .ubuy { margin-left: 0; flex: 1 1 100%; width: auto; height: 32px; font-size: 17px; border-radius: 10px; border-width: 3px; box-shadow: 0 3px 0 var(--ink); }
+    .ucard .ubuy { margin-left: 0; flex: 1 1 100%; width: auto; height: 36px; font-size: 17px; border-radius: 10px; border-width: 3px; box-shadow: 0 3px 0 var(--ink); }
     .ucard .ufx { font-size: 15px; } .ucard .ucost { font-size: 14px; } .ucard .uhave { font-size: 13px; } .ucard .tv { min-height: 24px; }
   }
   .ubuy { margin-left: auto; flex: none; width: 58px; height: 52px; border-radius: 16px; border: 4px solid var(--ink); background: var(--green); font-size: 26px; cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
