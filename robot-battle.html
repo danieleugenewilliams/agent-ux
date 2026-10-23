@@ -1773,6 +1773,10 @@ const ROBOT_HITS = {
   // flanker's kick on a robot (NINJA.flank.allyDmg; a fixed minion's NINJA.flank.mini.allyDmg)
   nkick: { push: 3 },
   flank: { push: 5 },
+  // #121: a clone's attacks: the player's own weapons, as the clone fires them at a player or a squadmate (their damage is
+  // the player's × COPIER.clone.dmg; their knock-back the weapon's × COPIER.clone.push)
+  cgun: { push: WEAPON.gun.push * 0.5 }, cem: { push: WEAPON.em.push * 0.5 }, crail: { push: WEAPON.rail.push * 0.5 },
+  cpunch: { push: WEAPON.punch.push * 0.5 }, ckick: { push: WEAPON.kick.push * 0.5 },
 };
 const ROBOT = {
   downTime: 12,              // seconds a beaten robot stays powered down
@@ -1791,7 +1795,8 @@ const ROBOT = {
 // e.g. bullets 1.4 -> 4 wires + 1 burnt; a kick 1.6 -> 4 + 1; setup 1 -> 3 + 0 (as before faults);
 // a punch 0.6 -> 2 + 0; a pure electromagnetic shutdown 0 -> 1 wire.
 const FAULTS = {
-  weight: { em: 0, punch: 0.6, setup: 1, gun: 1.4, snipe: 1.4, kick: 1.6, stomp: 1.6, rail: 2, flank: 1.6 },   // (#120: a flanker's kick, as a kick)
+  weight: { em: 0, punch: 0.6, setup: 1, gun: 1.4, snipe: 1.4, kick: 1.6, stomp: 1.6, rail: 2, flank: 1.6,   // (#120: a flanker's kick, as a kick)
+    cgun: 1.4, cpunch: 0.6, ckick: 1.6, crail: 2, cem: 0 },   // (#121: a clone's hits on a squadmate, as the weapon's own)
   em: 0.5, burnt: [1.2, 1.8], scrub: 3,
 };
 // Fix it or take the parts. A downed robot within promptRange shows the choice.
@@ -1827,7 +1832,9 @@ const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };
 // where each kind of hit lands: a Sniper's round on the hull, a drone's zap in the power and
 // wiring (so 🔋 and 🔌 have something to mend), a Bouncer's stomp mostly in the legs
 // (#120: a Ninja's or a minion's kick mostly in the legs too)
-const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 }, nkick: { hull: 0.4, legs: 0.6 }, flank: { hull: 0.4, legs: 0.6 } };
+// (#121: a clone's kick mostly in the legs, its pulse in the power and wiring; its rounds, rail and punch on the hull)
+const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 }, nkick: { hull: 0.4, legs: 0.6 }, flank: { hull: 0.4, legs: 0.6 },
+  ckick: { hull: 0.4, legs: 0.6 }, cem: { power: 0.5, wiring: 0.5 } };
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
@@ -2300,10 +2307,10 @@ function median(a) { if (!a?.length) return null; const b = [...a].sort((x, y) =
 // Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
 // else (setup damage, an electromagnet) leaves its wiring sparking.
 const SYMPTOMS = {
-  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram', 'nkick', 'flank'] },   // (#120: a Ninja's kicks too)
-  holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe'] },
-  drained: { ic: 'drained', parts: ['battery', 'wiring'], by: ['rail'] },
-  sparks: { ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em'] },
+  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram', 'nkick', 'flank', 'ckick', 'cpunch'] },   // (#120: a Ninja's kicks too; #121: a clone's)
+  holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe', 'cgun'] },
+  drained: { ic: 'drained', parts: ['battery', 'wiring'], by: ['rail', 'crail'] },
+  sparks: { ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em', 'cem'] },
 };
 const symptomOf = (how) => Object.keys(SYMPTOMS).find((k) => SYMPTOMS[k].by.includes(how)) || 'sparks';
 // a decoy port (math wiring, from wave 1): W.ports holds DECOY + k, and W.decoys[k] is the answer it shows
@@ -2379,6 +2386,30 @@ const NINJA = {
   minion: { health: 25, topSpeed: 4.2, notice: 45, windup: 0.45, dmg: 3, push: 1.5, cool: 1.6, reach: 0.9, follow: 5 },
   flank: { lead: 30, reach: 40, behind: 0.6, hits: 2, allyDmg: 12, gap: 0.3, cool: 2.5, give: 6, mini: { hits: 1, allyDmg: 6, give: 9 } },
   boots: { kick: 0.15, speed: 0.06 },
+};
+// #121 (#117 N2, Orion's Q4 B / Q5 50% / Q6 B / Q7): the copier saucer and the clone it makes. Every number here is a
+// starting value, tuned at the playtest. Waves.copier, the Copier, ROBOT_TYPES.clone and its brain all read it.
+//   wave:   one copier a wave on waves `from`, from + every, from + 2 × every … (4, 6, 8, 10 …), at most one a wave. Waves.copier(n)
+//           is the only place this is asked, so a boss-wave switch (N3's BOSS_WAVE.copier) goes in there. Boss waves get one too
+//           (Dad, #117: no boss-wave exception)
+//   saucer: `arrive` s after the wave comes in it flies in from the meadow's edge (at `speed` m/s, `fly` m up) to `alt` m over
+//           player 1's mech, and scans it for `scan` s with a beam (Q4 B: it can't be stopped). Its shield stops every round
+//           and pulse that reaches it (`shield` m round it), the whole time it's in the meadow, so it's never hit. Then it
+//           moves `drop` m off, prints the clone there with its beam for `print` s, and flies off out of the meadow
+//   clone:  the player's legs, torso, arms, upgrades, weapons and paint, with glitch-red eyes (`eyes`). (Q5) `health` × the
+//           player's max energy and `dmg` × the player's damage with each weapon, as it is at the scan's end (its rounds and
+//           blows knock back `push` × the weapon's). Its brain: `boot` s still once it's printed; keeps `keep` m off
+//           (circling), a cannon burst every `gunRest` s within `gunRange` × the cannon's range (`spread` rad off), a pulse
+//           every `emCool` s within `emRange` m, a rail shot every `railCool` s within `railRange` m (the aim fixed as it
+//           charges, so it can be dodged), and a rush in to punch or kick every `meleeCool` s (a `windup` s wind-up first,
+//           the ❗; it gives up after `rushT` s). With spring legs or jump jets it jumps every `jumpCool` s (± `jumpVar`)
+//   (Q6 B) fixed, it powers down and vanishes: no part, no kit, no squad place. It counts as fixed in the wave's stats
+const COPIER = {
+  wave: { from: 4, every: 2 },
+  arrive: 6, speed: 24, fly: 16, alt: 10.5, scan: 3.5, shield: 3.4, drop: 15, print: 1.2,
+  clone: { health: 0.5, dmg: 0.5, push: 0.5, eyes: '#ff2f5b', boot: 1.6,
+    keep: 16, gunRange: 0.8, gunRest: 1.3, spread: 0.03, emCool: 5, emRange: 45, railCool: 7, railRange: 90,
+    meleeCool: 5, windup: 0.4, rushT: 4, jumpCool: 6, jumpVar: 3 },
 };
 
 const V3 = THREE.Vector3;
@@ -2516,6 +2547,10 @@ const ICONS = {
   // #120: a minion: small and grey, a round head on a box body, its antenna, no arms
   minion: ['minion', [], ln('M12 2.8 L12 5', G('dark'), 1.2) + ci(12, 2.4, 1.3, G('steel')) + re(8, 16.6, 3, 4.8, 0.8, G('dark')) + re(13, 16.6, 3, 4.8, 0.8, G('dark'))
     + re(6.6, 10.6, 10.8, 6.6, 1.8, G('iron')) + ci(12, 8.4, 3.8, G('iron')) + cn(12, 8.4, 1.3, '#ff2f5b') + hl('M8.8 12.6 L8.8 15.2')],
+  // #121: your clone: the mech's chest in its orange, its steel shoulders, a dark visor with two glitch-red eyes, and a
+  // glitch tear (a red and a cyan bar) across it
+  clone: ['clone', [], re(1.6, 4.6, 5.4, 6.6, 2.2, G('steel')) + re(17, 4.6, 5.4, 6.6, 2.2, G('steel')) + pa('M4.8 5.6 L19.2 5.6 L17.2 20.4 L6.8 20.4 Z', G('orange'))
+    + rn(7.6, 8.4, 8.8, 4, 2, INK) + cn(10, 10.4, 1.3, '#ff2f5b') + cn(14, 10.4, 1.3, '#ff2f5b') + rn(1.2, 15.4, 6.4, 1.6, 0.5, '#ff2f5b') + rn(16.2, 17.6, 6.4, 1.6, 0.5, '#3ff0ff') + hl('M7.2 7.8 L8.2 14')],
   // ---- the mech's areas, body sections and leg shapes ----
   // I2: the torso is a chest plate in armour purple with steel shoulders (no face: that's the squad's robot)
   torso: ['torso', [], re(8.6, 2.2, 6.8, 3.6, 1.2, G('dark')) + re(1.6, 4.6, 5.4, 6.6, 2.2, G('steel')) + re(17, 4.6, 5.4, 6.6, 2.2, G('steel')) + pa('M4.8 5.6 L19.2 5.6 L17.2 20.4 L6.8 20.4 Z', G('purple'))
@@ -4339,7 +4374,7 @@ const SPIDER_FOOT = { r: 0.05, sole: 0.3, clear: 0.05 };   // (clear: a foot it 
 function footBlockers(m, reach = Infinity) {
   const B = [], x = m.pos.x, z = m.pos.z, near = (q, r) => Math.hypot(q.x - x, q.z - z) - r < reach;
   for (const o of obstacles) if (near(o, o.r)) { const p = o.prop || o; B.push({ x: o.x, z: o.z, r: o.r, top: groundH(p.x, p.z) + o.h, kind: o.kind, id: o.prop?.id ?? null }); }
-  for (const r of Game.robots) if (!r.air && !ROBOT_TYPES[r.type].flies && near(r.pos, r.spec.radius)) B.push({ x: r.pos.x, z: r.pos.z, r: r.spec.radius, top: Infinity, kind: 'robot', id: r.id });
+  for (const r of Game.robots) if (r !== m && !r.air && !ROBOT_TYPES[r.type].flies && near(r.pos, r.spec.radius))   // (#121: a Spider clone's own body isn't in its way) B.push({ x: r.pos.x, z: r.pos.z, r: r.spec.radius, top: Infinity, kind: 'robot', id: r.id });
   for (const q of Game.mechs) if (q !== m && near(q.pos, MECH.radius)) B.push({ x: q.pos.x, z: q.pos.z, r: MECH.radius, top: Infinity, kind: 'mech', id: null });
   return B;
 }
@@ -7240,7 +7275,7 @@ const Bullets = {
           const T = ROBOT_TYPES[r.type], t = sweep(r.pos.x, r.pos.y + T.hitY, r.pos.z, T.hitR, best);
           if (t != null) { best = t; hit = r; at = q.clone(); }
         }
-        if (hit) { shotMech(hit, b, at); this.list.splice(k, 1); continue; }
+        if (hit) { const dealt = shotMech(hit, b, at); if (b.owner?.clone) cloneNote(b.owner, b.kind, dealt); this.list.splice(k, 1); continue; }   // (#121: a clone's)
       } else {
         for (const r of Game.robots) {
           if (r.state === 'ally' || r === b.owner) continue;   // shots pass squadmates
@@ -7752,7 +7787,7 @@ function shotMech(m, b, at) {
   const kb = m.fx?.push ?? 1;   // (B2: × the leg shape's knock-back)
   m.push.x -= bx * ROBOT_HITS[b.kind].push * kb; m.push.z -= bz * ROBOT_HITS[b.kind].push * kb;
   if (!Game.manual) Sfx.ping(1);
-  hurtMech(m, b.dmg, b.kind);
+  return hurtMech(m, b.dmg, b.kind);
 }
 // A player's mech takes a hit. `how` (a HIT_AREAS key) shares the damage out over
 // the areas it lands in: a plain hit hurts the hull, a ram the hull and the legs.
@@ -8216,6 +8251,21 @@ const ROBOT_TYPES = {
     hot: (r) => r.ai.mode === 'windup',
     sparkBox: [0.8, 0.6, 1.2, 1.2], sparkN: 0.5,
   },
+  // #121: your clone, made by the copier from player 1's mech (spawnClone: its spec, health, damage and look are the
+  // player's; these are only the defaults). Its brain uses the player's weapons (cloneAI, cloneTick). mechModel: it wears a
+  // mech's model (buildClone; clonePose runs the mech's own sync). Fixed, it vanishes (vanish): noParts (its parts are only
+  // its 🔍 puzzle's tiles: none can be taken), noKit, noSquad (it never takes a squad place, so it never asks who goes home)
+  clone: {
+    ic: 'clone', health: MECH_HEALTH * COPIER.clone.health, hitY: MECH_HIT.y, hitR: MECH_HIT.r, top: null, beamY: 5,
+    spec: MECH, paint: PAINT,
+    build: () => buildClone(spawnClone.of), ai: cloneAI, ally: allyAI, pose: clonePose, tick: cloneTick,
+    parts: ['armour', 'motor', 'battery', 'wiring'],
+    takeMax: 0, noParts: true, noKit: true, noSquad: true, vanish: true, mechModel: true,
+    notice: Infinity,
+    tell: 'windup',      // it stops and winds up before a punch or kick; its rail gun's barrels gather pink sparks as it charges
+    hot: (r) => r.ai.mode === 'windup' || !!r.charge,
+    sparkBox: [3, 3, 4, 3],
+  },
 };
 const takeMaxOf = (r) => ROBOT_TYPES[r.type].takeMax ?? REPAIR.takeMax;
 
@@ -8261,6 +8311,7 @@ let nextSwarm = 1;
 const minionsFor = (wave) => (wave >= NINJA.more ? NINJA.minions[1] : NINJA.minions[0]);
 function spawn(type, x, z, n) {
   const T = ROBOT_TYPES[type]; if (!T) return null;
+  if (T.vanish) return spawnClone(Game.humans[0], x, z);   // #121: a clone of player 1, as the copier makes one
   if (T.crew) {
     const lead = spawnRobot(type, x, z), out = [lead], k = Number.isInteger(n) && n >= 0 ? n : minionsFor(Game.wave);
     lead.crew = lead.id;
@@ -8968,6 +9019,354 @@ function allyNinja(r, dt) {
   allyAI(r, dt);
 }
 
+// ---------------------------------------------------------------------------
+// #121 The clone (Q5, Q6 B). The copier's scan makes it from player 1's mech as it is at the scan's end: a model of the
+// same legs, torso, arms and upgrades in the same paint and finish (buildClone), with glitch-red eyes and nobody in the
+// cockpit; the same walk (its spec), jump, recharge and arm-set sockets. COPIER.clone.health × the player's max energy, and
+// COPIER.clone.dmg × the player's damage with each weapon it had (r.clone.dmg). Its brain (cloneAI) circles and fires the
+// cannon in bursts, the 🧲 pulse and the rail gun (if the player had them), rushes in to punch or kick with the leg shape's
+// own kick, and jumps if the player can. Its attacks (cloneTick) land on players and squadmates through hurtMech, keyed
+// cgun / cem / crail / cpunch / ckick (ROBOT_HITS). Beaten and fixed it powers down and vanishes (cloneFixed): no part, no
+// kit, no squad place; it counts as fixed.
+// ---------------------------------------------------------------------------
+// what mech m's weapon w does to a robot (a kick and a punch as meleeStrike works them out)
+const playerDmg = (m, w) => (w === 'kick' ? kickDmg(m) : w === 'punch' ? punchDmg(m) : WEAPON[w].dmg);
+function buildClone(p) {
+  const pm = p.model, C = COPIER.clone;
+  const md = buildMech(PAINT, pm.legShape, pm.legCount === 6 ? 6 : null, pm.torsoShape, pm.armShape);
+  dressUpgrades(md, p.upg || {}, p.adv || {});
+  md.finish = pm.finish ?? null;
+  paintMech(md, pm.paintNow || Garage.paintNow());
+  // glitch-red eyes: two on the canopy's face, the canopy and the turret ring glowing red with them (they flicker, the
+  // glitch); no pilot
+  const eyeMat = new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: C.eyes, emissiveIntensity: 3, roughness: 0.3 });
+  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 8), eyeMat); e.position.set(s * 0.32, 0.38, -0.92); e.userData.eye = true; md.cockpit.add(e); }
+  md.lights.push({ mat: eyeMat, k: 3 });
+  for (const M of [md.canopy.material, md.ringGlow.material]) M.emissive.set(C.eyes);
+  md.eyes = md.lights.filter((L) => L.mat === eyeMat || L.mat === md.canopy.material || L.mat === md.ringGlow.material);
+  // the robot pipeline's glow (its glitch flicker) drives the eyes; its armour flash, the body paint
+  const body = [...md.paintMats.body.values()];
+  for (const c of body) { c.emissive.set('#ffffff'); c.emissiveIntensity = 0; }
+  md.glow = { emissive: { copy: (c) => { for (const L of md.eyes) L.mat.emissive.copy(c); } }, dispose() { eyeMat.dispose(); },
+    set emissiveIntensity(v) { for (const L of md.eyes) L.mat.emissiveIntensity = L.k * v / 3; } };
+  md.armour = { dispose() {}, set emissiveIntensity(v) { for (const c of body) c.emissiveIntensity = v * 0.6; } };
+  return Object.assign(md, robotHud(md.root, 9.6, 4));
+}
+// a clone of player h's mech, at (x, z), facing it. Returns the robot
+function spawnClone(h, x, z) {
+  const p = h?.mech; if (!p) return null;
+  const C = COPIER.clone;
+  spawnClone.of = p; const r = spawnRobot('clone', x, z); spawnClone.of = null;
+  r.spec = { ...(p.spec || MECH), radius: MECH.radius };
+  r.fx = { ...(p.fx || shapeFx('walker')) }; r.tfx = p.tfx ? { ...p.tfx } : undefined; r.afx = p.afx ? JSON.parse(JSON.stringify(p.afx)) : undefined;
+  r.shot = p.shot ? { ...p.shot } : undefined; r.upg = { ...(p.upg || {}) }; r.adv = { ...(p.adv || {}) };
+  r.health = r.maxHealth = p.maxHealth * C.health;
+  const weapons = WEAPONS.filter((w) => Game.unlocked.has(w)), md = r.model;
+  const lv = r.upg.spring || 0, jump = lv ? UPGRADE.jump[lv] * (r.fx.jump ?? 1) : r.adv.jets ? jetHeight(r) : 0;
+  r.clone = { of: h.idx, wave: Game.wave, ofMax: p.maxHealth, weapons, jump: r3(jump),
+    ofDmg: Object.fromEntries(weapons.map((w) => [w, r3(playerDmg(p, w))])), dmg: Object.fromEntries(weapons.map((w) => [w, r3(playerDmg(p, w) * C.dmg)])),
+    legs: md.legShape, legCount: md.legCount, torso: md.torsoShape, arms: md.armShape, finish: md.finish ?? null,
+    fired: { gun: 0, em: 0, rail: 0, punch: 0, kick: 0, jump: 0 }, hits: 0, dealt: 0, last: null, log: [] };
+  setGlowColor(r, C.eyes);
+  r.legHeading = r.torsoYaw = Math.atan2(-(p.pos.x - x), -(p.pos.z - z));
+  r.input.aimYaw = r.legHeading;
+  r.cool = 0; r.slump = 0; r.printT = 0; r.barrel = 0;
+  r.ai = { think: 0, mode: 'boot', t: C.boot, gunT: 1, emT: 2, railT: 3, meleeT: 2.5, jumpT: C.jumpCool, burst: 0, alert: 0, at: null };
+  return r;
+}
+// note a clone's attack (what: a weapon fired, or a hit key that landed with `dealt`)
+function cloneNote(r, what, dealt) {
+  const K = r.clone;
+  if (dealt === undefined) K.fired[what]++;
+  else { K.hits++; K.dealt = r3(K.dealt + dealt); K.last = { how: what, dmg: r3(dealt) }; }
+  K.log.push({ what, dealt: dealt === undefined ? null : r3(dealt), t: r3(r.t) }); if (K.log.length > 24) K.log.shift();
+}
+// a body a clone's rounds can still hit: a running player's mech or a running squadmate (a flying one too)
+const cloneFoe = (b) => !!b && (b.type ? b.state === 'ally' && Game.squad.includes(b) : b.state !== 'down' && Game.mechs.includes(b));
+// one round of a burst from its cannon (the barrels it has), at its target's middle, a little wide
+function cloneShoot(r) {
+  const tgt = r.ai.at; if (!cloneFoe(tgt)) { r.ai.burst = 0; return; }
+  r.barrel ^= 1;
+  const S = r.shot ?? { gun: 2.4, spread: 0.2, y: 4.4 }, A = r.afx, sp = COPIER.clone.spread;
+  const { from } = gunPose(r, S.gun + (r.barrel ? S.spread : -S.spread), S.y), dir = aimPoint(tgt).sub(from).normalize();
+  dir.x += (Math.random() - 0.5) * 2 * sp; dir.y += (Math.random() - 0.5) * sp; dir.z += (Math.random() - 0.5) * 2 * sp; dir.normalize();
+  Bullets.fire(from, dir, r, 'cgun', r.clone.dmg.gun, WEAPON.gun.range * (A?.gunRange ?? 1), WEAPON.gun.speed * (A?.roundSpeed ?? 1));
+  r.flash = MUZZLE.flash; r.recoil = 1; cloneNote(r, 'gun');
+  const k = loud(r.pos); if (k > 0) Sfx.ping(0.5 * k);
+}
+// its 🧲 pulse, from the arm set's pod
+function clonePulse(r, tgt) {
+  const { from } = gunPose(r, -(r.shot?.pod ?? 2.4), r.shot?.podY ?? 4.4), dir = aimPoint(tgt).sub(from).normalize();
+  Bullets.fire(from, dir, r, 'cem', r.clone.dmg.em, WEAPON.em.range, WEAPON.em.speed);
+  Sparks.burst(from.x + dir.x * 2.4, from.y + dir.y * 2.4, from.z + dir.z * 2.4, 10, SPARK_ZAP, 4);
+  r.cool = WEAPON.em.cool; r.coolW = 'em'; cloneNote(r, 'em');
+  const k = loud(r.pos); if (k > 0) Sfx.emHit(0.5 * k);
+}
+// the rail gun: its charge starts, aimed where the target is now (the shot goes there, so moving off dodges it)
+function cloneCharge(r, at) {
+  const { from } = gunPose(r);
+  r.charge = { t: 0, dir: at.clone().sub(from).normalize() }; r.cool = WEAPON.rail.charge + WEAPON.rail.cool; r.coolW = 'rail';
+  const k = loud(r.pos); if (k > 0) Sfx.tone(180, WEAPON.rail.charge, 'sine', 0.1 * k, 2400);
+}
+function cloneRail(r, ch) {
+  const W = WEAPON.rail, { from } = gunPose(r), dir = ch.dir, land = railLanding(from, dir, W.range);
+  const end = land ? land.p : from.clone().addScaledVector(dir, W.range), len = from.distanceTo(end), hit = [];
+  for (const b of [...Game.mechs, ...Game.squad]) {
+    if (!cloneFoe(b)) continue;
+    const c = aimPoint(b), t = c.clone().sub(from).dot(dir);
+    if (t < 0 || t > len || from.clone().addScaledVector(dir, t).distanceTo(c) > (b.type ? ROBOT_TYPES[b.type].hitR : MECH_HIT.r)) continue;
+    const dealt = hurtMech(b, r.clone.dmg.rail, 'crail'), kb = (b.fx?.push ?? 1) * ROBOT_HITS.crail.push;
+    b.push.x += dir.x * kb; b.push.z += dir.z * kb;
+    hit.push(b.type ? b.id : 'p' + b.human?.idx); cloneNote(r, 'crail', dealt);
+  }
+  RailFx.fire(from.clone().addScaledVector(dir, 3.2), end);
+  r.lastRail = { hits: hit, len: r3(len) };
+  r.flash = MUZZLE.flash * 2; r.recoil = 1; cloneNote(r, 'rail');
+  const k = loud(r.pos); if (k > 0) Sfx.rail();
+}
+// a punch or kick lands (at the weapon's strike): on every running mech or ground squadmate in reach and in its arc (a kick
+// where the legs face, a punch where the torso does), as meleeStrike reaches a robot
+function cloneStrike(r, w) {
+  const W = WEAPON[w], how = 'c' + w, face = w === 'kick' ? r.legHeading : r.torsoYaw;
+  for (const b of [...Game.mechs, ...Game.squad]) {
+    if (!kickable(b)) continue;
+    const dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
+    if (d > r.spec.radius + bodyR(b) + W.reach || Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
+    const dealt = hurtMech(b, r.clone.dmg[w], how), kb = (b.fx?.push ?? 1) * ROBOT_HITS[how].push * (w === 'punch' ? r.afx?.punchPush ?? 1 : 1);
+    b.push.x += dx / d * kb; b.push.z += dz / d * kb;
+    Sparks.burst(b.pos.x - dx / d * bodyR(b), r.pos.y + (w === 'kick' ? 2 : 4.5), b.pos.z - dz / d * bodyR(b), 18, SPARK_HOT, 9);
+    if (!Game.manual) Sfx.whack(0.7);
+    cloneNote(r, how, dealt);
+  }
+}
+// a jump, as the player's spring legs (or jump jets) send it
+function cloneJump(r) {
+  const H = r.clone.jump; if (!(H > 0) || r.hop) return false;
+  r.hop = { y: 0, v: Math.sqrt(2 * UPGRADE.gravity * H), peak: 0 };
+  if (!r.upg.spring) r.jetT = ADV.flame;
+  cloneNote(r, 'jump');
+  return true;
+}
+// each tick (after it walks): its weapons (cooldown, the swing, the rail's charge, the burst under way) and its print-in clock
+function cloneTick(r, dt) {
+  r.lift = 0; r.printT = (r.printT ?? 0) + dt;
+  if (r.state === 'down') { r.swing = null; r.charge = null; r.ai.burst = 0; return; }
+  r.cool = Math.max(0, (r.cool || 0) - dt * rechargeOf(r, r.coolW));
+  r.flash = Math.max(0, (r.flash || 0) - dt); r.recoil = Math.max(0, (r.recoil || 0) - dt / MUZZLE.recoil);
+  const sw = r.swing;
+  if (sw) { const W = WEAPON[sw.w]; sw.t += dt; if (!sw.struck && sw.t >= W.strike) { sw.struck = true; cloneStrike(r, sw.w); } if (sw.t >= W.dur) r.swing = null; }
+  const ch = r.charge;
+  if (ch) {
+    ch.t += dt;
+    if (Game.ticks % 3 === 0) { const g = gunPose(r), q = g.from.clone().addScaledVector(g.f, 3.4); Sparks.burst(q.x, q.y, q.z, 2, SPARK_RAIL, 1 + 3 * ch.t / WEAPON.rail.charge); }
+    if (ch.t >= WEAPON.rail.charge) { r.charge = null; cloneRail(r, ch); }
+  }
+  if (r.ai.burst > 0 && r.cool <= 0 && !r.swing && !r.charge) { cloneShoot(r); r.ai.burst--; r.cool = WEAPON.gun.cool; r.coolW = 'gun'; }
+}
+// its glitched brain (20 Hz). boot: still while it's printed. stalk: circles its target COPIER.clone.keep m off, firing what
+// it has when it's ready and facing it. rush: walks in to punch or kick (whichever the player has), winds up (the ❗) and
+// strikes. A jump now and then if the player can jump.
+function cloneAI(r, dt) {
+  const ai = r.ai, inp = r.input, C = COPIER.clone, K = r.clone, has = (w) => K.weapons.includes(w);
+  inp.boost = false; inp.attack = false;
+  ai.t = (ai.t ?? 0) - dt; for (const k of ['gunT', 'emT', 'railT', 'meleeT', 'jumpT']) ai[k] -= dt;
+  if (ai.mode === 'boot' || (ai.mode === 'recover' && ai.t > 0)) { inp.throttle = inp.turn = 0; if (ai.t <= 0) ai.mode = 'stalk'; return; }
+  const tgt = nearestFoe(r);
+  if (!tgt) { inp.throttle = inp.turn = 0; ai.mode = 'stalk'; ai.at = null; ai.burst = 0; return; }
+  ai.at = tgt;
+  const tp = aimPoint(tgt), dist = flatDist(r, tgt), busy = !!(r.swing || r.charge || ai.burst > 0);
+  inp.aimYaw = Math.atan2(-(tp.x - r.pos.x), -(tp.z - r.pos.z));
+  inp.aimPitch = clamp(Math.atan2(tp.y - (r.pos.y + (r.shot?.y ?? 4.4)), Math.max(1, dist)), -0.35, 0.5);
+  if (ai.mode === 'windup') {
+    inp.throttle = 0;
+    if (ai.w === 'kick' && kickable(tgt)) faceTo(r, tgt); else inp.turn = 0;
+    if (ai.t <= 0) { r.swing = { w: ai.w, t: 0, struck: false }; r.cool = WEAPON[ai.w].cool; r.coolW = ai.w; cloneNote(r, ai.w); ai.mode = 'stalk'; ai.meleeT = C.meleeCool; if (!Game.manual && loud(r.pos) > 0) Sfx.swing(); }
+    return;
+  }
+  if (ai.mode === 'rush') {
+    if (!kickable(tgt) || ai.t <= 0) { ai.mode = 'stalk'; ai.meleeT = C.meleeCool * 0.5; return; }
+    steer(r, tgt.pos.x, tgt.pos.z, 1);
+    const w = ai.w, face = w === 'kick' ? r.legHeading : r.torsoYaw;
+    const off = Math.abs(wrapAngle(Math.atan2(-(tgt.pos.x - r.pos.x), -(tgt.pos.z - r.pos.z)) - face));
+    if (dist < r.spec.radius + bodyR(tgt) + WEAPON[w].reach - 0.4) { inp.throttle = 0; if (!busy && off < 0.5) { ai.mode = 'windup'; ai.t = C.windup; } }
+    return;
+  }
+  ai.mode = 'stalk'; ai.spin ||= Math.random() < 0.5 ? 1 : -1;
+  const a = Math.atan2(r.pos.z - tgt.pos.z, r.pos.x - tgt.pos.x) + 0.5 * ai.spin;
+  steer(r, tgt.pos.x + Math.cos(a) * C.keep, tgt.pos.z + Math.sin(a) * C.keep, 0.9, 4);
+  if (K.jump > 0 && ai.jumpT <= 0 && !r.hop) { cloneJump(r); ai.jumpT = C.jumpCool + Math.random() * C.jumpVar; }
+  if (busy || r.cool > 0) return;
+  const facing = Math.abs(wrapAngle(r.torsoYaw - inp.aimYaw)) < 0.2, melee = ['kick', 'punch'].filter(has);
+  if (melee.length && ai.meleeT <= 0 && kickable(tgt) && dist < C.keep * 2) { ai.mode = 'rush'; ai.w = melee[Math.floor(Math.random() * melee.length)]; ai.t = C.rushT; return; }
+  if (!facing) return;
+  if (has('rail') && ai.railT <= 0 && dist < C.railRange) { cloneCharge(r, tp); ai.railT = C.railCool; return; }
+  if (has('em') && ai.emT <= 0 && dist < C.emRange) { clonePulse(r, tgt); ai.emT = C.emCool; return; }
+  if (has('gun') && ai.gunT <= 0 && dist < WEAPON.gun.range * (r.afx?.gunRange ?? 1) * C.gunRange) { ai.burst = WEAPON.gun.burst; ai.gunT = C.gunRest; }
+}
+// its look each frame: the mech's own (its leg piece's walk, the torso on its aim, the arms, the swing, recoil and flash,
+// slumping when it's down), with its lights at a player's level; the eyes take the glitch flicker after (syncRobotModel).
+// While it's printed it grows up out of the beam
+function clonePose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair';
+  r.slump = approach(r.slump || 0, down ? 1 : 0, dt * 1.6);
+  const g = r.glow; r.glow = down ? 0.03 : 1; syncMechModel(r); r.glow = g;
+  md.root.scale.y = clamp((r.printT ?? 1) / COPIER.print, 0.05, 1);
+}
+// Q6 B: fixed, it powers down for good and vanishes in a column of sparks. No part, no kit, no squad place, no name; the fix
+// still counts (the wave's 🔧, its ⭐, and a fast repair's 🌟)
+function cloneFixed(h, r) {
+  const fast = fastRepair(r.wires); if (fast) Game.waveStats.fast++;
+  for (let y = 0; y < 9; y += 1.5) Sparks.burst(r.pos.x, r.pos.y + y, r.pos.z, 12, y % 3 ? SPARK_ZAP : SPARK_HOT, 4);
+  Impacts.flash(new V3(r.pos.x, r.pos.y + 4, r.pos.z), 4);
+  Copier.fixed.push({ id: r.id, wave: Game.wave, fast, by: h.idx });
+  removeRobot(r);
+  if (!Game.manual) { Sfx.fixed(); Sfx.home(); }
+  if (h.idx === 0) FixUI.close();
+  Game.waveStats.fixed++; Waves.check();
+}
+
+// ---------------------------------------------------------------------------
+// #121 The copier (Q4 B, Q7): a saucer, not a robot (it's never in Game.robots, so nothing aims at it, fights it or
+// fixes it). On a copier wave (Waves.copier) it comes COPIER.arrive s after the wave: in from the meadow's edge to over
+// player 1's mech (with more than one player, it scans player 1 only), scans it with a beam for COPIER.scan s, moves
+// COPIER.drop m off and prints the clone there, then flies off out of the meadow and is gone. Its shield stops every
+// round and pulse that reaches it the whole time (blocked counts them), so it can't be stopped or shot down. The wave
+// can't clear until its clone is out (pending).
+// phase: wait → in → scan → print → out
+// ---------------------------------------------------------------------------
+function buildSaucer() {
+  const root = new THREE.Group(), metal = { metalness: 0.75, roughness: 0.3 }, own = (o) => { o.material = o.material.clone(); return o; };
+  const body = new THREE.Group(); root.add(body);
+  body.add(own(cyl(3.3, 2.2, 0.75, '#9aa1ad', metal, 36)));
+  const top = own(cyl(2.2, 3.3, 0.45, '#c9ced8', metal, 36)); top.position.y = 0.6; body.add(top);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(3.3, 0.24, 8, 48), new THREE.MeshStandardMaterial({ color: '#2a2f40', ...metal })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.38; body.add(rim);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#2a0a14', emissive: '#ff2f5b', emissiveIntensity: 0.6, roughness: 0.1, metalness: 0.5 }));
+  dome.position.y = 0.8; body.add(dome);
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.45, 14, 10), new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: '#ff2f5b', emissiveIntensity: 3 })); eye.position.y = 1.5; body.add(eye);
+  // the ring of lights round the rim (they chase while it flies, all on while it scans) and the emitter underneath
+  const spin = new THREE.Group(); body.add(spin);
+  const lamps = [];
+  for (let i = 0; i < 10; i++) {
+    const a = i / 10 * Math.PI * 2, m = new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: '#ff2f5b', emissiveIntensity: 2 });
+    const l = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), m); l.position.set(Math.cos(a) * 3.0, 0.1, Math.sin(a) * 3.0); spin.add(l); lamps.push(m);
+  }
+  const emitter = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.16, 8, 32), new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: '#ff2f5b', emissiveIntensity: 2.6 }));
+  emitter.rotation.x = Math.PI / 2; emitter.position.y = -0.42; body.add(emitter);
+  // the scan beam: a cone of red light down from the emitter (unit tall, stretched to the ground) and a ring that sweeps up
+  // and down the mech in it
+  const cone = new THREE.CylinderGeometry(1.0, 4.2, 1, 32, 1, true); cone.translate(0, -0.5, 0);
+  const beam = new THREE.Mesh(cone, new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.25, 0.6), transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, toneMapped: false }));
+  beam.position.y = -0.45; beam.visible = false; root.add(beam);
+  const sweep = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.09, 6, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(3.4, 0.6, 1.2), transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false }));
+  sweep.rotation.x = Math.PI / 2; sweep.visible = false; root.add(sweep);
+  // its shield: a bubble that only shows as it stops a shot
+  const shield = new THREE.Mesh(new THREE.SphereGeometry(COPIER.shield, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 2.2, 3.2), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  shield.visible = false; root.add(shield);
+  root.traverse((o) => { if (o.isMesh) o.castShadow = o !== beam && o !== sweep && o !== shield; });
+  scene.add(root);
+  return { root, body, spin, lamps, beam, sweep, shield };
+}
+const Copier = {
+  list: [], nextId: 1, fixed: [], made: [],   // fixed: clones fixed (cloneFixed); made: every copier launched, with its clone
+  launch(wait = COPIER.arrive) {
+    const c = { id: this.nextId++, wave: Game.wave, phase: 'wait', t: wait, pos: new V3(), scanned: 0, blocked: 0, flash: 0, clone: null, drop: null, md: null };
+    this.list.push(c); this.made.push({ id: c.id, wave: c.wave, clone: null });
+    return c;
+  },
+  // a copier is still to make its clone (the wave can't clear yet)
+  pending() { return this.list.some((c) => c.phase === 'wait' || c.phase === 'in' || c.phase === 'scan'); },
+  remove(c) {
+    const i = this.list.indexOf(c); if (i >= 0) this.list.splice(i, 1);
+    if (c.md) { scene.remove(c.md.root); c.md.root.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); c.md = null; }
+  },
+  // where the clone walks out: COPIER.drop m from the mech, ahead of it if that's clear (else round it), inside the meadow
+  dropSpot(p) {
+    for (let t = 0; t < 24; t++) {
+      const a = p.legHeading + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * 0.35 : 0), x = p.pos.x - Math.sin(a) * COPIER.drop, z = p.pos.z - Math.cos(a) * COPIER.drop;
+      if (Math.hypot(x, z) > WORLD_R - 8) continue;
+      if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + MECH.radius + 1)) continue;
+      if (Game.robots.some((r) => !ROBOT_TYPES[r.type].flies && Math.hypot(r.pos.x - x, r.pos.z - z) < r.spec.radius + MECH.radius + 1)) continue;
+      return { x: r3(x), z: r3(z) };
+    }
+    return { x: r3(p.pos.x - Math.sin(p.legHeading) * COPIER.drop), z: r3(p.pos.z - Math.cos(p.legHeading) * COPIER.drop) };
+  },
+  // fly toward (x, y, z) at most COPIER.speed × k m/s; returns the flat distance left
+  fly(c, x, y, z, dt, k = 1) {
+    const d = new V3(x - c.pos.x, y - c.pos.y, z - c.pos.z), L = d.length(), step = COPIER.speed * k * dt;
+    if (L <= step) c.pos.set(x, y, z); else c.pos.addScaledVector(d, step / L);
+    return Math.hypot(x - c.pos.x, z - c.pos.z);
+  },
+  tick(dt) {
+    for (const c of [...this.list]) {
+      const h = Game.humans[0], p = h?.mech;
+      if (!p) { this.remove(c); continue; }
+      c.t -= dt; c.flash = Math.max(0, c.flash - dt * 3);
+      if (c.phase === 'wait') {
+        if (c.t > 0) continue;
+        // in from the meadow's edge, off to one side of the player (from the middle side if the player is near the edge)
+        const R = Math.hypot(p.pos.x, p.pos.z), a = (R > 10 ? Math.atan2(-p.pos.z, -p.pos.x) : Math.random() * Math.PI * 2) + (Math.random() - 0.5);
+        c.pos.set(Math.cos(a) * WAVE.edge, groundH(Math.cos(a) * WAVE.edge, Math.sin(a) * WAVE.edge) + COPIER.fly, Math.sin(a) * WAVE.edge);
+        c.phase = 'in'; c.md = buildSaucer();
+        if (!Game.manual) Sfx.tone(300, 1.2, 'sine', 0.06, 900);
+      }
+      const over = (x, z) => groundH(x, z) + COPIER.alt;
+      if (c.phase === 'in') {
+        if (this.fly(c, p.pos.x, over(p.pos.x, p.pos.z), p.pos.z, dt) < 0.8) { c.phase = 'scan'; c.t = COPIER.scan; if (!Game.manual) Sfx.tone(520, COPIER.scan, 'sine', 0.05, 1400); }
+      } else if (c.phase === 'scan') {
+        this.fly(c, p.pos.x, over(p.pos.x, p.pos.z), p.pos.z, dt, 1.5);   // it keeps over the mech as it moves
+        c.scanned += dt;
+        if (c.t <= 0) {
+          c.drop = this.dropSpot(p);
+          const r = spawnClone(h, c.drop.x, c.drop.z);
+          c.clone = r.id; this.made.find((q) => q.id === c.id).clone = r.id;
+          if (Game.wave >= 1) Game.waveStats.robots++;
+          c.phase = 'print'; c.t = COPIER.print;
+          Sparks.burst(c.drop.x, groundH(c.drop.x, c.drop.z) + 2, c.drop.z, 50, SPARK_ZAP, 8);
+          const k = loud(r.pos); if (k > 0) Sfx.reboot(k);
+        }
+      } else if (c.phase === 'print') {
+        this.fly(c, c.drop.x, over(c.drop.x, c.drop.z), c.drop.z, dt, 1.5);
+        if (c.t <= 0) { c.phase = 'out'; const a = Math.atan2(c.pos.z, c.pos.x); c.away = { x: Math.cos(a) * (WORLD_R + 60), z: Math.sin(a) * (WORLD_R + 60) }; }
+      } else if (c.phase === 'out') {
+        if (this.fly(c, c.away.x, c.pos.y + 1, c.away.z, dt, 1.3) < 1) { this.remove(c); continue; }
+      }
+      // the shield: every round or pulse (a player's or a squadmate's) whose last step came within COPIER.shield of it stops
+      // there, with a crackle and a flash of the bubble. Nothing ever reaches the saucer
+      for (let k = Bullets.list.length - 1; k >= 0; k--) {
+        const b = Bullets.list[k]; if (b.foe) continue;
+        const a = b.p.clone().addScaledVector(b.v, -dt), s = b.p.clone().sub(a), u = clamp(c.pos.clone().sub(a).dot(s) / (s.lengthSq() || 1), 0, 1), q = a.addScaledVector(s, u);
+        if (q.distanceTo(c.pos) > COPIER.shield) continue;
+        Bullets.list.splice(k, 1); c.blocked++; c.flash = 1;
+        Sparks.burst(q.x, q.y, q.z, 10, SPARK_ZAP, 5);
+        const kk = loud(c.pos); if (kk > 0) Sfx.tone(980, 0.1, 'triangle', 0.06 * kk, 1480);
+      }
+    }
+  },
+  sync(dt) {
+    for (const c of this.list) {
+      const M = c.md; if (!M) continue;
+      M.root.position.copy(c.pos);
+      M.body.rotation.y += dt * (c.phase === 'scan' ? 0.6 : 2.2); M.body.rotation.z = Math.sin(Game.ticks / 40) * 0.05;
+      const scan = c.phase === 'scan' || c.phase === 'print';
+      M.lamps.forEach((m, i) => { m.emissiveIntensity = scan ? 3 : (Math.floor(Game.ticks / 4) % 10 === i ? 4 : 0.6); });
+      M.beam.visible = M.sweep.visible = scan;
+      if (scan) {
+        const g = groundH(c.pos.x, c.pos.z), len = Math.max(1, c.pos.y - 0.45 - g);
+        M.beam.scale.set(1, len, 1); M.beam.material.opacity = 0.18 + 0.08 * Math.sin(Game.ticks / 3);
+        const u = 0.5 + 0.5 * Math.sin(Game.ticks / 9), y = 0.3 + u * 7.7;   // the sweep runs up and down the mech (0.3 m to 8 m up)
+        M.sweep.position.y = g + y - c.pos.y; const w = 0.3 + 0.7 * clamp(1 - y / (len + 0.45), 0, 1); M.sweep.scale.set(w, w, 1);
+      }
+      M.shield.visible = c.flash > 0; M.shield.material.opacity = 0.35 * c.flash;
+    }
+  },
+  // for the hooks
+  state(c) {
+    const p = Game.humans[0]?.mech, up = c.phase !== 'wait';
+    return { id: c.id, wave: c.wave, phase: c.phase, t: r3(c.t), x: r3(c.pos.x), y: r3(c.pos.y), z: r3(c.pos.z), over: p && up ? r3(Math.hypot(c.pos.x - p.pos.x, c.pos.z - p.pos.z)) : null,
+      alt: p && up ? r3(c.pos.y - p.pos.y) : null, scanned: r3(c.scanned), beam: c.phase === 'scan' || c.phase === 'print', blocked: c.blocked, clone: c.clone, drop: c.drop ? { ...c.drop } : null };
+  },
+};
+
 // how: 'em' when electromagnetic shock shut it down (its health is left as it was); otherwise it was
 // beaten to 0. Either way how it was beaten sets the faults its Quick Fix has to deal with.
 function powerDown(r, how) {
@@ -9260,6 +9659,7 @@ function chooseFor(h, r, choice, name, picks) {
   if (flatDist(r, h.mech) > REPAIR.promptRange) return { ok: false, why: 'too far' };
   if (r.repairBy && r.repairBy !== h) return { ok: false, why: 'busy' };
   if (choice === 'parts') {
+    if (ROBOT_TYPES[r.type].noParts) return { ok: false, why: 'no parts' };   // #121: a clone drops no part
     if (picks !== undefined) return takeParts(h, r, picks);
     if (h.repair) cancelRepair(h);
     h.repair = { r, kind: 'parts', picks: [], cur: 0 };
@@ -9271,7 +9671,8 @@ function chooseFor(h, r, choice, name, picks) {
   if (h.repair) cancelRepair(h);
   const typed = typeof name === 'string' && name.trim() !== '';
   const mate = Game.squad.includes(r);                  // #59: a powered-down squadmate: a rescue (it keeps its name, its place)
-  h.repair = { r, kind: 'fix', name: mate ? r.name : typed ? name.trim().slice(0, 12) : randomName(), askName: !typed && !mate, home: null, rescue: mate };
+  const own = !ROBOT_TYPES[r.type].noSquad;              // #121: a clone takes no squad place: no name, nobody goes home
+  h.repair = { r, kind: 'fix', name: mate ? r.name : typed ? name.trim().slice(0, 12) : own ? randomName() : null, askName: !typed && !mate && own, home: null, rescue: mate };
   r.repairBy = h; r.wires.link.fill(-1);
   // math wiring: the tracker picks the board's facts the first time it's opened (leaving and coming back
   // keeps them); colour wiring has none
@@ -9280,7 +9681,7 @@ function chooseFor(h, r, choice, name, picks) {
   dealPuzzles(r);                                        // P3-1: the board's puzzles, dealt the first time it opens
   startBoard(r);
   // the squad is full: first ask which squadmate goes home (kind 'home'; the robot's clock holds)
-  if (Game.squad.length >= REPAIR.squadMax && !mate) {
+  if (Game.squad.length >= REPAIR.squadMax && !mate && own) {
     h.repair.kind = 'home'; h.repair.cur = 0;
     if (h.idx === 0) FixUI.openHome(r);
     return { ok: true, ask: 'home' };
@@ -9524,6 +9925,7 @@ function fixRobot(h, r) {
   Game.fixes.push(Game.lastFix);
   if (B) Facts.addFix(Game.lastFix.ms);                  // #48: a ramp fix's time, in the child's record (wave 0 writes nothing)
   if (Game.squad.includes(r)) { rescueMate(r); if (h.idx === 0) FixUI.close(); return; }   // #59: a rescued squadmate
+  if (ROBOT_TYPES[r.type].vanish) { cloneFixed(h, r); return; }                           // #121: a clone vanishes
   // the squad was full: the one picked goes home now (#59: unless the squad has lost one since, a downed squadmate's clock
   // running out mid-fix, so there's room already)
   if (rp.home && Game.squad.length >= REPAIR.squadMax) sendHome(rp.home);
@@ -9600,7 +10002,7 @@ function unlockWeapon(w) {
 function removeRobot(r) {
   const i = Game.robots.indexOf(r); if (i >= 0) Game.robots.splice(i, 1);
   scene.remove(r.model.root);
-  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose();
+  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose(); md.treads?.tex.dispose();   // (#121: a clone's tracks)
   md.root.traverse((o) => { if (o.isMesh) o.geometry.dispose(); else if (o.isSprite) o.material.dispose(); });
 }
 // A squadmate's brain: the same 20 Hz think and the same input fields as a
@@ -9921,7 +10323,7 @@ function syncRobotModel(r, dt) {
   md.root.position.set(r.pos.x + (Math.random() - 0.5) * jit, r.pos.y, r.pos.z + (Math.random() - 0.5) * jit);
   md.root.rotation.y = r.legHeading;
   const k = clamp(Math.abs(r.speed) / S.topSpeed, 0, 1);
-  for (const L of md.legs) L.hip.rotation.x = Math.sin(r.phase + L.ph) * 0.55 * k;
+  if (!T.mechModel) for (const L of md.legs) L.hip.rotation.x = Math.sin(r.phase + L.ph) * 0.55 * k;   // (#121: a clone's legs are its leg piece's)
   const mode = r.state === 'down' ? (r.repairBy ? 'repair' : 'down') : r.ai.mode;
   T.pose(r, md, dt, mode);
   md.glow.emissiveIntensity = r.glow * r.glowK;
@@ -10083,7 +10485,7 @@ function gatherInput(dt) {
     const pr = !h.repair && promptRobot(h);
     if (pr) {
       if (sc.fix.some((c) => keysPressed.has(c)) || (pad && pad.xP)) chooseFor(h, pr, 'fix');
-      else if (tpad && tpad.fixP) { if (chooseFor(h, pr, 'fix').ok && h.idx === 0 && !Game.squad.includes(pr)) FixUI.thenParts = pr; }   // #103: left unfixed, the parts choice opens (not for a downed squadmate's rescue: ✖ just closes, as on main)
+      else if (tpad && tpad.fixP) { if (chooseFor(h, pr, 'fix').ok && h.idx === 0 && !Game.squad.includes(pr) && !ROBOT_TYPES[pr.type].noParts) FixUI.thenParts = pr; }   // (#121: a clone has no parts choice)   // #103: left unfixed, the parts choice opens (not for a downed squadmate's rescue: ✖ just closes, as on main)
       else if (sc.parts.some((c) => keysPressed.has(c)) || (pad && pad.yP)) chooseFor(h, pr, 'parts');
     } else if (asking && pad) {
       // who goes home: d-pad ◀ ▶ moves between squadmates, A sends that one home, B backs out
@@ -10147,6 +10549,7 @@ function tick(dt) {
   }
   for (const r of [...Game.robots]) robotTick(r, dt);   // (a copy: #59 a squadmate can be destroyed in its tick)
   Bullets.tick(dt);
+  Copier.tick(dt);                                       // #121 (after the rounds have moved: its shield stops them)
   rams();
   allyRams();
   separate();
@@ -11328,7 +11731,8 @@ function updateHud() {
     }
   }
   pe.classList.toggle('on', shown);
-  $('pFix').classList.toggle('full', Game.squad.length >= REPAIR.squadMax && !Game.squad.includes(pr));   // still works: it asks who goes home 🏠 (#59: not for a downed squadmate: that fix is a rescue)
+  $('pFix').classList.toggle('full', Game.squad.length >= REPAIR.squadMax && !Game.squad.includes(pr) && !(pr && ROBOT_TYPES[pr.type].noSquad));   // (#121: nor a clone)
+  $('pParts').style.display = pr && ROBOT_TYPES[pr.type].noParts ? 'none' : '';   // #121: a clone drops no part: just the 🔧   // still works: it asks who goes home 🏠 (#59: not for a downed squadmate: that fix is a rescue)
   // getting hearts back: the 🔧 button pulses when the bag has a part for a damaged area,
   // each heal floats up from the bar as +N with its source's icon, and the bar flashes
   const ids = FixUI.mendIds().map((k) => k.split('@')[0]), down = m.state === 'down';   // (#59: squadmates' areas too)
@@ -11411,7 +11815,7 @@ const Garage = {
     return Object.fromEntries(Object.keys(PARTS).map((id) => { const t = g.trophies[id], n = t?.n || 0; return [id, { count: n, found: n > 0, from: { ...(t?.from || {}) } }]; }));
   },
   // robot types built with part id (the hint on an outline: who to hunt)
-  carriers(id) { return Object.keys(ROBOT_TYPES).filter((t) => ROBOT_TYPES[t].parts.includes(id)); },
+  carriers(id) { return Object.keys(ROBOT_TYPES).filter((t) => !ROBOT_TYPES[t].noParts && ROBOT_TYPES[t].parts.includes(id)); },   // (#121: never a clone)
   // open from 'pause' (the pause screen is up) or 'clear' (the clear screen is up: this pauses the world).
   // Left out: whichever of the two is up.
   open(from) {
@@ -12786,6 +13190,7 @@ function render(dt) {
   const W = innerWidth, H = innerHeight;
   for (const m of Game.mechs) syncMechModel(m);
   for (const r of Game.robots) syncRobotModel(r, dt);
+  Copier.sync(dt);
   Bullets.sync();
   Pulses.sync();
   RailFx.sync();
@@ -12876,6 +13281,9 @@ const Waves = {
     return L;
   },
   tough(n) { return n <= 1 ? 1 : Math.min(WAVE.toughMax, 1 + WAVE.tough * (n - 1)); },
+  // #121 (Q7): does wave n get a copier? Every COPIER.wave.every waves from COPIER.wave.from (4, 6, 8, 10 …), boss waves too.
+  // The one place it's asked (N3's BOSS_WAVE.copier switch goes here)
+  copier(n) { const W = COPIER.wave; return n >= W.from && (n - W.from) % W.every === 0; },
   spawn(n) {
     const p = Game.humans[0]?.mech; if (!p) return [];
     const before = new Set(Game.robots);
@@ -12904,6 +13312,7 @@ const Waves = {
     }
     const fresh = Game.robots.filter((r) => !before.has(r));
     Game.waveStats.robots = fresh.length;
+    if (this.copier(n)) Copier.launch();          // #121: the copier comes COPIER.arrive s in (its clone counts in robots then)
     updateHud.newWave = true;                     // the 🌊 badge pulses
     this.draw();
     return fresh;
@@ -12922,7 +13331,7 @@ const Waves = {
   // cleared: a wave is out and nothing but squadmates is left in it (#59: running or powered down)
   check() {
     const was = Game.cleared;
-    Game.cleared = Game.wave >= 1 && !Game.robots.some((r) => r.state !== 'ally' && !Game.squad.includes(r));
+    Game.cleared = Game.wave >= 1 && !Copier.pending() && !Game.robots.some((r) => r.state !== 'ally' && !Game.squad.includes(r));   // (#121: nor a copier still to make its clone)
     if (Game.cleared !== was) this.draw();
     if (Game.cleared) Squad.earn(!was);           // #58: recruits from an earlier wave earn their place; the wave's end is saved
     return Game.cleared;
@@ -13064,6 +13473,14 @@ function robotState(r) {
       next: r.ai.mode === 'tell' ? r.ai.next : null, flash: r3(ROBOT_TYPES[r.type].flash?.(r) ?? 0),
       ...JSON.parse(JSON.stringify(r.nj || { tells: 0, dashIn: 0, dashOut: 0, combos: 0, tries: 0, kicks: 0, dealt: 0, misses: 0, log: [] })),
       flank: r.fl ? JSON.parse(JSON.stringify(r.fl)) : null, flankAt: r.ai.flankAt?.id ?? null } : null,
+    // #121: a clone. of = the player it copies; ofMax / ofDmg = that player's max energy and damage by weapon at the scan;
+    // dmg = its own (× COPIER.clone.dmg); weapons = what it fires; jump = how high it jumps (0: it can't); its look: legs,
+    // legCount, torso, arms, finish, paint (paintLook: its paint read back off the model), eyes (the eye glows' colours),
+    // pilot (false: nobody in the cockpit), printed (its height, 0..1, as it's printed); fired (by weapon), hits, dealt,
+    // last { how, dmg } (its last hit), log; lastRail; burst = rounds left in the burst under way; swing / charging now
+    clone: r.clone ? { ...JSON.parse(JSON.stringify(r.clone)), paint: paintLook(r.model), eyes: [...new Set(r.model.eyes.map((L) => '#' + L.mat.emissive.getHexString()))],
+      pilot: !!r.model.pilot, printed: r3(r.model.root.scale.y), pieces: upgradeLook(r.model)?.kinds ?? null, lastRail: r.lastRail ?? null, burst: r.ai.burst || 0, swing: r.swing?.w ?? null, charging: !!r.charge,
+      spec: { topSpeed: r3(r.spec.topSpeed), legTurn: r3(r.spec.legTurn), radius: r.spec.radius } } : null,
   };
 }
 window.__rb = {
@@ -13072,6 +13489,20 @@ window.__rb = {
   ICONS, icon, icText,
   CAM_FAR,   // (#103)
   NINJA, WAVE,   // (#120)
+  COPIER, Copier, Waves, Bullets,   // (#121)
+  // #121: send a copier now (or in `wait` s), as a copier wave does; returns its state (Copier.state)
+  copier(wait = 0) { return Copier.state(Copier.launch(wait)); },
+  // #121: which of waves 1..n get a copier (Waves.copier)
+  copierWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.copier(w)); },
+  // #121: clone `id` uses weapon w on player 1 now, as its brain would ('gun': one round | 'em' | 'rail': its charge starts |
+  // 'punch' | 'kick': the swing starts, landing at the weapon's strike), whether or not the player had it. Returns its state
+  cloneAttack(id, w) {
+    const r = Game.robots.find((q) => q.id === id && q.clone), p = Game.humans[0]?.mech; if (!r || !p || r.state !== 'glitched') return null;
+    r.ai.at = p; if (r.clone.dmg[w] == null) r.clone.dmg[w] = r3(playerDmg(p, w) * COPIER.clone.dmg);
+    if (w === 'gun') cloneShoot(r); else if (w === 'em') clonePulse(r, p); else if (w === 'rail') cloneCharge(r, aimPoint(p));
+    else if (w === 'punch' || w === 'kick') { r.swing = { w, t: 0, struck: false }; cloneNote(r, w); } else return null;
+    return robotState(r);
+  },
   Profiles, PROFILE, Title, Maker, Backup,   // (#49)
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // #70: the sounds as played: thud = Sfx.thud calls so far (every source: footfalls, landings, props, robots; none in manual
@@ -13414,6 +13845,7 @@ window.__rb = {
   },
   // drop a robot into the meadow: spawn('charger' | 'sniper' | 'bouncer' | 'minion', x, z) returns its state;
   // spawn('drone', x, z) drops a whole swarm round (x, z) and returns the list of their states
+  // #121: spawn('clone', x, z) drops a clone of player 1 as it is now (as the copier's scan makes one) and returns its state
   // #120: spawn('ninja', x, z, n) drops a Ninja with n minions (left out: as many as the wave out now brings, minionsFor)
   // and returns the list of their states, the Ninja first
   spawn(type, x, z, n) {
@@ -13632,6 +14064,10 @@ window.__rb = {
         };
       }),
       robots: Game.robots.map(robotState),
+      // #121: the copiers in the meadow or on their way (Copier.state: phase wait | in | scan | print | out, over = how far it
+      // is from over player 1's mech, alt = how high over it, beam, scanned s, blocked = rounds its shield stopped, clone = the
+      // clone's id), every copier sent (made: { id, wave, clone }), clones fixed (fixed: { id, wave, fast, by }), pending
+      copiers: Copier.list.map((c) => Copier.state(c)), copierMade: Copier.made.map((c) => ({ ...c })), clonesFixed: Copier.fixed.map((c) => ({ ...c })), copierPending: Copier.pending(),
       // G3: type, health / maxHealth, its garage upgrades (plating, job) and what they do (effects: maxHealth, job =
       // { what: ram | range | scout | chain, value }), its mode, and rams = squadmate Charger rams landed (lastRam = the last's damage)
       squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null,
