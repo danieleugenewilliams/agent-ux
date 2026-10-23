@@ -811,7 +811,8 @@
   .glock .ti { font-size: 46px; line-height: 1; }
   .glock b { font: 900 26px 'Asap', sans-serif; color: var(--yellow); }
   /* G4: the advanced shelf, under the trophies: five slots across, lit once unlocked, an outline with its milestone till then */
-  .gwall.trophies { grid-template-rows: 1fr 1fr 1.15fr; }
+  /* (#120: nine parts with the 🥷 jet boots: five a row, the last place on the shelf free for the next) */
+  .gwall.trophies { grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr 1.15fr; }
   .ashelf { grid-column: 1 / -1; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding-top: 8px; border-top: 4px dashed rgba(255,216,61,.35); }
   .aslot { position: relative; min-height: 0; min-width: 0; border-radius: 18px; border: 3px dashed rgba(255,255,255,.28); }   /* (no fill: the 3D piece is drawn under this layer) */
   .aslot.got { border: 3px solid var(--pc); box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 55%, transparent); }
@@ -877,7 +878,7 @@
   .braise .block { opacity: .55; }
   /* G2: the 🦾 Mech tab. A card per upgrade: its part as a 3D piece, what it does, its level pips, the cost
      (2 × the part) with how many the bag has, and a buy button (grey when the bag is short; ⭐ when it's maxed) */
-  .gwall.mech { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+  .gwall.mech { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); }   /* (#120: seven cards with the 🥷 jet boots) */
   .ucard { position: relative; min-height: 0; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr auto; gap: 2px 6px; padding: 6px 8px 8px;
     border-radius: 18px; border: 4px solid color-mix(in srgb, var(--pc) 70%, transparent); background: rgba(20,24,42,.7); }
   .ucard.cur { border-color: var(--yellow); box-shadow: 0 0 0 3px var(--ink), 0 0 20px rgba(255,216,61,.75); }
@@ -893,6 +894,14 @@
   .ucard .uhave { font: 900 18px 'Asap', sans-serif; color: var(--green); white-space: nowrap; }
   .ucard .uhave.short { color: #ff4d5e; }
   .ucard .ukey { font: 800 13px 'Asap', sans-serif; padding: 2px 6px; border-radius: 7px; background: #fff; color: var(--ink); white-space: nowrap; }
+  /* #120: a narrow card (four a row on a phone on its side): the cost and the bag's count on one line, the buy button
+     under them, the full width of the card (36 px tall, as the phone-on-its-side buy button is) */
+  .ucard { container-type: inline-size; }
+  @container (max-width: 150px) {
+    .ucard .ubot { flex-wrap: wrap; justify-content: space-between; row-gap: 3px; gap: 3px; }
+    .ucard .ubuy { margin-left: 0; flex: 1 1 100%; width: auto; height: 36px; font-size: 17px; border-radius: 10px; border-width: 3px; box-shadow: 0 3px 0 var(--ink); }
+    .ucard .ufx { font-size: 15px; } .ucard .ucost { font-size: 14px; } .ucard .uhave { font-size: 13px; } .ucard .tv { min-height: 24px; }
+  }
   .ubuy { margin-left: auto; flex: none; width: 58px; height: 52px; border-radius: 16px; border: 4px solid var(--ink); background: var(--green); font-size: 26px; cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
   .ubuy:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   .ubuy.off { filter: grayscale(1) brightness(.6); cursor: not-allowed; }
@@ -1026,7 +1035,8 @@
     #tierToast .tp { gap: 2px; } #tierToast .tp i { width: 9px; height: 9px; }
     .gtier .tu { font-size: 22px; } .gtier .tp i { width: 9px; height: 9px; }
     .glock .big { font-size: 64px; }
-    .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
+    .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }
+    .gwall.trophies { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr 1.15fr; }   /* (#120: nine parts, three a row) */
     .ucard { padding: 4px 6px 6px; border-width: 3px; border-radius: 14px; }
     .ucard .ufx { font-size: 17px; } .ucard .pips i { width: 12px; height: 12px; border-width: 2px; } .ucard .pips { gap: 2px; }
     .ucard .ucost { font-size: 16px; } .ucard .uhave { font-size: 15px; } .ucard .ukey { display: none; }
@@ -1058,8 +1068,9 @@
     .gtop .gt { display: none; } .gtabs { gap: 4px; } .gtab { padding: 2px 1px; border-width: 3px; border-radius: 14px; } .gtab small { font-size: 10px; letter-spacing: -.2px; }
     #garageX { width: 48px; height: 48px; font-size: 22px; }
   }
-  /* a phone on its side: a slimmer top bar, the lift narrower */
-  @media (max-height: 460px) and (min-width: 600px) {
+  /* a phone on its side: a slimmer top bar, the lift narrower (#120: a small phone on its side too, 568 × 320: the garage's
+     top bar ran off its right edge, and seven 🦾 cards need the room) */
+  @media (max-height: 460px) and (min-width: 561px) {
     .gbay { padding: 6px 10px 8px; gap: 6px; }
     .gtop { padding-bottom: 6px; border-bottom-width: 6px; } .gtop .gt { font-size: 28px; }
     .gtab { height: 48px; min-width: 70px; font-size: 24px; } .gtab small { font-size: 11px; margin-top: 1px; }
@@ -1125,6 +1136,7 @@
   /* #42: a tablet upright: the cards are narrow (the lift keeps its column), so Tracks' trade-off chips stack one a row.
      The rows are taller, and a blueprint's parts sit under the icon, clear of the chips */
   @media (orientation: portrait) and (min-width: 561px) {
+    .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }   /* (#120: a tablet upright: two a row, so seven fit) */
     .lrow { --rh: 300px; }
     .lcard .lic { font-size: 30px; left: 4px; top: 4px; } .lcard .lpips { top: 5px; right: 4px; gap: 1px; } .lcard .lpips i { width: 8px; height: 8px; border-width: 1px; }
     .lcard .lbp { top: 46px; transform: translateX(-50%); font-size: 14px; padding: 2px 5px; } .lcard .lbp b { font-size: 13px; }
@@ -1757,6 +1769,10 @@ const ROBOT_HITS = {
   zap:   { dmg: 3, push: 0 },                                          // a drone diving in
   stomp: { dmg: 8, combo: 5, allyDmg: 18, push: 4 },                   // a Bouncer landing; each bounce before it adds `combo`
   ram:   { allyDmg: 20, push: 8 },                                     // G3: a squadmate Charger ramming a robot (ALLY_RAM)
+  // #120: a glitched Ninja's combo kicks and a minion's kick (NINJA.kick.dmg / NINJA.minion.dmg), and a squadmate
+  // flanker's kick on a robot (NINJA.flank.allyDmg; a fixed minion's NINJA.flank.mini.allyDmg)
+  nkick: { push: 3 },
+  flank: { push: 5 },
 };
 const ROBOT = {
   downTime: 12,              // seconds a beaten robot stays powered down
@@ -1775,7 +1791,7 @@ const ROBOT = {
 // e.g. bullets 1.4 -> 4 wires + 1 burnt; a kick 1.6 -> 4 + 1; setup 1 -> 3 + 0 (as before faults);
 // a punch 0.6 -> 2 + 0; a pure electromagnetic shutdown 0 -> 1 wire.
 const FAULTS = {
-  weight: { em: 0, punch: 0.6, setup: 1, gun: 1.4, snipe: 1.4, kick: 1.6, stomp: 1.6, rail: 2 },
+  weight: { em: 0, punch: 0.6, setup: 1, gun: 1.4, snipe: 1.4, kick: 1.6, stomp: 1.6, rail: 2, flank: 1.6 },   // (#120: a flanker's kick, as a kick)
   em: 0.5, burnt: [1.2, 1.8], scrub: 3,
 };
 // Fix it or take the parts. A downed robot within promptRange shows the choice.
@@ -1796,6 +1812,7 @@ const PARTS = {
   scope:   { icon: '🔭', ic: 'scope', hex: '#ff5fa2', fixes: null, unlocks: 'rail' },   // the Sniper's scope; only a Sniper carries one
   rotor:   { icon: '🌀', ic: 'rotor', hex: '#ffd83d', fixes: null },        // a drone's rotor
   spring:  { icon: '➰', ic: 'spring', hex: '#9f7bff', fixes: null },        // the Bouncer's coil spring
+  jetboots: { icon: '🥷', ic: 'jetboots', hex: '#a6e22e', fixes: null },     // #120: the Ninja's jet boots
 };
 // Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
 // always maxHealth minus the damage in every area, so every heal mends areas too
@@ -1809,7 +1826,8 @@ const AREAS = ['hull', 'legs', 'power', 'wiring'];
 const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };   // I1: each area's icon
 // where each kind of hit lands: a Sniper's round on the hull, a drone's zap in the power and
 // wiring (so 🔋 and 🔌 have something to mend), a Bouncer's stomp mostly in the legs
-const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 } };
+// (#120: a Ninja's or a minion's kick mostly in the legs too)
+const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 }, nkick: { hull: 0.4, legs: 0.6 }, flank: { hull: 0.4, legs: 0.6 } };
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
@@ -1817,6 +1835,9 @@ const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' }
 //   armour  🛡️ +25 energy a level (150 → 250)          motor  ⚙️ +8% top speed a level
 //   battery 🔋 weapons recharge 10% faster a level     wiring 🔌 self-repair mends 10 more a part, a level
 //   spring  ➰ level 1 adds a jump, level 2 higher      ram    🐏 the kick does 25% more damage a level
+//   jetboots 🥷 (#120) NINJA.boots: the kick +15% and top speed +6% a level (added to the ram plate's and the motors')
+//   (#120: the jet boots count toward no body section's tier (BODY_SECTIONS): adding their levels to a section's total
+//   would lower the tier a record already shows)
 // fx = what a level does, as an icon (shown on its card). Saved per child in rec.garage.upgrades.
 const UPGRADES = [
   { id: 'armour', name: 'Armour plating', max: 4, fxIc: '{energy}+25', alias: ['armor', 'plating', 'energy'] },
@@ -1825,6 +1846,8 @@ const UPGRADES = [
   { id: 'wiring', name: 'Wiring harness', max: 2, fxIc: '{wrench}+10', alias: ['harness', 'mend'] },
   { id: 'spring', name: 'Spring legs', max: 2, fxIc: '{jump}', alias: ['springs', 'jump'] },
   { id: 'ram', name: 'Ram plate', max: 2, fxIc: '{boot}+25%', alias: ['ramplate', 'kick'] },
+  // #120: the Ninja's jet boots: kick and speed (NINJA.boots), after the others so every card keeps its place
+  { id: 'jetboots', name: 'Jet boots', max: 2, fxIc: '{boot}{speed}', alias: ['boots', 'jet boots', 'jet-boots', 'ninja'] },
 ];
 // jump: how high each spring level jumps (m; level 0 can't); gravity pulls the mech back down (m/s²). #46: gravity was
 // 22; lighter, the same heights hang longer, so a running jump carries the mech further (level 1 over a fence: #46)
@@ -2166,7 +2189,8 @@ const upLevels = (g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math
 //   job     its own part      its squad job gets stronger a level:
 //           🐏 Charger  ram damage +25% (20 → 25 → 30)       🔭 Sniper  rifle range +25% (70 → 87.5 → 105 m)
 //           🐝 drone    scout range +25% (70 → 87.5 → 105 m)  🦘 Bouncer chain +1 bounce (4 → 5 → 6)
-const SQUAD_UP = { cost: 2, max: 2, energy: 0.25, range: 0.25, scout: 0.25, ram: 0.25, chain: 1 };
+//           🥷 Ninja / minion (#120) flank kick +25% (12 → 15 → 18; a minion's 6 → 7.5 → 9)
+const SQUAD_UP = { cost: 2, max: 2, energy: 0.25, range: 0.25, scout: 0.25, ram: 0.25, chain: 1, kick: 0.25 };   // (#120: kick, the flanker's)
 const SQUAD_UPS = [
   { id: 'plating', name: 'Plating', alias: ['armor', 'plate', 'energy'] },   // (a part id or icon works too: squadBuy)
   { id: 'job', name: 'Job boost', alias: ['boost', 'jobboost'] },
@@ -2177,6 +2201,9 @@ const SQUAD_JOB = {
   sniper: { part: 'scope', fxIc: '{aim}+25%', what: 'range' },
   drone: { part: 'rotor', fxIc: '{radar}+25%', what: 'scout' },
   bouncer: { part: 'spring', fxIc: '{link}+1', what: 'chain' },
+  // #120: the flanker (a fixed Ninja, and a fixed minion's smaller kick): its kick damage +25% a level, paid in 🥷 jet boots
+  ninja: { part: 'jetboots', fxIc: '{boot}+25%', what: 'kick' },
+  minion: { part: 'jetboots', fxIc: '{boot}+25%', what: 'kick' },
 };
 const squadUpOf = (n) => { const s = String(n ?? '').toLowerCase(); return SQUAD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s || U.alias.includes(s)) || null; };
 const squadPart = (r, id) => (id === 'plating' ? 'armour' : SQUAD_JOB[r.type].part);
@@ -2273,7 +2300,7 @@ function median(a) { if (!a?.length) return null; const b = [...a].sort((x, y) =
 // Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
 // else (setup damage, an electromagnet) leaves its wiring sparking.
 const SYMPTOMS = {
-  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram'] },
+  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram', 'nkick', 'flank'] },   // (#120: a Ninja's kicks too)
   holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe'] },
   drained: { ic: 'drained', parts: ['battery', 'wiring'], by: ['rail'] },
   sparks: { ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em'] },
@@ -2325,6 +2352,34 @@ const HIDDEN = { n: 8, reach: 3.5, kinds: ['armour', 'battery', 'motor', 'wiring
 // tough × (wave − 1) more health (at most toughMax ×). Stars on the clear screen: ⭐ for clearing,
 // ⭐ for fixing at least one robot that wave, ⭐ for never being powered down that wave.
 const WAVE = { edge: 100, arc: 2.8, inner: [35, 60], keepOff: 45, base: ['charger', 'sniper', 'bouncer', 'drone'], extras: ['charger', 'sniper', 'bouncer'], extraMax: 6, tough: 0.08, toughMax: 1.4 };
+// #120 (#117 N1, Orion's Q1 A / Q2 A / Q3 A): the Ninja and its minions. Every number here is a starting value, tuned at the
+// playtest. ROBOT_TYPES.ninja / .minion, the wave list, the glitched brains, the squad job and the 🥷 jet boots all read it.
+//   from / minions / more: from wave `from` a Ninja and its minions replace the last extra robot of the wave (one crew a wave):
+//            minions[0] of them from wave `from`, minions[1] from wave `more`. Waves 1–2 are as they were
+//   ninja:   its energy, and how fast it walks (topSpeed) and dashes (dash.speed). A glitched Ninja keeps `keep` metres off
+//            (circling), then: tell (`tell.in` s: it stops, flashes white and its glow strobes, the ❗) → dash in (at most
+//            dash.inT s, ends once it's within kick reach) → kick combo (kick.hits kicks, kick.gap s apart, the first at
+//            kick.first; each kick.dmg if the target is within reach, the last one knocking it back kick.push) → tell (`tell.out` s) → dash away (dash.outT s) →
+//            back to circling for `cool` s. A dash in that misses (the target got away) recovers for `recover` s first.
+//            reach: a kick lands within the two bodies' radii + reach (more than separate()'s gap, so it can land)
+//   minion:  small, grey, slower and weaker. It walks with its Ninja, and once it's on someone it winds up (`windup` s, its
+//            ❗: it wobbles) and gives one kick of `dmg`, then waits `cool` s. One part each (takeMax 1), and no repair kit
+//   flank:   a fixed Ninja's squad job (the flanker): when a glitched robot on the ground is within `lead` m of its leader
+//            and `reach` m of it, it runs round behind that robot (the far side from the leader, `behind` m past its edge),
+//            kicks it `hits` times (`allyDmg` each, × its job boost: SQUAD_UP.kick a level), then comes back; `cool` s
+//            before the next, `give` s to get round before it gives up. A fixed minion does the same job with mini = its own numbers
+//   boots:   the 🥷 jet boots, a mech upgrade in the garage's 🦾 tab (2 jet boots a level, max 2): each level `kick` more kick
+//            damage and `speed` more top speed, added to the 🐏 ram plate's and ⚙️ motors' own
+const NINJA = {
+  from: 3, minions: [2, 3], more: 5,
+  ninja: { health: 60, topSpeed: 8, notice: 60, keep: 15, cool: 1.8, recover: 0.6, reach: 1.1 },
+  tell: { in: 0.7, out: 0.35 },
+  dash: { speed: 24, inT: 0.8, outT: 0.5 },
+  kick: { hits: 3, dmg: 5, first: 0.12, gap: 0.24, push: 3 },
+  minion: { health: 25, topSpeed: 4.2, notice: 45, windup: 0.45, dmg: 3, push: 1.5, cool: 1.6, reach: 0.9, follow: 5 },
+  flank: { lead: 30, reach: 40, behind: 0.6, hits: 2, allyDmg: 12, gap: 0.3, cool: 2.5, give: 6, mini: { hits: 1, allyDmg: 6, give: 9 } },
+  boots: { kick: 0.15, speed: 0.06 },
+};
 
 const V3 = THREE.Vector3;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -2351,6 +2406,7 @@ const ICON_GRADS = {
   orange: ['#ffc07a', '#e8670a'], green: ['#9af5b9', '#1fb85a'], blue: ['#9cc8ff', '#2f6fe0'], purple: ['#c3a8ff', '#6a3fe6'],
   pink: ['#ffa8cf', '#e23d86'], yellow: ['#fff09a', '#f2b90c'], cyan: ['#b4fbff', '#1cc8e0'], teal: ['#7fe0c8', '#1f8a72'],
   wire: ['#a8dcff', '#2f8fd0'], violet: ['#d9cbff', '#8a6cf0'], iron: ['#c4c8cf', '#5c616b'], carbon: ['#545b6c', '#14161c'],   // (#72: the metals)
+  lime: ['#e6ff9e', '#6fb514'],   // (#120: the Ninja's green and its jet boots)
 };
 const ICON_DEFS = Object.entries(ICON_GRADS).map(([k, [a, b]]) => `<linearGradient id="rbg-${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`).join('');
 // markup helpers: a filled, outlined shape; the same without an outline (n); a highlight band; a thick line with an
@@ -2441,6 +2497,9 @@ const ICONS = {
   scope: ['scope', ['🔭'], rot(-30, re(2.4, 9.8, 4, 4.4, 1, G('dark')) + re(5.6, 8.6, 11.6, 6.8, 1.6, G('pink')) + re(16.4, 6.6, 5.4, 10.8, 1.6, G('steel')) + rn(9.6, 8.6, 1.4, 6.8, 0, '#a82464') + hl('M7.6 10.4 L15 10.4'))],
   rotor: ['rotor', ['🌀'], [0, 120, 240].map((a) => rot(a, pa('M12 12 C9.4 9.2 9.4 4.4 12.4 2.4 C15.2 4.6 14.6 9.2 12 12 Z', G('yellow')))).join('') + ci(12, 12, 2.8, G('steel'))],
   spring: ['spring', ['➰'], ln('M6.2 5.4 L17.8 7.6 L6.2 9.8 L17.8 12 L6.2 14.2 L17.8 16.4 L6.2 18.6', G('violet'), 2.6) + re(4.4, 2.2, 15.2, 3, 1, G('steel')) + re(4.4, 19, 15.2, 3, 1, G('steel'))],
+  // #120: the Ninja's jet boot: a green boot with a pointed toe, the jet nozzle at its heel and its flame
+  jetboots: ['jet boots', ['🥷'], pn('M1.2 14.8 L4 16.4 L1.2 18 Z', '#ffb02e') + re(3.2, 13.8, 3.6, 5.2, 1, G('dark')) + re(8, 2.6, 6.6, 10.8, 1.6, G('lime'))
+    + pa('M6.4 12.2 L15.4 12.2 L22.6 19.2 L22.6 20 L6.4 20 Z', G('lime')) + re(6.4, 19.4, 16.2, 2, 0.8, G('dark')) + hl('M10 4.6 L10 10.4')],
   // ---- robot types: each one's own silhouette, in its armour colour ----
   charger: ['Charger', ['🐏'], re(3.6, 17, 3.4, 4.4, 1, G('dark')) + re(17, 17, 3.4, 4.4, 1, G('dark')) + re(2.4, 6.4, 19.2, 11.6, 3.4, G('purple')) + rn(5.4, 9.2, 13.2, 3.6, 1.8, INK) + rn(7, 10.2, 10, 1.6, 0.8, '#ff2f5b')
     + re(7.2, 14.6, 9.6, 4.6, 1, G('steel')) + hl('M4.6 9 L4.6 13')],
@@ -2450,6 +2509,13 @@ const ICONS = {
     + ci(12, 14.4, 6.6, G('yellow')) + cn(12, 14.4, 2.6, INK) + cn(12, 14.4, 1.2, '#ff2f5b') + hl('M7.6 12.4 C8 11 9 10 10.2 9.6')],
   bouncer: ['Bouncer', ['🦘'], ln('M8.4 12.8 L15.6 14.2 L8.4 15.6 L15.6 17 L8.4 18.4', G('steel'), 1.8) + re(5.4, 18.8, 13.2, 2.8, 1, G('dark')) + re(4.4, 2.4, 15.2, 10.6, 3.4, G('blue'))
     + rn(7, 5.4, 10, 3.6, 1.8, INK) + cn(10, 7.2, 1, '#ff2f5b') + cn(14, 7.2, 1, '#ff2f5b') + hl('M6.6 5 L6.6 9')],
+  // #120: Apollo's Ninja: a green square head with two eyes, its antenna, side blades and pointed feet
+  ninja: ['Ninja', [], ln('M12 3.4 L12 5.4', G('dark'), 1.2) + ci(12, 2.6, 1.5, G('lime')) + pa('M1.4 13.4 L7.4 11.4 L7.4 15.2 Z', G('steel')) + pa('M22.6 13.4 L16.6 11.4 L16.6 15.2 Z', G('steel'))
+    + pa('M7.6 16 L10.8 16 L10.8 19.4 L9.2 22.2 L7.6 19.4 Z', G('lime')) + pa('M13.2 16 L16.4 16 L16.4 19.4 L14.8 22.2 L13.2 19.4 Z', G('lime'))
+    + re(6.8, 10.6, 10.4, 6, 1.6, G('lime')) + re(6.2, 5.2, 11.6, 6.2, 1.8, G('lime')) + cn(9.8, 8.3, 1.2, '#ff2f5b') + cn(14.2, 8.3, 1.2, '#ff2f5b') + hl('M8 7 L8 9.8')],
+  // #120: a minion: small and grey, a round head on a box body, its antenna, no arms
+  minion: ['minion', [], ln('M12 2.8 L12 5', G('dark'), 1.2) + ci(12, 2.4, 1.3, G('steel')) + re(8, 16.6, 3, 4.8, 0.8, G('dark')) + re(13, 16.6, 3, 4.8, 0.8, G('dark'))
+    + re(6.6, 10.6, 10.8, 6.6, 1.8, G('iron')) + ci(12, 8.4, 3.8, G('iron')) + cn(12, 8.4, 1.3, '#ff2f5b') + hl('M8.8 12.6 L8.8 15.2')],
   // ---- the mech's areas, body sections and leg shapes ----
   // I2: the torso is a chest plate in armour purple with steel shoulders (no face: that's the squad's robot)
   torso: ['torso', [], re(8.6, 2.2, 6.8, 3.6, 1.2, G('dark')) + re(1.6, 4.6, 5.4, 6.6, 2.2, G('steel')) + re(17, 4.6, 5.4, 6.6, 2.2, G('steel')) + pa('M4.8 5.6 L19.2 5.6 L17.2 20.4 L6.8 20.4 Z', G('purple'))
@@ -5716,6 +5782,14 @@ function dressUpgrades(md, lv, adv = {}) {
     painted(at('ram', 'ram', L, rbox(1.3 + 0.25 * ra, 0.5 + 0.15 * ra, 0.3, 0.1, hex('ram'), { metalness: 0.8, roughness: 0.25 })), 'legs');
     if (ra >= 2) for (const x of [-0.4, 0.4]) { const R = L.sock.ram, sc = R.sc || 1, o = put('spike', R.p, new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 10), mat('#ffd83d')), R.x + x * sc, R.y, R.tip, 'ram'); o.rotation.x = -Math.PI / 2; if (R.sc) o.scale.setScalar(sc); }
   }
+  // 🥷 (#120) jet boots: a nozzle at each heel (in the foot the ram socket is on, behind the toe), longer at level 2, with a
+  // glowing ring round its mouth (kind 'boot', socket 'heel')
+  const jb = lv.jetboots || 0;
+  if (jb) for (const L of md.sockLegs) {
+    const R = L.sock.ram, sc = R.sc || 1, z = R.z * -0.45, len = (0.4 + 0.2 * jb) * sc;
+    put('boot', R.p, cyl(0.2 * sc, 0.28 * sc, len, '#2a2f40', metal, 14), R.x, R.y + 0.35 * sc, z, 'heel').rotation.x = Math.PI / 2;
+    put('boot', R.p, new THREE.Mesh(new THREE.TorusGeometry(0.27 * sc, 0.06 * sc, 6, 18), glow(hex('jetboots'), 2.2)), R.x, R.y + 0.35 * sc, z + len / 2, 'heel');
+  }
   // 🚀 jet nozzles on the back, a flame under each (shown while the second jump burns)
   md.flames = [];
   if (adv.jets) for (const s of [-1, 1]) {
@@ -5826,7 +5900,8 @@ function applyUpgrades(opts = {}) {
     }
   }
   // (#42: the torso's top speed and torso swing too)
-  m.spec = lv.motor || shape !== 'walker' || tsh !== 'standard' ? { ...MECH, topSpeed: MECH.topSpeed * (1 + UPGRADE.speed * lv.motor) * fx.topSpeed * tfx.topSpeed, accel: MECH.accel * fx.accel,
+  // (#120: and the 🥷 jet boots' top speed, NINJA.boots.speed a level; at level 0 the spec is as it was)
+  m.spec = lv.motor || lv.jetboots || shape !== 'walker' || tsh !== 'standard' ? { ...MECH, topSpeed: MECH.topSpeed * (1 + UPGRADE.speed * lv.motor) * (1 + NINJA.boots.speed * lv.jetboots) * fx.topSpeed * tfx.topSpeed, accel: MECH.accel * fx.accel,
     legTurn: MECH.legTurn * fx.legTurn, turnSlow: fx.turnSlow, torsoTurn: MECH.torsoTurn * tfx.torsoTurn } : undefined;
   dressUpgrades(m.model, lv, adv);
   // (#72: the finish is 'gold' while the 👑 is on (the whole mech gold, as G4's was), else the metal shown, or null)
@@ -6367,7 +6442,8 @@ const BUILD_JOBS = {
 };
 const SEAMS = ['top', 'right', 'bottom', 'left'];   // (#42: a plate's seams, in order round it)
 // what mech m's kick does: the base kick × the 🐏 ram plate's levels × the leg shape (the tracks' blade shove does the same)
-const kickDmg = (m) => WEAPON.kick.dmg * (1 + UPGRADE.kick * (m?.upg?.ram || 0)) * (m?.fx?.kick ?? 1);
+// (#120: the 🥷 jet boots' levels add NINJA.boots.kick each, beside the ram plate's)
+const kickDmg = (m) => WEAPON.kick.dmg * (1 + UPGRADE.kick * (m?.upg?.ram || 0) + NINJA.boots.kick * (m?.upg?.jetboots || 0)) * (m?.fx?.kick ?? 1);
 // #42: what mech m's punch does: the base punch × the arm set's (Heavy fists hit harder, Long barrels softer)
 const punchDmg = (m) => (m?.afx && m.afx.punch !== 1 ? WEAPON.punch.dmg * m.afx.punch : WEAPON.punch.dmg);
 // G4 gold plating: every squadmate glows gold while whoever is playing has it; otherwise its own colour again (kept in
@@ -7993,6 +8069,61 @@ function buildBouncer(paint) {
   return { root, body, legs: [], glow, armour, spring, top, ...robotHud(root, 5.0) };
 }
 
+// #120: Apollo's Ninja: green, a square head with two eyes and an antenna, thin arms out to small round hands, a blade
+// sticking out of each side of its body, and box legs that end in pointed feet. Fast. Its kick leg swings on its hip.
+function buildNinja(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
+  const { armour, glow } = robotMats(paint);
+  const legs = [];
+  for (const [s, ph] of [[-1, 0], [1, Math.PI]]) {
+    const hip = new THREE.Group(); hip.position.set(s * 0.5, 2.3, 0); body.add(hip);
+    hip.add(ball(0.3, paint.dark, metal));
+    const thigh = ownMesh(new RoundedBoxGeometry(0.5, 1.1, 0.5, 2, 0.1), armour); thigh.position.y = -0.6; hip.add(thigh);
+    const shin = rbox(0.56, 0.75, 0.56, 0.1, paint.frame, metal); shin.position.y = -1.45; hip.add(shin);
+    const foot = cyl(0.36, 0.01, 0.55, paint.armour, metal, 4); foot.position.y = -2.05; foot.rotation.y = Math.PI / 4; hip.add(foot);   // the pointed foot
+    legs.push({ hip, ph });
+  }
+  const torso = ownMesh(new RoundedBoxGeometry(1.5, 1.35, 1.0, 3, 0.18), armour); torso.position.y = 3.0; body.add(torso);
+  const belt = rbox(1.56, 0.22, 1.06, 0.08, paint.dark, metal); belt.position.y = 2.45; body.add(belt);
+  // the side blades: flat steel triangles out of its sides, their edges glowing
+  const blades = [];
+  for (const s of [-1, 1]) {
+    const b = cyl(0.42, 0.02, 1.5, paint.ram, steel, 3); b.scale.z = 0.22; b.rotation.z = s * Math.PI / 2; b.position.set(s * 1.45, 2.8, 0); body.add(b);
+    blades.push(b);
+  }
+  // the arms: straight out from the shoulders, small round hands
+  for (const s of [-1, 1]) {
+    const arm = cyl(0.09, 0.09, 1.0, paint.frame, metal, 8); arm.rotation.z = Math.PI / 2; arm.position.set(s * 1.25, 3.45, 0); body.add(arm);
+    const hand = ball(0.2, paint.armour, metal); hand.position.set(s * 1.8, 3.45, 0); body.add(hand);
+  }
+  const head = new THREE.Group(); head.position.y = 3.7; body.add(head);
+  const shell = ownMesh(new RoundedBoxGeometry(1.3, 1.0, 1.0, 3, 0.16), armour); shell.position.y = 0.5; head.add(shell);
+  for (const s of [-1, 1]) { const eye = ownMesh(new THREE.SphereGeometry(0.12, 10, 8), glow); eye.position.set(s * 0.28, 0.6, -0.5); head.add(eye); }
+  const band = rbox(1.36, 0.16, 1.06, 0.06, paint.dark, metal); band.position.y = 0.85; head.add(band);
+  const antenna = cyl(0.03, 0.04, 0.8, paint.ram, steel, 6); antenna.position.y = 1.4; head.add(antenna);
+  const tip = ownMesh(new THREE.SphereGeometry(0.16, 10, 8), glow); tip.position.y = 1.85; head.add(tip);
+  return { root, body, legs, glow, armour, head, blades, ...robotHud(root, 6.5) };
+}
+// #120: a minion: small and grey, a round head with one eye on a box body, an antenna, two stubby legs and no arms
+function buildMinion(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
+  const { armour, glow } = robotMats(paint);
+  const legs = [];
+  for (const [s, ph] of [[-1, 0], [1, Math.PI]]) {
+    const hip = new THREE.Group(); hip.position.set(s * 0.3, 1.1, 0); body.add(hip);
+    const leg = rbox(0.34, 1.05, 0.38, 0.08, paint.frame, metal); leg.position.y = -0.55; hip.add(leg);
+    legs.push({ hip, ph });
+  }
+  const torso = ownMesh(new RoundedBoxGeometry(0.95, 0.9, 0.7, 2, 0.12), armour); torso.position.y = 1.55; body.add(torso);
+  const head = ownMesh(new THREE.SphereGeometry(0.4, 16, 12), armour); head.position.y = 2.35; body.add(head);
+  const eye = ownMesh(new THREE.SphereGeometry(0.13, 10, 8), glow); eye.position.set(0, 2.38, -0.36); body.add(eye);
+  const antenna = cyl(0.025, 0.03, 0.6, paint.ram, steel, 6); antenna.position.y = 3.0; body.add(antenna);
+  const tip = ownMesh(new THREE.SphereGeometry(0.1, 8, 6), glow); tip.position.y = 3.32; body.add(tip);
+  return { root, body, legs, glow, armour, ...robotHud(root, 3.9, 1.8) };
+}
+
 // Every robot type. Shared fields:
 //  icon: its squad tag; health; hitY/hitR: the sphere rounds hit (hitY above r.pos);
 //  top: how high its head is (a Bouncer can spring off it; null = not a springboard);
@@ -8004,6 +8135,7 @@ function buildBouncer(paint) {
 //  sparkBox: [width, depth, height, height range] it spits glitch sparks from.
 // Optional: move(r, dt) moves it itself (returns true) instead of walking; tick(r, dt) after
 // it walks (a drone holds its height); flicker(r, dt, hot) its own glitched glow; flies; swarm.
+// #120: flash(r) its armour's own flash (a Ninja's tell); crew: the type that comes with it (spawn); noKit: it drops no kit.
 const ROBOT_TYPES = {
   charger: {
     ic: 'charger', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
@@ -8058,6 +8190,32 @@ const ROBOT_TYPES = {
     hot: (r) => r.ai.mode === 'crouch' || !!r.air,
     sparkBox: [2, 2, 2, 1.6],
   },
+  // #120: fast and dodgy. Circles at NINJA.ninja.keep, then flashes (the tell), dashes in, kicks a combo and dashes away
+  // (NINJA: its numbers). Its dashes move it itself (move: ninjaMove); squad job: the flanker (allyNinja). It comes with
+  // its minions (spawn: a crew), from wave NINJA.from
+  ninja: {
+    ic: 'ninja', health: NINJA.ninja.health, hitY: 3.0, hitR: 1.6, top: 4.9, beamY: 3.4,
+    spec: { topSpeed: NINJA.ninja.topSpeed, backSpeed: 4, accel: 10, brake: 14, boostSpeed: 14, boostAccel: 24, legTurn: 4.5, torsoTurn: 6, stride: 2.0, radius: 1.2 },
+    paint: { armour: '#3fbf4f', frame: '#2a2f40', dark: '#1a1f2c', ram: '#c9ced8', glow: '#ff2f5b' },
+    build: buildNinja, ai: ninjaAI, ally: allyNinja, pose: ninjaPose, move: ninjaMove, flicker: ninjaFlicker, flash: ninjaFlash,
+    parts: ['jetboots', 'motor', 'armour', 'wiring'],     // the 🥷 jet boots are the Ninja's alone
+    notice: NINJA.ninja.notice, crew: 'minion',
+    tell: 'flash',       // before every dash it stops, its armour flashes white and its glow strobes (the ❗)
+    hot: (r) => r.ai.mode === 'tell' || r.ai.mode === 'dash' || r.ai.mode === 'combo',
+    sparkBox: [1.4, 1.0, 2.2, 2],
+  },
+  // #120: the Ninja's minions. Small, grey, slower and weaker: they walk with their Ninja and give a single kick
+  minion: {
+    ic: 'minion', health: NINJA.minion.health, hitY: 1.6, hitR: 1.0, top: 2.8, beamY: 1.8,
+    spec: { topSpeed: NINJA.minion.topSpeed, backSpeed: 2, accel: 6, brake: 9, legTurn: 3.2, torsoTurn: 5, stride: 1.2, radius: 0.8 },
+    paint: { armour: '#8d939e', frame: '#5b616d', dark: '#2a2f3a', ram: '#c9ced8', glow: '#ff2f5b' },
+    build: buildMinion, ai: minionAI, ally: allyNinja, pose: minionPose,
+    parts: ['motor', 'armour', 'wiring'], takeMax: 1, noKit: true,   // a small robot: one part each; it drops no repair kit
+    notice: NINJA.minion.notice,
+    tell: 'wobble',      // it wobbles side to side before it kicks
+    hot: (r) => r.ai.mode === 'windup',
+    sparkBox: [0.8, 0.6, 1.2, 1.2], sparkN: 0.5,
+  },
 };
 const takeMaxOf = (r) => ROBOT_TYPES[r.type].takeMax ?? REPAIR.takeMax;
 
@@ -8098,8 +8256,20 @@ function setGlowColor(r, hex) {
 // Drop robots into the meadow: spawn('sniper', x, z). A swarm type (drones) comes as a
 // whole swarm in a ring round (x, z) and returns the list; any other type returns the robot.
 let nextSwarm = 1;
-function spawn(type, x, z) {
+// #120: a Ninja comes as a crew: the Ninja at (x, z) and n of its minions (minionsFor the wave) round it, returned as a
+// list, the Ninja first. Each minion knows its Ninja (r.crew = the Ninja's id; the Ninja's r.crew = its own)
+const minionsFor = (wave) => (wave >= NINJA.more ? NINJA.minions[1] : NINJA.minions[0]);
+function spawn(type, x, z, n) {
   const T = ROBOT_TYPES[type]; if (!T) return null;
+  if (T.crew) {
+    const lead = spawnRobot(type, x, z), out = [lead], k = Number.isInteger(n) && n >= 0 ? n : minionsFor(Game.wave);
+    lead.crew = lead.id;
+    for (let i = 0; i < k; i++) {
+      const a = lead.legHeading + Math.PI + (i - (k - 1) / 2) * 0.9, q = spawnRobot(T.crew, x - Math.sin(a) * 4, z - Math.cos(a) * 4);
+      q.crew = lead.id; out.push(q);
+    }
+    return out;
+  }
   if (!T.swarm) return spawnRobot(type, x, z);
   const sw = { id: nextSwarm++, n: T.swarm, wp: null, wpUntil: 0, seen: -1e9, kit: false };
   Game.swarms[sw.id] = sw;
@@ -8575,6 +8745,229 @@ function allyBouncer(r, dt) {
   allyAI(r, dt);
 }
 
+// ---------------------------------------------------------------------------
+// #120 The Ninja (Q1 A). Glitched, it circles its target NINJA.ninja.keep metres off; then it stops and flashes (the
+// tell, NINJA.tell.in s), dashes in (ninjaMove), kicks a combo (NINJA.kick), flashes again (NINJA.tell.out s) and dashes
+// away, and circles for NINJA.ninja.cool s before the next. A dash only ever starts at the end of a tell (ninjaDash is
+// called from nowhere else), so the flash comes before every dash. r.nj counts it all for the hooks: tells, dashIn,
+// dashOut, combos, tries (kicks thrown), kicks (landed), dealt (damage landed), misses, log (the last 24 { what, t }).
+// ---------------------------------------------------------------------------
+// a body a glitched Ninja or minion can still kick: a running player's mech, or a running squadmate
+const kickable = (b) => !!b && (b.type ? b.state === 'ally' && Game.squad.includes(b) && !ROBOT_TYPES[b.type].flies : b.state !== 'down' && Game.mechs.includes(b));
+const bodyR = (b) => (b.type ? b.spec.radius : MECH.radius);
+// how near a kick lands from: the two bodies' radii plus `extra` (more than separate() leaves between them)
+const kickReach = (r, b, extra = NINJA.ninja.reach) => r.spec.radius + bodyR(b) + extra;
+function ninjaNote(r, what) {
+  const N = r.nj ||= { tells: 0, dashIn: 0, dashOut: 0, combos: 0, tries: 0, kicks: 0, dealt: 0, misses: 0, log: [] };
+  if (what) { N.log.push({ what, t: r3(r.t) }); if (N.log.length > 24) N.log.shift(); }
+  return N;
+}
+// turn to face body b (writes the turn, as a player's stick does)
+function faceTo(r, b) { r.input.turn = clamp(-wrapAngle(Math.atan2(-(b.pos.x - r.pos.x), -(b.pos.z - r.pos.z)) - r.legHeading) * 2.5, -1, 1); }
+// the tell: it stops and flashes for NINJA.tell[next] s, then dashes `next` ('in' at tgt, or 'out' away from it)
+function ninjaTell(r, next, tgt) {
+  const ai = r.ai;
+  ai.mode = 'tell'; ai.next = next; ai.at = tgt; ai.t = NINJA.tell[next];
+  r.input.throttle = 0; r.input.boost = false;
+  ninjaNote(r, 'tell').tells++;
+  const k = loud(r.pos); if (k > 0) { Sfx.tone(1400, 0.1, 'triangle', 0.06 * k, 2600); Sfx.tone(1400, 0.1, 'triangle', 0.05 * k, 2600, 0.12); }
+}
+// the end of a tell: the dash itself (ninjaMove moves it). 'in': straight at the target (homing a little); with the
+// target gone it circles again instead. 'out': straight away from where the target is (or the way it faces)
+function ninjaDash(r, dir, tgt) {
+  const ai = r.ai, N = ninjaNote(r);
+  if (dir === 'in' && !kickable(tgt)) { ai.mode = 'stalk'; ai.t = NINJA.ninja.cool * 0.5; return; }
+  const from = tgt || null;
+  if (dir === 'out' && from) r.legHeading = Math.atan2(from.pos.x - r.pos.x, from.pos.z - r.pos.z);   // (forward is (-sin, -cos): away from it)
+  if (dir === 'in') r.legHeading = Math.atan2(-(tgt.pos.x - r.pos.x), -(tgt.pos.z - r.pos.z));
+  r.torsoYaw = r.legHeading; r.turnVel = 0;
+  r.dash = { dir, t: dir === 'in' ? NINJA.dash.inT : NINJA.dash.outT, at: dir === 'in' ? tgt : null, from: { x: r3(r.pos.x), z: r3(r.pos.z) } };
+  ai.mode = 'dash';
+  if (dir === 'in') N.dashIn++; else N.dashOut++;
+  ninjaNote(r, dir === 'in' ? 'dashIn' : 'dashOut');
+  const k = loud(r.pos); if (k > 0) Sfx.noise(0.22, 0.14 * k, 2400, 0, 0.8, 'highpass');
+}
+// each tick of a dash: NINJA.dash.speed along its heading (a dash in homes on its target a little), sliding round trees
+// and rocks and kept inside the meadow. A dash in that reaches kick range starts the combo; one that runs out recovers
+function ninjaMove(r, dt) {
+  const D = r.dash; if (!D) return false;
+  if (r.state !== 'glitched') { r.dash = null; return false; }
+  if (D.at && kickable(D.at)) r.legHeading = turnToward(r.legHeading, Math.atan2(-(D.at.pos.x - r.pos.x), -(D.at.pos.z - r.pos.z)), 3 * dt);
+  const h = r.legHeading, v = NINJA.dash.speed;
+  r.pos.x += -Math.sin(h) * v * dt; r.pos.z += -Math.cos(h) * v * dt;
+  for (const o of obstacles) {
+    const dx = r.pos.x - o.x, dz = r.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + r.spec.radius;
+    if (d < min && d > 1e-6) { r.pos.x = o.x + dx / d * min; r.pos.z = o.z + dz / d * min; }
+  }
+  const R = Math.hypot(r.pos.x, r.pos.z); if (R > WORLD_R) { r.pos.x *= WORLD_R / R; r.pos.z *= WORLD_R / R; }
+  r.pos.y = groundH(r.pos.x, r.pos.z); r.lift = 0;
+  r.speed = v; r.torsoYaw = h; r.phase += (v * dt / r.spec.stride) * Math.PI;
+  D.t -= dt;
+  const ai = r.ai, N = ninjaNote(r);
+  if (D.dir === 'in' && kickable(D.at) && flatDist(r, D.at) < kickReach(r, D.at) - 0.3) {
+    r.dash = null; r.speed = 0;
+    ai.mode = 'combo'; ai.at = D.at; ai.k = 0; ai.kt = NINJA.kick.first;
+    N.combos++; ninjaNote(r, 'combo');
+  } else if (D.t <= 0) {
+    r.dash = null; r.speed = D.dir === 'in' ? 2 : 4;
+    if (D.dir === 'in') { ai.mode = 'recover'; ai.t = NINJA.ninja.recover; N.misses++; ninjaNote(r, 'missed'); }
+    else { ai.mode = 'stalk'; ai.t = NINJA.ninja.cool; ai.spin = Math.random() < 0.5 ? 1 : -1; }
+  }
+  return true;
+}
+// one kick of the combo (or a minion's kick): dmg on body b if it's still in reach (extra past the radii), knocked back
+// by push (a combo's last kick only, so the ones before it can land)
+function robotKick(r, b, dmg, extra, push = 0) {
+  const N = ninjaNote(r, 'kick'); N.tries++;
+  r.kickT = 0.22;   // (the pose's kick)
+  if (!kickable(b) || flatDist(r, b) > kickReach(r, b, extra)) { N.misses++; return 0; }
+  const dealt = hurtMech(b, dmg, 'nkick');
+  N.kicks++; N.dealt = r3(N.dealt + dealt);
+  const dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1, kb = (b.fx?.push ?? 1) * push;
+  b.push.x += dx / d * kb; b.push.z += dz / d * kb;
+  Sparks.burst(b.pos.x - dx / d * bodyR(b), r.pos.y + 1.5, b.pos.z - dz / d * bodyR(b), 16, SPARK_HOT, 6);
+  if (!Game.manual) Sfx.whack(0.6);
+  return dealt;
+}
+function ninjaAI(r, dt) {
+  const ai = r.ai, inp = r.input, C = NINJA.ninja;
+  inp.boost = false; inp.aimYaw = r.legHeading;
+  if (r.dash) { inp.throttle = inp.turn = 0; return; }   // mid-dash: ninjaMove has it
+  ai.t = (ai.t ?? 0) - dt;
+  if (ai.mode === 'tell') {
+    inp.throttle = 0;
+    if (ai.next === 'in' && kickable(ai.at)) faceTo(r, ai.at); else inp.turn = 0;
+    if (ai.t <= 0) ninjaDash(r, ai.next, ai.at);
+    return;
+  }
+  if (ai.mode === 'combo') {
+    // it keeps in reach (a step in when its target slides off) and faces it
+    const on = kickable(ai.at);
+    inp.throttle = on && flatDist(r, ai.at) > kickReach(r, ai.at) - 0.5 ? 0.7 : 0;
+    if (on) faceTo(r, ai.at); else inp.turn = 0;
+    ai.kt -= dt;
+    if (ai.kt <= 0) {
+      if (ai.k < NINJA.kick.hits) { robotKick(r, ai.at, NINJA.kick.dmg, NINJA.ninja.reach, ai.k === NINJA.kick.hits - 1 ? NINJA.kick.push : 0); ai.k++; ai.kt = NINJA.kick.gap; }
+      else ninjaTell(r, 'out', ai.at);
+    }
+    return;
+  }
+  if (ai.mode === 'recover' || ai.mode === 'dash') {
+    inp.throttle = inp.turn = 0;
+    if (ai.t > 0) return;
+    ai.mode = 'stalk'; ai.t = C.cool;
+  }
+  const tgt = nearestFoe(r, true);
+  if (!engaged(r, tgt)) { roam(r, dt, 0.5); return; }
+  if (ai.mode === 'roam') { ai.mode = 'stalk'; ai.t = Math.min(ai.t, 0.8); }
+  ai.mode = 'stalk'; ai.spin ||= 1;
+  // circle the target at keep: head for a spot on that ring a little round from where it is now
+  const a = Math.atan2(r.pos.z - tgt.pos.z, r.pos.x - tgt.pos.x) + 0.6 * ai.spin;
+  const dist = flatDist(r, tgt);
+  steer(r, tgt.pos.x + Math.cos(a) * C.keep, tgt.pos.z + Math.sin(a) * C.keep, 1, 3);
+  if (ai.t <= 0 && dist < C.keep + 10 && dist > kickReach(r, tgt) + 1) ninjaTell(r, 'in', tgt);
+}
+// A glitched minion: it walks with its Ninja (in step behind it), and once it or its Ninja is on someone it walks up,
+// winds up (NINJA.minion.windup s: it wobbles, the ❗) and kicks once (NINJA.minion.dmg), then waits NINJA.minion.cool s
+function minionAI(r, dt) {
+  const ai = r.ai, inp = r.input, M = NINJA.minion;
+  inp.boost = false; inp.aimYaw = r.legHeading;
+  ai.t = (ai.t ?? 0) - dt; ai.cool = (ai.cool || 0) - dt;
+  if (ai.mode === 'windup') {
+    inp.throttle = 0;
+    if (kickable(ai.at)) faceTo(r, ai.at); else inp.turn = 0;
+    if (ai.t > 0) return;
+    robotKick(r, ai.at, M.dmg, M.reach + 0.4, M.push); ai.mode = 'stalk'; ai.cool = M.cool;
+    return;
+  }
+  if (ai.mode === 'recover') { inp.throttle = inp.turn = 0; if (ai.t > 0) return; ai.mode = 'stalk'; }
+  const boss = r.crew != null ? Game.robots.find((q) => q.id === r.crew && q !== r && q.state === 'glitched') : null;
+  const tgt = nearestFoe(r, true), on = engaged(r, tgt) || (!!boss && !!tgt && boss.ai.mode !== 'roam' && flatDist(r, tgt) < 90);
+  if (!on) {
+    if (!boss) { roam(r, dt); return; }
+    // in step behind its Ninja
+    const h = boss.legHeading, k = (r.id % 3) - 1;
+    steer(r, boss.pos.x + Math.sin(h) * M.follow + Math.cos(h) * k * 2.5, boss.pos.z + Math.cos(h) * M.follow - Math.sin(h) * k * 2.5, 1, 3);
+    ai.mode = 'tag';
+    return;
+  }
+  ai.mode = 'stalk';
+  const dist = steer(r, tgt.pos.x, tgt.pos.z, 1), reach = kickReach(r, tgt, M.reach);
+  if (dist < reach) inp.throttle = 0;
+  if (ai.cool <= 0 && dist < reach + 0.4) { ai.mode = 'windup'; ai.t = M.windup; ai.at = tgt; inp.throttle = 0; }
+}
+// The Ninja's glitch tell: its glow strobes hard while it tells (the same random colour, never another), else the
+// ordinary glitch flicker
+function ninjaFlicker(r, dt, hot) {
+  if (r.ai.mode === 'tell') { r.glow = Math.floor(r.t * 18) % 2 ? 7.5 : 0.3; return; }
+  glitchFlicker(r, dt, hot);
+}
+// ...and its armour flashes white while it tells (syncRobotModel: the armour's emissive, as a hit's flash)
+function ninjaFlash(r) { return r.state === 'glitched' && r.ai.mode === 'tell' ? (Math.floor(r.t * 18) % 2 ? 1.2 : 0.35) : 0; }
+// #120 squad job (Q3 A): the flanker. A fixed Ninja follows like any squadmate; when a glitched robot on the ground is
+// within NINJA.flank.lead of its leader (and NINJA.flank.reach of it) it runs round behind that robot (the far side from
+// the leader) and kicks it NINJA.flank.hits times, then comes back. A fixed minion does the same with NINJA.flank.mini.
+// flankDmg: a kick's damage × its job boost (SQUAD_UP.kick a level). r.fl counts runs, kicks, behind (kicks landed from
+// behind the robot, as the leader sees it), dealt, whiffs (kicks out of reach), gaveUp (runs that ran out of time), last { dmg, behind }
+const flankable = (q) => q.state === 'glitched' && !ROBOT_TYPES[q.type].flies && !q.air;
+const flankDmg = (r) => r3((r.type === 'minion' ? NINJA.flank.mini.allyDmg : NINJA.flank.allyDmg) * (1 + SQUAD_UP.kick * jobLv(r)));
+const flankNote = (r) => (r.fl ||= { runs: 0, kicks: 0, behind: 0, dealt: 0, whiffs: 0, gaveUp: 0, last: null });
+function flankKick(r, q, lead) {
+  const F = flankNote(r);
+  r.kickT = 0.22;
+  if (flatDist(r, q) > kickReach(r, q) + 0.6) { F.whiffs++; return 0; }
+  const dmg = flankDmg(r), ax = r.pos.x - q.pos.x, az = r.pos.z - q.pos.z, lx = lead.pos.x - q.pos.x, lz = lead.pos.z - q.pos.z, behind = ax * lx + az * lz < 0;
+  hitRobot(q, dmg, 'flank', q.pos.x - r.pos.x, q.pos.z - r.pos.z, new V3(q.pos.x, q.pos.y + ROBOT_TYPES[q.type].hitY, q.pos.z));
+  F.kicks++; F.dealt = r3(F.dealt + dmg); if (behind) F.behind++; F.last = { dmg, behind };
+  return dmg;
+}
+function allyNinja(r, dt) {
+  const ai = r.ai, inp = r.input, F = NINJA.flank, lead = r.leader?.mech, hits = r.type === 'minion' ? F.mini.hits : F.hits;
+  ai.flankCool = (ai.flankCool || 0) - dt;
+  if (ai.mode === 'flank' || ai.mode === 'fkick') {
+    // (a run goes on while its robot is up and glitched: a Bouncer mid-hop comes down again, so it waits for it)
+    const q = ai.flankAt && Game.robots.includes(ai.flankAt) && ai.flankAt.state === 'glitched' ? ai.flankAt : null;
+    if (!q || !lead || lead.state === 'down') { ai.mode = 'follow'; ai.flankAt = null; ai.flankCool = F.cool; }
+    else {
+      ai.t -= dt; inp.aimYaw = r.legHeading;
+      if (ai.mode === 'flank') {
+        // the spot behind it: past its far side from the leader; bend round the robot itself on the way
+        // (each squad slot a little round from straight behind, so two flankers don't want the same spot)
+        const a0 = Math.atan2(q.pos.z - lead.pos.z, q.pos.x - lead.pos.x) + ((ai.slot ?? 0) - 1) * 0.5, bx = Math.cos(a0), bz = Math.sin(a0), off = q.spec.radius + r.spec.radius + F.behind;
+        const dx = q.pos.x + bx * off - r.pos.x, dz = q.pos.z + bz * off - r.pos.z, d = Math.hypot(dx, dz);
+        const err = avoid(r, wrapAngle(Math.atan2(-dx, -dz) - r.legHeading), d, [{ x: q.pos.x, z: q.pos.z, r: q.spec.radius + 0.6 }]);
+        inp.throttle = Math.abs(err) > 1.2 ? 0.3 : clamp(d / 4, 0.3, 1); inp.turn = clamp(-err * 2.5, -1, 1); inp.boost = d > 8 && Math.abs(err) < 0.5;
+        // there (or already in kick reach on its far side): the kicks
+        const ax = r.pos.x - q.pos.x, az = r.pos.z - q.pos.z, round = ax * bx + az * bz > 0;
+        if (d < 1.2 || (round && flatDist(r, q) < kickReach(r, q) + 0.2)) { ai.mode = 'fkick'; ai.k = 0; ai.kt = 0.1; inp.throttle = 0; inp.boost = false; }
+        else if (ai.t <= 0) { ai.mode = 'follow'; ai.flankAt = null; ai.flankCool = F.cool; flankNote(r).gaveUp++; }
+        return;
+      }
+      // (a step in if it slid off; gone off well out of reach, a Bouncer's hop: after it again, round behind)
+      if (flatDist(r, q) > kickReach(r, q) + 2.5) { ai.mode = 'flank'; ai.t = Math.max(ai.t, 2); return; }
+      inp.throttle = flatDist(r, q) > kickReach(r, q) - 0.3 ? 0.5 : 0; inp.boost = false; faceTo(r, q);
+      ai.kt -= dt;
+      if (ai.kt <= 0) {
+        if (q.air) ai.kt = 0.1;                          // (over its head: kick once it lands)
+        else if (ai.k < hits) { flankKick(r, q, lead); ai.k++; ai.kt = F.gap; }
+        else { ai.mode = 'follow'; ai.flankAt = null; ai.flankCool = F.cool; }
+      }
+      if (ai.mode === 'fkick') return;
+    }
+  }
+  if (ai.flankCool <= 0 && lead && lead.state !== 'down') {
+    let best = null, bd = Infinity;
+    for (const q of Game.robots) if (flankable(q) && flatDist(q, lead) < F.lead && flatDist(q, r) < F.reach) { const d = flatDist(q, lead); if (d < bd) { bd = d; best = q; } }
+    if (best) {
+      ai.mode = 'flank'; ai.flankAt = best; ai.t = r.type === 'minion' ? F.mini.give : F.give;
+      flankNote(r).runs++;
+      return;
+    }
+    ai.flankCool = 0.5;   // nothing to flank: look again in a moment
+  }
+  allyAI(r, dt);
+}
+
 // how: 'em' when electromagnetic shock shut it down (its health is left as it was); otherwise it was
 // beaten to 0. Either way how it was beaten sets the faults its Quick Fix has to deal with.
 function powerDown(r, how) {
@@ -8588,13 +8981,14 @@ function powerDown(r, how) {
   r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
   r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
+  r.dash = null;                                         // #120: beaten mid-dash: it stops where it is
   // beaten mid-hop: it drops out of the air
   if (r.air) { r.lift = Math.max(0, r.pos.y - groundH(r.pos.x, r.pos.z)); r.air = null; }
   // the first time it's beaten it drops a repair kit; a drone swarm drops one between
   // them, when the last of its drones is beaten for the first time
   if (r.downs === 1) {
     const sw = Game.swarms[r.swarm];
-    if (!sw) Kits.drop(r);
+    if (!sw) { if (!ROBOT_TYPES[r.type].noKit) Kits.drop(r); }   // (#120: a minion drops none)
     else if (!sw.kit && Game.robots.every((q) => q.swarm !== r.swarm || q.downs > 0)) { sw.kit = true; Kits.drop(r); }
   }
   const k = loud(r.pos);
@@ -9159,7 +9553,7 @@ const squadEnergy = (r) => Math.round(ROBOT_TYPES[r.type].health * ALLY.energy *
 // what squadmate r's upgrades do now: energy, and its job (ram damage, rifle range m, scout range m or chain bounces)
 function squadEffects(r) {
   const J = SQUAD_JOB[r.type];
-  const job = { ram: ramDamage(r), range: r3(sniperRange(r)), scout: r3(scoutRange(r)), chain: bounceChain(r) }[J.what];
+  const job = { ram: ramDamage(r), range: r3(sniperRange(r)), scout: r3(scoutRange(r)), chain: bounceChain(r), kick: flankDmg(r) }[J.what];   // (#120: kick, the flanker's)
   return { maxHealth: r.maxHealth, job: { what: J.what, value: job } };
 }
 function setRobotName(r, name) {
@@ -9531,7 +9925,7 @@ function syncRobotModel(r, dt) {
   const mode = r.state === 'down' ? (r.repairBy ? 'repair' : 'down') : r.ai.mode;
   T.pose(r, md, dt, mode);
   md.glow.emissiveIntensity = r.glow * r.glowK;
-  md.armour.emissiveIntensity = r.hitFlash * 0.8;
+  md.armour.emissiveIntensity = Math.max(r.hitFlash * 0.8, T.flash?.(r) ?? 0);   // (#120: a Ninja's tell flashes it too)
   const f = r.health / r.maxHealth, up = r.state !== 'down';
   md.back.visible = up; md.fill.visible = up && f > 0;
   if (f > 0) { md.fill.scale.x = md.barW * f; md.fill.center.x = 0.5 / f; md.fill.material.color.setHSL(0.33 * f, 0.85, 0.55); }
@@ -9585,6 +9979,25 @@ function bouncerPose(r, md, dt, mode) {
   md.body.position.y = walk;
   md.top.rotation.x = A ? -Math.min(A.u, 1) * Math.PI * 2 : damp(wrapAngle(md.top.rotation.x), 0, 10, dt);
   md.top.rotation.z = damp(md.top.rotation.z, down ? 0.5 : 0, 6, dt);
+}
+
+// #120: the Ninja crouches and its blades shiver while it tells, leans hard into a dash, swings a leg up for each kick
+// (r.kickT: a kick just thrown, kept as the pose's own clock) and slumps when it's down; a minion wobbles as it winds up
+function ninjaPose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair';
+  r.kickT = Math.max(0, (r.kickT || 0) - dt);
+  md.body.position.y = damp(md.body.position.y, down ? -1.0 : mode === 'tell' ? -0.3 : 0, 10, dt);
+  md.body.rotation.x = damp(md.body.rotation.x, down ? 0.3 : mode === 'dash' ? -0.5 : 0, 12, dt);
+  md.body.rotation.z = damp(md.body.rotation.z, down ? 0.45 : 0, 6, dt);
+  for (const b of md.blades) b.rotation.x = mode === 'tell' ? Math.sin(r.t * 40) * 0.25 : 0;
+  if (r.kickT > 0 && !down) md.legs[(r.nj?.tries ?? r.fl?.kicks ?? 0) % 2].hip.rotation.x = 1.35 * Math.sin(Math.PI * r.kickT / 0.22);
+}
+function minionPose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair';
+  r.kickT = Math.max(0, (r.kickT || 0) - dt);
+  md.body.position.y = damp(md.body.position.y, down ? -0.5 : 0, 10, dt);
+  md.body.rotation.z = down ? damp(md.body.rotation.z, 0.5, 6, dt) : mode === 'windup' ? Math.sin(r.t * 26) * 0.22 : damp(md.body.rotation.z, 0, 10, dt);
+  if (r.kickT > 0 && !down) md.legs[0].hip.rotation.x = 1.2 * Math.sin(Math.PI * r.kickT / 0.22);
 }
 
 // Next / previous unlocked weapon (wheel, pad LB / RB)
@@ -12248,6 +12661,16 @@ function partPiece(id) {
     const pts = []; for (let i = 0; i <= 90; i++) { const t = i / 90, a = t * Math.PI * 12; pts.push(new V3(Math.cos(a) * 0.45, (t - 0.5) * 1.5, Math.sin(a) * 0.45)); }
     add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 220, 0.08, 8), mat(P.hex, metal)));
     add(cyl(0.55, 0.55, 0.08, steel, metal, 24), 0, -0.78, 0); add(cyl(0.55, 0.55, 0.08, steel, metal, 24), 0, 0.78, 0);
+  } else if (id === 'jetboots') {
+    // #120: a green boot (the Ninja's foot): its shaft, the foot with a pointed toe on a dark sole, and a jet nozzle at the
+    // heel, its mouth glowing
+    add(rbox(0.6, 1.0, 0.62, 0.12, P.hex, metal), -0.35, 0.4, 0);
+    add(rbox(1.1, 0.5, 0.66, 0.14, P.hex, metal), 0.05, -0.3, 0);
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.7, 4), mat(P.hex, metal)), 0.92, -0.32, 0).rotation.z = -Math.PI / 2;
+    add(rbox(1.75, 0.14, 0.72, 0.05, '#2a2f40', metal), 0.25, -0.6, 0);
+    add(cyl(0.18, 0.26, 0.45, '#3a4157', metal, 14), -0.8, -0.2, 0).rotation.z = Math.PI / 2;
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.06, 8, 20), glowMat('#ffb02e', 2.2)), -1.03, -0.2, 0).rotation.y = Math.PI / 2;
+    add(rbox(0.64, 0.12, 0.66, 0.04, '#2a2f40', metal), -0.35, 0.82, 0);
   }
   return g;
 }
@@ -12445,7 +12868,13 @@ $('tmSound').addEventListener('click', (e) => { e.stopPropagation(); Sfx.setMute
 const Waves = {
   party: 0,                                       // the wave whose clear has been celebrated
   // the robot types in wave n (a drone is a whole swarm) and how much tougher its robots are
-  list(n) { return n <= 1 ? ['charger', 'sniper', 'drone', 'bouncer'] : WAVE.base.concat(Array.from({ length: Math.min(n - 1, WAVE.extraMax) }, (_, i) => WAVE.extras[i % WAVE.extras.length])); },
+  // #120: from wave NINJA.from a Ninja and its minions (one entry, 'ninja': a crew) take the last extra robot's place
+  list(n) {
+    if (n <= 1) return ['charger', 'sniper', 'drone', 'bouncer'];
+    const L = WAVE.base.concat(Array.from({ length: Math.min(n - 1, WAVE.extraMax) }, (_, i) => WAVE.extras[i % WAVE.extras.length]));
+    if (n >= NINJA.from) L[L.length - 1] = 'ninja';
+    return L;
+  },
   tough(n) { return n <= 1 ? 1 : Math.min(WAVE.toughMax, 1 + WAVE.tough * (n - 1)); },
   spawn(n) {
     const p = Game.humans[0]?.mech; if (!p) return [];
@@ -12468,8 +12897,9 @@ const Waves = {
         const out = spawn(type, at.x, at.z), list = [].concat(out);
         for (const r of list) r.health = r.maxHealth = Math.round(r.maxHealth * k);
         const d = lerp(WAVE.inner[0], WAVE.inner[1], Math.random()), wp = { x: Math.cos(a) * d, z: Math.sin(a) * d };
-        if (Array.isArray(out)) { const sw = Game.swarms[out[0].swarm]; sw.wp = wp; sw.wpUntil = Game.ticks + 25 * SIM_HZ; }
-        else { out.ai.wp = wp; out.ai.wpT = 25; }
+        const sw = Array.isArray(out) ? Game.swarms[out[0].swarm] : null;
+        if (sw) { sw.wp = wp; sw.wpUntil = Game.ticks + 25 * SIM_HZ; }
+        else for (const r of list) { r.ai.wp = wp; r.ai.wpT = 25; }   // (#120: a Ninja's crew heads for one spot)
       });
     }
     const fresh = Game.robots.filter((r) => !before.has(r));
@@ -12575,6 +13005,8 @@ function robotState(r) {
     state: r.state,                                   // 'glitched' | 'down' | 'ally'
     mode: r.ai.mode,                                  // roam | off; Charger stalk | windup | charge | recover; Sniper flee | close | hold;
                                                       // drone orbit | dive; Bouncer stalk | crouch | air | land; squad follow | idle (drone scout)
+                                                      // #120: Ninja stalk | tell | dash | combo | recover; minion tag | stalk | windup | recover;
+                                                      // a squadmate Ninja or minion flank | fkick
     // flicker (glitched) | off | blink (about to reboot) | steady (ally); color: its random glow colour;
     // level is the same in any colour (it's drawn at level × k, so every colour is as bright)
     glow: { mode: r.glowMode, level: r3(r.glow), color: r.glowColor, k: r3(r.glowK) },
@@ -12613,7 +13045,7 @@ function robotState(r) {
     takeMax: takeMaxOf(r),                            // how many of them a player may take
     speed: r3(r.speed), dist: p0 ? r3(flatDist(r, p0)) : null,
     y: r3(r.pos.y), lift: r3(r.lift),                 // height, and height above the ground (a drone's flight)
-    tell: ROBOT_TYPES[r.type].tell,                   // its glitch tell: jolt | stutter | lurch | misbounce
+    tell: ROBOT_TYPES[r.type].tell,                   // its glitch tell: jolt | stutter | lurch | misbounce (#120: flash | wobble)
     hot: r.state === 'glitched' && ROBOT_TYPES[r.type].hot(r),   // about to attack (the ❗)
     swarm: r.swarm,                                   // a drone's swarm id (null for anything else)
     alert: r3(r.ai.alert || 0),                       // seconds left hunting whoever hit it, however far
@@ -12624,6 +13056,14 @@ function robotState(r) {
     sniper: r.type === 'sniper' ? { aiming: r.ai.aimT > 0, shots: r.shots || 0 } : null,
     // scout: the id of the hidden part or kit a squadmate drone is off to mark; scoutKind: 'part' | 'kit'
     drone: r.type === 'drone' ? { lurches: r.lurches, zaps: r.zaps || 0, scout: r.ai.scout?.id ?? null, scoutKind: r.ai.scout?.kind ?? null } : null,
+    // #120: a Ninja or a minion. crew = its Ninja's id (a Ninja's own); dash = the dash it's in ({ dir 'in' | 'out', t left,
+    // from }); next = where the tell it's in leads ('in' | 'out'); flash = its armour's tell flash now; the counts (ninjaNote):
+    // tells, dashIn, dashOut, combos, tries (kicks thrown), kicks (landed), dealt, misses, log (the last 24 { what, t });
+    // flank (a squadmate's job): runs, kicks, behind (landed from behind), dealt, whiffs, last { dmg, behind }; flankAt = its target
+    ninja: r.type === 'ninja' || r.type === 'minion' ? { crew: r.crew ?? null, dash: r.dash ? { dir: r.dash.dir, t: r3(r.dash.t), from: { ...r.dash.from } } : null,
+      next: r.ai.mode === 'tell' ? r.ai.next : null, flash: r3(ROBOT_TYPES[r.type].flash?.(r) ?? 0),
+      ...JSON.parse(JSON.stringify(r.nj || { tells: 0, dashIn: 0, dashOut: 0, combos: 0, tries: 0, kicks: 0, dealt: 0, misses: 0, log: [] })),
+      flank: r.fl ? JSON.parse(JSON.stringify(r.fl)) : null, flankAt: r.ai.flankAt?.id ?? null } : null,
   };
 }
 window.__rb = {
@@ -12631,6 +13071,7 @@ window.__rb = {
   BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
   CAM_FAR,   // (#103)
+  NINJA, WAVE,   // (#120)
   Profiles, PROFILE, Title, Maker, Backup,   // (#49)
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // #70: the sounds as played: thud = Sfx.thud calls so far (every source: footfalls, landings, props, robots; none in manual
@@ -12806,7 +13247,8 @@ window.__rb = {
   },
   // ---- G2: mech upgrades ----
   // buy the next level of an upgrade, as its ⬆️ in the 🦾 tab does (the garage needn't be open): 'armour' | 'motor' |
-  // 'battery' | 'wiring' | 'spring' | 'ram' (or 'plating', 'legs', 'cells', 'harness', 'springs', 'kick', a part icon...).
+  // 'battery' | 'wiring' | 'spring' | 'ram' | (#120) 'jetboots' (or 'plating', 'legs', 'cells', 'harness', 'springs', 'kick',
+  // 'boots', a part icon...).
   // Spends 2 of its part from the bag; refused (why: 'not enough parts' | 'maxed' | 'no such upgrade') with nothing spent.
   // Returns what happened, the levels, the bag, and player 0's mech after it (state().players[0])
   upgrade(name) {
@@ -12970,10 +13412,12 @@ window.__rb = {
     const m = h.mech; m.input.aimYaw = h.rig.yaw; m.input.aimPitch = h.rig.pitch; m.torsoYaw = h.rig.yaw; m.aimPitch = h.rig.pitch;
     return this.state().players[i];
   },
-  // drop a robot into the meadow: spawn('charger' | 'sniper' | 'bouncer', x, z) returns its state;
+  // drop a robot into the meadow: spawn('charger' | 'sniper' | 'bouncer' | 'minion', x, z) returns its state;
   // spawn('drone', x, z) drops a whole swarm round (x, z) and returns the list of their states
-  spawn(type, x, z) {
-    const out = spawn(type, x, z); if (!out) return null;
+  // #120: spawn('ninja', x, z, n) drops a Ninja with n minions (left out: as many as the wave out now brings, minionsFor)
+  // and returns the list of their states, the Ninja first
+  spawn(type, x, z, n) {
+    const out = spawn(type, x, z, n); if (!out) return null;
     const st = this.state().robots, of = (r) => st.find((q) => q.id === r.id);
     return Array.isArray(out) ? out.map(of) : of(out);
   },
@@ -13192,6 +13636,7 @@ window.__rb = {
       // { what: ram | range | scout | chain, value }), its mode, and rams = squadmate Charger rams landed (lastRam = the last's damage)
       squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null,
         type: r.type, health: r.health, maxHealth: r.maxHealth, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, effects: squadEffects(r), mode: r.ai.mode, rams: r.rams || 0, lastRam: r.lastRam ?? null,
+        flank: r.fl ? JSON.parse(JSON.stringify(r.fl)) : null, flankAt: r.ai.flankAt?.id ?? null,   // #120: a flanker's job (allyNinja): runs, kicks, behind, dealt, last
         // #59: its damage by area, hits taken as a squadmate, powered down (down) with its rescue clock (rescueIn, s),
         // times powered down and rescued, the areas worth a part (needs, as players' needs), and its chip as drawn
         damage: Object.fromEntries(AREAS.map((a) => [a, r3(r.damage[a])])), hitsTaken: r.hitsTaken, down: r.state === 'down', rescueIn: r.state === 'down' ? r3(r.downT) : null,
