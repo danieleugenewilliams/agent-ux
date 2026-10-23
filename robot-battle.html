@@ -560,6 +560,13 @@
     #fix.ramp .puz { gap: 8px; }
     #fix.ramp .chain .sock { width: 44px; height: 44px; font-size: 22px; } #fix.ramp .chain .bot { width: 48px; } #fix.ramp .chain .arr { font-size: 20px; }
   }
+  /* #122: a small phone on its side (568 × 320): a slimmer panel, its top row smaller and the board's columns closer, so every
+     board (the Knight's too) fits on screen */
+  @media (max-height: 340px) and (min-width: 500px) {
+    #fix.ramp .panel { padding: 4px 12px 8px; column-gap: 12px; }
+    #fix.ramp .panel .top { font-size: 24px; margin-bottom: 2px; } #fix.ramp .panel .x { width: 38px; height: 38px; font-size: 18px; }
+    #fix.ramp .board { gap: 24px; } #fix.ramp .board:not(.math) { width: min(400px, calc(100vw - 170px)); }
+  }
   #clear .stars i.bonus { display: none; filter: drop-shadow(0 0 12px rgba(255,194,26,1)); }
   #clear .stars i.bonus.on { display: inline; }
   #hud .mate.gold { background: rgba(120,90,10,.7); }
