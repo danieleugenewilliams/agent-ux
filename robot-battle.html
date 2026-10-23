@@ -2377,7 +2377,7 @@ const NINJA = {
   dash: { speed: 24, inT: 0.8, outT: 0.5 },
   kick: { hits: 3, dmg: 5, first: 0.12, gap: 0.24, push: 3 },
   minion: { health: 25, topSpeed: 4.2, notice: 45, windup: 0.45, dmg: 3, push: 1.5, cool: 1.6, reach: 0.9, follow: 5 },
-  flank: { lead: 30, reach: 40, behind: 0.6, hits: 2, allyDmg: 12, gap: 0.3, cool: 2.5, give: 4, mini: { hits: 1, allyDmg: 6, give: 8 } },
+  flank: { lead: 30, reach: 40, behind: 0.6, hits: 2, allyDmg: 12, gap: 0.3, cool: 2.5, give: 6, mini: { hits: 1, allyDmg: 6, give: 9 } },
   boots: { kick: 0.15, speed: 0.06 },
 };
 
@@ -8908,11 +8908,12 @@ function ninjaFlash(r) { return r.state === 'glitched' && r.ai.mode === 'tell' ?
 // within NINJA.flank.lead of its leader (and NINJA.flank.reach of it) it runs round behind that robot (the far side from
 // the leader) and kicks it NINJA.flank.hits times, then comes back. A fixed minion does the same with NINJA.flank.mini.
 // flankDmg: a kick's damage × its job boost (SQUAD_UP.kick a level). r.fl counts runs, kicks, behind (kicks landed from
-// behind the robot, as the leader sees it), dealt, last { dmg, behind }
+// behind the robot, as the leader sees it), dealt, whiffs (kicks out of reach), gaveUp (runs that ran out of time), last { dmg, behind }
 const flankable = (q) => q.state === 'glitched' && !ROBOT_TYPES[q.type].flies && !q.air;
 const flankDmg = (r) => r3((r.type === 'minion' ? NINJA.flank.mini.allyDmg : NINJA.flank.allyDmg) * (1 + SQUAD_UP.kick * jobLv(r)));
+const flankNote = (r) => (r.fl ||= { runs: 0, kicks: 0, behind: 0, dealt: 0, whiffs: 0, gaveUp: 0, last: null });
 function flankKick(r, q, lead) {
-  const F = r.fl ||= { runs: 0, kicks: 0, behind: 0, dealt: 0, whiffs: 0, last: null };
+  const F = flankNote(r);
   r.kickT = 0.22;
   if (flatDist(r, q) > kickReach(r, q) + 0.6) { F.whiffs++; return 0; }
   const dmg = flankDmg(r), ax = r.pos.x - q.pos.x, az = r.pos.z - q.pos.z, lx = lead.pos.x - q.pos.x, lz = lead.pos.z - q.pos.z, behind = ax * lx + az * lz < 0;
@@ -8924,7 +8925,8 @@ function allyNinja(r, dt) {
   const ai = r.ai, inp = r.input, F = NINJA.flank, lead = r.leader?.mech, hits = r.type === 'minion' ? F.mini.hits : F.hits;
   ai.flankCool = (ai.flankCool || 0) - dt;
   if (ai.mode === 'flank' || ai.mode === 'fkick') {
-    const q = ai.flankAt && Game.robots.includes(ai.flankAt) && flankable(ai.flankAt) ? ai.flankAt : null;
+    // (a run goes on while its robot is up and glitched: a Bouncer mid-hop comes down again, so it waits for it)
+    const q = ai.flankAt && Game.robots.includes(ai.flankAt) && ai.flankAt.state === 'glitched' ? ai.flankAt : null;
     if (!q || !lead || lead.state === 'down') { ai.mode = 'follow'; ai.flankAt = null; ai.flankCool = F.cool; }
     else {
       ai.t -= dt; inp.aimYaw = r.legHeading;
@@ -8938,13 +8940,16 @@ function allyNinja(r, dt) {
         // there (or already in kick reach on its far side): the kicks
         const ax = r.pos.x - q.pos.x, az = r.pos.z - q.pos.z, round = ax * bx + az * bz > 0;
         if (d < 1.2 || (round && flatDist(r, q) < kickReach(r, q) + 0.2)) { ai.mode = 'fkick'; ai.k = 0; ai.kt = 0.1; inp.throttle = 0; inp.boost = false; }
-        else if (ai.t <= 0) { ai.mode = 'follow'; ai.flankAt = null; ai.flankCool = F.cool; }
+        else if (ai.t <= 0) { ai.mode = 'follow'; ai.flankAt = null; ai.flankCool = F.cool; flankNote(r).gaveUp++; }
         return;
       }
-      inp.throttle = flatDist(r, q) > kickReach(r, q) - 0.3 ? 0.5 : 0; inp.boost = false; faceTo(r, q);   // (a step in if it slid off)
+      // (a step in if it slid off; gone off well out of reach, a Bouncer's hop: after it again, round behind)
+      if (flatDist(r, q) > kickReach(r, q) + 2.5) { ai.mode = 'flank'; ai.t = Math.max(ai.t, 2); return; }
+      inp.throttle = flatDist(r, q) > kickReach(r, q) - 0.3 ? 0.5 : 0; inp.boost = false; faceTo(r, q);
       ai.kt -= dt;
       if (ai.kt <= 0) {
-        if (ai.k < hits) { flankKick(r, q, lead); ai.k++; ai.kt = F.gap; }
+        if (q.air) ai.kt = 0.1;                          // (over its head: kick once it lands)
+        else if (ai.k < hits) { flankKick(r, q, lead); ai.k++; ai.kt = F.gap; }
         else { ai.mode = 'follow'; ai.flankAt = null; ai.flankCool = F.cool; }
       }
       if (ai.mode === 'fkick') return;
@@ -8955,7 +8960,7 @@ function allyNinja(r, dt) {
     for (const q of Game.robots) if (flankable(q) && flatDist(q, lead) < F.lead && flatDist(q, r) < F.reach) { const d = flatDist(q, lead); if (d < bd) { bd = d; best = q; } }
     if (best) {
       ai.mode = 'flank'; ai.flankAt = best; ai.t = r.type === 'minion' ? F.mini.give : F.give;
-      (r.fl ||= { runs: 0, kicks: 0, behind: 0, dealt: 0, whiffs: 0, last: null }).runs++;
+      flankNote(r).runs++;
       return;
     }
     ai.flankCool = 0.5;   // nothing to flank: look again in a moment
