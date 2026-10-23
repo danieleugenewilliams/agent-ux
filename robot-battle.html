@@ -8135,6 +8135,7 @@ function buildMinion(paint) {
 //  sparkBox: [width, depth, height, height range] it spits glitch sparks from.
 // Optional: move(r, dt) moves it itself (returns true) instead of walking; tick(r, dt) after
 // it walks (a drone holds its height); flicker(r, dt, hot) its own glitched glow; flies; swarm.
+// #120: flash(r) its armour's own flash (a Ninja's tell); crew: the type that comes with it (spawn); noKit: it drops no kit.
 const ROBOT_TYPES = {
   charger: {
     ic: 'charger', health: 100, hitY: 2.2, hitR: 2.5, top: 3.9, beamY: 3.6,
@@ -12999,6 +13000,8 @@ function robotState(r) {
     state: r.state,                                   // 'glitched' | 'down' | 'ally'
     mode: r.ai.mode,                                  // roam | off; Charger stalk | windup | charge | recover; Sniper flee | close | hold;
                                                       // drone orbit | dive; Bouncer stalk | crouch | air | land; squad follow | idle (drone scout)
+                                                      // #120: Ninja stalk | tell | dash | combo | recover; minion tag | stalk | windup | recover;
+                                                      // a squadmate Ninja or minion flank | fkick
     // flicker (glitched) | off | blink (about to reboot) | steady (ally); color: its random glow colour;
     // level is the same in any colour (it's drawn at level × k, so every colour is as bright)
     glow: { mode: r.glowMode, level: r3(r.glow), color: r.glowColor, k: r3(r.glowK) },
@@ -13037,7 +13040,7 @@ function robotState(r) {
     takeMax: takeMaxOf(r),                            // how many of them a player may take
     speed: r3(r.speed), dist: p0 ? r3(flatDist(r, p0)) : null,
     y: r3(r.pos.y), lift: r3(r.lift),                 // height, and height above the ground (a drone's flight)
-    tell: ROBOT_TYPES[r.type].tell,                   // its glitch tell: jolt | stutter | lurch | misbounce
+    tell: ROBOT_TYPES[r.type].tell,                   // its glitch tell: jolt | stutter | lurch | misbounce (#120: flash | wobble)
     hot: r.state === 'glitched' && ROBOT_TYPES[r.type].hot(r),   // about to attack (the ❗)
     swarm: r.swarm,                                   // a drone's swarm id (null for anything else)
     alert: r3(r.ai.alert || 0),                       // seconds left hunting whoever hit it, however far
@@ -13239,7 +13242,8 @@ window.__rb = {
   },
   // ---- G2: mech upgrades ----
   // buy the next level of an upgrade, as its ⬆️ in the 🦾 tab does (the garage needn't be open): 'armour' | 'motor' |
-  // 'battery' | 'wiring' | 'spring' | 'ram' (or 'plating', 'legs', 'cells', 'harness', 'springs', 'kick', a part icon...).
+  // 'battery' | 'wiring' | 'spring' | 'ram' | (#120) 'jetboots' (or 'plating', 'legs', 'cells', 'harness', 'springs', 'kick',
+  // 'boots', a part icon...).
   // Spends 2 of its part from the bag; refused (why: 'not enough parts' | 'maxed' | 'no such upgrade') with nothing spent.
   // Returns what happened, the levels, the bag, and player 0's mech after it (state().players[0])
   upgrade(name) {
