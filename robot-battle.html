@@ -9040,9 +9040,10 @@ function buildClone(p) {
   // glitch-red eyes: two on the canopy's face, the canopy and the turret ring glowing red with them (they flicker, the
   // glitch); no pilot
   const eyeMat = new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: C.eyes, emissiveIntensity: 3, roughness: 0.3 });
-  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 8), eyeMat); e.position.set(s * 0.32, 0.38, -0.92); e.userData.eye = true; md.cockpit.add(e); }
-  md.lights.push({ mat: eyeMat, k: 3 });
+  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 8), eyeMat); e.position.set(s * 0.34, 0.36, -0.95); e.scale.z = 0.6; e.userData.eye = true; md.cockpit.add(e); }
+  md.lights.push({ mat: eyeMat, k: 3.5 });
   for (const M of [md.canopy.material, md.ringGlow.material]) M.emissive.set(C.eyes);
+  md.canopy.material.color.set('#2a0610');
   md.eyes = md.lights.filter((L) => L.mat === eyeMat || L.mat === md.canopy.material || L.mat === md.ringGlow.material);
   // the robot pipeline's glow (its glitch flicker) drives the eyes; its armour flash, the body paint
   const body = [...md.paintMats.body.values()];
