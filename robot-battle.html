@@ -4374,7 +4374,8 @@ const SPIDER_FOOT = { r: 0.05, sole: 0.3, clear: 0.05 };   // (clear: a foot it 
 function footBlockers(m, reach = Infinity) {
   const B = [], x = m.pos.x, z = m.pos.z, near = (q, r) => Math.hypot(q.x - x, q.z - z) - r < reach;
   for (const o of obstacles) if (near(o, o.r)) { const p = o.prop || o; B.push({ x: o.x, z: o.z, r: o.r, top: groundH(p.x, p.z) + o.h, kind: o.kind, id: o.prop?.id ?? null }); }
-  for (const r of Game.robots) if (r !== m && !r.air && !ROBOT_TYPES[r.type].flies && near(r.pos, r.spec.radius))   // (#121: a Spider clone's own body isn't in its way) B.push({ x: r.pos.x, z: r.pos.z, r: r.spec.radius, top: Infinity, kind: 'robot', id: r.id });
+  // (#121: r !== m, a Spider clone's own body isn't in its way)
+  for (const r of Game.robots) if (r !== m && !r.air && !ROBOT_TYPES[r.type].flies && near(r.pos, r.spec.radius)) B.push({ x: r.pos.x, z: r.pos.z, r: r.spec.radius, top: Infinity, kind: 'robot', id: r.id });
   for (const q of Game.mechs) if (q !== m && near(q.pos, MECH.radius)) B.push({ x: q.pos.x, z: q.pos.z, r: MECH.radius, top: Infinity, kind: 'mech', id: null });
   return B;
 }
@@ -11732,8 +11733,8 @@ function updateHud() {
     }
   }
   pe.classList.toggle('on', shown);
-  $('pFix').classList.toggle('full', Game.squad.length >= REPAIR.squadMax && !Game.squad.includes(pr) && !(pr && ROBOT_TYPES[pr.type].noSquad));   // (#121: nor a clone)
-  $('pParts').style.display = pr && ROBOT_TYPES[pr.type].noParts ? 'none' : '';   // #121: a clone drops no part: just the 🔧   // still works: it asks who goes home 🏠 (#59: not for a downed squadmate: that fix is a rescue)
+  $('pFix').classList.toggle('full', Game.squad.length >= REPAIR.squadMax && !Game.squad.includes(pr) && !(pr && ROBOT_TYPES[pr.type].noSquad));   // still works: it asks who goes home 🏠 (#59: not for a downed squadmate: that fix is a rescue; #121: nor a clone)
+  $('pParts').style.display = pr && ROBOT_TYPES[pr.type].noParts ? 'none' : '';   // #121: a clone drops no part: just the 🔧
   // getting hearts back: the 🔧 button pulses when the bag has a part for a damaged area,
   // each heal floats up from the bar as +N with its source's icon, and the bar flashes
   const ids = FixUI.mendIds().map((k) => k.split('@')[0]), down = m.state === 'down';   // (#59: squadmates' areas too)
