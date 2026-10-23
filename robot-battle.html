@@ -13517,8 +13517,8 @@ function partPiece(id) {
     // #122: the Knight's sword, on the slant: a long steel blade with its point, the gold crossguard, a dark grip, a gold pommel
     const s = new THREE.Group(); g.add(s); s.rotation.z = -Math.PI / 4;
     const add2 = (m, x, y) => { m.position.set(x, y, 0); s.add(m); return m; };
-    add2(rbox(0.26, 1.75, 0.08, 0.03, steel, metal), 0, 0.45);
-    add2(new THREE.Mesh(new THREE.ConeGeometry(0.185, 0.36, 4), mat(steel, metal)), 0, 1.5).rotation.y = Math.PI / 4;
+    add2(rbox(0.36, 2.1, 0.16, 0.05, steel, metal), 0, 0.62);
+    add2(new THREE.Mesh(new THREE.ConeGeometry(0.255, 0.42, 4), mat(steel, metal)), 0, 1.88).rotation.y = Math.PI / 4;
     add2(rbox(0.9, 0.16, 0.22, 0.05, P.hex, metal), 0, -0.48);
     add2(cyl(0.08, 0.08, 0.42, '#3a3f52', metal, 10), 0, -0.77);
     add2(new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), mat(P.hex, metal)), 0, -1.04);
