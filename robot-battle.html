@@ -570,9 +570,9 @@
      - a phone held upright (no gap wide enough): the weapons row has the bottom edge to itself, and the speed bars,
        the compass, ⭐ and 🌊 sit above it */
   @media (max-width: 900px) {
-    html:not(.tp-mode) #hud { --ws: min(66px, calc((100vw - 248px - 152px - 40px) / 5)); }
+    html:not(.tp-mode) #hud { --ws: clamp(40px, calc((100vw - 248px - 152px - 40px) / 5), 66px); }   /* 40px floor: a window under ~600 wide and not upright would otherwise shrink the slots to nothing */
     html:not(.tp-mode) #hud .weapons { left: 248px; right: 152px; transform: none; justify-content: center; gap: 8px; }
-    html:not(.tp-mode) #hud .wpn { width: var(--ws); height: var(--ws); font-size: calc(var(--ws) * .52); }
+    html:not(.tp-mode) #hud .wpn { flex-shrink: 0; width: var(--ws); height: var(--ws); font-size: calc(var(--ws) * .52); }
   }
   @media (max-height: 460px) and (min-width: 600px), (orientation: portrait) and (max-width: 699px) {
     html:not(.tp-mode) #hud .speed { gap: 4px; padding: 10px 12px; }
