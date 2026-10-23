@@ -111,7 +111,7 @@
   .panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: auto; padding: 16px 22px 22px; border-radius: 26px; background: rgba(20,24,42,.88); border: 5px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
   .panel .top { display: flex; justify-content: space-between; align-items: center; font-size: 40px; margin-bottom: 8px; }
   .panel .x { width: 52px; height: 52px; border-radius: 50%; border: 4px solid var(--ink); background: #ff4d5e; color: #fff; font-size: 26px; font-weight: 900; cursor: pointer; }
-  .board { position: relative; display: flex; justify-content: space-between; width: min(520px, 86vw); gap: 120px; padding: 6px 0; touch-action: none; }
+  .board { position: relative; display: flex; justify-content: space-between; width: min(520px, 86vw, calc(100vw - 66px));   /* (#122: the 66 keeps the panel on a 360 phone) */ gap: 120px; padding: 6px 0; touch-action: none; }
   #wireSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
   .board .col { display: flex; flex-direction: column; gap: 22px; }
   .plug, .port { width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center; touch-action: none; }
@@ -350,6 +350,35 @@
   #hud .wave.on { display: flex; }
   #hud .wave.new { animation: newWave .8s ease-in-out 4; }
   @keyframes newWave { 0%,100% { box-shadow: 0 0 0 0 rgba(63,240,255,.9); transform: scale(1); } 50% { box-shadow: 0 0 0 12px rgba(63,240,255,0); transform: scale(1.12); } }
+  /* #122: a boss wave's chip: the ⚔️ in the 🌊's place, edged in the Knight's gold */
+  #hud .wave .bw { display: none; }
+  #hud .wave.boss .bw { display: inline-flex; } #hud .wave.boss .wi { display: none; }
+  #hud .wave.boss { box-shadow: inset 0 0 0 3px #ffd21f, 0 0 12px rgba(255,210,31,.6); color: #ffe46b; }
+  /* #122: the boss bar (the boys' sword: a long blade, a hilt and a point at each end, a sword standing across the middle), in
+     the top-right group where the squad chips are: while a boss is up (.boss-on) it takes their place. It grows to fill the
+     room the chips had, up to 460 px, never under 150 */
+  #hud .bossbar { display: none; position: relative; flex: 1 1 260px; min-width: 150px; max-width: 460px; height: 44px; align-items: center; }
+  #hud .right.boss-on .bossbar { display: flex; }
+  #hud .right.boss-on #squad { display: none; }
+  #hud .bossbar .bend { flex: none; width: 30px; height: 44px; margin: 0 -3px; position: relative; z-index: 1; }
+  #hud .bossbar svg path.bl, #hud .bossbar svg .bl { fill: #dfe5f0; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+  #hud .bossbar svg .bh { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; opacity: .8; }
+  #hud .bossbar svg .bg { fill: #ffd21f; stroke: var(--ink); stroke-width: 2.5; }
+  #hud .bossbar svg .bgrip { fill: #3a3f52; stroke: var(--ink); stroke-width: 2; }
+  #hud .bossbar .blade { position: relative; flex: 1; min-width: 0; height: 24px; border-radius: 4px; border: 3px solid var(--ink); background: rgba(20,24,42,.85); overflow: hidden; box-shadow: 0 0 10px rgba(255,210,31,.45); }
+  #hud .bossbar .blade b { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(#fff3a6, #ffd21f 45%, #c8901a); transition: width .15s; }
+  #hud .bossbar .bname { position: absolute; left: 8px; top: 50%; translate: 0 -50%; font: 900 15px/1 'Asap', sans-serif; letter-spacing: .5px; text-transform: uppercase; color: #fff; white-space: nowrap;
+    text-shadow: 1.5px 0 0 var(--ink), -1.5px 0 0 var(--ink), 0 1.5px 0 var(--ink), 0 -1.5px 0 var(--ink); }
+  #hud .bossbar .bmid { position: absolute; left: 50%; top: 0; width: 24px; height: 46px; translate: -50% -1px; z-index: 2; pointer-events: none; }
+  /* a phone upright (keys and mouse): the bar takes the row under the health panel, above 🔩 🔍 🎒 (order: the line after them,
+     which wrap-reverse puts on top), clear of the copier's saucer over the mech */
+  @media (max-width: 760px) { html:not(.tp-mode) #hud .bossbar { flex: 0 0 calc(100% - 60px); max-width: none; order: 2; } }   /* (60: clear of the pilot) */
+  /* a phone on its side (keys and mouse): the chips' row under the counts, from the right; a small one (568 × 320), on the top
+     row right of the health panel, where its icon-only chips go */
+  @media (max-height: 460px) and (min-width: 600px) { html:not(.tp-mode) #hud .bossbar { order: 0; position: absolute; right: 0; top: calc(100% + 8px); width: min(300px, calc(50vw - 110px)); max-width: none; } }   /* (under the counts, from the right, short of the middle: clear of the copier's saucer, over the mech mid-screen) */
+  @media (max-height: 460px) and (min-width: 500px) and (max-width: 599px) { html:not(.tp-mode) #hud .bossbar { flex: 0 1 auto; width: calc(100vw - 392px); } }
+  #hud .bossbar.down .blade { filter: grayscale(.7) brightness(.8); box-shadow: none; }
+  #hud .bossbar.hot .blade { box-shadow: 0 0 14px #ff4d5e; }
   #clear .banner { position: absolute; left: 50%; top: 100px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 22px 16px; border-radius: 26px;
     background: rgba(20,24,42,.82); border: 5px solid var(--yellow); box-shadow: 0 0 30px rgba(255,216,61,.5); animation: clearIn .5s cubic-bezier(.2,1.5,.4,1); white-space: nowrap; }
   @keyframes clearIn { from { transform: translateX(-50%) scale(.4); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
@@ -420,10 +449,20 @@
   }
   @media (max-height: 860px) { .entry .pad button { height: 70px; } }
   @media (max-height: 640px) { .entry { gap: 8px; } .entry .pad button { height: 62px; font-size: 34px; } .entry .val { height: 64px; } }
-  /* a phone on its side (~360–430 px tall): the fact sits beside the keys, which shrink, so ✔ stays on screen */
-  @media (max-height: 460px) and (min-width: 600px) {
+  /* a phone on its side (~360–430 px tall): the fact sits beside the keys, which shrink, so ✔ stays on screen
+     (#122: from 500 wide, so a small phone on its side, 568 × 320, gets it too: every board ran off its top there) */
+  @media (max-height: 460px) and (min-width: 500px) {
     #fix.typing .entry { flex-direction: row; gap: 22px; }
     .entry .pad { grid-template-columns: repeat(3, 76px); gap: 6px; }
+  }
+  /* #122: a narrow phone on its side (up to 720 wide): the fact, the answer box and the keys narrower, so ✔ and the slots stay on
+     screen (the keypad ran off the right edge at 667 × 375 and 568 × 320) */
+  @media (max-height: 460px) and (min-width: 500px) and (max-width: 720px) {
+    #fix.typing .entry { gap: 12px; }
+    .entry .q { gap: 8px; } .entry .q .fact, .entry .val { font-size: 36px; } .entry .val { min-width: 84px; height: 56px; }
+    .entry .pad { grid-template-columns: repeat(3, 58px); gap: 5px; }
+  }
+  @media (max-height: 460px) and (min-width: 500px) {
     .entry .pad button { height: 50px; font-size: 30px; border-radius: 16px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
   }
   /* ---------- P3-1 THE FIX RAMP: from wave 1 a row of slots over the board: a chip per wire (✔ once it's in) and a card per
@@ -439,6 +478,9 @@
   .fslots .done { animation: none; filter: grayscale(.5) brightness(.75); cursor: default; }
   .fslots .done::after { content: ''; position: absolute; right: -10px; top: -10px; width: 28px; height: 28px; border-radius: 50%; background: var(--green) var(--ic-check) center / 19px no-repeat; border: 3px solid var(--ink); filter: none; }
   .fslots .card.cur, .fslots .card.open { outline: 5px dashed var(--yellow); outline-offset: 5px; }
+  /* #122: the Knight's bigger board (6 slots) on a phone held upright: the slots a little smaller, so the row fits */
+  @media (max-width: 560px) { .fslots:has(> :nth-child(6)) { gap: 5px; } .fslots:has(> :nth-child(6)) .wchip { width: 34px; height: 34px; border-width: 3px; } .fslots:has(> :nth-child(6)) .wchip svg { width: 22px; height: 22px; }
+    .fslots:has(> :nth-child(6)) .card { width: 56px; height: 52px; font-size: 26px; border-width: 4px; } }
   .fslots .card.open { background: #fff; animation: none; }
   #fix.puzzling .board { display: none; }
   .puz { display: none; flex-direction: column; align-items: center; gap: 14px; }
@@ -492,8 +534,15 @@
   .hand { position: fixed; left: 0; top: 0; z-index: 60; font-size: 54px; line-height: 1; pointer-events: none; opacity: 0; filter: drop-shadow(0 3px 4px rgba(0,0,0,.6)); }
   @media (max-width: 560px) { .chain .sock { width: 46px; height: 46px; font-size: 24px; } .chain .arr { font-size: 20px; } .chain .bot { width: 56px; } .puz .tiles:has(> :nth-child(4)) { gap: 8px; } .puz .tiles:has(> :nth-child(4)) .tile { width: 66px; height: 66px; font-size: 32px; } .fslots { gap: 8px; } .fslots .card { width: 66px; height: 58px; font-size: 30px; } .fslots .wchip { width: 40px; height: 40px; } .fslots .wchip svg { width: 26px; height: 26px; } .sym { font-size: 46px; } .sym .badge { width: 64px; height: 64px; font-size: 36px; } .puz .tiles { gap: 10px; } .puz .tile { width: 76px; height: 76px; font-size: 38px; } }
   /* a phone on its side: the slots stand in a column beside the board (the same breakpoint as the keypad); the wires and
-     ports shrink, and up to 6 ports go two to a column */
-  @media (max-height: 460px) and (min-width: 600px) {
+     ports shrink, and up to 6 ports go two to a column (#122: from 500 wide, as the keypad's) */
+  @media (max-height: 460px) and (min-width: 500px) {
+    /* #122: the Knight's bigger board (4 wires, 6 slots): its slots and its 4 plugs and ports a little smaller, so the column fits */
+    #fix.ramp .fslots:has(> :nth-child(6)) { gap: 6px; }
+    #fix.ramp .fslots:has(> :nth-child(6)) .wchip { width: 32px; height: 32px; border-width: 3px; } #fix.ramp .fslots:has(> :nth-child(6)) .wchip svg { width: 20px; height: 20px; }
+    #fix.ramp .fslots:has(> :nth-child(6)) .card { width: 58px; height: 44px; font-size: 24px; border-width: 4px; }
+    #fix.ramp .board:has(#plugs > :nth-child(4)) .col { gap: 8px; }
+    #fix.ramp .board:has(#plugs > :nth-child(4)) :is(.plug, .port) { height: 50px; }
+    #fix.ramp .board:not(.math):has(#plugs > :nth-child(4)) :is(.plug, .port) { width: 50px; }
     #fix.ramp .panel { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 22px; align-items: center; padding: 10px 18px 14px; }
     #fix.ramp .panel .top { grid-column: 1 / -1; font-size: 30px; margin-bottom: 4px; }
     #fix.ramp .panel .x { width: 44px; height: 44px; font-size: 22px; }
@@ -805,6 +854,9 @@
   .tslot.none .tf { opacity: .35; filter: grayscale(1); }
   .tslot .tn { position: absolute; right: 8px; bottom: 2px; font: 900 28px 'Asap', sans-serif; color: #fff; text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink); }
   .tslot.none .tn { opacity: .55; font-size: 24px; }
+  /* #122: a boss's rare part, once the boss is fixed: its trophy on a gold disc, top right */
+  .tslot .tboss { position: absolute; right: 5px; top: 4px; display: grid; place-items: center; width: 1.5em; height: 1.5em; border-radius: 50%; font-size: 20px; line-height: 0;
+    background: radial-gradient(#fff3a6, #ffd21f 60%, #c8901a); border: 3px solid var(--ink); box-shadow: 0 0 10px rgba(255,210,31,.8); }
   .glock { grid-column: 1 / -1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border-radius: 22px; border: 4px dashed rgba(255,255,255,.3);
     background: rgba(20,24,42,.6); text-align: center; }
   .glock .big { font-size: 90px; line-height: 1; }
@@ -812,7 +864,7 @@
   .glock b { font: 900 26px 'Asap', sans-serif; color: var(--yellow); }
   /* G4: the advanced shelf, under the trophies: five slots across, lit once unlocked, an outline with its milestone till then */
   /* (#120: nine parts with the 🥷 jet boots: five a row, the last place on the shelf free for the next) */
-  .gwall.trophies { grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr 1.15fr; }
+  .gwall.trophies { grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr 1.15fr; }   /* (#122: the tenth, the ⚔️ sword, takes the free place) */
   .ashelf { grid-column: 1 / -1; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding-top: 8px; border-top: 4px dashed rgba(255,216,61,.35); }
   .aslot { position: relative; min-height: 0; min-width: 0; border-radius: 18px; border: 3px dashed rgba(255,255,255,.28); }   /* (no fill: the 3D piece is drawn under this layer) */
   .aslot.got { border: 3px solid var(--pc); box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 55%, transparent); }
@@ -1036,7 +1088,7 @@
     .gtier .tu { font-size: 22px; } .gtier .tp i { width: 9px; height: 9px; }
     .glock .big { font-size: 64px; }
     .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }
-    .gwall.trophies { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr 1.15fr; }   /* (#120: nine parts, three a row) */
+    .gwall.trophies { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr 1fr 1.15fr; }   /* (#120: nine parts, three a row; #122: ten, with the ⚔️ sword) */
     .ucard { padding: 4px 6px 6px; border-width: 3px; border-radius: 14px; }
     .ucard .ufx { font-size: 17px; } .ucard .pips i { width: 12px; height: 12px; border-width: 2px; } .ucard .pips { gap: 2px; }
     .ucard .ucost { font-size: 16px; } .ucard .uhave { font-size: 15px; } .ucard .ukey { display: none; }
@@ -1278,6 +1330,9 @@
   /* the wave chip, small, just left of ⏸ */
   html.tp-mode #hud .wave { right: calc(max(16px, env(safe-area-inset-right)) + 10px + 44px * var(--tpu)); top: calc(max(12px, env(safe-area-inset-top)) + 22px * var(--tpu)); bottom: auto; translate: 0 -50%;
     width: auto; gap: 6px; padding: 4px 12px; font-size: calc(20px * var(--tpu)); }
+  /* #122: wave 10 on (two digits; wave 10 is the first boss wave with a copier): on a narrow phone the chip slims, so it stays
+     clear of the health bar (it reached 10 px under it at 360 wide, on main too) */
+  @media (max-width: 380px) { html.tp-mode #hud .wave.w2 { padding: 4px 6px; gap: 3px; } }
   /* beside a downed robot just the 🔧, as a marker that taps go through (FIX is the button); kept clear of the thumbs */
   html.tp-mode #hud .prompt { gap: 0; }
   html.tp-mode #hud .prompt button { pointer-events: none; width: 56px; height: 56px; font-size: 30px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); }
@@ -1384,13 +1439,16 @@
   <div class="weapons" id="weapons"></div>
   <div class="speed" id="speed"><span class="ico"><i data-ic="legs"></i></span></div>
   <button class="mastery" id="masteryB" aria-label="My facts: mastered of the goal"><i data-ic="star"></i><b id="masteryN"></b><small>T</small></button>
-  <div class="wave" id="waveHud" aria-label="Wave"><span><i data-ic="wave"></i></span><b id="waveN">0</b></div>
+  <div class="wave" id="waveHud" aria-label="Wave"><span class="wi"><i data-ic="wave"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveN">0</b></div>
   <div class="compass">
     <div class="arm legs" id="cLegs"><b><i data-ic="boot"></i></b></div>
     <div class="arm torso" id="cTorso"><b><i data-ic="aim"></i></b></div>
     <div class="hub"></div>
   </div>
-  <div class="right"><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
+  <!-- #122: the boss bar, in the boys' sword style (#117, page 3): a long blade with a hilt and a point at each end and a sword
+       standing across its middle; the boss's name on it, its health as the blade's gold. While a boss is up it takes the squad
+       chips' place (.right.boss-on) -->
+  <div class="right"><div class="bossbar" id="bossBar" role="img" aria-label="Boss"><svg class="bend" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M3 22 L17 15 L29 15 L29 29 L17 29 Z"/><path class="bh" d="M8 22 L18 18.5"/><rect class="bg" x="29" y="6" width="8" height="32" rx="2.5"/></svg><div class="blade"><b id="bossFill"></b><span class="bname" id="bossName"></span></div><svg class="bend r" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M37 22 L23 15 L11 15 L11 29 L23 29 Z"/><path class="bh" d="M32 22 L22 18.5"/><rect class="bg" x="3" y="6" width="8" height="32" rx="2.5"/></svg><svg class="bmid" viewBox="0 0 24 46" aria-hidden="true"><path class="bl" d="M8.5 31 L8.5 6 L12 1.5 L15.5 6 L15.5 31 Z"/><rect class="bg" x="2" y="30" width="20" height="5" rx="2"/><rect class="bgrip" x="9.5" y="35" width="5" height="5.5" rx="1"/><circle class="bg" cx="12" cy="42.5" r="3"/></svg></div><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
   <div class="prompt" id="prompt">
     <button class="pfix" id="pFix" aria-label="Fix"><i data-ic="wrench"></i><small>F</small><span class="hm"><i data-ic="home"></i></span></button>
     <button class="pparts" id="pParts" aria-label="Take parts"><i data-ic="bolt"></i><small>G</small></button>
@@ -1777,6 +1835,9 @@ const ROBOT_HITS = {
   // the player's × COPIER.clone.dmg; their knock-back the weapon's × COPIER.clone.push)
   cgun: { push: WEAPON.gun.push * 0.5 }, cem: { push: WEAPON.em.push * 0.5 }, crail: { push: WEAPON.rail.push * 0.5 },
   cpunch: { push: WEAPON.punch.push * 0.5 }, ckick: { push: WEAPON.kick.push * 0.5 },
+  // #122: the Knight's sword swipe and its axe throw, on a player or a squadmate (their damage and knock-back: KNIGHT.sword /
+  // KNIGHT.axe)
+  sword: { push: 10 }, axe: { push: 6 },
 };
 const ROBOT = {
   downTime: 12,              // seconds a beaten robot stays powered down
@@ -1796,7 +1857,8 @@ const ROBOT = {
 // a punch 0.6 -> 2 + 0; a pure electromagnetic shutdown 0 -> 1 wire.
 const FAULTS = {
   weight: { em: 0, punch: 0.6, setup: 1, gun: 1.4, snipe: 1.4, kick: 1.6, stomp: 1.6, rail: 2, flank: 1.6,   // (#120: a flanker's kick, as a kick)
-    cgun: 1.4, cpunch: 0.6, ckick: 1.6, crail: 2, cem: 0 },   // (#121: a clone's hits on a squadmate, as the weapon's own)
+    cgun: 1.4, cpunch: 0.6, ckick: 1.6, crail: 2, cem: 0,   // (#121: a clone's hits on a squadmate, as the weapon's own)
+    sword: 1.4, axe: 1.6 },                                 // (#122: the Knight's, on a squadmate: a cut, and a blow to the legs)
   em: 0.5, burnt: [1.2, 1.8], scrub: 3,
 };
 // Fix it or take the parts. A downed robot within promptRange shows the choice.
@@ -1818,6 +1880,9 @@ const PARTS = {
   rotor:   { icon: '🌀', ic: 'rotor', hex: '#ffd83d', fixes: null },        // a drone's rotor
   spring:  { icon: '➰', ic: 'spring', hex: '#9f7bff', fixes: null },        // the Bouncer's coil spring
   jetboots: { icon: '🥷', ic: 'jetboots', hex: '#a6e22e', fixes: null },     // #120: the Ninja's jet boots
+  // #122: the Knight's sword, its rare part: only fixing the Knight gives one (it isn't among the parts it can be taken apart
+  // for). A trophy for the 🏆 wall: it buys nothing yet
+  sword: { icon: '⚔️', ic: 'sword', hex: '#ffd21f', fixes: null },
 };
 // Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
 // always maxHealth minus the damage in every area, so every heal mends areas too
@@ -1834,7 +1899,8 @@ const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };
 // (#120: a Ninja's or a minion's kick mostly in the legs too)
 // (#121: a clone's kick mostly in the legs, its pulse in the power and wiring; its rounds, rail and punch on the hull)
 const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 }, nkick: { hull: 0.4, legs: 0.6 }, flank: { hull: 0.4, legs: 0.6 },
-  ckick: { hull: 0.4, legs: 0.6 }, cem: { power: 0.5, wiring: 0.5 } };
+  ckick: { hull: 0.4, legs: 0.6 }, cem: { power: 0.5, wiring: 0.5 },
+  axe: { hull: 0.3, legs: 0.7 } };   // (#122: the Knight's axe comes along the ground: mostly the legs; its sword, the hull)
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
@@ -2307,8 +2373,8 @@ function median(a) { if (!a?.length) return null; const b = [...a].sort((x, y) =
 // Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
 // else (setup damage, an electromagnet) leaves its wiring sparking.
 const SYMPTOMS = {
-  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram', 'nkick', 'flank', 'ckick', 'cpunch'] },   // (#120: a Ninja's kicks too; #121: a clone's)
-  holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe', 'cgun'] },
+  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram', 'nkick', 'flank', 'ckick', 'cpunch', 'axe'] },   // (#120: a Ninja's kicks too; #121: a clone's; #122: the Knight's axe)
+  holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe', 'cgun', 'sword'] },   // (#122: and its sword's cuts)
   drained: { ic: 'drained', parts: ['battery', 'wiring'], by: ['rail', 'crail'] },
   sparks: { ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em', 'cem'] },
 };
@@ -2410,6 +2476,48 @@ const COPIER = {
   clone: { health: 0.5, dmg: 0.5, push: 0.5, eyes: '#ff2f5b', boot: 1.6,
     keep: 16, gunRange: 0.8, gunRest: 1.3, spread: 0.03, emCool: 5, emRange: 45, railCool: 7, railRange: 90,
     meleeCool: 5, windup: 0.4, rushT: 4, jumpCool: 6, jumpVar: 3 },
+};
+// #122 (#117 N3, Orion's Q8 A / Q9 A / Q10 A): boss waves and the Knight. Every number here is a starting value, tuned at the
+// playtest. Waves (boss, list, copier, satellite), ROBOT_TYPES.knight, its brain, its axes (Axes), its fix board (bossPlan),
+// the boss bar and the 🏆 latch all read them.
+// BOSS_WAVE: every `every`th wave (5, 10, 15 …) is a boss wave: the wave's normal robots plus its boss (the Knight). What a
+// boss wave keeps of the normal wave is one switch a line, all on as Orion chose (Dad, #117: no boss-wave exception), so
+// dropping one later is a one-line change:
+//   extras     the robots past WAVE.base's four, with the Ninja crew that takes the last extra's place (from wave NINJA.from)
+//   satellite  N4's satellite, from wave 5 (in place for N4: until the satellite lands nothing comes, so it does nothing)
+//   copier     N2's copier on its waves (COPIER.wave: 10, 20 … are boss waves too)
+const BOSS_WAVE = {
+  every: 5,
+  extras: true,
+  satellite: true,
+  copier: true,
+};
+// KNIGHT: Apollo's Knight (the PDF on #117, page 3). Big, yellow and slow to turn (legTurn), so circling it works.
+//   health × the wave's toughness (Waves.tough), like every wave robot; notice: how near before it comes for you; scale: its
+//           size against a mech's (its model is built at a mech's size, then grown; radius is its body's)
+//   sword:  up close (within reach m past the two bodies' edges, and within arc rad of where it faces) it stops and raises its
+//           sword for `windup` s (the ❗, the blade glowing: it doesn't turn while it does), then swipes: `dmg` and a `push`
+//           knock-back on every running mech or ground squadmate still in reach and arc; then `cool` s before the next
+//   axe:    at range (min to max m, facing within `aim` rad) it raises its axe for `windup` s (the ❗), then throws it straight
+//           along the ground at `speed` m/s: a spinning axe `y` m up, `h` m tall at its top. It hits the first running mech or
+//           ground squadmate whose body it reaches (`r` m past the body's edge) while that one's feet are lower than `h`
+//           (so a jump clears it) for `dmg` and a `push`; a tree or a rock stops it, and it drops after `range` m. A new
+//           axe grows back in its hand `back` s later; `cool` s between throws
+//   heavy:  weight (separate(): a mech pushes it this much, a robot's is 0.8), shockK (× the 🧲's shock, so pulses alone take
+//           far longer to shut it down) and pushK (× the knock-back of the player's hits)
+//   board:  beaten, its fix board is the wave's (fixPlan) with `math` more math wires (at most the 4 wire colours) and `puzzles`
+//           more puzzle cards (each type once: at most 2, a 🧲 board 3); its target time grows with the slots. It stays
+//           powered down `downTime` s (a big board takes longer to reach and fix)
+//   fixed:  it gives its rare part (`part`: the ⚔️ sword) and the Knight trophy (the record's garage.bosses.knight, latched
+//           with ||= and never lowered), and it doesn't join the squad: it powers up gold and marches off home (it vanishes)
+//   name:   the boss bar's name for it
+const KNIGHT = {
+  name: 'Knight', health: 500, scale: 1.3, topSpeed: 3.2, legTurn: 0.5, radius: 3.9, notice: 95, downTime: 40,
+  weight: 0.15, shockK: 0.35, pushK: 0.3,
+  sword: { reach: 3.2, arc: 0.9, windup: 0.85, swing: 0.3, dmg: 22, push: 10, cool: 1.8 },
+  axe: { min: 14, max: 60, aim: 0.12, windup: 0.8, speed: 17, range: 75, y: 0.55, h: 1.0, r: 0.7, dmg: 18, push: 6, back: 2.5, cool: 4.5 },
+  board: { math: 1, puzzles: 1 },
+  part: 'sword',
 };
 
 const V3 = THREE.Vector3;
@@ -2531,6 +2639,10 @@ const ICONS = {
   // #120: the Ninja's jet boot: a green boot with a pointed toe, the jet nozzle at its heel and its flame
   jetboots: ['jet boots', ['🥷'], pn('M1.2 14.8 L4 16.4 L1.2 18 Z', '#ffb02e') + re(3.2, 13.8, 3.6, 5.2, 1, G('dark')) + re(8, 2.6, 6.6, 10.8, 1.6, G('lime'))
     + pa('M6.4 12.2 L15.4 12.2 L22.6 19.2 L22.6 20 L6.4 20 Z', G('lime')) + re(6.4, 19.4, 16.2, 2, 0.8, G('dark')) + hl('M10 4.6 L10 10.4')],
+  // #122: the Knight's sword (its rare part, and the boss wave's mark on the wave chip): a steel blade, a gold crossguard
+  // and pommel, a dark grip, on the slant
+  sword: ['sword', ['⚔️'], rot(45, pa('M10.6 15 L10.6 4.6 L12 1.6 L13.4 4.6 L13.4 15 Z', G('steel')) + re(6.2, 14.4, 11.6, 2.8, 1, G('gold')) + re(10.7, 17.2, 2.6, 3.6, 0.6, G('dark'))
+    + ci(12, 21.6, 1.7, G('gold')) + hl('M12 4.4 L12 13'))],
   // ---- robot types: each one's own silhouette, in its armour colour ----
   charger: ['Charger', ['🐏'], re(3.6, 17, 3.4, 4.4, 1, G('dark')) + re(17, 17, 3.4, 4.4, 1, G('dark')) + re(2.4, 6.4, 19.2, 11.6, 3.4, G('purple')) + rn(5.4, 9.2, 13.2, 3.6, 1.8, INK) + rn(7, 10.2, 10, 1.6, 0.8, '#ff2f5b')
     + re(7.2, 14.6, 9.6, 4.6, 1, G('steel')) + hl('M4.6 9 L4.6 13')],
@@ -2549,6 +2661,9 @@ const ICONS = {
     + re(6.6, 10.6, 10.8, 6.6, 1.8, G('iron')) + ci(12, 8.4, 3.8, G('iron')) + cn(12, 8.4, 1.3, '#ff2f5b') + hl('M8.8 12.6 L8.8 15.2')],
   // #121: your clone: the mech's chest in its orange, its steel shoulders, a dark visor with two glitch-red eyes, and a
   // glitch tear (a red and a cyan bar) across it
+  // #122: Apollo's Knight: a tall yellow helmet with its antenna and a dark visor (two glitch-red eyes), on broad yellow shoulders
+  knight: ['Knight', [], ln('M12 1.8 L12 4.2', G('dark'), 1.2) + ci(12, 1.8, 1.3, G('gold')) + re(2.4, 14.2, 19.2, 8, 2.4, G('yellow')) + rn(2.4, 18.6, 19.2, 1.8, 0, '#b8860b')
+    + re(6.8, 4, 10.4, 10.4, 1.8, G('yellow')) + rn(8.2, 7.6, 7.6, 2.8, 1.2, INK) + cn(10.2, 9, 0.9, '#ff2f5b') + cn(13.8, 9, 0.9, '#ff2f5b') + hl('M4.6 16.4 L4.6 18') + hl('M8.4 5.8 L8.4 6.8')],
   clone: ['clone', [], re(1.6, 4.6, 5.4, 6.6, 2.2, G('steel')) + re(17, 4.6, 5.4, 6.6, 2.2, G('steel')) + pa('M4.8 5.6 L19.2 5.6 L17.2 20.4 L6.8 20.4 Z', G('orange'))
     + rn(7.6, 8.4, 8.8, 4, 2, INK) + cn(10, 10.4, 1.3, '#ff2f5b') + cn(14, 10.4, 1.3, '#ff2f5b') + rn(1.2, 15.4, 6.4, 1.6, 0.5, '#ff2f5b') + rn(16.2, 17.6, 6.4, 1.6, 0.5, '#3ff0ff') + hl('M7.2 7.8 L8.2 14')],
   // ---- the mech's areas, body sections and leg shapes ----
@@ -2700,6 +2815,11 @@ const iconSvg = (n) => `<g stroke="${ICON_INK}" stroke-width="2" stroke-linejoin
 // dev = the game opened from a file or localhost (where a missing icon throws, so a check catches it); otherwise a
 // missing one draws as ❓'s icon (never an emoji)
 const ICON_DEV = /^(file:|http:\/\/(localhost|127\.))/.test(location.href) || /[?&]dev\b/.test(location.search);
+// #122 (Dad's playtest addition): start at any wave. ?wave=N in the page's address (as ?dev is) makes the first wave out wave N
+// (1 to 99; anything else is wave 1), so waves 5 and 10 can be played without waves 1–4 first. It's read from the address
+// only, never saved: a reload without it starts at wave 1 again. No wave number is saved anywhere (nothing records waves
+// cleared), so a jump ahead counts for nothing it didn't play: only what wave N itself earns is saved, as playing it would
+const START_WAVE = (() => { const m = /[?&]wave=(\d{1,2})(?!\d)/.exec(location.search), n = m ? Number(m[1]) : 1; return n >= 1 && n <= 99 ? n : 1; })();
 // <svg class="ic"> drawing icon `name` from the sprite. opts: label (its aria-label; the icon's word otherwise), cls (more classes)
 function icon(name, opts = {}) {
   if (!ICONS[name]) { if (ICON_DEV) throw new Error('no such icon: ' + name); name = 'question'; }
@@ -2996,6 +3116,11 @@ function fillGarage(r) {
   // out = on (so a record saved before #72 looks as it did)
   if (!METALS.some((M) => M.id === g.metal && g.unlocks.includes(M.id))) g.metal = null;
   if (g.crown !== false) delete g.crown;
+  // #122: the boss trophies (bosses: { type: { at, wave } }, latched by Garage.latchBoss): kept only as an object of objects
+  if (g.bosses != null) {
+    if (typeof g.bosses !== 'object' || Array.isArray(g.bosses)) delete g.bosses;
+    else for (const k of Object.keys(g.bosses)) if (!g.bosses[k] || typeof g.bosses[k] !== 'object' || Array.isArray(g.bosses[k])) delete g.bosses[k];
+  }
   return r;
 }
 // #58: the saved squad, in the child's record (added with ||= the first time it's read, so valid() and v are untouched and
@@ -3555,6 +3680,8 @@ const Backup = {
       return t;
     });
     g.upgrades = byKey(gd.upgrades, gb.upgrades, (p, q) => Math.max(num(p), num(q)));
+    // #122: the boss trophies: one either side has is kept (both: the one won first)
+    if (isObj(gd.bosses) || isObj(gb.bosses)) g.bosses = byKey(isObj(gd.bosses) ? gd.bosses : {}, isObj(gb.bosses) ? gb.bosses : {}, (p, q) => clone(isObj(q) && (!isObj(p) || num(q.at) < num(p.at)) ? q : p));
     g.paint = clone(gd.paint ?? gb.paint ?? null);
     const und = arr(gd.unlocks), unb = arr(gb.unlocks);
     g.unlocks = [...new Set([...und, ...unb])];
@@ -7740,7 +7867,7 @@ function meleeStrike(m, w) {
 // An electromagnetic hit also loads shock; enough shock shuts the robot down (shockRobot).
 // (#42: pushK × its knock-back: the Heavy fists' punch)
 function hitRobot(r, dmg, w, dx, dz, at, pushK) {
-  const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe' || w === 'rail', P = pushK ? W.push * pushK : W.push;
+  const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe' || w === 'rail', P = (pushK ? W.push * pushK : W.push) * (ROBOT_TYPES[r.type].pushK ?? 1);   // (#122: a Knight is heavy)
   r.hits[w] = (r.hits[w] || 0) + 1;
   r.push.x += dx / L * P; r.push.z += dz / L * P;
   r.lastPush = P;   // (#42: for the hooks)
@@ -7774,7 +7901,7 @@ function hurtRobot(r, amount, w) {
 // ROBOT.shockMax a glitched robot's electronics cut out and it powers down mostly intact.
 function shockRobot(r, amount) {
   if (r.state !== 'glitched') return false;
-  r.shock = Math.min(ROBOT.shockMax, r.shock + amount);
+  r.shock = Math.min(ROBOT.shockMax, r.shock + amount * (ROBOT_TYPES[r.type].shockK ?? 1));   // (#122: a Knight's is a fraction)
   if (r.shock < ROBOT.shockMax) return false;
   powerDown(r, 'em');
   return true;
@@ -8159,6 +8286,72 @@ function buildMinion(paint) {
   const tip = ownMesh(new THREE.SphereGeometry(0.1, 8, 6), glow); tip.position.y = 3.32; body.add(tip);
   return { root, body, legs, glow, armour, ...robotHud(root, 3.9, 1.8) };
 }
+// #122: the Knight's axe: a long handle, a D-shaped blade on one side of its head and a spike on top (in the Knight's hand,
+// and the same again for each axe it throws). Its handle runs along y, the blade's curve out along +x
+function buildAxe(paint) {
+  const g = new THREE.Group(), steel = { metalness: 0.85, roughness: 0.25 }, wood = { metalness: 0.2, roughness: 0.7 };
+  const handle = cyl(0.13, 0.15, 3.4, paint.frame, wood, 10); handle.position.y = 0.9; g.add(handle);
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.14, 24, 1, false, 0, Math.PI), mat(paint.ram, steel));
+  head.rotation.x = Math.PI / 2; head.rotation.z = Math.PI / 2; head.position.set(0.12, 2.15, 0); head.castShadow = true; g.add(head);
+  const edge = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.06, 6, 24, Math.PI), mat('#ffffff', steel)); edge.rotation.z = -Math.PI / 2; edge.position.set(0.12, 2.15, 0); g.add(edge);
+  const spike = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.7, 8), mat(paint.ram, steel)); spike.position.y = 2.95; g.add(spike);
+  const cap = cyl(0.2, 0.2, 0.3, paint.stripe, steel, 10); cap.position.y = -0.75; g.add(cap);
+  return g;
+}
+// #122: Apollo's Knight (#117, page 3), much bigger than a Charger: a tall square helmet with two eyes behind its visor and an
+// antenna, a boxy yellow body with a belt, its arms straight out to the sides (its sword in its left hand, its axe in its
+// right) and two box legs with big boots. Its sword's edge glows as it winds up (edge); the axe in its hand (axe) hides
+// while one it threw is out
+function buildKnight(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
+  const { armour, glow } = robotMats(paint);
+  const edge = new THREE.MeshStandardMaterial({ color: '#e9eef8', metalness: 0.9, roughness: 0.2, emissive: '#fff2a8', emissiveIntensity: 0.15 });
+  const g0 = glow.dispose.bind(glow); glow.dispose = () => { g0(); edge.dispose(); };   // (removeRobot frees the blade's own material too)
+  const legs = [];
+  for (const [s, ph] of [[-1, 0], [1, Math.PI]]) {
+    const hip = new THREE.Group(); hip.position.set(s * 0.95, 3.2, 0); body.add(hip);
+    hip.add(ball(0.55, paint.dark, metal));
+    const thigh = ownMesh(new RoundedBoxGeometry(1.0, 1.7, 1.1, 2, 0.16), armour); thigh.position.y = -0.95; hip.add(thigh);
+    const shin = rbox(1.15, 1.2, 1.25, 0.14, paint.frame, metal); shin.position.y = -2.15; hip.add(shin);
+    const boot = ownMesh(new RoundedBoxGeometry(1.4, 0.62, 1.9, 2, 0.24), armour); boot.position.set(0, -2.9, -0.25); hip.add(boot);
+    legs.push({ hip, ph });
+  }
+  const skirt = rbox(2.7, 0.7, 1.7, 0.2, paint.frame, metal); skirt.position.y = 3.45; body.add(skirt);
+  const torso = ownMesh(new RoundedBoxGeometry(3.4, 2.6, 2.0, 3, 0.3), armour); torso.position.y = 5.0; body.add(torso);
+  const belt = rbox(3.5, 0.42, 2.1, 0.12, paint.dark, metal); belt.position.y = 3.85; body.add(belt);
+  const buckle = rbox(0.6, 0.5, 0.2, 0.08, paint.stripe, steel); buckle.position.set(0, 3.85, -1.08); body.add(buckle);
+  const plate = rbox(1.7, 1.5, 0.2, 0.12, paint.stripe, metal); plate.position.set(0, 5.15, -1.05); body.add(plate);
+  const core = ownMesh(new THREE.SphereGeometry(0.28, 12, 8), glow); core.position.set(0, 5.15, -1.18); body.add(core);
+  // the arms, straight out from the shoulders: each swings on its shoulder (arm.rotation: z raises or lowers it, y swings it
+  // forward or back)
+  const arms = {};
+  for (const [s, k] of [[1, 'sword'], [-1, 'axe']]) {   // (as drawn, from the front: the axe on the right, the sword on the left)
+    const arm = new THREE.Group(); arm.position.set(s * 1.85, 5.75, 0); body.add(arm);
+    arm.add(ball(0.72, paint.armour, metal));
+    const up = cyl(0.32, 0.32, 1.7, paint.frame, metal, 12); up.rotation.z = Math.PI / 2; up.position.x = s * 1.0; arm.add(up);
+    const hand = ball(0.42, paint.dark, metal); hand.position.x = s * 1.95; arm.add(hand);
+    const grip = new THREE.Group(); grip.position.x = s * 1.95; grip.rotation.x = -0.35; arm.add(grip);
+    arms[k] = { arm, grip, s };
+  }
+  // the sword: a long blade up out of its fist, a crossguard, the grip and a pommel
+  const S = arms.sword.grip;
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.34, 3.8, 0.12), edge); blade.position.y = 2.4; blade.castShadow = true; S.add(blade);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.6, 4), edge); tip.position.y = 4.6; tip.rotation.y = Math.PI / 4; tip.scale.z = 0.35; S.add(tip);
+  const guard = rbox(1.3, 0.24, 0.34, 0.08, paint.stripe, steel); guard.position.y = 0.45; S.add(guard);
+  const pommel = ball(0.22, paint.stripe, steel); pommel.position.y = -0.5; S.add(pommel);
+  // the axe, its handle in its fist, the blade outward
+  const axe = buildAxe(paint); axe.position.y = -0.4; arms.axe.grip.add(axe);
+  const head = new THREE.Group(); head.position.y = 6.3; body.add(head);
+  const helm = ownMesh(new RoundedBoxGeometry(1.7, 2.0, 1.7, 3, 0.22), armour); helm.position.y = 1.0; head.add(helm);
+  const visor = rbox(1.36, 0.42, 0.12, 0.06, paint.dark, metal); visor.position.set(0, 1.15, -0.86); head.add(visor);
+  for (const s of [-1, 1]) { const eye = ownMesh(new THREE.SphereGeometry(0.14, 10, 8), glow); eye.position.set(s * 0.32, 1.15, -0.92); head.add(eye); }
+  const antenna = cyl(0.05, 0.07, 1.1, paint.ram, steel, 6); antenna.position.y = 2.5; head.add(antenna);
+  const atip = ownMesh(new THREE.SphereGeometry(0.22, 10, 8), glow); atip.position.y = 3.1; head.add(atip);
+  root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  body.scale.setScalar(KNIGHT.scale);                    // (built at a mech's size, then grown: KNIGHT.scale)
+  return { root, body, legs, glow, armour, head, arms, edge, axe, ...robotHud(root, 10.4 * KNIGHT.scale, 5) };
+}
 
 // Every robot type. Shared fields:
 //  icon: its squad tag; health; hitY/hitR: the sphere rounds hit (hitY above r.pos);
@@ -8266,6 +8459,23 @@ const ROBOT_TYPES = {
     tell: 'windup',      // it stops and winds up before a punch or kick; its rail gun's barrels gather pink sparks as it charges
     hot: (r) => r.ai.mode === 'windup' || !!r.charge,
     sparkBox: [3, 3, 4, 3],
+  },
+  // #122: the Knight, the boss of the boss waves (KNIGHT: its numbers). Big and slow to turn; its sword up close and its axe
+  // thrown along the ground at range (knightAI; the axes fly in Axes). boss: the boss bar shows it and a boss wave brings it;
+  // its fix board is bigger (bossPlan) and fixed it gives its rare part (rare: the ⚔️ sword, never among the parts it can be
+  // taken apart for) and the Knight trophy, and doesn't join the squad (noSquad: no name, nobody goes home: bossFixed).
+  // weight / shockK / pushK: heavy (separate, shockRobot, hitRobot); downTime: it stays down longer than ROBOT.downTime
+  knight: {
+    ic: 'knight', health: KNIGHT.health, hitY: 4.8 * KNIGHT.scale, hitR: 3.4 * KNIGHT.scale, top: 8.3 * KNIGHT.scale, beamY: 6 * KNIGHT.scale,
+    spec: { topSpeed: KNIGHT.topSpeed, backSpeed: 1.5, accel: 2.2, brake: 5, legTurn: KNIGHT.legTurn, torsoTurn: 1.2, stride: 3.2, radius: KNIGHT.radius },
+    paint: { armour: '#f2b200', frame: '#3a3f52', dark: '#1a1f2c', ram: '#d7dce6', stripe: '#b0700c', glow: '#ff2f5b' },
+    build: buildKnight, ai: knightAI, ally: allyAI, pose: knightPose, tick: knightTick,
+    parts: ['armour', 'motor', 'battery', 'wiring'], rare: KNIGHT.part,
+    boss: true, noSquad: true, name: KNIGHT.name,
+    notice: KNIGHT.notice, downTime: KNIGHT.downTime, weight: KNIGHT.weight, shockK: KNIGHT.shockK, pushK: KNIGHT.pushK,
+    tell: 'raise',       // it stops and raises its sword (the blade glowing) or its axe before every blow
+    hot: (r) => r.ai.mode === 'windup',
+    sparkBox: [4, 2.6, 6, 4],
   },
 };
 const takeMaxOf = (r) => ROBOT_TYPES[r.type].takeMax ?? REPAIR.takeMax;
@@ -9369,16 +9579,207 @@ const Copier = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// #122 The Knight (Q8 A). Glitched, it walks at its target, turning slowly (KNIGHT.legTurn: circling it works). Up close,
+// within the sword's reach and arc, it stops and raises its sword (windup, KNIGHT.sword.windup s: the ❗ and the blade
+// glowing; it doesn't turn while it does), then swipes (knightSwipe): every running mech or ground squadmate still in reach
+// and arc takes KNIGHT.sword.dmg. At range it raises its axe (windup, KNIGHT.axe.windup s) and throws it straight ahead along
+// the ground (Axes.throw), where a jump clears it. r.kn counts it all for the hooks: swipes, swordHits (bodies hit),
+// swordMisses (swipes that hit nothing), throws, dealt, last, log (the last 24 { what, t })
+// ---------------------------------------------------------------------------
+function knightNote(r, what) {
+  const N = r.kn ||= { swipes: 0, swordHits: 0, swordMisses: 0, throws: 0, dealt: 0, last: null, log: [] };
+  if (what) { N.log.push({ what, t: r3(r.t) }); if (N.log.length > 24) N.log.shift(); }
+  return N;
+}
+// how near the sword reaches body b from (its edge past both bodies' radii), and whether b is in its reach and arc now
+const swordReach = (r, b) => r.spec.radius + bodyR(b) + KNIGHT.sword.reach;
+function inSword(r, b) {
+  const dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z;
+  return Math.hypot(dx, dz) <= swordReach(r, b) && Math.abs(wrapAngle(Math.atan2(-dx, -dz) - r.legHeading)) <= KNIGHT.sword.arc;
+}
+// the swipe lands: on every running mech or ground squadmate in reach and arc. Returns how many it hit
+function knightSwipe(r) {
+  const K = KNIGHT.sword, N = knightNote(r, 'swipe');
+  N.swipes++; r.swipeT = K.swing;
+  const hit = [];
+  for (const b of [...Game.mechs, ...Game.squad]) {
+    if (!kickable(b) || !inSword(r, b)) continue;
+    const dealt = hurtMech(b, K.dmg, 'sword'), dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1, kb = (b.fx?.push ?? 1) * K.push;
+    b.push.x += dx / d * kb; b.push.z += dz / d * kb;
+    Sparks.burst(b.pos.x - dx / d * bodyR(b), r.pos.y + 4, b.pos.z - dz / d * bodyR(b), 24, SPARK_HOT, 10);
+    N.dealt = r3(N.dealt + dealt); hit.push(b.type ? b.id : 'p' + b.human?.idx);
+  }
+  if (hit.length) N.swordHits += hit.length; else N.swordMisses++;
+  N.last = { what: 'sword', hit };
+  const k = loud(r.pos); if (k > 0) { Sfx.swing(); if (hit.length) Sfx.whack(k); }
+  return hit.length;
+}
+// the throw: an axe leaves its hand along where it faces (or toward `at`, a point: the hooks), and the one in its hand is gone
+// until KNIGHT.axe.back s later
+function knightThrow(r, at) {
+  const N = knightNote(r, 'throw'); N.throws++;
+  const h = at ? Math.atan2(-(at.x - r.pos.x), -(at.z - r.pos.z)) : r.legHeading;
+  r.axeOut = KNIGHT.axe.back; r.throwT = 0.3;
+  const a = Axes.throw(r, h); N.last = { what: 'axe', axe: a.id };
+  const k = loud(r.pos); if (k > 0) Sfx.swing();
+  return a;
+}
+// the wind-up before either blow: it stops; w 'sword' | 'axe'
+function knightWindup(r, w) {
+  const ai = r.ai; ai.mode = 'windup'; ai.w = w; ai.t = KNIGHT[w].windup;
+  r.input.throttle = r.input.turn = 0;
+  knightNote(r, w === 'sword' ? 'raise' : 'aim');
+  const k = loud(r.pos); if (k > 0) Sfx.snort(k);
+}
+function knightAI(r, dt) {
+  const ai = r.ai, inp = r.input, K = KNIGHT;
+  inp.boost = false; inp.aimYaw = r.legHeading;
+  ai.t = (ai.t ?? 0) - dt; ai.swordT = (ai.swordT ?? 0) - dt; ai.axeT = (ai.axeT ?? 1.5) - dt;
+  if (ai.mode === 'windup') {
+    inp.throttle = inp.turn = 0;                         // committed: it doesn't turn as it winds up, so stepping round it dodges
+    if (ai.t > 0) return;
+    if (ai.w === 'axe') { knightThrow(r); ai.axeT = K.axe.cool; ai.t = 0.6; } else { knightSwipe(r); ai.swordT = K.sword.cool; ai.t = 0.7; }
+    ai.mode = 'recover';
+    return;
+  }
+  if (ai.mode === 'recover') { inp.throttle = inp.turn = 0; if (ai.t > 0) return; ai.mode = 'stalk'; }
+  const tgt = nearestFoe(r, true);
+  if (!engaged(r, tgt)) { roam(r, dt, 0.5); return; }
+  ai.mode = 'stalk';
+  const dx = tgt.pos.x - r.pos.x, dz = tgt.pos.z - r.pos.z, dist = Math.hypot(dx, dz), off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - r.legHeading));
+  steer(r, tgt.pos.x, tgt.pos.z, 1);
+  if (dist < swordReach(r, tgt) - 0.6) inp.throttle = 0;   // close enough: it only turns (slowly) to face its target
+  if (ai.swordT <= 0 && dist <= swordReach(r, tgt) && off <= K.sword.arc * 0.7) knightWindup(r, 'sword');
+  else if (ai.axeT <= 0 && !(r.axeOut > 0) && dist >= K.axe.min && dist <= K.axe.max && off <= K.axe.aim) knightWindup(r, 'axe');
+}
+// each tick after it walks: it stays on the ground; the axe in its hand grows back; the swipe's and throw's swing clocks
+function knightTick(r, dt) {
+  r.lift = Math.max(0, r.lift - 14 * dt);
+  r.axeOut = Math.max(0, (r.axeOut || 0) - dt); r.swipeT = Math.max(0, (r.swipeT || 0) - dt); r.throwT = Math.max(0, (r.throwT || 0) - dt);
+}
+// its look: the arm with the sword rises and pulls back as it winds up, then sweeps across in front (swipeT); the axe arm
+// rises over its shoulder, then snaps forward (throwT) and its hand is empty till the axe grows back; it leans back into a
+// wind-up and slumps when it's down; the sword's edge glows while it winds up
+function knightPose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair', ai = r.ai, wind = mode === 'windup' ? clamp(1 - ai.t / KNIGHT[ai.w].windup, 0, 1) : 0;
+  const S = md.arms.sword, A = md.arms.axe;
+  // raise (up +) and forward (+) for each arm: resting a little lowered
+  let sr = -0.5, sf = 0, ar = -0.5, af = 0;
+  if (down) { sr = ar = -1.1; }
+  else if (mode === 'windup' && ai.w === 'sword') { sr = -0.5 + 1.7 * wind; sf = -0.8 * wind; }
+  else if (r.swipeT > 0) { const u = 1 - r.swipeT / KNIGHT.sword.swing; sr = 1.2 - 1.6 * u; sf = -0.8 + 2.3 * u; }
+  if (!down && mode === 'windup' && ai.w === 'axe') { ar = -0.5 + 2.0 * wind; af = -0.7 * wind; }
+  else if (!down && r.throwT > 0) { const u = 1 - r.throwT / 0.3; ar = 1.5 - 1.6 * u; af = -0.7 + 1.8 * u; }
+  const fast = r.swipeT > 0 || r.throwT > 0 ? 40 : 10;
+  S.arm.rotation.z = damp(S.arm.rotation.z, S.s * sr, fast, dt); S.arm.rotation.y = damp(S.arm.rotation.y, S.s * sf, fast, dt);
+  A.arm.rotation.z = damp(A.arm.rotation.z, A.s * ar, fast, dt); A.arm.rotation.y = damp(A.arm.rotation.y, A.s * af, fast, dt);
+  md.axe.visible = !(r.axeOut > 0);
+  md.edge.emissiveIntensity = mode === 'windup' && ai.w === 'sword' ? 0.6 + 2.4 * wind : 0.15;
+  md.body.position.y = damp(md.body.position.y, down ? -1.4 : 0, 6, dt);
+  md.body.rotation.x = damp(md.body.rotation.x, down ? 0.25 : mode === 'windup' ? 0.1 * wind : 0, 8, dt);
+  md.body.rotation.z = damp(md.body.rotation.z, down ? 0.3 : 0, 6, dt);
+}
+
+// #122 The Knight's axes in flight. Each goes straight along the ground from where it was thrown (KNIGHT.axe.speed m/s,
+// KNIGHT.axe.y m up, spinning) and hits the first running mech or ground squadmate it reaches whose feet are lower than
+// KNIGHT.axe.h (a mech in a jump over it, or a Bouncer squadmate mid-hop, is clear; a flying squadmate is never hit). The
+// segment it moved this tick is tested, so a fast axe can't skip a body. A tree or a rock stops it; after KNIGHT.axe.range m
+// it drops. Not an obstacle and not a robot: nothing aims at it and nothing walks round it. It ends: 'hit' | 'tree' | 'far'
+// | 'gone' (cleared: a new wave) (done keeps the last 12 for the hooks)
+const Axes = {
+  list: [], nextId: 1, done: [],
+  throw(r, h) {
+    const K = KNIGHT.axe, dx = -Math.sin(h), dz = -Math.cos(h), off = r.spec.radius + 1.2;
+    const x = r.pos.x + dx * off, z = r.pos.z + dz * off;
+    const a = { id: this.nextId++, by: r.id, dx, dz, x, z, y: groundH(x, z) + K.y, went: 0, spin: 0, md: null };
+    a.md = buildAxe(ROBOT_TYPES.knight.paint); scene.add(a.md);
+    this.list.push(a);
+    return a;
+  },
+  // how high body b's feet are over the ground now (a mech in a jump; a squadmate mid-hop is out of reach)
+  feet(b) { return b.type ? (b.air ? Infinity : b.lift || 0) : b.hop ? b.hop.y : 0; },
+  end(a, how, b) {
+    const i = this.list.indexOf(a); if (i >= 0) this.list.splice(i, 1);
+    if (a.md) { scene.remove(a.md); a.md.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); a.md = null; }
+    this.done.push({ id: a.id, by: a.by, how, went: r3(a.went), hit: b ? (b.type ? b.id : 'p' + b.human?.idx) : null }); if (this.done.length > 12) this.done.shift();
+    if (how !== 'gone') Sparks.burst(a.x, a.y, a.z, how === 'hit' ? 26 : 12, SPARK_HOT, how === 'hit' ? 9 : 5);
+  },
+  tick(dt) {
+    const K = KNIGHT.axe;
+    for (const a of [...this.list]) {
+      const step = K.speed * dt, x1 = a.x + a.dx * step, z1 = a.z + a.dz * step;
+      // the first body along this tick's segment (nearest the start), its feet under the axe's top
+      let best = null, bt = Infinity;
+      for (const b of [...Game.mechs, ...Game.squad]) {
+        if (!kickable(b) || this.feet(b) >= K.h) continue;
+        const px = b.pos.x - a.x, pz = b.pos.z - a.z, t = clamp(px * a.dx + pz * a.dz, 0, step), qx = a.x + a.dx * t - b.pos.x, qz = a.z + a.dz * t - b.pos.z;
+        if (Math.hypot(qx, qz) <= bodyR(b) + K.r && t < bt) { bt = t; best = b; }
+      }
+      a.x = x1; a.z = z1; a.went += step; a.spin += dt * 16;
+      a.y = groundH(a.x, a.z) + K.y;
+      if (best) {
+        const dealt = hurtMech(best, K.dmg, 'axe'), kb = (best.fx?.push ?? 1) * K.push;
+        best.push.x += a.dx * kb; best.push.z += a.dz * kb;
+        const r = Game.robots.find((q) => q.id === a.by); if (r) { const N = knightNote(r, 'axeHit'); N.dealt = r3(N.dealt + dealt); }
+        if (!Game.manual) Sfx.whack(1);
+        this.end(a, 'hit', best); continue;
+      }
+      if (obstacles.some((o) => Math.hypot(o.x - a.x, o.z - a.z) < o.r + K.r)) { this.end(a, 'tree'); continue; }
+      if (a.went >= K.range || Math.hypot(a.x, a.z) > WORLD_R) this.end(a, 'far');
+    }
+  },
+  clear() { for (const a of [...this.list]) this.end(a, 'gone'); },
+  sync() {
+    for (const a of this.list) {
+      if (!a.md) continue;
+      // flat, its handle across the throw, spinning end over end round its middle
+      a.md.position.set(a.x, a.y, a.z);
+      a.md.rotation.set(0, Math.atan2(a.dx, a.dz), 0); a.md.rotateX(a.spin); a.md.translateY(-0.9);
+    }
+  },
+  // (up: its height over the ground; top: how high its top is, which a body's feet must clear)
+  state(a) { return { id: a.id, by: a.by, x: r3(a.x), z: r3(a.z), y: r3(a.y), up: r3(a.y - groundH(a.x, a.z)), dir: [r3(a.dx), r3(a.dz)], went: r3(a.went), top: KNIGHT.axe.h }; },
+};
+// P3-1 for the Knight: the wave's board (fixPlan) with KNIGHT.board.math more math wires (at most the WIRE_COLORS) and
+// KNIGHT.board.puzzles more puzzle cards (puzzleTypes deals each type once: 2 at most, a 🧲 board 3), the target time grown
+// with the slots. Wave 0 (a Knight dropped in by hand) gets its first boss wave's board. of: the wave's own board's counts
+function bossPlan(wave, how) {
+  const w = Math.max(Math.floor(Number(wave) || 0), BOSS_WAVE.every), P = fixPlan(w, how), K = KNIGHT.board, em = how === 'em';
+  const math = Math.min(WIRE_COLORS.length, P.math + K.math), n = Math.min(em ? 3 : 2, P.puzzles.length + K.puzzles);
+  const puzzles = puzzleTypes(n, false, em), slots = math + puzzles.length;
+  return { ...P, math, puzzles, slots, target: Math.round(P.target * slots / P.slots), boss: true, of: { math: P.math, puzzles: P.puzzles.length, slots: P.slots, target: P.target } };
+}
+// Q10 A: fixed, the Knight gives its rare part (into the bag, on the 🏆 wall) and the Knight trophy (latched), and doesn't
+// join the squad: it vanishes in a column of gold sparks. It counts as fixed (the wave's 🔧, its ⭐, and a fast repair's 🌟).
+// Bosses.won keeps each for the hooks
+const Bosses = { won: [] };
+function bossFixed(h, r) {
+  const T = ROBOT_TYPES[r.type], fast = fastRepair(r.wires); if (fast) Game.waveStats.fast++;
+  const part = T.rare;
+  Game.bag[part] = (Game.bag[part] || 0) + 1; Garage.collect(part, r.type);
+  (updateHud.partPop ||= []).push(part);                // its +1 ⚔️ drops out of the 🔩 count
+  const trophy = Garage.latchBoss(r.type);
+  Bosses.won.push({ id: r.id, type: r.type, wave: Game.wave, fast, by: h.idx, part, trophy });
+  for (let y = 0; y < 12; y += 1.5) Sparks.burst(r.pos.x, r.pos.y + y, r.pos.z, 16, SPARK_GLINT, 5);
+  Impacts.flash(new V3(r.pos.x, r.pos.y + 5, r.pos.z), 6);
+  removeRobot(r);
+  if (!Game.manual) { Sfx.fixed(); Sfx.cleared(); }
+  if (h.idx === 0) FixUI.close();
+  Game.waveStats.fixed++; Waves.check();
+}
+
 // how: 'em' when electromagnetic shock shut it down (its health is left as it was); otherwise it was
 // beaten to 0. Either way how it was beaten sets the faults its Quick Fix has to deal with.
 function powerDown(r, how) {
-  r.state = 'down'; r.downT = ROBOT.downTime; r.downs++; r.ai.mode = 'off'; r.ai.aimT = 0;
+  r.state = 'down'; r.downT = ROBOT_TYPES[r.type].downTime ?? ROBOT.downTime; r.downs++; r.ai.mode = 'off'; r.ai.aimT = 0;   // (#122: a Knight's longer)
   r.beatenBy = how === 'em' ? 'em' : r.lastHitBy ?? null;
   r.faults = faultsOf(r, how === 'em');
   // P3-1: from wave 1 the wave sets the board (fixPlan): its math wires, none burnt (a burnt wire is 🔥's charred
   // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
-  const P = Game.wave >= 1 ? fixPlan(Game.wave, r.beatenBy) : null;
-  r.board = P && { wave: Game.wave, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null };
+  // (#122: a Knight's board is bigger, bossPlan: from any wave, wave 0 too)
+  const P = ROBOT_TYPES[r.type].boss ? bossPlan(Game.wave, r.beatenBy) : Game.wave >= 1 ? fixPlan(Game.wave, r.beatenBy) : null;
+  r.board = P && { wave: Game.wave, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
   r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
   r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
@@ -9928,6 +10329,7 @@ function fixRobot(h, r) {
   if (B) Facts.addFix(Game.lastFix.ms);                  // #48: a ramp fix's time, in the child's record (wave 0 writes nothing)
   if (Game.squad.includes(r)) { rescueMate(r); if (h.idx === 0) FixUI.close(); return; }   // #59: a rescued squadmate
   if (ROBOT_TYPES[r.type].vanish) { cloneFixed(h, r); return; }                           // #121: a clone vanishes
+  if (ROBOT_TYPES[r.type].boss) { bossFixed(h, r); return; }                              // #122: the Knight: its part and trophy
   // the squad was full: the one picked goes home now (#59: unless the squad has lost one since, a downed squadmate's clock
   // running out mid-fix, so there's room already)
   if (rp.home && Game.squad.length >= REPAIR.squadMax) sendHome(rp.home);
@@ -10122,7 +10524,7 @@ function rams() {
 // Keep bodies apart: a light robot gives way to a heavy mech. A Bouncer mid-hop is above
 // it all; a drone keeps its height (lift) as it's nudged.
 function separate() {
-  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air).map((r) => [r, r.spec.radius, 0.8])];
+  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own)
   for (let a = 0; a < bodies.length; a++) for (let b = a + 1; b < bodies.length; b++) {
     const [A, ra, wa] = bodies[a], [B, rb, wb] = bodies[b];
     const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz) || 1e-3, min = ra + rb;
@@ -10552,6 +10954,7 @@ function tick(dt) {
   for (const r of [...Game.robots]) robotTick(r, dt);   // (a copy: #59 a squadmate can be destroyed in its tick)
   Bullets.tick(dt);
   Copier.tick(dt);                                       // #121 (after the rounds have moved: its shield stops them)
+  Axes.tick(dt);                                         // #122: the Knight's axes along the ground
   rams();
   allyRams();
   separate();
@@ -11653,6 +12056,8 @@ function buildHud() {
   // one slot per weapon, keys 1-5; a locked one wears a 🔒, the rail gun a ring that fills as it charges
   WEAPONS.forEach((w, i) => { const d = document.createElement('button'); d.className = 'wpn'; d.dataset.w = w; d.setAttribute('aria-label', w); d.innerHTML = `${icon(WEAPON[w].ic)}<small>${i + 1}</small>${WEAPON[w].locked ? `<span class="lk">${icon('lock')}</span>` : ''}${w === 'rail' ? '<span class="chg"></span>' : ''}`; $('weapons').appendChild(d); });
 }
+// #122: the boss in the meadow, if one is up (not yet fixed, taken apart or gone): the boss bar shows it
+const bossUp = () => Game.robots.find((r) => ROBOT_TYPES[r.type].boss && r.state !== 'ally') || null;
 function updateHud() {
   const h = Game.humans[0]; if (!h) return;
   const m = h.mech, f = Math.abs(m.speed) / MECH.topSpeed, on = Math.round(f * SPEED_BARS);
@@ -11709,6 +12114,16 @@ function updateHud() {
       el.append(d);
     }
   }
+  // #122: the boss bar: up while a boss is in the meadow (glitched, or powered down till it's fixed, taken apart or reboots),
+  // in the squad chips' place; its name, and its health as the blade's gold (dimmed while it's down, red-edged as it winds up)
+  const boss = bossUp(), bb = $('bossBar'), rt = bb.parentElement;
+  if (rt.classList.contains('boss-on') !== !!boss) { rt.classList.toggle('boss-on', !!boss); updateHud.squadKey = null; }
+  if (boss) {
+    const T = ROBOT_TYPES[boss.type], f = clamp(boss.health / boss.maxHealth, 0, 1);
+    if ($('bossName').textContent !== T.name) { $('bossName').textContent = T.name; bb.setAttribute('aria-label', T.name); }
+    $('bossFill').style.width = (f * 100).toFixed(1) + '%';
+    bb.classList.toggle('down', boss.state === 'down'); bb.classList.toggle('hot', boss.state === 'glitched' && T.hot(boss));
+  }
   Game.squad.forEach((r, k) => {   // (#59: the bars follow every hit and mend without redrawing the tags)
     const f = clamp(r.health / r.maxHealth, 0, 1), bar = $('squad').children[k]?.querySelector('.mhp b'); if (!bar) return;
     bar.style.width = (f * 100).toFixed(1) + '%'; bar.style.background = f > 0.5 ? 'var(--green)' : f > 0.25 ? 'var(--yellow)' : '#ff4d5e';
@@ -11724,7 +12139,7 @@ function updateHud() {
       // #103: on a touch screen (just the 🔧, as a marker: FIX is the button) it stays under the top row and above the thumbs
       // (between the thumbs it may come down to the bottom; over the stick's or the buttons' corner it stays above them)
       if (touch.state.touchMode) {
-        const u = innerWidth >= 700 && innerHeight >= 700 ? 1.3 : 1, top = Math.max($('health').getBoundingClientRect().bottom, $('squad').getBoundingClientRect().bottom) + 36;
+        const u = innerWidth >= 700 && innerHeight >= 700 ? 1.3 : 1, top = Math.max($('health').getBoundingClientRect().bottom, $('squad').getBoundingClientRect().bottom, $('bossBar').getBoundingClientRect().bottom) + 36;   // (#122: under the boss bar too)
         x = clamp(x - 40, 10, innerWidth - 70);
         const mid = x > 175 * u && x + 56 < innerWidth - 260 * u;
         y = clamp(y, top, Math.max(top, mid ? innerHeight - 70 : innerHeight - 260 * u - 40));
@@ -11817,7 +12232,18 @@ const Garage = {
     return Object.fromEntries(Object.keys(PARTS).map((id) => { const t = g.trophies[id], n = t?.n || 0; return [id, { count: n, found: n > 0, from: { ...(t?.from || {}) } }]; }));
   },
   // robot types built with part id (the hint on an outline: who to hunt)
-  carriers(id) { return Object.keys(ROBOT_TYPES).filter((t) => !ROBOT_TYPES[t].noParts && ROBOT_TYPES[t].parts.includes(id)); },   // (#121: never a clone)
+  carriers(id) { return Object.keys(ROBOT_TYPES).filter((t) => !ROBOT_TYPES[t].noParts && (ROBOT_TYPES[t].parts.includes(id) || ROBOT_TYPES[t].rare === id)); },   // (#121: never a clone; #122: a boss's rare part)
+  // #122: latch boss `type`'s trophy (a Knight fixed) in the record's garage: bosses[type] = { at, wave }, set with ||= and
+  // never lowered or taken away. Returns whether it's new
+  latchBoss(type) {
+    const g = this.rec(), B = (g.bosses ||= {}), fresh = !B[type];
+    B[type] ||= { at: Facts.now(), wave: Game.wave };
+    Facts.save();
+    if (this.on) this.draw();
+    return fresh;
+  },
+  // the boss trophies held: { type: { at, wave } }
+  bosses() { const B = this.rec().bosses; return B && typeof B === 'object' ? JSON.parse(JSON.stringify(B)) : {}; },
   // open from 'pause' (the pause screen is up) or 'clear' (the clear screen is up: this pauses the world).
   // Left out: whichever of the two is up.
   open(from) {
@@ -12632,12 +13058,14 @@ const Garage = {
           + `<span class="braise">${hint}</span></div>`;
       }).join('');
     } else {
-      const tr = this.trophies();
+      const tr = this.trophies(), bossesHeld = this.bosses();
       $('gWall').innerHTML = Object.keys(PARTS).map((id) => {
         const P = PARTS[id], t = tr[id];
         const icons = (t.found ? Object.entries(t.from).sort((a, b) => b[1] - a[1]).map(([s]) => sourceIc(s)) : this.carriers(id).map(sourceIc)).map((n) => icon(n));
-        return `<div class="tslot ${t.found ? 'got' : 'none'}" data-part="${id}" data-found="${t.found ? 1 : 0}" data-n="${t.count}" style="--pc:${P.hex}" aria-label="${id}: ${t.found ? t.count : 'not found yet'}">`
-          + `<div class="tv"></div><span class="tf">${icons.join('')}</span><b class="tn">${t.found ? '×' + t.count : icon('question')}</b></div>`;
+        // #122: a boss's rare part wears its trophy once the boss is beaten and fixed (the 🏆 on a gold disc, top right)
+        const boss = Object.keys(ROBOT_TYPES).find((k) => ROBOT_TYPES[k].rare === id), won = boss && bossesHeld[boss] ? boss : '';
+        return `<div class="tslot ${t.found ? 'got' : 'none'}${won ? ' won' : ''}" data-part="${id}" data-found="${t.found ? 1 : 0}" data-n="${t.count}" data-boss="${won}" style="--pc:${P.hex}" aria-label="${id}: ${t.found ? t.count : 'not found yet'}${won ? ', trophy' : ''}">`
+          + `<div class="tv"></div><span class="tf">${icons.join('')}</span>${won ? `<span class="tboss">${icon('trophy')}</span>` : ''}<b class="tn">${t.found ? '×' + t.count : icon('question')}</b></div>`;
       }).join('') + this.advShelf();
     }
     const P = Game.pilot, C = Game.child, who = $('gWho');
@@ -12690,7 +13118,8 @@ const Garage = {
     const W = $('gWall'), lock = W.querySelector('.glock');
     const ic = (el) => el?.querySelector('svg.ic')?.dataset.icon ?? null, num = (el) => (el ? +(el.textContent.match(/-?\d+/)?.[0] ?? NaN) : null);
     const slots = Object.fromEntries([...W.querySelectorAll('.tslot')].map((el) => { const tn = el.querySelector('.tn');
-      return [el.dataset.part, { found: el.dataset.found === '1', n: +el.dataset.n, count: ic(tn) ?? num(tn), icons: [...el.querySelectorAll('.tf svg.ic')].map((s) => s.dataset.icon), drawn: this.drawn[el.dataset.part] ?? null }]; }));
+      return [el.dataset.part, { found: el.dataset.found === '1', n: +el.dataset.n, count: ic(tn) ?? num(tn), icons: [...el.querySelectorAll('.tf svg.ic')].map((s) => s.dataset.icon), drawn: this.drawn[el.dataset.part] ?? null,
+        boss: el.dataset.boss || null, trophyIcon: ic(el.querySelector('.tboss')) }]; }));   // (#122: the boss trophy it wears)
     // G2: the 🦾 cards as shown: level (pips lit), cost, bag count, the button's state ('buy' | 'off' greyed | 'max'),
     // picked = the keys / pad pick, drawn = the 3D piece in its box last frame
     const cards = Object.fromEntries([...W.querySelectorAll('.ucard')].map((el) => { const b = el.querySelector('.ubuy');
@@ -12802,7 +13231,7 @@ const Garage = {
   status() {
     const tr = this.trophies();
     return { on: this.on, from: this.from, tab: this.tab, tabs: GARAGE_TABS.map((T) => ({ id: T.id, locked: !!T.locked })), paused: Game.paused,
-      trophies: tr, found: Object.values(tr).filter((t) => t.found).length, types: Object.keys(PARTS).length,
+      trophies: tr, found: Object.values(tr).filter((t) => t.found).length, types: Object.keys(PARTS).length, bosses: this.bosses(),   // (#122: the boss trophies)
       // G2: upgrade levels, and per upgrade what buying its next level needs (cost, have in the bag, can, maxed)
       upgrades: this.levels(), offer: this.offer(), cur: UPGRADES[this.cur].id,
       // G3: per squadmate its upgrades, what the next level of each needs, and what they do; the 🤖 pick; paint
@@ -13077,6 +13506,15 @@ function partPiece(id) {
     add(cyl(0.18, 0.26, 0.45, '#3a4157', metal, 14), -0.8, -0.2, 0).rotation.z = Math.PI / 2;
     add(new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.06, 8, 20), glowMat('#ffb02e', 2.2)), -1.03, -0.2, 0).rotation.y = Math.PI / 2;
     add(rbox(0.64, 0.12, 0.66, 0.04, '#2a2f40', metal), -0.35, 0.82, 0);
+  } else if (id === 'sword') {
+    // #122: the Knight's sword, on the slant: a long steel blade with its point, the gold crossguard, a dark grip, a gold pommel
+    const s = new THREE.Group(); g.add(s); s.rotation.z = -Math.PI / 4;
+    const add2 = (m, x, y) => { m.position.set(x, y, 0); s.add(m); return m; };
+    add2(rbox(0.26, 1.75, 0.08, 0.03, steel, metal), 0, 0.45);
+    add2(new THREE.Mesh(new THREE.ConeGeometry(0.185, 0.36, 4), mat(steel, metal)), 0, 1.5).rotation.y = Math.PI / 4;
+    add2(rbox(0.9, 0.16, 0.22, 0.05, P.hex, metal), 0, -0.48);
+    add2(cyl(0.08, 0.08, 0.42, '#3a3f52', metal, 10), 0, -0.77);
+    add2(new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), mat(P.hex, metal)), 0, -1.04);
   }
   return g;
 }
@@ -13193,6 +13631,7 @@ function render(dt) {
   for (const m of Game.mechs) syncMechModel(m);
   for (const r of Game.robots) syncRobotModel(r, dt);
   Copier.sync(dt);
+  Axes.sync();                                           // #122
   Bullets.sync();
   Pulses.sync();
   RailFx.sync();
@@ -13237,7 +13676,8 @@ function startPlay() {
   setPause(false);
   // the first start (a pilot picked on the title screen) brings out wave 1; resuming from pause never
   // spawns again, even with the meadow empty (manual mode waits for __rb.nextWave())
-  if (Game.wave === 0 && Game.humans[0] && !Game.manual) Waves.spawn(1);
+  // (#122: wave START_WAVE, 1 unless the page has ?wave=N)
+  if (Game.wave === 0 && Game.humans[0] && !Game.manual) Waves.spawn(START_WAVE);
   // (a pad's A or a hook isn't a user gesture, so the lock can be refused: the mouse just isn't captured yet)
   if (Game.humans.length === 1 && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {});   // (#94: never on a touch screen)
 }
@@ -13276,20 +13716,33 @@ const Waves = {
   party: 0,                                       // the wave whose clear has been celebrated
   // the robot types in wave n (a drone is a whole swarm) and how much tougher its robots are
   // #120: from wave NINJA.from a Ninja and its minions (one entry, 'ninja': a crew) take the last extra robot's place
+  // #122: a boss wave (Waves.boss) is the same plus its boss ('knight', last); with BOSS_WAVE.extras off, a boss wave's list
+  // is WAVE.base and the boss (the extras, and the Ninja crew in their place, stay on every other wave)
   list(n) {
     if (n <= 1) return ['charger', 'sniper', 'drone', 'bouncer'];
-    const L = WAVE.base.concat(Array.from({ length: Math.min(n - 1, WAVE.extraMax) }, (_, i) => WAVE.extras[i % WAVE.extras.length]));
+    let L = WAVE.base.concat(Array.from({ length: Math.min(n - 1, WAVE.extraMax) }, (_, i) => WAVE.extras[i % WAVE.extras.length]));
     if (n >= NINJA.from) L[L.length - 1] = 'ninja';
+    const boss = this.bossOf(n);
+    if (boss) { if (!BOSS_WAVE.extras) L = WAVE.base.slice(); L.push(boss); }
     return L;
   },
+  // #122 (Q9 A): is wave n a boss wave? Every BOSS_WAVE.every waves (5, 10, 15 …). Its boss: the Knight (the first boss; later
+  // bosses can take later boss waves here)
+  boss(n) { const E = BOSS_WAVE.every; return Number.isInteger(n) && n >= E && n % E === 0; },
+  bossOf(n) { return this.boss(n) ? 'knight' : null; },
+  // #122: N4's satellite, from wave 5: the switch for boss waves (BOSS_WAVE.satellite) is asked here. N4 puts its own wave
+  // rule in `wave`; until then no wave gets one, so the switch does nothing
+  satellite(n) { const wave = false; return wave && (!this.boss(n) || BOSS_WAVE.satellite); },
   tough(n) { return n <= 1 ? 1 : Math.min(WAVE.toughMax, 1 + WAVE.tough * (n - 1)); },
   // #121 (Q7): does wave n get a copier? Every COPIER.wave.every waves from COPIER.wave.from (4, 6, 8, 10 …), boss waves too.
   // The one place it's asked (N3's BOSS_WAVE.copier switch goes here)
-  copier(n) { const W = COPIER.wave; return n >= W.from && (n - W.from) % W.every === 0; },
+  // (#122: a boss wave keeps its copier only with BOSS_WAVE.copier on)
+  copier(n) { const W = COPIER.wave; return n >= W.from && (n - W.from) % W.every === 0 && (!this.boss(n) || BOSS_WAVE.copier); },
   spawn(n) {
     const p = Game.humans[0]?.mech; if (!p) return [];
     const before = new Set(Game.robots);
     Game.wave = n; Game.cleared = false;
+    Axes.clear();                                 // #122: a Knight's axes still out from the last wave drop
     if (p.adv?.shield) p.shield = ADV.shield;     // G4: the shield emitter is back to full each wave
     Object.assign(Game.waveStats, { fixed: 0, taken: 0, found0: Hidden.list.filter((q) => q.found).length, downs0: p.downs, robots: 0, fast: 0 });
     if (n === 1) {
@@ -13359,6 +13812,8 @@ const Waves = {
       if (this.party !== Game.wave) { this.party = Game.wave; this.celebrate(); }
     }
     const wv = $('waveHud'); wv.classList.toggle('on', Game.wave > 0); $('waveN').textContent = Game.wave;
+    wv.classList.toggle('boss', Game.wave > 0 && this.boss(Game.wave));   // #122: a boss wave's chip: the ⚔️ for the 🌊, edged gold
+    wv.classList.toggle('w2', Game.wave >= 10);           // (#122: two digits: on a narrow touch screen it slims, clear of the health bar)
     if (updateHud.newWave) { wv.classList.remove('new'); void wv.offsetWidth; wv.classList.add('new'); updateHud.newWave = false; }
   },
   // confetti over the screen, fireworks of sparks round the mech, a fanfare; and the mouse is let go,
@@ -13375,7 +13830,7 @@ const Waves = {
 function nextWave() {
   if (!Game.humans[0]) return { ok: false, why: 'no player' };
   if (Game.wave > 0 && !Game.cleared) return { ok: false, why: 'not cleared', wave: Game.wave };
-  const fresh = Waves.spawn(Game.wave + 1);
+  const fresh = Waves.spawn(Game.wave === 0 ? START_WAVE : Game.wave + 1);   // (#122: from wave 0, START_WAVE)
   if (!Game.manual) { Sfx.unlock(); Sfx.waveIn(); }
   if (!FixUI.mode) FixUI.relock();
   return { ok: true, wave: Game.wave, robots: fresh.length };
@@ -13480,6 +13935,12 @@ function robotState(r) {
     // legCount, torso, arms, finish, paint (paintLook: its paint read back off the model), eyes (the eye glows' colours),
     // pilot (false: nobody in the cockpit), printed (its height, 0..1, as it's printed); fired (by weapon), hits, dealt,
     // last { how, dmg } (its last hit), log; lastRail; burst = rounds left in the burst under way; swing / charging now
+    // #122: a Knight: its counts (knightNote: swipes, swordHits, swordMisses, throws, dealt, last, log), w = the blow it's
+    // winding up ('sword' | 'axe'), windup = s left of it, axeOut = s till the axe in its hand is back (0: it's there),
+    // swordIn = player 1 in its sword's reach and arc now, edge = its sword's glow, boss = the boss bar shows it
+    knight: ROBOT_TYPES[r.type].boss ? { ...JSON.parse(JSON.stringify(r.kn || { swipes: 0, swordHits: 0, swordMisses: 0, throws: 0, dealt: 0, last: null, log: [] })),
+      w: r.ai.mode === 'windup' ? r.ai.w : null, windup: r.ai.mode === 'windup' ? r3(r.ai.t) : null, axeOut: r3(r.axeOut || 0), axeInHand: !!r.model.axe?.visible,
+      swordIn: p0 ? inSword(r, p0) : null, reach: p0 ? r3(swordReach(r, p0)) : null, edge: r3(r.model.edge?.emissiveIntensity ?? 0), boss: bossUp() === r } : null,
     clone: r.clone ? { ...JSON.parse(JSON.stringify(r.clone)), paint: paintLook(r.model), eyes: [...new Set(r.model.eyes.map((L) => '#' + L.mat.emissive.getHexString()))],
       pilot: !!r.model.pilot, printed: r3(r.model.root.scale.y), pieces: upgradeLook(r.model)?.kinds ?? null, lastRail: r.lastRail ?? null, burst: r.ai.burst || 0, swing: r.swing?.w ?? null, charging: !!r.charge,
       spec: { topSpeed: r3(r.spec.topSpeed), legTurn: r3(r.spec.legTurn), radius: r.spec.radius } } : null,
@@ -13492,6 +13953,21 @@ window.__rb = {
   CAM_FAR,   // (#103)
   NINJA, WAVE,   // (#120)
   COPIER, Copier, Waves, Bullets,   // (#121)
+  BOSS_WAVE, KNIGHT, Axes, Bosses, START_WAVE,   // (#122: BOSS_WAVE is read when each wave comes out, so a switch set here counts from the next)
+  // #122: which of waves 1..n are boss waves (Waves.boss), and the robot types each brings (Waves.list)
+  bossWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.boss(w)); },
+  waveList(n) { return Waves.list(n); },
+  // #122: the Knight `id` uses its sword or its axe now, as its brain would at the end of a wind-up ('sword': the swipe lands
+  // now on whatever is in reach and arc; 'axe': an axe leaves its hand toward player 1, or where it faces with face = true).
+  // 'windup-sword' | 'windup-axe' start the wind-up instead (its brain throws or swipes when it ends). Returns its state
+  knightAttack(id, w, face = false) {
+    const r = Game.robots.find((q) => q.id === id && ROBOT_TYPES[q.type].boss), p = Game.humans[0]?.mech; if (!r || r.state !== 'glitched') return null;
+    if (w === 'sword') knightSwipe(r);
+    else if (w === 'axe') knightThrow(r, face || !p ? null : { x: p.pos.x, z: p.pos.z });
+    else if (w === 'windup-sword' || w === 'windup-axe') knightWindup(r, w.slice(7));
+    else return null;
+    return robotState(r);
+  },
   // #121: send a copier now (or in `wait` s), as a copier wave does; returns its state (Copier.state)
   copier(wait = 0) { return Copier.state(Copier.launch(wait)); },
   // #121: which of waves 1..n get a copier (Waves.copier)
@@ -14070,6 +14546,15 @@ window.__rb = {
       // is from over player 1's mech, alt = how high over it, beam, scanned s, blocked = rounds its shield stopped, clone = the
       // clone's id), every copier sent (made: { id, wave, clone }), clones fixed (fixed: { id, wave, fast, by }), pending
       copiers: Copier.list.map((c) => Copier.state(c)), copierMade: Copier.made.map((c) => ({ ...c })), clonesFixed: Copier.fixed.map((c) => ({ ...c })), copierPending: Copier.pending(),
+      // #122: bossWave = this wave is a boss wave; boss = the boss up now (the boss bar's: id, type, name, health, maxHealth,
+      // state) and the bar as drawn (bar: shown, fill %, name, down); axes = the Knight's axes in flight (Axes.state), axesDone =
+      // the last 12 ended ({ id, by, how: hit | tree | far | gone, went, hit }); bossesWon = each boss fixed ({ id, type, wave,
+      // fast, by, part, trophy: new }); startWave = START_WAVE (?wave=N)
+      bossWave: Waves.boss(Game.wave), startWave: START_WAVE,
+      boss: (() => { const b = bossUp(), el = $('bossBar'), on = !!el.offsetParent && getComputedStyle(el).display !== 'none';
+        return { up: b ? { id: b.id, type: b.type, name: ROBOT_TYPES[b.type].name, health: r3(b.health), maxHealth: b.maxHealth, state: b.state } : null,
+          bar: { shown: on, fill: parseFloat($('bossFill').style.width) || 0, name: $('bossName').textContent, down: el.classList.contains('down') }, squadHidden: getComputedStyle($('squad')).display === 'none' }; })(),
+      axes: Axes.list.map((a) => Axes.state(a)), axesDone: Axes.done.map((a) => ({ ...a })), bossesWon: Bosses.won.map((b) => ({ ...b })),
       // G3: type, health / maxHealth, its garage upgrades (plating, job) and what they do (effects: maxHealth, job =
       // { what: ram | range | scout | chain, value }), its mode, and rams = squadmate Charger rams landed (lastRam = the last's damage)
       squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null,
