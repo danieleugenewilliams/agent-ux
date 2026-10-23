@@ -601,6 +601,34 @@
   @media (max-width: 380px), (max-height: 460px) and (min-width: 600px) and (max-width: 700px) {
     #hud .counts { gap: 8px; } #hud .counts .parts { padding: 8px 10px; font-size: 24px; }
   }
+  /* #119, keys and mouse. An iPad upright (761 to 900 wide): with spring legs, ⤴️ widens the health panel into the first
+     chip and 🔩, so the bar is shorter, as on a phone. */
+  @media (min-width: 761px) and (max-width: 900px) and (min-height: 461px) {
+    html:not(.tp-mode) #hud .health:has(.jumpb.on) .bar { width: 150px; }
+  }
+  /* #119, keys and mouse. A small phone on its side (500 to 599 wide, e.g. 568×320). Three name chips need a row each,
+     and 320 px tall has no room for them. So the chips show the robot only, as in touch mode (#103), on the top row
+     right of the health panel. 🔩 🔍 🎒 go on the row under them, beside the pilot. The compass is ¾ size, and the
+     slim speed bars leave room for the weapons row between them. */
+  @media (max-height: 460px) and (min-width: 500px) and (max-width: 599px) {
+    html:not(.tp-mode) #hud .health .bar { width: 150px; }
+    html:not(.tp-mode) #hud .health .who.on { flex-direction: row; gap: 8px; }
+    html:not(.tp-mode) #hud .right { top: 22px; left: 140px; }
+    html:not(.tp-mode) #hud .squad { flex-wrap: nowrap; gap: 6px; }
+    html:not(.tp-mode) #hud .mate { font-size: 0; gap: 0; padding: 4px 9px 10px; }
+    html:not(.tp-mode) #hud .mate b { font-size: 22px; }
+    html:not(.tp-mode) #hud .mate .mhp { left: 6px; right: 6px; height: 4px; }
+    html:not(.tp-mode) #hud .counts { position: absolute; right: 0; top: 78px; gap: 8px; }
+    html:not(.tp-mode) #hud .counts .parts { padding: 6px 10px; font-size: 22px; }
+    html:not(.tp-mode) #hud .bagb { width: 46px; height: 46px; font-size: 24px; border-width: 3px; }
+    html:not(.tp-mode) #hud .compass { transform: scale(.75); transform-origin: 100% 100%; }
+    html:not(.tp-mode) #hud .wave { bottom: 120px; }
+    html:not(.tp-mode) #hud .speed { gap: 4px; padding: 10px 12px; }
+    html:not(.tp-mode) #hud .speed .ico { margin-right: 4px; }
+    html:not(.tp-mode) #hud .speed i { width: 10px; }
+    html:not(.tp-mode) #hud { --ws: min(66px, calc((100vw - 212px - 122px - 32px) / 5)); }
+    html:not(.tp-mode) #hud .weapons { left: 212px; right: 122px; }
+  }
   /* a phone: the pause row (pilot, ⭐, ▶) shrinks to fit; ▶ stays the biggest target */
   @media (max-width: 560px) {
     #start .resume { gap: 12px; }
