@@ -8246,7 +8246,8 @@ const Models = {
     this.done = import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => {
       const L = new GLTFLoader();
       return Promise.all(this.kinds.map((k) => L.loadAsync(MODELS.dir + MODELS[k].file).then((g) => {
-        try { this.ready[k] = this.prep(k, g.scene); this.status[k] = 'ready'; } catch (e) { console.warn('model not used: ' + k, e); fail(k); }
+        try { this.ready[k] = this.prep(k, g.scene); this.status[k] = 'ready'; } catch (e) { console.warn('model not used: ' + k, e); fail(k); return; }
+        for (const r of [...Game.robots]) if (r.type === k && !r.model.model) reskin(r);   // (any spawned before it was in: a squad restored at the pilot pick)
       }, () => fail(k))));
     }, () => this.kinds.forEach(fail)).then(() => this.status);
     return this.done;
@@ -10870,9 +10871,22 @@ function unlockWeapon(w) {
 // the cached mat() materials and three's shared sprite geometry stay
 function removeRobot(r) {
   const i = Game.robots.indexOf(r); if (i >= 0) Game.robots.splice(i, 1);
-  scene.remove(r.model.root);
-  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose(); md.treads?.tex.dispose();   // (#121: a clone's tracks)
+  freeModel(r.model);
+}
+function freeModel(md) {
+  scene.remove(md.root);
+  md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose(); md.treads?.tex.dispose();   // (#121: a clone's tracks)
   md.root.traverse((o) => { if (o.isMesh) { if (!o.geometry.userData.shared) o.geometry.dispose(); } else if (o.isSprite) o.material.dispose(); });   // (#124: a model's geometry is shared)
+}
+// #124: robot r, built in code because its model wasn't in yet when it came (a squad restored as the pilot is picked, a
+// fast first wave), puts its model on once it is: the same glow colour and name tag, the code-built one freed
+function reskin(r) {
+  const T = ROBOT_TYPES[r.type], old = r.model, md = T.build(T.paint);
+  if (!md.model) { freeModel(md); return; }
+  md.root.position.copy(old.root.position); md.root.rotation.copy(old.root.rotation); md.root.visible = old.root.visible;
+  freeModel(old); scene.add(md.root); r.model = md;
+  setGlowColor(r, r.glowColor);
+  if (r.name) setRobotName(r, r.name);
 }
 // A squadmate's brain: the same 20 Hz think and the same input fields as a
 // glitched robot, but it walks to its slot beside and behind its leader.
