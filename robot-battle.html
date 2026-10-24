@@ -132,6 +132,10 @@
   #nameOk { background: var(--green); }
   /* ---------- CHOOSE PARTS: tap up to two parts, ✔ takes them, the rest is scrapped ---------- */
   #picker .panel, #bag .panel { border-color: var(--orange); box-shadow: 0 0 30px rgba(255,138,31,.45); }
+  /* #123: the bag's tiles get the panel's full width (a centred panel shrinks to fit, which left one tile a row on a phone and
+     ran the bag off the screen, on main too), and on a phone on its side smaller tiles, so all 11 parts fit */
+  #bag .tiles { width: min(560px, 86vw); }
+  @media (max-height: 460px) { #bag .tiles { gap: 10px; } #bag .tile { width: 62px; height: 62px; font-size: 30px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); } }
   .slots { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; }
   .slot { width: 70px; height: 70px; border-radius: 50%; border: 5px dashed rgba(255,255,255,.45); display: flex; align-items: center; justify-content: center; font-size: 36px; }
   .slot.full { border-style: solid; border-color: #fff; }
@@ -379,6 +383,13 @@
   @media (max-height: 460px) and (min-width: 500px) and (max-width: 599px) { html:not(.tp-mode) #hud .bossbar { flex: 0 1 auto; width: calc(100vw - 392px); } }
   #hud .bossbar.down .blade { filter: grayscale(.7) brightness(.8); box-shadow: none; }
   #hud .bossbar.hot .blade { box-shadow: 0 0 14px #ff4d5e; }
+  /* #123: the boss linked by a satellite: its glowing shield, as a pulsing magenta edge round the blade (an outline: the bar's box
+     doesn't change) and the shield's bubble at the blade's far end */
+  #hud .bossbar .bsh { display: none; position: absolute; right: 5px; top: 50%; translate: 0 -50%; width: 20px; height: 20px; }
+  #hud .bossbar .bsh svg { width: 100%; height: 100%; }
+  #hud .bossbar.shield .bsh { display: block; }
+  #hud .bossbar.shield .blade { outline: 3px solid #ff5ad8; outline-offset: 1px; animation: bossShield .9s ease-in-out infinite alternate; }
+  @keyframes bossShield { from { outline-color: #ff5ad8; } to { outline-color: #ffb3ee; } }
   #clear .banner { position: absolute; left: 50%; top: 100px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 22px 16px; border-radius: 26px;
     background: rgba(20,24,42,.82); border: 5px solid var(--yellow); box-shadow: 0 0 30px rgba(255,216,61,.5); animation: clearIn .5s cubic-bezier(.2,1.5,.4,1); white-space: nowrap; }
   @keyframes clearIn { from { transform: translateX(-50%) scale(.4); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
@@ -871,7 +882,7 @@
   .glock b { font: 900 26px 'Asap', sans-serif; color: var(--yellow); }
   /* G4: the advanced shelf, under the trophies: five slots across, lit once unlocked, an outline with its milestone till then */
   /* (#120: nine parts with the 🥷 jet boots: five a row, the last place on the shelf free for the next) */
-  .gwall.trophies { grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr 1.15fr; }   /* (#122: the tenth, the ⚔️ sword, takes the free place) */
+  .gwall.trophies { grid-template-columns: repeat(6, 1fr); grid-template-rows: 1fr 1fr 1.15fr; }   /* (#122: the tenth, the ⚔️ sword, takes the free place; #123: eleven with the 🔆 solar panel: six a row, one place free) */
   .ashelf { grid-column: 1 / -1; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding-top: 8px; border-top: 4px dashed rgba(255,216,61,.35); }
   .aslot { position: relative; min-height: 0; min-width: 0; border-radius: 18px; border: 3px dashed rgba(255,255,255,.28); }   /* (no fill: the 3D piece is drawn under this layer) */
   .aslot.got { border: 3px solid var(--pc); box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 55%, transparent); }
@@ -1095,7 +1106,7 @@
     .gtier .tu { font-size: 22px; } .gtier .tp i { width: 9px; height: 9px; }
     .glock .big { font-size: 64px; }
     .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }
-    .gwall.trophies { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr 1fr 1.15fr; }   /* (#120: nine parts, three a row; #122: ten, with the ⚔️ sword) */
+    .gwall.trophies { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr 1fr 1.15fr; }   /* (#120: nine parts, three a row; #122: ten, with the ⚔️ sword; #123: eleven, with the 🔆 solar panel) */
     .ucard { padding: 4px 6px 6px; border-width: 3px; border-radius: 14px; }
     .ucard .ufx { font-size: 17px; } .ucard .pips i { width: 12px; height: 12px; border-width: 2px; } .ucard .pips { gap: 2px; }
     .ucard .ucost { font-size: 16px; } .ucard .uhave { font-size: 15px; } .ucard .ukey { display: none; }
@@ -1455,7 +1466,7 @@
   <!-- #122: the boss bar, in the boys' sword style (#117, page 3): a long blade with a hilt and a point at each end and a sword
        standing across its middle; the boss's name on it, its health as the blade's gold. While a boss is up it takes the squad
        chips' place (.right.boss-on) -->
-  <div class="right"><div class="bossbar" id="bossBar" role="img" aria-label="Boss"><svg class="bend" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M3 22 L17 15 L29 15 L29 29 L17 29 Z"/><path class="bh" d="M8 22 L18 18.5"/><rect class="bg" x="29" y="6" width="8" height="32" rx="2.5"/></svg><div class="blade"><b id="bossFill"></b><span class="bname" id="bossName"></span></div><svg class="bend r" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M37 22 L23 15 L11 15 L11 29 L23 29 Z"/><path class="bh" d="M32 22 L22 18.5"/><rect class="bg" x="3" y="6" width="8" height="32" rx="2.5"/></svg><svg class="bmid" viewBox="0 0 24 46" aria-hidden="true"><path class="bl" d="M8.5 31 L8.5 6 L12 1.5 L15.5 6 L15.5 31 Z"/><rect class="bg" x="2" y="30" width="20" height="5" rx="2"/><rect class="bgrip" x="9.5" y="35" width="5" height="5.5" rx="1"/><circle class="bg" cx="12" cy="42.5" r="3"/></svg></div><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
+  <div class="right"><div class="bossbar" id="bossBar" role="img" aria-label="Boss"><svg class="bend" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M3 22 L17 15 L29 15 L29 29 L17 29 Z"/><path class="bh" d="M8 22 L18 18.5"/><rect class="bg" x="29" y="6" width="8" height="32" rx="2.5"/></svg><div class="blade"><b id="bossFill"></b><span class="bname" id="bossName"></span><span class="bsh" id="bossShield" aria-hidden="true"><i data-ic="shield"></i></span></div><svg class="bend r" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M37 22 L23 15 L11 15 L11 29 L23 29 Z"/><path class="bh" d="M32 22 L22 18.5"/><rect class="bg" x="3" y="6" width="8" height="32" rx="2.5"/></svg><svg class="bmid" viewBox="0 0 24 46" aria-hidden="true"><path class="bl" d="M8.5 31 L8.5 6 L12 1.5 L15.5 6 L15.5 31 Z"/><rect class="bg" x="2" y="30" width="20" height="5" rx="2"/><rect class="bgrip" x="9.5" y="35" width="5" height="5.5" rx="1"/><circle class="bg" cx="12" cy="42.5" r="3"/></svg></div><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
   <div class="prompt" id="prompt">
     <button class="pfix" id="pFix" aria-label="Fix"><i data-ic="wrench"></i><small>F</small><span class="hm"><i data-ic="home"></i></span></button>
     <button class="pparts" id="pParts" aria-label="Take parts"><i data-ic="bolt"></i><small>G</small></button>
@@ -1890,6 +1901,9 @@ const PARTS = {
   // #122: the Knight's sword, its rare part: only fixing the Knight gives one (it isn't among the parts it can be taken apart
   // for). A trophy for the 🏆 wall: it buys nothing yet
   sword: { icon: '⚔️', ic: 'sword', hex: '#ffd21f', fixes: null },
+  // #123: the satellite's solar panel, its own part (it carries one; taking a beaten satellite apart gets it). A fixed
+  // satellite's 🤖 job boost costs them (SQUAD_JOB.satellite)
+  solar: { icon: '🔆', ic: 'solar', hex: '#3f8cff', fixes: null },
 };
 // Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
 // always maxHealth minus the damage in every area, so every heal mends areas too
@@ -2270,7 +2284,7 @@ const upLevels = (g) => Object.fromEntries(UPGRADES.map((U) => [U.id, clamp(Math
 //           🐏 Charger  ram damage +25% (20 → 25 → 30)       🔭 Sniper  rifle range +25% (70 → 87.5 → 105 m)
 //           🐝 drone    scout range +25% (70 → 87.5 → 105 m)  🦘 Bouncer chain +1 bounce (4 → 5 → 6)
 //           🥷 Ninja / minion (#120) flank kick +25% (12 → 15 → 18; a minion's 6 → 7.5 → 9)
-const SQUAD_UP = { cost: 2, max: 2, energy: 0.25, range: 0.25, scout: 0.25, ram: 0.25, chain: 1, kick: 0.25 };   // (#120: kick, the flanker's)
+const SQUAD_UP = { cost: 2, max: 2, energy: 0.25, range: 0.25, scout: 0.25, ram: 0.25, chain: 1, kick: 0.25, link: 0.25 };   // (#120: kick, the flanker's; #123: link, the satellite's range)
 const SQUAD_UPS = [
   { id: 'plating', name: 'Plating', alias: ['armor', 'plate', 'energy'] },   // (a part id or icon works too: squadBuy)
   { id: 'job', name: 'Job boost', alias: ['boost', 'jobboost'] },
@@ -2284,6 +2298,8 @@ const SQUAD_JOB = {
   // #120: the flanker (a fixed Ninja, and a fixed minion's smaller kick): its kick damage +25% a level, paid in 🥷 jet boots
   ninja: { part: 'jetboots', fxIc: '{boot}+25%', what: 'kick' },
   minion: { part: 'jetboots', fxIc: '{boot}+25%', what: 'kick' },
+  // #123: the booster (a fixed satellite): its link range +25% a level, paid in 🔆 solar panels
+  satellite: { part: 'solar', fxIc: '{satellite}+25%', what: 'link' },
 };
 const squadUpOf = (n) => { const s = String(n ?? '').toLowerCase(); return SQUAD_UPS.find((U) => U.id === s || U.name.toLowerCase() === s || U.alias.includes(s)) || null; };
 const squadPart = (r, id) => (id === 'plating' ? 'armour' : SQUAD_JOB[r.type].part);
@@ -2491,7 +2507,7 @@ const COPIER = {
 // boss wave keeps of the normal wave is one switch a line, all on as Orion chose (Dad, #117: no boss-wave exception), so
 // dropping one later is a one-line change:
 //   extras     the robots past WAVE.base's four, with the Ninja crew that takes the last extra's place (from wave NINJA.from)
-//   satellite  N4's satellite, from wave 5 (in place for N4: until the satellite lands nothing comes, so it does nothing)
+//   satellite  N4's satellite (#123: SATELLITE.from on, so wave 5 is its first, and it links to the Knight)
 //   copier     N2's copier on its waves (COPIER.wave: 10, 20 … are boss waves too)
 const BOSS_WAVE = {
   every: 5,
@@ -2525,6 +2541,28 @@ const KNIGHT = {
   axe: { min: 14, max: 60, aim: 0.12, windup: 0.8, speed: 17, range: 75, y: 0.55, h: 1.0, r: 0.7, dmg: 18, push: 6, back: 2.5, cool: 4.5 },
   board: { math: 1, puzzles: 1 },
   part: 'sword',
+};
+// #123 (#117 N4, Orion's Q11): the satellite (the boys' drawing, page 1: a round body between two long solar-panel wings, "makes
+// enemies stronger", "off the ground"). Every number here is a starting value, tuned at the playtest.
+//   from:     every wave from this one brings one satellite (one at a time), boss waves too (BOSS_WAVE.satellite), so wave 5's
+//             links to the Knight
+//   health:   × the wave's toughness, like every wave robot
+//   alt:      how high it floats (m over the ground: a drone flies at 5.2, the copier at 10.5); allyAlt: as a squadmate
+//   reach:    punches and kicks can't touch it while it's higher than this (m: it's only in reach once it's down)
+//   keep:     it hangs back, never nearer the closest player than this (m, along the ground), over the robots it boosts
+//   topSpeed: m/s, slow
+//   link:     visible beams to up to `max` robots within `range` m of it (along the ground, nearest first; a boss always
+//             first): glitched robots when it's glitched, squadmates once it's fixed (its job boost: SQUAD_UP.link more
+//             range a level). A linked robot hits `dmg` × harder and its glowing shield takes `take` × of every hit that lands
+//             on it (not the 🧲's shock). The links drop the moment it's beaten (or a linked robot is)
+//   lockPitch: the cannon's lock-on takes it over a robot on the ground or at drone height when the aim is tipped up this
+//             far (rad); with nothing else in the lock-on's cone it's locked anyway
+//   part:     its own part, the 🔆 solar panel
+const SATELLITE = {
+  from: 5, health: 60, alt: 13, allyAlt: 10, reach: 3, keep: 22, topSpeed: 4.5,
+  link: { range: 30, max: 4, dmg: 1.5, take: 0.5 },
+  lockPitch: 0.12,
+  part: 'solar',
 };
 
 const V3 = THREE.Vector3;
@@ -2650,6 +2688,9 @@ const ICONS = {
   // and pommel, a dark grip, on the slant
   sword: ['sword', ['⚔️'], rot(45, pa('M10.6 15 L10.6 4.6 L12 1.6 L13.4 4.6 L13.4 15 Z', G('steel')) + re(6.2, 14.4, 11.6, 2.8, 1, G('gold')) + re(10.7, 17.2, 2.6, 3.6, 0.6, G('dark'))
     + ci(12, 21.6, 1.7, G('gold')) + hl('M12 4.4 L12 13'))],
+  // #123: the satellite's solar panel: a blue panel of cells in a steel frame, on the slant, with its stub
+  solar: ['solar panel', ['🔆'], rot(-20, re(2.6, 6.4, 18.8, 11.2, 1.2, G('blue')) + '<path d="M7.3 6.8 L7.3 17.2 M12 6.8 L12 17.2 M16.7 6.8 L16.7 17.2 M3 12 L21 12" fill="none" stroke="#173c86" stroke-width="0.9"/>' + hl('M4.4 8.2 L6 8.2'))
+    + re(10.4, 18.2, 3.2, 3.8, 0.8, G('steel'))],
   // ---- robot types: each one's own silhouette, in its armour colour ----
   charger: ['Charger', ['🐏'], re(3.6, 17, 3.4, 4.4, 1, G('dark')) + re(17, 17, 3.4, 4.4, 1, G('dark')) + re(2.4, 6.4, 19.2, 11.6, 3.4, G('purple')) + rn(5.4, 9.2, 13.2, 3.6, 1.8, INK) + rn(7, 10.2, 10, 1.6, 0.8, '#ff2f5b')
     + re(7.2, 14.6, 9.6, 4.6, 1, G('steel')) + hl('M4.6 9 L4.6 13')],
@@ -2671,6 +2712,9 @@ const ICONS = {
   // #122: Apollo's Knight: a tall yellow helmet with its antenna and a dark visor (two glitch-red eyes), on broad yellow shoulders
   knight: ['Knight', [], ln('M12 1.8 L12 4.2', G('dark'), 1.2) + ci(12, 1.8, 1.3, G('gold')) + re(2.4, 14.2, 19.2, 8, 2.4, G('yellow')) + rn(2.4, 18.6, 19.2, 1.8, 0, '#b8860b')
     + re(6.8, 4, 10.4, 10.4, 1.8, G('yellow')) + rn(8.2, 7.6, 7.6, 2.8, 1.2, INK) + cn(10.2, 9, 0.9, '#ff2f5b') + cn(13.8, 9, 0.9, '#ff2f5b') + hl('M4.6 16.4 L4.6 18') + hl('M8.4 5.8 L8.4 6.8')],
+  // #123: the satellite (the PDF on #117, page 1): a round body with a glitch-red eye between two long solar-panel wings
+  satellite: ['satellite', ['🛰️', '🛰'], re(0.8, 9, 7, 6, 0.8, G('blue')) + re(16.2, 9, 7, 6, 0.8, G('blue')) + '<path d="M3.2 9.4 L3.2 14.6 M5.6 9.4 L5.6 14.6 M18.4 9.4 L18.4 14.6 M20.8 9.4 L20.8 14.6" fill="none" stroke="#173c86" stroke-width="0.8"/>'
+    + ln('M7.8 12 L16.2 12', G('dark'), 1.2) + ci(12, 12, 4.6, G('steel')) + cn(12, 12, 1.6, '#ff2f5b') + ln('M12 16.6 L12 19', G('dark'), 1) + pa('M8.8 21.8 Q12 18.6 15.2 21.8 Z', G('steel')) + hl('M9.2 10.6 C9.6 9.6 10.4 8.9 11.2 8.6')],
   clone: ['clone', [], re(1.6, 4.6, 5.4, 6.6, 2.2, G('steel')) + re(17, 4.6, 5.4, 6.6, 2.2, G('steel')) + pa('M4.8 5.6 L19.2 5.6 L17.2 20.4 L6.8 20.4 Z', G('orange'))
     + rn(7.6, 8.4, 8.8, 4, 2, INK) + cn(10, 10.4, 1.3, '#ff2f5b') + cn(14, 10.4, 1.3, '#ff2f5b') + rn(1.2, 15.4, 6.4, 1.6, 0.5, '#ff2f5b') + rn(16.2, 17.6, 6.4, 1.6, 0.5, '#3ff0ff') + hl('M7.2 7.8 L8.2 14')],
   // ---- the mech's areas, body sections and leg shapes ----
@@ -6844,7 +6888,7 @@ function syncMechModel(m) {
   }
   // The cannon arm kicks back and up on each round; the flash sits on the barrel that fired
   const R = md.arms.find((a) => a.s > 0), rc = m.recoil || 0, RC = md.asock.recoil;   // (#42: as far as the arm set kicks)
-  R.fore.position.z = rc * RC.z; R.arm.rotation.x = m.aimPitch + rc * RC.pitch;
+  R.fore.position.z = rc * RC.z; R.arm.rotation.x = Math.max(m.aimPitch, m.upPitch || 0) + rc * RC.pitch;   // (#123: up at a satellite it's locked onto)
   const fl = m.flash > 0 ? m.flash / MUZZLE.flash : 0;
   md.flashes.forEach((f, k) => MuzzleFx.show(f, k === (m.barrel ? 1 : 0) ? fl : 0));
   if (md.muzzleLight) md.muzzleLight.intensity = fl * MUZZLE.light + (m.charge ? 12 * m.charge.t / WEAPON.rail.charge : 0);   // the rail gun glows as it charges
@@ -7381,7 +7425,8 @@ const Bullets = {
   // speed: how fast it flies (its kind's if left out; #42: the Long barrels' rounds fly faster)
   fire(from, dir, owner, kind = 'gun', dmg, range, speed) {
     const W = WEAPON[kind] || ROBOT_HITS[kind], foe = !!owner?.type && owner.state === 'glitched', spd = speed ?? W.speed;
-    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(spd), d: 0, owner, kind, foe, spd, range: range ?? W.range, dmg: dmg ?? W.dmg, look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
+    // (#123: a round from a robot a satellite links hits harder: linkHit)
+    this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(spd), d: 0, owner, kind, foe, spd, range: range ?? W.range, dmg: (dmg ?? W.dmg) * linkHit(owner), look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
     if (owner?.human) owner.lastShot = { kind, from: [r3(from.x), r3(from.y), r3(from.z)], speed: spd, range: range ?? W.range, tick: Game.ticks };   // (#42: for the hooks)
     if (this.list.length > this.pool.length) this.list.shift();
   },
@@ -7728,6 +7773,7 @@ function combatTick(m, dt) {
   m.cool = Math.max(0, m.cool - dt * rechargeOf(m, m.coolW));   // (G4: and the fusion core's 20%; #42: and the arm set's, for that weapon)
   m.flash = Math.max(0, (m.flash || 0) - dt);
   m.recoil = Math.max(0, (m.recoil || 0) - dt / MUZZLE.recoil);
+  m.upT = Math.max(0, (m.upT || 0) - dt); if (!m.upT) m.upPitch = 0;   // (#123: the arm's swing up at a satellite eases off)
   // letting go mid-burst still owes that burst's share of the rest, so tapping isn't faster than holding
   if (!m.input.attack && m.burstN) { const G = WEAPON.gun; m.cool += G.rest * m.burstN / G.burst; m.burstN = 0; }
   const sw = m.swing;
@@ -7754,15 +7800,21 @@ function gunPose(m, side = m.shot?.gun ?? 2.4, y = m.shot?.y ?? 4.4) {
 }
 // Where a shot from `from` goes: along the torso aim, locked onto a glitched robot close to
 // it (within AIM_ASSIST and `range`): kids get to hit what they point at.
+// #123: a high flyer (the satellite: ROBOT_TYPES[type].high) is weighed on its own: the lock goes up to it when nothing on the
+// ground or at drone height is in the cone, or when the aim is tipped up (SATELLITE.lockPitch), so with one floating over its
+// robots the lock onto them is as it was. m.lockHigh: the high one the last lock went to (null: none), for the cannon arm's aim
 function aimDir(m, from, range, props = true) {
   const yaw = m.torsoYaw, cp = Math.cos(m.aimPitch), dir = new V3(-Math.sin(yaw) * cp, Math.sin(m.aimPitch), -Math.cos(yaw) * cp);
-  let best = AIM_ASSIST;
+  let best = AIM_ASSIST, hb = AIM_ASSIST, high = null;
   for (const r of Game.robots) {
     if (r.state !== 'glitched') continue;
     const T = ROBOT_TYPES[r.type], c = new V3(r.pos.x, r.pos.y + T.hitY, r.pos.z), dx = c.x - m.pos.x, dz = c.z - m.pos.z;
     const off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - yaw));
+    if (T.high) { if (off < hb && Math.hypot(dx, dz) < range) { hb = off; high = c; m.lockHighId = r.id; } continue; }
     if (off < best && Math.hypot(dx, dz) < range) { best = off; dir.subVectors(c, from).normalize(); }
   }
+  m.lockHigh = null;
+  if (high && (best === AIM_ASSIST || m.aimPitch >= SATELLITE.lockPitch)) { best = hb; dir.subVectors(high, from).normalize(); m.lockHigh = m.lockHighId; }
   // no robot to lock onto: a tree, rock or fence straight ahead of the mech (under the reticle) gets
   // the shot instead, since the cannon sits off to one side and would fly past it (not the left-arm
   // electromagnet: it does nothing to a prop, so it keeps its line past one)
@@ -7785,7 +7837,9 @@ function shoot(m) {
   m.barrel = (m.barrel || 0) ^ 1;
   const S = m.shot ?? { gun: 2.4, spread: 0.2, y: 4.4 }, A = m.afx, range = A && A.gunRange !== 1 ? WEAPON.gun.range * A.gunRange : WEAPON.gun.range;
   const { from, rx, rz, fx, fz } = gunPose(m, S.gun + (m.barrel ? S.spread : -S.spread), S.y);
-  Bullets.fire(from, aimDir(m, from, range), m, 'gun', undefined, range, A && A.roundSpeed !== 1 ? WEAPON.gun.speed * A.roundSpeed : undefined);
+  const dir = aimDir(m, from, range);
+  Bullets.fire(from, dir, m, 'gun', undefined, range, A && A.roundSpeed !== 1 ? WEAPON.gun.speed * A.roundSpeed : undefined);
+  if (m.lockHigh != null) { m.upPitch = Math.min(1.2, Math.asin(clamp(dir.y, -1, 1))); m.upT = 0.45; }   // #123: the cannon arm swings up at it
   m.flash = MUZZLE.flash; m.recoil = 1;
   Impacts.eject(from, rx, rz, fx, fz);
   m.human?.rig.recoil(MUZZLE.camKick); m.human?.rig.kick(0.1);
@@ -7848,6 +7902,7 @@ function meleeStrike(m, w) {
   for (const r of Game.robots) {
     if (r.state === 'ally') continue;
     const T = ROBOT_TYPES[r.type], dx = r.pos.x - m.pos.x, dz = r.pos.z - m.pos.z, d = Math.hypot(dx, dz) || 1;
+    if (T.high && r.lift > SATELLITE.reach) continue;   // #123: a satellite up in the sky is out of a punch's or kick's reach
     if (d > MECH.radius + r.spec.radius + W.reach) continue;
     if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
     const at = new V3(r.pos.x - dx / d * r.spec.radius, r.pos.y + T.hitY * (w === 'kick' ? 0.6 : 1.1), r.pos.z - dz / d * r.spec.radius);
@@ -7878,6 +7933,7 @@ function hitRobot(r, dmg, w, dx, dz, at, pushK) {
   r.hits[w] = (r.hits[w] || 0) + 1;
   r.push.x += dx / L * P; r.push.z += dz / L * P;
   r.lastPush = P;   // (#42: for the hooks)
+  dmg *= linkTake(r);   // #123: a satellite's shield takes a share of every hit (the 🧲's shock is untouched)
   // a round only warms the armour a little, so a burst can't wash out the glitch flicker
   r.hitFlash = round || w === 'em' ? Math.min(0.45, r.hitFlash + 0.2) : 1;
   const k = loud(r.pos);
@@ -7931,6 +7987,7 @@ function shotMech(m, b, at) {
 // down too (mateDown). Only a running squadmate ('ally') can be hurt here.
 function hurtMech(m, amount, how = 'hit') {
   if (m.state === 'down' || (m.type && m.state !== 'ally')) return 0;
+  if (m.type) amount *= linkTake(m);                      // #123: a squadmate linked by your satellite: its shield
   // G4 shield emitter: the bubble takes the hit whole while it has hits left (ADV.shield a wave), then it's gone till the next wave
   if (m.shield > 0 && amount > 0) {
     m.shield--; m.blocked = (m.blocked || 0) + 1; m.shieldHit = 0.4;
@@ -8359,6 +8416,32 @@ function buildKnight(paint) {
   body.scale.setScalar(KNIGHT.scale);                    // (built at a mech's size, then grown: KNIGHT.scale)
   return { root, body, legs, glow, armour, head, arms, edge, axe, ...robotHud(root, 10.4 * KNIGHT.scale, 5) };
 }
+// #123: the satellite (the boys' drawing, #117 page 1): a round body with its glitch-red eye and a dark band, two long
+// solar-panel wings out either side on struts (each panel in cells, as drawn), a dish underneath with the glowing emitter
+// its link beams leave from (ROBOT_TYPES.satellite.beamY), and an antenna. The wings tilt on their struts (wings)
+function buildSatellite(paint) {
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const metal = { metalness: 0.6, roughness: 0.35 }, steel = { metalness: 0.85, roughness: 0.25 };
+  const { armour, glow } = robotMats(paint);
+  body.add(ownMesh(new THREE.SphereGeometry(1.3, 20, 14), armour));
+  const band = new THREE.Mesh(new THREE.TorusGeometry(1.32, 0.13, 8, 28), mat(paint.dark, metal)); band.rotation.x = Math.PI / 2; body.add(band);
+  const eye = ownMesh(new THREE.SphereGeometry(0.42, 14, 10), glow); eye.position.set(0, 0.15, -1.16); body.add(eye);
+  const wings = [];
+  for (const s of [-1, 1]) {
+    const wing = new THREE.Group(); wing.position.x = s * 1.3; body.add(wing);
+    const strut = cyl(0.1, 0.1, 1.1, paint.frame, steel, 8); strut.rotation.z = Math.PI / 2; strut.position.x = s * 0.5; wing.add(strut);
+    const panel = rbox(3.8, 0.12, 1.7, 0.05, paint.panel, { metalness: 0.4, roughness: 0.3 }); panel.position.x = s * 2.95; wing.add(panel);
+    for (let k = 0; k <= 4; k++) { const rib = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.18, 1.76), mat(paint.ram, steel)); rib.position.x = s * (1.05 + 0.95 * k); wing.add(rib); }
+    const spar = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.16, 0.08), mat(paint.ram, steel)); spar.position.x = s * 2.95; wing.add(spar);
+    wings.push(wing);
+  }
+  const dish = cyl(0.85, 0.35, 0.4, paint.ram, steel, 18); dish.position.y = -1.35; body.add(dish);
+  const emit = ownMesh(new THREE.SphereGeometry(0.2, 10, 8), glow); emit.position.y = -1.6; body.add(emit);
+  const antenna = cyl(0.05, 0.07, 1.2, paint.frame, steel, 6); antenna.position.y = 1.85; body.add(antenna);
+  const atip = ownMesh(new THREE.SphereGeometry(0.16, 10, 8), glow); atip.position.y = 2.5; body.add(atip);
+  root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return { root, body, legs: [], glow, armour, wings, ...robotHud(root, 3.4, 3.4) };
+}
 
 // Every robot type. Shared fields:
 //  icon: its squad tag; health; hitY/hitR: the sphere rounds hit (hitY above r.pos);
@@ -8484,6 +8567,21 @@ const ROBOT_TYPES = {
     hot: (r) => r.ai.mode === 'windup',
     sparkBox: [4, 2.6, 6, 4],
   },
+  // #123: the satellite (SATELLITE: its numbers). It floats high (flies: no ground robot's ram, stomp, kick or sword reaches it as a
+  // squadmate; high: out of a punch's or kick's reach while it's up, and the cannon's lock-on aims up at it) and never attacks:
+  // it hangs back over its robots and links them (Satellites: the beams, the shields, the harder hits). Fixed, it's the booster:
+  // it links its squadmates instead (its job: link range, paid in its own part, the 🔆 solar panel)
+  satellite: {
+    ic: 'satellite', health: SATELLITE.health, hitY: 0, hitR: 2.4, top: null, beamY: -1.6, flies: true, high: true, alt: SATELLITE.alt,
+    spec: { topSpeed: SATELLITE.topSpeed, backSpeed: 2, accel: 2.5, brake: 4, legTurn: 1.4, torsoTurn: 2, stride: 50, radius: 1.6 },
+    paint: { armour: '#e8ecf4', frame: '#3a4152', dark: '#1a1f2c', ram: '#c9ced8', panel: '#2f6fe0', glow: '#ff2f5b' },
+    build: buildSatellite, ai: satelliteAI, ally: allyAI, pose: satellitePose, tick: satelliteTick,
+    parts: ['solar', 'battery', 'wiring'],     // the 🔆 solar panel is the satellite's alone
+    notice: SATELLITE.link.range,
+    tell: 'beam',        // it doesn't attack: its tell is its beams, and the shields on what they reach
+    hot: () => false,
+    sparkBox: [2.4, 2.4, -0.8, 1.6],
+  },
 };
 const takeMaxOf = (r) => ROBOT_TYPES[r.type].takeMax ?? REPAIR.takeMax;
 
@@ -8539,7 +8637,7 @@ function spawn(type, x, z, n) {
     }
     return out;
   }
-  if (!T.swarm) return spawnRobot(type, x, z);
+  if (!T.swarm) { const r = spawnRobot(type, x, z); if (T.flies && r) { r.lift = T.alt; r.pos.y += T.alt; } return r; }   // (#123: a satellite starts up high)
   const sw = { id: nextSwarm++, n: T.swarm, wp: null, wpUntil: 0, seen: -1e9, kit: false };
   Game.swarms[sw.id] = sw;
   const out = [];
@@ -8681,7 +8779,7 @@ function allyRams() {
     if (r.type !== 'charger' || r.ai.mode !== 'charge' || r.speed < ALLY_RAM.minSpeed || !q || !Game.robots.includes(q) || !rammable(q)) continue;
     const dx = q.pos.x - r.pos.x, dz = q.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
     if (d > q.spec.radius + r.spec.radius + 0.6) continue;
-    const dmg = ramDamage(r);
+    const dmg = ramDamage(r) * linkHit(r);                // (#123: × a satellite's link)
     hitRobot(q, dmg, 'ram', dx, dz, new V3(q.pos.x - dx / d * q.spec.radius, q.pos.y + ROBOT_TYPES[q.type].hitY, q.pos.z - dz / d * q.spec.radius));
     r.rams = (r.rams || 0) + 1; r.lastRam = dmg;
     r.push.x -= dx / d * 6; r.push.z -= dz / d * 6; r.speed = 0;     // it bounces off
@@ -8792,7 +8890,7 @@ function droneAI(r, dt) {
 }
 // A zap: a little damage in the power and wiring of a mech (#59: or a squadmate)
 function droneZap(r, m) {
-  hurtMech(m, ROBOT_HITS.zap.dmg, 'zap');
+  hurtMech(m, ROBOT_HITS.zap.dmg * linkHit(r), 'zap');   // (#123: × a satellite's link)
   r.zaps = (r.zaps || 0) + 1;
   Sparks.burst(m.pos.x, bodyTop(m), m.pos.z, 14, SPARK_ZAP, 6);
   Sparks.burst(r.pos.x, r.pos.y, r.pos.z, 6, SPARK_ZAP, 3);
@@ -8948,7 +9046,7 @@ function bounceOff(r, q, A) {
   r.bounces++; r.totalBounces++; r.bestChain = Math.max(r.bestChain, r.bounces);
   if (r.state === 'ally' && q.state === 'glitched') {
     const S = ROBOT_HITS.stomp;
-    hitRobot(q, S.allyDmg + S.combo * (r.bounces - 1), 'stomp', q.pos.x - A.from.x, q.pos.z - A.from.z, new V3(q.pos.x, q.pos.y + ROBOT_TYPES[q.type].top, q.pos.z));
+    hitRobot(q, (S.allyDmg + S.combo * (r.bounces - 1)) * linkHit(r), 'stomp', q.pos.x - A.from.x, q.pos.z - A.from.z, new V3(q.pos.x, q.pos.y + ROBOT_TYPES[q.type].top, q.pos.z));   // (#123: × its link)
   } else Sparks.burst(r.pos.x, r.pos.y, r.pos.z, 16, SPARK_ZAP, 6);
   // on to the next target in the plan that's still there, else the finish
   let next = null;
@@ -8956,7 +9054,7 @@ function bounceOff(r, q, A) {
   hop(r, next || (r.state === 'glitched' ? bounceFinish(r) : bounceHome(r)), A.plan);
 }
 function bounceStomp(r, m, A) {
-  const S = ROBOT_HITS.stomp, dmg = S.dmg + S.combo * Math.min(r.bounces, 4);
+  const S = ROBOT_HITS.stomp, dmg = (S.dmg + S.combo * Math.min(r.bounces, 4)) * linkHit(r);   // (#123: × a satellite's link)
   hurtMech(m, dmg, 'stomp'); r.stomps++; r.lastStomp = dmg;
   Sparks.burst(m.pos.x, landY(m, m.pos), m.pos.z, 30, SPARK_HOT, 8);
   if (!Game.manual) Sfx.whack(1);
@@ -9090,7 +9188,7 @@ function robotKick(r, b, dmg, extra, push = 0) {
   const N = ninjaNote(r, 'kick'); N.tries++;
   r.kickT = 0.22;   // (the pose's kick)
   if (!kickable(b) || flatDist(r, b) > kickReach(r, b, extra)) { N.misses++; return 0; }
-  const dealt = hurtMech(b, dmg, 'nkick');
+  const dealt = hurtMech(b, dmg * linkHit(r), 'nkick');  // (#123: × a satellite's link)
   N.kicks++; N.dealt = r3(N.dealt + dealt);
   const dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1, kb = (b.fx?.push ?? 1) * push;
   b.push.x += dx / d * kb; b.push.z += dz / d * kb;
@@ -9185,7 +9283,7 @@ function flankKick(r, q, lead) {
   const F = flankNote(r);
   r.kickT = 0.22;
   if (flatDist(r, q) > kickReach(r, q) + 0.6) { F.whiffs++; return 0; }
-  const dmg = flankDmg(r), ax = r.pos.x - q.pos.x, az = r.pos.z - q.pos.z, lx = lead.pos.x - q.pos.x, lz = lead.pos.z - q.pos.z, behind = ax * lx + az * lz < 0;
+  const dmg = flankDmg(r) * linkHit(r), ax = r.pos.x - q.pos.x, az = r.pos.z - q.pos.z, lx = lead.pos.x - q.pos.x, lz = lead.pos.z - q.pos.z, behind = ax * lx + az * lz < 0;   // (#123: × its link)
   hitRobot(q, dmg, 'flank', q.pos.x - r.pos.x, q.pos.z - r.pos.z, new V3(q.pos.x, q.pos.y + ROBOT_TYPES[q.type].hitY, q.pos.z));
   F.kicks++; F.dealt = r3(F.dealt + dmg); if (behind) F.behind++; F.last = { dmg, behind };
   return dmg;
@@ -9334,7 +9432,7 @@ function cloneRail(r, ch) {
     if (!cloneFoe(b)) continue;
     const c = aimPoint(b), t = c.clone().sub(from).dot(dir);
     if (t < 0 || t > len || from.clone().addScaledVector(dir, t).distanceTo(c) > (b.type ? ROBOT_TYPES[b.type].hitR : MECH_HIT.r)) continue;
-    const dealt = hurtMech(b, r.clone.dmg.rail, 'crail'), kb = (b.fx?.push ?? 1) * ROBOT_HITS.crail.push;
+    const dealt = hurtMech(b, r.clone.dmg.rail * linkHit(r), 'crail'), kb = (b.fx?.push ?? 1) * ROBOT_HITS.crail.push;   // (#123: × a satellite's link)
     b.push.x += dir.x * kb; b.push.z += dir.z * kb;
     hit.push(b.type ? b.id : 'p' + b.human?.idx); cloneNote(r, 'crail', dealt);
   }
@@ -9351,7 +9449,7 @@ function cloneStrike(r, w) {
     if (!kickable(b)) continue;
     const dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
     if (d > r.spec.radius + bodyR(b) + W.reach || Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
-    const dealt = hurtMech(b, r.clone.dmg[w], how), kb = (b.fx?.push ?? 1) * ROBOT_HITS[how].push * (w === 'punch' ? r.afx?.punchPush ?? 1 : 1);
+    const dealt = hurtMech(b, r.clone.dmg[w] * linkHit(r), how), kb = (b.fx?.push ?? 1) * ROBOT_HITS[how].push * (w === 'punch' ? r.afx?.punchPush ?? 1 : 1);   // (#123: × its link)
     b.push.x += dx / d * kb; b.push.z += dz / d * kb;
     Sparks.burst(b.pos.x - dx / d * bodyR(b), r.pos.y + (w === 'kick' ? 2 : 4.5), b.pos.z - dz / d * bodyR(b), 18, SPARK_HOT, 9);
     if (!Game.manual) Sfx.whack(0.7);
@@ -9612,7 +9710,7 @@ function knightSwipe(r) {
   const hit = [];
   for (const b of [...Game.mechs, ...Game.squad]) {
     if (!kickable(b) || !inSword(r, b)) continue;
-    const dealt = hurtMech(b, K.dmg, 'sword'), dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1, kb = (b.fx?.push ?? 1) * K.push;
+    const dealt = hurtMech(b, K.dmg * linkHit(r), 'sword'), dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1, kb = (b.fx?.push ?? 1) * K.push;   // (#123: × a satellite's link)
     b.push.x += dx / d * kb; b.push.z += dz / d * kb;
     Sparks.burst(b.pos.x - dx / d * bodyR(b), r.pos.y + 4, b.pos.z - dz / d * bodyR(b), 24, SPARK_HOT, 10);
     N.dealt = r3(N.dealt + dealt); hit.push(b.type ? b.id : 'p' + b.human?.idx);
@@ -9699,7 +9797,7 @@ const Axes = {
   throw(r, h) {
     const K = KNIGHT.axe, dx = -Math.sin(h), dz = -Math.cos(h), off = r.spec.radius + 1.2;
     const x = r.pos.x + dx * off, z = r.pos.z + dz * off;
-    const a = { id: this.nextId++, by: r.id, dx, dz, x, z, y: groundH(x, z) + K.y, went: 0, spin: 0, md: null };
+    const a = { id: this.nextId++, by: r.id, dx, dz, x, z, y: groundH(x, z) + K.y, went: 0, spin: 0, md: null, k: linkHit(r) };   // (#123: k: × a satellite's link as it left the hand)
     a.md = buildAxe(ROBOT_TYPES.knight.paint); scene.add(a.md);
     this.list.push(a);
     return a;
@@ -9726,7 +9824,7 @@ const Axes = {
       a.x = x1; a.z = z1; a.went += step; a.spin += dt * 16;
       a.y = groundH(a.x, a.z) + K.y;
       if (best) {
-        const dealt = hurtMech(best, K.dmg, 'axe'), kb = (best.fx?.push ?? 1) * K.push;
+        const dealt = hurtMech(best, K.dmg * a.k, 'axe'), kb = (best.fx?.push ?? 1) * K.push;
         best.push.x += a.dx * kb; best.push.z += a.dz * kb;
         const r = Game.robots.find((q) => q.id === a.by); if (r) { const N = knightNote(r, 'axeHit'); N.dealt = r3(N.dealt + dealt); }
         if (!Game.manual) Sfx.whack(1);
@@ -9775,6 +9873,102 @@ function bossFixed(h, r) {
   if (h.idx === 0) FixUI.close();
   Game.waveStats.fixed++; Waves.check();
 }
+
+// ---------------------------------------------------------------------------
+// #123 The satellite (Q11). Glitched, it never attacks: it floats SATELLITE.alt m up over the robots it boosts (the boss if one
+// is up, else the middle of the glitched robots nearest it), hanging back at least SATELLITE.keep m from the nearest player, and
+// Satellites links them. Beaten, it drops out of the sky onto a wing, to be fixed or taken apart like any robot. Fixed, it
+// follows in its squad slot (allyAI) at SATELLITE.allyAlt m and links its squadmates.
+// ---------------------------------------------------------------------------
+function satelliteAI(r, dt) {
+  const S = SATELLITE, inp = r.input, ai = r.ai;
+  inp.boost = false; inp.aimYaw = r.legHeading;
+  const mine = Game.robots.filter((q) => q.state === 'glitched' && !ROBOT_TYPES[q.type].high);
+  let at = mine.find((q) => ROBOT_TYPES[q.type].boss) || null;
+  if (!at && mine.length) at = mine.reduce((b, q) => (flatDist(q, r) < flatDist(b, r) ? q : b));
+  if (!at) { ai.mode = 'roam'; ai.at = null; roam(r, dt, 0.5); return; }
+  let ax = at.pos.x, az = at.pos.z;
+  if (!ROBOT_TYPES[at.type].boss) {                       // over the middle of that one's group (within link range of it)
+    const g = mine.filter((q) => flatDist(q, at) < S.link.range);
+    ax = g.reduce((a, q) => a + q.pos.x, 0) / g.length; az = g.reduce((a, q) => a + q.pos.z, 0) / g.length;
+  }
+  const p = nearestPlayer(r);
+  if (p) {                                                // hung back: never nearer the player than keep
+    let ux = ax - p.pos.x, uz = az - p.pos.z, d = Math.hypot(ux, uz);
+    if (d < S.keep) {
+      if (d < 0.5) { ux = r.pos.x - p.pos.x; uz = r.pos.z - p.pos.z; d = Math.hypot(ux, uz) || 1; }
+      ax = p.pos.x + ux / d * S.keep; az = p.pos.z + uz / d * S.keep;
+    }
+  }
+  ai.mode = 'hover'; ai.at = at.id;
+  steer(r, ax, az, 1, 6);
+}
+// each tick after it moves: it holds its height (bobbing a little), lower as a squadmate; beaten, it drops onto a wing
+function satelliteTick(r, dt) {
+  if (r.state === 'down') { r.lift = Math.max(1.7, r.lift - 8 * dt); return; }
+  r.lift = damp(r.lift, (r.state === 'ally' ? SATELLITE.allyAlt : SATELLITE.alt) + Math.sin(r.t * 1.3 + r.id) * 0.3, 1.2, dt);
+}
+// its look: it rocks gently and leans into its drift, its wings turning slowly on their struts; down, it lies tipped on a wing
+function satellitePose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair';
+  md.body.rotation.z = damp(md.body.rotation.z, down ? 0.35 : Math.sin(r.t * 0.9 + r.id) * 0.06, 4, dt);
+  md.body.rotation.x = damp(md.body.rotation.x, down ? 0.12 : -clamp(r.speed / r.spec.topSpeed, -1, 1) * 0.12, 4, dt);
+  for (const w of md.wings) w.rotation.x = damp(w.rotation.x, down ? 0 : Math.sin(r.t * 0.5) * 0.25, 3, dt);
+}
+// The links (Satellites.tick, every tick, before anything else hits): each running satellite links up to SATELLITE.link.max
+// robots within its range (flatDist, nearest first, a boss first of all): a glitched one its glitched robots, a squadmate one
+// its running squadmates. A robot takes one link (the first satellite's). r.linkBy = the satellite's id (null: unlinked).
+// linkHit(r): × what r's hits do (a linked robot's or squadmate's); linkTake(r): × what a hit on r does (its shield)
+const linkRange = (r) => (r.state === 'ally' ? SATELLITE.link.range * (1 + SQUAD_UP.link * jobLv(r)) : SATELLITE.link.range);
+const linkHit = (r) => (r?.linkBy ? SATELLITE.link.dmg : 1);
+const linkTake = (r) => (r?.linkBy ? SATELLITE.link.take : 1);
+const Satellites = {
+  links: [], beams: [], bubbles: [], looks: null,
+  tick() {
+    for (const r of Game.robots) r.linkBy = null;
+    this.links.length = 0;
+    for (const s of Game.robots) {
+      if (!ROBOT_TYPES[s.type].high) continue;
+      const ally = s.state === 'ally', R = linkRange(s);
+      if (!ally && s.state !== 'glitched') { s.linked = []; continue; }
+      const boss = (q) => (ROBOT_TYPES[q.type].boss ? 1 : 0);
+      const L = Game.robots.filter((q) => q !== s && !q.linkBy && !ROBOT_TYPES[q.type].high && (ally ? q.state === 'ally' && Game.squad.includes(q) : q.state === 'glitched') && flatDist(q, s) <= R)
+        .sort((a, b) => boss(b) - boss(a) || flatDist(a, s) - flatDist(b, s)).slice(0, SATELLITE.link.max);
+      for (const q of L) { q.linkBy = s.id; this.links.push({ s, q, ally }); }
+      s.linked = L.map((q) => q.id);
+    }
+  },
+  init() {
+    const beam = new THREE.CylinderGeometry(1, 1, 1, 8, 1, true); beam.translate(0, 0.5, 0);   // a unit tube from y = 0 to 1
+    const look = (core, glow) => ({
+      core: new THREE.MeshBasicMaterial({ color: new THREE.Color(...core), toneMapped: false }),
+      sheath: new THREE.MeshBasicMaterial({ color: new THREE.Color(...glow), toneMapped: false, transparent: true, opacity: 0.4, depthWrite: false }),
+      bubble: new THREE.MeshBasicMaterial({ color: new THREE.Color(...glow), toneMapped: false, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending }),
+    });
+    // glitched: a hot magenta; a squadmate's: the squad's cyan
+    this.looks = { foe: look([3.4, 1.2, 3.0], [1.9, 0.12, 1.5]), ally: look([1.6, 3.4, 3.4], [0.2, 1.4, 1.8]) };
+    this.geo = { beam, bubble: new THREE.SphereGeometry(1, 20, 14) };
+  },
+  // the beams and the shield bubbles drawn where the links are now (pooled: never parented to a robot's model)
+  sync() {
+    if (!this.looks) this.init();
+    const a = new V3(), b = new V3(), d = new V3(), pulse = 0.5 + 0.5 * Math.sin(Game.ticks * 0.25);
+    this.links.forEach((L, i) => {
+      const B = this.beams[i] || (this.beams[i] = (() => { const g = new THREE.Group(), c = new THREE.Mesh(this.geo.beam), sh = new THREE.Mesh(this.geo.beam); c.scale.set(0.07, 1, 0.07); g.add(c, sh); scene.add(g); return { g, c, sh }; })());
+      const U = this.bubbles[i] || (this.bubbles[i] = (() => { const m = new THREE.Mesh(this.geo.bubble); m.renderOrder = 4; scene.add(m); return m; })());
+      const K = this.looks[L.ally ? 'ally' : 'foe'], T = ROBOT_TYPES[L.q.type], S = ROBOT_TYPES[L.s.type];
+      B.c.material = K.core; B.sh.material = K.sheath; U.material = K.bubble;
+      a.set(L.s.pos.x, L.s.pos.y + S.beamY, L.s.pos.z); b.set(L.q.pos.x, L.q.pos.y + T.hitY, L.q.pos.z);
+      d.subVectors(b, a); const len = d.length();
+      B.g.visible = true; B.g.position.copy(a); B.g.quaternion.setFromUnitVectors(UP, d.normalize()); B.g.scale.set(1, len, 1);
+      const w = 0.16 + 0.06 * pulse; B.sh.scale.set(w, 1, w);
+      U.visible = true; U.position.copy(b); U.scale.setScalar(T.hitR * 1.25 + 0.15 * pulse);
+    });
+    for (let i = this.links.length; i < this.beams.length; i++) { this.beams[i].g.visible = false; this.bubbles[i].visible = false; }
+  },
+  // for the hooks: every link now ({ sat, to, type, ally })
+  state() { return this.links.map((L) => ({ sat: L.s.id, to: L.q.id, type: L.q.type, ally: L.ally })); },
+};
 
 // how: 'em' when electromagnetic shock shut it down (its health is left as it was); otherwise it was
 // beaten to 0. Either way how it was beaten sets the faults its Quick Fix has to deal with.
@@ -10366,7 +10560,7 @@ const squadEnergy = (r) => Math.round(ROBOT_TYPES[r.type].health * ALLY.energy *
 // what squadmate r's upgrades do now: energy, and its job (ram damage, rifle range m, scout range m or chain bounces)
 function squadEffects(r) {
   const J = SQUAD_JOB[r.type];
-  const job = { ram: ramDamage(r), range: r3(sniperRange(r)), scout: r3(scoutRange(r)), chain: bounceChain(r), kick: flankDmg(r) }[J.what];   // (#120: kick, the flanker's)
+  const job = { ram: ramDamage(r), range: r3(sniperRange(r)), scout: r3(scoutRange(r)), chain: bounceChain(r), kick: flankDmg(r), link: r3(linkRange(r)) }[J.what];   // (#120: kick, the flanker's; #123: link, the satellite's range)
   return { maxHealth: r.maxHealth, job: { what: J.what, value: job } };
 }
 function setRobotName(r, name) {
@@ -10517,7 +10711,7 @@ function rams() {
       const dx = m.pos.x - r.pos.x, dz = m.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
       if (m.state === 'down' || d > (m.type ? m.spec.radius : MECH.radius) + r.spec.radius + 0.6) continue;
       const k = clamp(r.speed / r.spec.boostSpeed, 0, 1);
-      hurtMech(m, Math.round(10 + 10 * k), 'ram');
+      hurtMech(m, Math.round(10 + 10 * k) * linkHit(r), 'ram');   // (#123: × a satellite's link)
       const kb = m.fx?.push ?? 1;   // (B2: × the leg shape's knock-back)
       m.push.x += dx / d * 7 * k * kb; m.push.z += dz / d * 7 * k * kb;
       r.push.x -= dx / d * 8; r.push.z -= dz / d * 8; r.speed = 0;     // it bounces off
@@ -10531,7 +10725,7 @@ function rams() {
 // Keep bodies apart: a light robot gives way to a heavy mech. A Bouncer mid-hop is above
 // it all; a drone keeps its height (lift) as it's nudged.
 function separate() {
-  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own)
+  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air && !(ROBOT_TYPES[r.type].high && r.lift > SATELLITE.reach)).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own; #123: a satellite up in the sky is over it all)
   for (let a = 0; a < bodies.length; a++) for (let b = a + 1; b < bodies.length; b++) {
     const [A, ra, wa] = bodies[a], [B, rb, wb] = bodies[b];
     const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz) || 1e-3, min = ra + rb;
@@ -10959,6 +11153,7 @@ function tick(dt) {
     mechTick(m, dt); combatTick(m, dt);
   }
   for (const r of [...Game.robots]) robotTick(r, dt);   // (a copy: #59 a squadmate can be destroyed in its tick)
+  Satellites.tick();                                     // #123: who each satellite links now (before the rounds land)
   Bullets.tick(dt);
   Copier.tick(dt);                                       // #121 (after the rounds have moved: its shield stops them)
   Axes.tick(dt);                                         // #122: the Knight's axes along the ground
@@ -12130,6 +12325,7 @@ function updateHud() {
     if ($('bossName').textContent !== T.name) { $('bossName').textContent = T.name; bb.setAttribute('aria-label', T.name); }
     $('bossFill').style.width = (f * 100).toFixed(1) + '%';
     bb.classList.toggle('down', boss.state === 'down'); bb.classList.toggle('hot', boss.state === 'glitched' && T.hot(boss));
+    bb.classList.toggle('shield', !!boss.linkBy);         // #123: a satellite's link: the boss's shield shows on the bar
   }
   Game.squad.forEach((r, k) => {   // (#59: the bars follow every hit and mend without redrawing the tags)
     const f = clamp(r.health / r.maxHealth, 0, 1), bar = $('squad').children[k]?.querySelector('.mhp b'); if (!bar) return;
@@ -13522,6 +13718,13 @@ function partPiece(id) {
     add2(rbox(0.9, 0.16, 0.22, 0.05, P.hex, metal), 0, -0.48);
     add2(cyl(0.08, 0.08, 0.42, '#3a3f52', metal, 10), 0, -0.77);
     add2(new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), mat(P.hex, metal)), 0, -1.04);
+  } else if (id === 'solar') {
+    // #123: the satellite's solar panel, on the slant: a blue panel of cells in a steel frame, with its strut
+    const s = new THREE.Group(); g.add(s); s.rotation.set(0.5, 0, 0.25);
+    s.add(rbox(2.0, 0.1, 1.2, 0.04, P.hex, { metalness: 0.4, roughness: 0.3 }));
+    for (let k = 0; k <= 4; k++) { const rib = rbox(0.06, 0.14, 1.24, 0.02, steel, metal); rib.position.x = -1 + k * 0.5; s.add(rib); }
+    const spar = rbox(2.04, 0.14, 0.06, 0.02, steel, metal); s.add(spar);
+    const strut = cyl(0.07, 0.07, 0.7, steel, metal, 8); strut.rotation.z = Math.PI / 2; strut.position.x = -1.3; s.add(strut);
   }
   return g;
 }
@@ -13639,6 +13842,7 @@ function render(dt) {
   for (const r of Game.robots) syncRobotModel(r, dt);
   Copier.sync(dt);
   Axes.sync();                                           // #122
+  Satellites.sync();                                     // #123: the link beams and the shields
   Bullets.sync();
   Pulses.sync();
   RailFx.sync();
@@ -13737,9 +13941,9 @@ const Waves = {
   // bosses can take later boss waves here)
   boss(n) { const E = BOSS_WAVE.every; return Number.isInteger(n) && n >= E && n % E === 0; },
   bossOf(n) { return this.boss(n) ? 'knight' : null; },
-  // #122: N4's satellite, from wave 5: the switch for boss waves (BOSS_WAVE.satellite) is asked here. N4 puts its own wave
-  // rule in `wave`; until then no wave gets one, so the switch does nothing
-  satellite(n) { const wave = false; return wave && (!this.boss(n) || BOSS_WAVE.satellite); },
+  // #123 (Q11): does wave n bring a satellite? Every wave from SATELLITE.from (5), boss waves too while BOSS_WAVE.satellite is on.
+  // The one place it's asked (it isn't in list(n): it comes beside the wave's robots, like the copier)
+  satellite(n) { return Number.isInteger(n) && n >= SATELLITE.from && (!this.boss(n) || BOSS_WAVE.satellite); },
   tough(n) { return n <= 1 ? 1 : Math.min(WAVE.toughMax, 1 + WAVE.tough * (n - 1)); },
   // #121 (Q7): does wave n get a copier? Every COPIER.wave.every waves from COPIER.wave.from (4, 6, 8, 10 …), boss waves too.
   // The one place it's asked (N3's BOSS_WAVE.copier switch goes here)
@@ -13774,6 +13978,18 @@ const Waves = {
     }
     const fresh = Game.robots.filter((r) => !before.has(r));
     Game.waveStats.robots = fresh.length;
+    // #123: a satellite wave's one satellite (none while one is still out), toughened with the wave, beside the wave's boss if it
+    // has one (so wave 5's links to the Knight from the start), else beside its first robot on the ground; 8 m further out
+    if (this.satellite(n) && !Game.robots.some((r) => ROBOT_TYPES[r.type].high && !Game.squad.includes(r))) {
+      const at = fresh.find((r) => ROBOT_TYPES[r.type].boss) || fresh.find((r) => !ROBOT_TYPES[r.type].flies);
+      let x, z;
+      if (at) { const dx = at.pos.x - p.pos.x, dz = at.pos.z - p.pos.z, d = Math.hypot(dx, dz) || 1; x = at.pos.x + dx / d * 8; z = at.pos.z + dz / d * 8; }
+      else ({ x, z } = this.edgeSpot(Math.random() * Math.PI * 2, p));
+      const s = spawn('satellite', x, z);
+      s.health = s.maxHealth = Math.round(s.maxHealth * this.tough(n));
+      if (at) { s.ai.wp = { ...(at.ai.wp || { x: at.pos.x, z: at.pos.z }) }; s.ai.wpT = 25; }
+      fresh.push(s); Game.waveStats.robots = fresh.length;
+    }
     if (this.copier(n)) Copier.launch();          // #121: the copier comes COPIER.arrive s in (its clone counts in robots then)
     updateHud.newWave = true;                     // the 🌊 badge pulses
     this.draw();
@@ -13875,6 +14091,9 @@ function robotState(r) {
   return {
     id: r.id, type: r.type, name: r.name, x: r3(r.pos.x), z: r3(r.pos.z),
     health: r.health, maxHealth: r.maxHealth,
+    // #123: linkBy = the satellite linking it now (its shield and harder hits; null: none); a satellite: linked = the ids it links,
+    // at = what it hangs over (glitched)
+    linkBy: r.linkBy ?? null, satellite: ROBOT_TYPES[r.type].high ? { linked: [...(r.linked || [])], at: r.ai.at ?? null } : null,
     state: r.state,                                   // 'glitched' | 'down' | 'ally'
     mode: r.ai.mode,                                  // roam | off; Charger stalk | windup | charge | recover; Sniper flee | close | hold;
                                                       // drone orbit | dive; Bouncer stalk | crouch | air | land; squad follow | idle (drone scout)
@@ -13961,6 +14180,9 @@ window.__rb = {
   NINJA, WAVE,   // (#120)
   COPIER, Copier, Waves, Bullets,   // (#121)
   BOSS_WAVE, KNIGHT, Axes, Bosses, START_WAVE,   // (#122: BOSS_WAVE is read when each wave comes out, so a switch set here counts from the next)
+  SATELLITE, Satellites,   // (#123)
+  // #123: which of waves 1..n bring a satellite (Waves.satellite)
+  satelliteWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.satellite(w)); },
   // #122: which of waves 1..n are boss waves (Waves.boss), and the robot types each brings (Waves.list)
   bossWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.boss(w)); },
   waveList(n) { return Waves.list(n); },
@@ -14560,12 +14782,17 @@ window.__rb = {
       bossWave: Waves.boss(Game.wave), startWave: START_WAVE,
       boss: (() => { const b = bossUp(), el = $('bossBar'), on = !!el.offsetParent && getComputedStyle(el).display !== 'none';
         return { up: b ? { id: b.id, type: b.type, name: ROBOT_TYPES[b.type].name, health: r3(b.health), maxHealth: b.maxHealth, state: b.state } : null,
-          bar: { shown: on, fill: parseFloat($('bossFill').style.width) || 0, name: $('bossName').textContent, down: el.classList.contains('down') }, squadHidden: getComputedStyle($('squad')).display === 'none' }; })(),
+          bar: { shown: on, fill: parseFloat($('bossFill').style.width) || 0, name: $('bossName').textContent, down: el.classList.contains('down'),
+            shield: el.classList.contains('shield'), shieldIcon: getComputedStyle($('bossShield')).display !== 'none' && !!$('bossShield').querySelector('svg.ic') },   // (#123: its shield)
+          squadHidden: getComputedStyle($('squad')).display === 'none' }; })(),
+      // #123: every satellite link now ({ sat, to, type, ally }: Satellites.state); satelliteWave = this wave brings a satellite
+      links: Satellites.state(), satelliteWave: Waves.satellite(Game.wave),
       axes: Axes.list.map((a) => Axes.state(a)), axesDone: Axes.done.map((a) => ({ ...a })), bossesWon: Bosses.won.map((b) => ({ ...b })),
       // G3: type, health / maxHealth, its garage upgrades (plating, job) and what they do (effects: maxHealth, job =
       // { what: ram | range | scout | chain, value }), its mode, and rams = squadmate Charger rams landed (lastRam = the last's damage)
       squad: Game.squad.map((r) => ({ id: r.id, name: r.name, state: r.state, x: r3(r.pos.x), z: r3(r.pos.z), dist: p0 ? r3(flatDist(r, p0)) : null,
         type: r.type, health: r.health, maxHealth: r.maxHealth, upgrades: { plating: r.upg?.plating || 0, job: r.upg?.job || 0 }, effects: squadEffects(r), mode: r.ai.mode, rams: r.rams || 0, lastRam: r.lastRam ?? null,
+        linkBy: r.linkBy ?? null, linked: ROBOT_TYPES[r.type].high ? [...(r.linked || [])] : null, y: r3(r.pos.y), lift: r3(r.lift),   // #123: linked by your satellite; a satellite's own links and height
         flank: r.fl ? JSON.parse(JSON.stringify(r.fl)) : null, flankAt: r.ai.flankAt?.id ?? null,   // #120: a flanker's job (allyNinja): runs, kicks, behind, dealt, last
         // #59: its damage by area, hits taken as a squadmate, powered down (down) with its rescue clock (rescueIn, s),
         // times powered down and rescued, the areas worth a part (needs, as players' needs), and its chip as drawn
