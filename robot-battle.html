@@ -1008,12 +1008,12 @@
   .shead { background: linear-gradient(var(--bc, #3ee07a), var(--bc, #3ee07a)) left bottom / var(--f, 0%) 4px no-repeat, linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18)) left bottom / 100% 4px no-repeat; }
   /* (in the card's head line on a phone held upright; at the foot of the card otherwise) */
   .swarn { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 12px; background: #ff4d5e; color: #fff; font: 900 18px 'Asap', sans-serif; white-space: nowrap; box-shadow: 0 3px 0 var(--ink); }
-  /* #127: a narrow card (three a row on a phone on its side at 667 × 375 or 568 × 320): a row's line ran past the card's
+  /* #127: a narrow card (under 140 px inside: three a row on a phone on its side at 667 × 375 or 568 × 320; 740 × 360 keeps its two lines): a row's line ran past the card's
      edge (its ⬆️ cut off), and a long name had no room. Its energy goes under its name; each row is three lines (the part
      and what a level does, the cost and the bag's count, the pips and ⬆️); and 🏠 ➜ ⬆️✖ keeps the card's foot, under the
      last row */
   .scard { container-type: inline-size; }
-  @container (max-width: 160px) {
+  @container (max-width: 140px) {
     .scard .shead { flex-wrap: wrap; row-gap: 0; } .scard .shead .shp { flex: 1 1 100%; }
     .scard .srow { grid-template-columns: auto 1fr; grid-template-rows: auto auto auto; grid-template-areas: 'sp fx' 'co ha' 'pi bu'; }
     .scard .srow .spart { grid-area: sp; } .scard .srow .ufx { grid-area: fx; justify-self: end; } .scard .srow .ucost { grid-area: co; } .scard .srow .uhave { grid-area: ha; }
