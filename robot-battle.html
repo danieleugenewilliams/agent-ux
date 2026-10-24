@@ -1234,6 +1234,8 @@
        line (three cards a row were too narrow: each row ran past its card's edge, and the name had no room) */
     .gwall.squad { grid-template-columns: 1fr; grid-template-rows: repeat(3, auto); align-content: start; }
     .scard { flex-direction: row; flex-wrap: wrap; } .shead { width: 100%; } .srow { flex: 1 1 0; min-width: 0; }
+    /* (a narrower tablet upright, 600 × 960: side by side, a row needs about 174 px, so under 2 × 180 they go one under the other) */
+    .scard .srow { min-width: 180px; }
     .swarn { position: static; transform: none; flex: none; padding: 0 8px; font-size: 16px; box-shadow: 0 2px 0 var(--ink); }
   }
   .gwall.body.build { gap: 10px; }
