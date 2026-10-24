@@ -979,6 +979,9 @@
   /* G3: the 🤖 Squad tab. A card per squadmate (its icon and name in its glow colour, its energy), a row per upgrade,
      and 🏠 ➜ ⬆️✖ once it has one (sent home, its upgrades go with it) */
   .gwall.squad { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr; }
+  /* #127: no squad yet: the empty sign fills the wall at every size (where the cards stack, its rows sized to their
+     content, its big icon ran over the wall's top edge) */
+  .gwall.squad:has(> .sempty) { grid-template-rows: 1fr; align-content: stretch; }
   .scard { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 18px; border: 4px solid var(--gc); background: rgba(20,24,42,.7); box-shadow: 0 0 14px color-mix(in srgb, var(--gc) 40%, transparent); overflow: hidden; }
   .scard.got { animation: newWpn .6s; }
   .shead { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -1005,6 +1008,20 @@
   .shead { background: linear-gradient(var(--bc, #3ee07a), var(--bc, #3ee07a)) left bottom / var(--f, 0%) 4px no-repeat, linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.18)) left bottom / 100% 4px no-repeat; }
   /* (in the card's head line on a phone held upright; at the foot of the card otherwise) */
   .swarn { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 12px; background: #ff4d5e; color: #fff; font: 900 18px 'Asap', sans-serif; white-space: nowrap; box-shadow: 0 3px 0 var(--ink); }
+  /* #127: a narrow card (three a row on a phone on its side at 667 × 375 or 568 × 320): a row's line ran past the card's
+     edge (its ⬆️ cut off), and a long name had no room. Its energy goes under its name; each row is three lines (the part
+     and what a level does, the cost and the bag's count, the pips and ⬆️); and 🏠 ➜ ⬆️✖ keeps the card's foot, under the
+     last row */
+  .scard { container-type: inline-size; }
+  @container (max-width: 160px) {
+    .scard .shead { flex-wrap: wrap; row-gap: 0; } .scard .shead .shp { flex: 1 1 100%; }
+    .scard .srow { grid-template-columns: auto 1fr; grid-template-rows: auto auto auto; grid-template-areas: 'sp fx' 'co ha' 'pi bu'; }
+    .scard .srow .spart { grid-area: sp; } .scard .srow .ufx { grid-area: fx; justify-self: end; } .scard .srow .ucost { grid-area: co; } .scard .srow .uhave { grid-area: ha; }
+    .scard .srow .pips { grid-area: pi; justify-self: start; } .scard .srow .ubuy { grid-area: bu; justify-self: end; height: 30px; }
+    .scard .srow :is(.ucost, .uhave) { display: flex; align-items: center; line-height: 1; } #garage .scard :is(.srow .ucost, .srow .uhave, .shead .shp) > .ic { margin-top: 0; margin-bottom: 0; }
+    .scard .srow .spart { font-size: 20px; } .scard .srow .ufx { line-height: 1; } .scard .shead .shp { line-height: 1; }
+    .scard:has(.swarn) .srow:last-child { margin-bottom: 20px; } .scard .swarn { bottom: 3px; font-size: 12px; padding: 0 5px; }
+  }
   /* G3: the 🎨 Paint tab. A row each for the body colour, the trim colour and the decal; the picked swatch is ringed */
   .gwall.paint { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
   .prow { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 18px; border: 4px solid rgba(255,255,255,.18); background: rgba(20,24,42,.7); }
@@ -1213,6 +1230,11 @@
     /* (and the Spider's Mk II chip the phone's size, so it stays inside the narrow card) */
     .lcard .lmk2 { left: 3px; padding: 1px 3px; gap: 2px; font-size: 13px; } .lcard .lmk2 b { font-size: 12px; }
     .lcard .lmk2 .mpips i { width: 5px; height: 5px; } .lcard .lmk2.tog i { font-size: 12px; min-width: 15px; padding: 2px 2px; }
+    /* #127: the 🤖 squad as a phone held upright has it: a card a row, its two rows side by side, 🏠 ➜ ⬆️✖ in its head
+       line (three cards a row were too narrow: each row ran past its card's edge, and the name had no room) */
+    .gwall.squad { grid-template-columns: 1fr; grid-template-rows: repeat(3, auto); align-content: start; }
+    .scard { flex-direction: row; flex-wrap: wrap; } .shead { width: 100%; } .srow { flex: 1 1 0; min-width: 0; }
+    .swarn { position: static; transform: none; flex: none; padding: 0 8px; font-size: 16px; box-shadow: 0 2px 0 var(--ink); }
   }
   .gwall.body.build { gap: 10px; }
   .bhead { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 18px; border: 4px solid rgba(79,157,255,.6); background: rgba(16,30,62,.85); }
