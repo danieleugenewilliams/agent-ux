@@ -586,7 +586,7 @@
   /* ---------- PROGRESS (M4): the fact grid, the ⭐ badge, the table cheer and the parent view ----------
      A fact cell's stage is its colour AND its shape, so colour is never the only signal:
      New ○ dashed and empty · Learning ◐ striped orange · Known ● solid blue · Mastered ★ glowing gold */
-  .fgrid { --cs: min(44px, calc((100vw - 110px) / 10), calc((100vh - 250px) / 10)); display: grid; grid-template-columns: repeat(10, var(--cs)); gap: 3px; justify-content: center; }
+  .fgrid { --cs: min(44px, calc((100vw - 110px) / 10), calc((100vh - 310px) / 10)); display: grid; grid-template-columns: repeat(10, var(--cs)); gap: 3px; justify-content: center; }
   .fgrid .hd { display: flex; align-items: center; justify-content: center; font: 900 calc(var(--cs) * .5) 'Asap', sans-serif; font-style: normal; color: rgba(255,255,255,.7); }
   .fgrid .hd.corner { color: var(--cyan); }
   .fgrid .hd.done { color: var(--yellow); text-shadow: 0 0 8px var(--yellow); }
@@ -611,17 +611,33 @@
   .ginfo { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; margin-top: 10px; font: 900 26px 'Asap', sans-serif; --cs: 36px; text-align: center; }
   .ginfo .dim { opacity: .45; }
   .ginfo small { font-size: 15px; font-weight: 700; opacity: .8; }
+  /* #133: a fact's progress under it: pips (⚡ a fast day, ✔ right in a row, a dashed ring still to come), the next stage,
+     the fast days to ⭐ and today */
+  .ginfo { flex-wrap: wrap; row-gap: 2px; }
+  .ginfo .gprog { flex: 1 0 100%; display: flex; flex-direction: column; align-items: center; gap: 1px; font: 800 16px/1.25 'Asap', sans-serif; --cs: 22px; }
+  .ginfo .gl { display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; }
+  .ginfo .gl small { font-size: 14px; }
+  .ginfo .gday { opacity: .85; font-weight: 700; font-size: 15px; }
+  .ginfo .gday[data-today="counted"] { color: #8ff0a4; opacity: 1; }
+  .ginfo .pips { display: inline-flex; align-items: center; gap: 2px; font-size: 17px; }
+  .ginfo .gprog .ic { font-size: 1.3em; }
+  .ginfo .pip0 { display: inline-block; width: 17px; height: 17px; margin: 0 3px; border-radius: 50%; border: 2px dashed #8a93ad; box-sizing: border-box; }
+  .ginfo .gprog .cell { border-width: 2px; }
+  .ginfo .pprog { flex: 1 0 100%; font-size: 14px; }
+  .pkey { margin: 8px 0 0; font: 700 13px/1.35 'Asap', sans-serif; opacity: .85; text-align: center; }
   #grid.on, #parent.on { pointer-events: auto; background: rgba(10,12,24,.55); }
   #grid .panel { border-color: var(--yellow); box-shadow: 0 0 30px rgba(255,216,61,.45); max-height: calc(100vh - 12px); overflow-y: auto; }
   #grid .top .gt { display: flex; align-items: center; gap: 10px; font: 900 30px 'Asap', sans-serif; }
   /* a phone held sideways: stacked, the cells would shrink to ~14 px; the grid takes the panel's full height on
      the left, and the title, the fact picked and the legend go in a column beside it */
-  @media (max-height: 460px) and (min-width: 600px) {
+  /* (#133: from 500 px wide, so 568 x 320 gets it too; the legend in two columns, room for the fact's progress lines) */
+  @media (max-height: 460px) and (min-width: 500px) {
     #grid .panel { display: grid; grid-template-columns: auto 250px; grid-template-rows: auto auto 1fr; column-gap: 18px; align-items: start; padding: 10px 16px 12px; }
     #grid .fgrid { --cs: min(44px, calc((100vh - 72px) / 10), calc((100vw - 360px) / 10)); grid-row: 1 / 4; grid-column: 1; align-self: center; }
     #grid .top, #grid .ginfo, #grid .legend { grid-column: 2; }
     #grid .ginfo { margin-top: 0; }
-    #grid .legend { flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 4px; }
+    #grid .legend { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 5px 10px; margin-top: 4px; }
+    #grid .legend .lg { font-size: 15px; --cs: 24px; gap: 5px; }
   }
   .kface { width: 46px; height: 46px; border-radius: 50%; background: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: inset 0 0 0 4px var(--c, #fff); }
   /* the ⭐ badge (HUD, bottom left above the speed bars; a tap or T opens the grid) and its twin on the pause screen */
@@ -1580,7 +1596,7 @@
   </div>
 </div>
 
-<!-- MY FACTS: the child's 9×9 grid, a cell per fact (7 × 8 and 8 × 7 light up together); tap one for its typical time -->
+<!-- MY FACTS: the child's 9×9 grid, a cell per fact (7 × 8 and 8 × 7 light up together); tap one for its typical time and (#133) its progress: what the next stage takes, the fast days to ⭐ and whether today counted -->
 <div id="grid" class="screen">
   <div class="panel">
     <div class="top"><span class="gt"><b class="kface" id="gridFace"></b><i data-ic="star"></i> <b id="gridCount"></b></span><button class="x" id="gridX" aria-label="Close"><i data-ic="cross"></i></button></div>
@@ -3441,6 +3457,36 @@ const Facts = {
     e.days = e.days.filter((d) => d < today); e.missDay = today; e.box = 0;
     e.polish = now;
   },
+  // the first answer to fact key on record r is a quick check's (Orion's): never answered, and r's current step is a
+  // 'check' step holding it. answer() asks this, so progress() reads it the same way (r needn't be whoever is playing)
+  checkFirst(r, key) {
+    const st = LADDERS[r?.ladder]?.[(r?.step ?? 0) - 1];
+    return !((r?.facts?.[key]?.n || 0) > 0) && st?.kind === 'check' && stepFacts(st).some((q) => q.key === key);
+  },
+  // #133: where a fact is and what it takes to go on, read straight from its entry e (none = never answered) on day
+  // `today`. Pure: never writes. It follows answer() exactly, and the rules don't change:
+  //   New -> Learning: 2 right in a row (streak). Learning -> Known: right under FACT.fast on 2 different days (days).
+  //   Known -> Mastered: on 3 different days. A day counts once; a miss (or a too-slow ⭐) stops today counting (missDay),
+  //   and below Mastered drops a stage, keeping that stage's starting days (demote). A quick check's first fast answer
+  //   (o.check: checkFirst) goes straight to Known. A ⭐ needing a polish shines again on 1 fast answer, any day.
+  // { stage, next (the stage after it; null when Mastered), need: { kind: 'streak' | 'days' | 'check' | 'polish', have,
+  //   want } (null: Mastered, nothing needed), today: 'counted' (a fast day today already) | 'blocked' (a miss today:
+  //   it can't count until tomorrow) | 'open' (a fast right answer today counts), todayCounted, toMastered (fast days still
+  //   to come to ⭐, counting today's if it's open: 0 when Mastered), polish }
+  progress(e, today = this.day(), o = {}) {
+    const s = STAGES.includes(e?.s) ? e.s : 'new', days = Array.isArray(e?.days) ? e.days : [];
+    const counted = days.includes(today), blocked = !counted && e?.missDay != null && !(today > e.missDay);
+    const polish = s === 'mastered' && !!e?.polish;
+    const need = o.check && s === 'new' ? { kind: 'check', have: 0, want: 1 }
+      : s === 'new' ? { kind: 'streak', have: e?.streak || 0, want: 2 }
+      : s === 'learning' ? { kind: 'days', have: days.length, want: 2 }
+      : s === 'known' ? { kind: 'days', have: days.length, want: 3 }
+      : polish ? { kind: 'polish', have: 0, want: 1 } : null;
+    const next = need?.kind === 'check' ? 'known' : s === 'mastered' ? null : STAGES[STAGES.indexOf(s) + 1];
+    return { stage: s, next, need, today: counted ? 'counted' : blocked ? 'blocked' : 'open', todayCounted: counted, toMastered: s === 'mastered' ? 0 : Math.max(0, 3 - days.length), polish };
+  },
+  // #133: progress() for fact key on record r (whoever is playing's if left out), today on the tracker's clock
+  progressOf(key, r = this.rec) { return r ? this.progress(r.facts?.[key], this.day(), { check: this.checkFirst(r, key) }) : null; },
   // #115: the facts on record r that need a polish (Mastered and slipped), by key
   polished(r = this.rec) { return new Set(ownKeys(r?.facts || {}).filter((k) => r.facts[k]?.s === 'mastered' && r.facts[k].polish)); },
   // #115: stars from before #115. A table's cheer plays only once all nine of its facts are Mastered (rec.cheered[t] is
@@ -3467,7 +3513,7 @@ const Facts = {
     const now = this.now(), today = this.day(now), e = this.entry(f), from = e.s;
     const right = value !== '' && value != null && Number(value) === f.answer, fast = right && ms < FACT.fast;
     // Orion's quick check: the first answer to a fact in a 'check' step sorts it at once
-    const check = e.n === 0 && this.curStep.kind === 'check' && stepFacts(this.curStep).some((q) => q.key === f.key);
+    const check = this.checkFirst(this.rec, f.key);   // (#133: progress() asks the same)
     e.n++; e.last = now;
     e.ms.push(Math.round(ms)); if (e.ms.length > FACT.keepTimes) e.ms.shift();
     e.hist.push(right ? 1 : 0); if (e.hist.length > FACT.keepHist) e.hist.shift();
@@ -12130,6 +12176,35 @@ function legendHTML(rec) {
   return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('')
     + (np ? `<span class="lg" data-p="1" aria-label="needs a polish: ${np}"><i class="cell s-mastered pol">${icon('mastered')}<span class="polm">${icon('sparkle')}</span></i>Polish<b>${np}</b></span>` : '');
 }
+// #133: a fact's progress (Facts.progress) in words: the fast days still to come to ⭐
+const toStarText = (p) => (p.toMastered === 0 ? `next right answer to ${icon('star')}` : p.toMastered === 3 ? `3 fast days to ${icon('star')}`
+  : `${p.toMastered} more fast day${p.toMastered === 1 ? '' : 's'} to ${icon('star')}`);
+// #133: the child's grid: what a fact takes next, icons first and counts a kid reads at a glance, never the answer:
+//   [⚡⚡○ fast days 2/3 ➜ ★] (pips: what the next stage takes; ✔ for right in a row), "1 more fast day to ⭐" (all the
+//   way), and today: ✔ counted (come back tomorrow) | ✖ a miss today (tomorrow) | ⚡ under 3 s today counts
+function gridProgHTML(p) {
+  if (!p) return '';
+  const N = p.need;
+  if (!N) return `<span class="gprog"><span class="gl gneed">${icon('star')} Mastered!</span></span>`;
+  if (N.kind === 'polish') return `<span class="gprog"><span class="gl gneed" data-kind="polish" data-have="0" data-want="1">${icon('sparkle')} 1 fast answer to shine</span></span>`;
+  const pip = N.kind === 'streak' ? 'check' : 'power', n = Math.max(N.want, N.have);
+  const pips = Array.from({ length: n }, (_, i) => (i < N.have ? icon(pip) : '<i class="pip0"></i>')).join('');
+  const lab = N.kind === 'streak' ? `in a row ${N.have}/${N.want}` : N.kind === 'check' ? 'fast once' : `fast days ${N.have}/${N.want}`;
+  const day = { counted: `today ${icon('check')} — come back tomorrow`, blocked: `today ${icon('cross')} — try again tomorrow`, open: `today ${icon('power')} under 3 s counts` }[p.today];
+  return `<span class="gprog"><span class="gl gneed" data-kind="${N.kind}" data-have="${N.have}" data-want="${N.want}"><span class="pips">${pips}</span><small>${lab}</small>${icon('arrow')}<i class="cell s-${p.next}">${icon(STAGE_LOOK[p.next].ic)}</i></span>`
+    + `<span class="gl gstar">${toStarText(p)}</span><span class="gl gday" data-today="${p.today}">${day}</span></span>`;
+}
+// #133: the parent view: the same, in a line of words
+function parentProgHTML(p) {
+  if (!p) return '';
+  const N = p.need, nm = (s) => STAGE_LOOK[s].name;
+  const day = { counted: `today ${icon('check')} counted`, blocked: `today ${icon('cross')} missed: counts again tomorrow`, open: 'today not yet' }[p.today];
+  const t = !N ? `${icon('star')} Mastered for good`
+    : N.kind === 'polish' ? `${icon('sparkle')} needs a polish: 1 answer under 3 s`
+    : (N.kind === 'streak' ? `right in a row ${N.have}/${N.want} → ${nm(p.next)}` : N.kind === 'check' ? `quick check: 1 answer under 3 s → ${nm(p.next)}` : `fast days ${N.have}/${N.want} → ${nm(p.next)}`)
+      + ` · ${toStarText(p)} · ${day}`;
+  return `<small class="pprog"${N ? ` data-kind="${N.kind}" data-have="${N.have}" data-want="${N.want}"` : ''}${N && N.kind !== 'polish' ? ` data-today="${p.today}"` : ''}>${t}</small>`;
+}
 const Progress = {
   // (#50: rm = the profile 🗑️ Remove is asking about, null when it isn't; kept apart from Reset's confirm, so one
   // button's ✔ can never do the other's)
@@ -12184,15 +12259,18 @@ const Progress = {
     // the fact picked and its typical time. No answer: the grid can be opened mid-repair, and it mustn't be a
     // times table to copy a typed plug's answer from (the parent view shows answers)
     const p = this.sel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? Facts.stage(f.key) : null, pol = s === 'mastered' && !!e?.polish;
+    // #133: and its progress (gridProgHTML: counts, never the answer)
     $('gridInfo').innerHTML = !p ? `<span class="dim">${icon('tap')} ${icon('timer')}</span>`
-      : `<i class="cell s-${s}${pol ? ' pol' : ''}">${icon(STAGE_LOOK[s].ic)}${pol ? `<span class="polm">${icon('sparkle')}</span>` : ''}</i><span>${p[0]} × ${p[1]}</span><span>${icon('timer')} ${secs(Facts.typical(e))}</span>`;
+      : `<i class="cell s-${s}${pol ? ' pol' : ''}">${icon(STAGE_LOOK[s].ic)}${pol ? `<span class="polm">${icon('sparkle')}</span>` : ''}</i><span>${p[0]} × ${p[1]}</span><span>${icon('timer')} ${secs(Facts.typical(e))}</span>`
+        + gridProgHTML(Facts.progressOf(f.key, rec));
   },
   // tap a cell (as a click on it does): pick that fact
   tapCell(a, b) {
     const f = makeFact('×', a, b);
     if (this.mode !== 'grid' || !f) return null;
     this.sel = [a, b]; this.drawGrid(); if (!Game.manual) Sfx.click();
-    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), polish: Facts.polished().has(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: icRead($('gridInfo')) };
+    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), polish: Facts.polished().has(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: icRead($('gridInfo')),
+      progress: Facts.progressOf(f.key) };   // (#133: what the info's progress lines show)
   },
   // the keyboard's arrows / the d-pad move a cursor over the cells, picking each fact as it lands
   move(dx, dy) {
@@ -12307,7 +12385,7 @@ const Progress = {
     return {
       id: C.id, name: C.name, mastery: Facts.mastery(C), step: rec.step, steps: steps.length, stepName: stepName(steps[rec.step - 1]),
       next: rec.step < steps.length ? { step: rec.step + 1, name: stepName(steps[rec.step]) } : null,
-      slowest: Facts.slowest(rec, PARENT.slowest).map((q) => ({ fact: `${q.a} × ${q.b}`, key: q.key, stage: q.s, ms: q.ms, n: q.n, right: q.right })),
+      slowest: Facts.slowest(rec, PARENT.slowest).map((q) => ({ fact: `${q.a} × ${q.b}`, key: q.key, stage: q.s, ms: q.ms, n: q.n, right: q.right, progress: Facts.progressOf(q.key, rec) })),   // (#133)
       days: days.map((d) => ({ date: d.date, ms: Math.round(d.ms), min: +(d.ms / 60000).toFixed(2) })),
       todayMs: Math.round(td.ms), today: +(td.ms / 60000).toFixed(2),
       fixMs: (() => { const f = Facts.fixDays(rec, PARENT.days); return { today: f[f.length - 1].median, days: f }; })(),   // #48: median fix times
@@ -12342,11 +12420,15 @@ const Progress = {
     const D = this.data(this.tab), rec = Facts.peek(this.tab);
     const p = this.psel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? rec.facts[f.key]?.s ?? 'new' : null;
     const info = !p ? '<span class="dim">Tap a fact for its time</span>'
-      : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`;
+      : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`
+        + parentProgHTML(Facts.progressOf(f.key, rec));   // #133: what it takes next, and today
+    // #133: the rules in a line, so a parent can explain a fact's progress (Facts.answer; these don't change)
+    const key = `<p class="pkey">${icon('new')}${icon('arrow')}${icon('learning')} 2 right in a row · ${icon('learning')}${icon('arrow')}${icon('known')} right under 3 s on 2 days · ${icon('known')}${icon('arrow')}${icon('star')} on 3 days.`
+      + ` A day counts once. A miss stops that day counting and drops a stage (a ${icon('star')} keeps its star and needs a polish: 1 answer under 3 s).</p>`;
     const slow = D.slowest.length ? D.slowest.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${icon(STAGE_LOOK[q.stage].ic)}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
     $('pBody').innerHTML = `<div class="psum"><span>${icon('star')} Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span><span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span>`
       + `<span class="pfix" title="Today's median fix time (board open to reboot), ${D.fixMs.days[D.fixMs.days.length - 1].n} fixes">${icon('wrench')}${icon('timer')} <b>${secs(D.fixMs.today)}</b> median fix</span></div>`
-      + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div></div>`
+      + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div>${key}</div>`
       + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
       + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}</div>`
@@ -14655,6 +14737,12 @@ window.__rb = {
   showGrid(on = true) { const ok = on ? Progress.openGrid() : Progress.close(); return { ok, ui: Progress.mode, from: Progress.from, paused: Game.paused, title: this.state().title }; },
   // tap cell a × b in the open grid: the fact and its typical time
   tapCell(a, b) { return Progress.tapCell(a, b); },
+  // #133: fact a × b's progress for child (whoever is playing if left out; another child's saved record is only read):
+  // Facts.progress, what the grid's tap info and the parent view show. null for no such fact or child
+  progress(a, b, child) {
+    const f = makeFact('×', a, b), C = child == null ? Game.child : childOf(child), r = C && Facts.peek(C);
+    return f && r ? { fact: `${f.a} × ${f.b}`, key: f.key, ...Facts.progressOf(f.key, r) } : null;
+  },
   // mastered facts out of the goal for a child (whoever is playing if left out): { child, mastered, goal, polish (#115: how
   // many of the mastered need a polish) }.
   // The garage (#31) reads Facts.mastery, the same accessor.
