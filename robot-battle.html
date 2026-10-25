@@ -277,9 +277,55 @@
   #wireB { --c: var(--yellow); padding: 0 16px; font-size: 26px; }
   #wireB i { font-style: normal; opacity: .35; }
   #wireB i.on { opacity: 1; }
+  /* #129: the wave chip (the wave the run starts at; a boss wave's ⚔️ for the 🌊, edged gold, as on the HUD's wave chip) and
+     the wave picker it opens: a small grid of tiles over the pilot pick, at most 5 a row, that scrolls inside its panel */
+  #waveB { --c: var(--cyan); display: none; position: relative; padding: 0 16px 0 12px; font-size: 26px; }
+  #waveB.on { display: flex; }
+  #waveB .bw, #waveB.boss .wi { display: none; } #waveB.boss .bw { display: inline-flex; }
+  #waveB.boss { --c: #ffd21f; }
+  #waveB small { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center; text-shadow: none; }
+  #start .wpick { display: none; position: absolute; inset: 0; z-index: 5; align-items: center; justify-content: center; padding: 12px; pointer-events: auto; background: rgba(12,14,28,.72); }
+  #start .wpick.on { display: flex; }
+  /* (while it's up, the HUD behind it and the parent button hide, as on who's playing: nothing sits over its panel) */
+  #start.on:has(.wpick.on) ~ :is(#hud, #hurt, #parentB) { visibility: hidden; }
+  .wpanel { display: flex; flex-direction: column; max-height: 100%; max-width: 100%; padding: 10px 14px 14px; border-radius: 24px; background: rgba(20,24,42,.94); border: 5px solid var(--cyan); box-shadow: 0 0 30px rgba(63,240,255,.45); }
+  .wpanel .wtop { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 34px; margin-bottom: 8px; }
+  .wpanel .x { width: 48px; height: 48px; border-radius: 50%; border: 4px solid var(--ink); background: #ff4d5e; color: #fff; font-size: 22px; cursor: pointer; flex: none; }
+  .wtiles { --ts: 64px; display: grid; grid-template-columns: repeat(var(--cols, 5), var(--ts)); grid-auto-rows: var(--ts); gap: 10px; padding: 11px 12px 12px; min-height: 0;   /* (room for a boss tile's ⚔️ badge on its corner) */ overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.45) transparent; }
+  .wt { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 16px; border: 4px solid var(--ink); background: #2c3a63; color: #fff; cursor: pointer;
+    box-shadow: 0 5px 0 var(--ink), inset 0 0 0 3px var(--cyan); font: 900 28px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
+  .wt.boss { background: #5a4410; box-shadow: 0 5px 0 var(--ink), inset 0 0 0 3px #ffd21f, 0 0 10px rgba(255,210,31,.55); color: #ffe46b; }
+  .wt .wb { position: absolute; right: -9px; top: -9px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; line-height: 0;
+    background: var(--ink); border: 3px solid #ffd21f; box-shadow: 0 0 8px rgba(255,210,31,.7); z-index: 1; }
+  .wt .wb > .ic { margin: 0; }
+  .wt.on { background: var(--cyan); color: var(--ink); text-shadow: none; }
+  .wt.boss.on { background: #ffd21f; }
+  .wt.cur { outline: 4px dashed var(--yellow); outline-offset: 3px; }
+  .wt:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink), inset 0 0 0 3px var(--cyan); }
+  @media (max-height: 460px) { .wtiles { --ts: 56px; gap: 8px; } .wpanel { padding: 6px 12px 10px; } .wpanel .wtop { font-size: 26px; margin-bottom: 4px; } .wpanel .x { width: 44px; height: 44px; } }
+  @media (max-width: 400px) { .wtiles { --ts: 52px; gap: 8px; padding: 11px 10px 12px; } #start .wpick { padding: 8px; } .wpanel { padding: 8px 10px 12px; } }
   @media (max-width: 700px) { .pilot.kid { width: 128px; font-size: 22px; } .pilot.kid .face { width: 96px; height: 96px; font-size: 54px; } #start .ask { font-size: 24px; } }
   @media (max-width: 700px) { #start .kids { --tw: min(108px, 27vw); --th: 140px; --gap: 12px; grid-template-columns: repeat(3, var(--tw)); padding: 10px 10px 14px; max-height: min(calc(3 * var(--th) + 2 * var(--gap) + 26px), calc(100dvh - 150px)); }
     #start .kids .pilot.kid { font-size: 18px; padding: 8px 4px; } #start .kids .pilot.kid .face { width: 76px; height: 76px; font-size: 42px; } }
+  /* #129: the pilot pick on a phone held sideways: the six pilots in one row of smaller tiles, the key hints left out, and the
+     whole pick set just above the parent button (bottom left), so the chips (◀ who's playing, the wiring, the wave chip) and
+     every pilot are on screen and clear of it (before, the chips ran off the top and the pilots off the bottom at 844 x 390,
+     740 x 360 and 568 x 320). Up to 400 tall the logo is left out (it was off screen there before), so nothing meets the
+     health bar */
+  @media (max-height: 400px) { #start.title:not(.who) .logo { display: none; } }
+  @media (max-height: 500px) {
+    #start.title:not(.who) .wrap { top: auto; bottom: 90px; transform: translateX(-50%); }
+    #start.title { --pw: min(118px, calc((94vw - 50px) / 6)); }
+    #start.title .keys { display: none; }
+    #start.title .kidbar { margin-top: 8px; }
+    #start.title .pilots { margin-top: 14px; gap: 10px; flex-wrap: nowrap; }
+    #start.title .pilots .pilot { width: var(--pw); padding: 6px 3px 8px; gap: 3px; font-size: 15px; border-width: 4px; }
+    #start.title .pilots .pilot img { width: calc(var(--pw) - 22px); height: calc(var(--pw) - 22px); }
+  }
+  /* (a small phone on its side, 568 x 320: the pick a little lower and its chips a little shorter, still 48 px, so the chips
+     clear the health bar and the pilots the parent button) */
+  @media (max-height: 340px) { #start.title:not(.who) .wrap { bottom: 82px; } #start.title .kidbar .chip { height: 48px; } #start.title .kidbar .chip .face { width: 34px; height: 34px; } }
   @media (max-height: 500px) { #start .logo { font-size: 36px; } #start .ask { margin-top: 8px; font-size: 22px; }
     #start .kids { --th: 116px; --tw: 132px; --gap: 12px; margin-top: 6px; max-height: calc(100dvh - 116px); }
     #start .kids .pilot.kid { font-size: 17px; padding: 6px 4px; gap: 4px; } #start .kids .pilot.kid .face { width: 66px; height: 66px; font-size: 36px; } }
@@ -1453,7 +1499,9 @@
     <div class="ask"><i data-ic="pad"></i> Who's playing?</div>
     <div class="kids" id="kids"></div>
     <!-- who's playing (◀ picks again, on the title) and the Quick Fix setting: 🔢 math wiring or 🌈 colour wiring -->
-    <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><button class="chip" id="wireB" aria-label="Math or colour wiring"><i data-w="math"><i data-ic="math"></i></i><i data-w="colour"><i data-ic="colours"></i></i></button></div>
+    <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><button class="chip" id="wireB" aria-label="Math or colour wiring"><i data-w="math"><i data-ic="math"></i></i><i data-w="colour"><i data-ic="colours"></i></i></button><!--
+      #129: the wave the run starts at (a saved child who has cleared a wave): a tap, ▲ or the d-pad's up opens the wave picker
+      --><button class="chip" id="waveB" aria-label="Start wave"><span class="wi"><i data-ic="wave"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveBN">1</b><small><i data-ic="up"></i></small></button></div>
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
@@ -1482,6 +1530,13 @@
       <div class="hint"><i data-ic="pad"></i></div>
     </div>
   </div>
+  <!-- #129: the wave picker (from the wave chip on the pilot pick): a small grid of the waves this child can start at, 1 to the
+       highest cleared + 1, a boss wave's tile marked with the ⚔️; a tap (or Enter / pad A on the cursor's) picks it, ✖, Esc or
+       pad B keeps the pick as it was -->
+  <div class="wpick" id="wavePick" role="dialog" aria-label="Start wave"><div class="wpanel">
+    <div class="wtop"><span><i data-ic="wave"></i><i data-ic="play"></i></span><button class="x" id="wavePickX" aria-label="Close"><i data-ic="cross"></i></button></div>
+    <div class="wtiles" id="waveTiles"></div>
+  </div></div>
   <!-- #49: the maker (from ➕ on who's playing): a live tile, the name (the pad's A–Z board under it), an icon, a colour, ✖ ✔ -->
   <div class="maker" id="maker" role="dialog" aria-label="New player">
     <div class="mkIn">
@@ -2947,9 +3002,13 @@ const iconSvg = (n) => `<g stroke="${ICON_INK}" stroke-width="2" stroke-linejoin
 const ICON_DEV = /^(file:|http:\/\/(localhost|127\.))/.test(location.href) || /[?&]dev\b/.test(location.search);
 // #122 (Dad's playtest addition): start at any wave. ?wave=N in the page's address (as ?dev is) makes the first wave out wave N
 // (1 to 99; anything else is wave 1), so waves 5 and 10 can be played without waves 1–4 first. It's read from the address
-// only, never saved: a reload without it starts at wave 1 again. No wave number is saved anywhere (nothing records waves
-// cleared), so a jump ahead counts for nothing it didn't play: only what wave N itself earns is saved, as playing it would
+// only, never saved: a reload without it starts at wave 1 again (or at the wave picker's pick, #129). A jump ahead counts for
+// nothing it didn't play: only what wave N itself earns is saved, as playing it would, and (#129) no wave it reaches is
+// recorded as cleared
 const START_WAVE = (() => { const m = /[?&]wave=(\d{1,2})(?!\d)/.exec(location.search), n = m ? Number(m[1]) : 1; return n >= 1 && n <= 99 ? n : 1; })();
+// #129: a page opened with any ?wave= records no wave cleared, whatever wave it lands on (so a jump can't unlock the wave
+// picker), and the picker stays hidden: the address picks the wave
+const WAVE_JUMP = /[?&]wave=/.test(location.search);
 // <svg class="ic"> drawing icon `name` from the sprite. opts: label (its aria-label; the icon's word otherwise), cls (more classes)
 function icon(name, opts = {}) {
   if (!ICONS[name]) { if (ICON_DEV) throw new Error('no such icon: ' + name); name = 'question'; }
@@ -3279,6 +3338,18 @@ function fillSquad(r) {
   r.squad = out;
   return r;
 }
+// #129: the waves a saved child has cleared, in their record: waves = { best: the highest wave whose clear screen they've
+// reached (0: none) }. Added the first time it's read (a record saved before #129 loads with best 0), so valid() and v are
+// untouched; best is kept to a whole number 0..99 (START_WAVE's range) and only ever latched up (Facts.clearedWave). Any
+// other field in it (a later slice's) is kept as it is. Guest's record never gets one.
+const WAVES_MAX = 99;
+const waveBest = (r) => { const n = Number(isObj(r?.waves) ? r.waves.best : 0); return Number.isFinite(n) ? clamp(Math.floor(n), 0, WAVES_MAX) : 0; };
+function fillWaves(r) {
+  const best = waveBest(r);
+  if (!isObj(r.waves)) r.waves = {};
+  r.waves.best = best;
+  return r;
+}
 // G4 / #72: latch into garage g what Mastered count n has earned: every advanced part whose milestone n has reached, then
 // every metal its part (and, for Carbon Alloy, the leg shapes) has earned. Never takes one away. The new ones also go in
 // g.fresh, for the garage's cheer; a new metal is the one shown (g.metal back to the best). Returns the ids newly latched.
@@ -3306,6 +3377,7 @@ const Facts = {
     r.puzzles ||= { seq: 0, seen: {} };                                   // P3-1: when each puzzle type was last seen
     fillSquad(r);                                                         // #58: the saved squad (none before #58)
     if (!C.guest) this.keepStars(r);                                      // #115: stars a cheered table shows were earned
+    if (!C.guest) fillWaves(r);                                           // #129: the waves cleared (best 0 before #129)
     this.child = C; this.rec = r;
     this.advance(); const got = this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
     // #43: and any tier rise this record holds that hasn't been checked: a milestone just latched, or a backup's merge (which
@@ -3358,8 +3430,24 @@ const Facts = {
     const r = C.guest ? null : store.get('facts.' + C.id, null);
     const out = this.valid(r, C) ? r : this.blank(C);
     out.practice ||= {}; out.opened ||= []; out.cheered ||= {}; fillGarage(out);
-    out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out); if (!C.guest) this.keepStars(out);   // (#115: as load will; not saved here)
+    out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out); if (!C.guest) { this.keepStars(out); fillWaves(out); }   // (#115, #129: as load will; not saved here)
     return out;
+  },
+  // #129: the highest wave child c (whoever is playing if left out) has cleared: 0 for none, and always 0 for Guest. Never writes
+  waveBest(c) { const C = c == null ? this.child : childOf(c); return C && !C.guest ? waveBest(this.peek(C)) : 0; },
+  // #129: wave n's clear screen has shown for whoever is playing: their best is latched up to n (never lowered) and saved.
+  // Guest records nothing, nor does a page opened with ?wave=N (WAVE_JUMP); Waves.draw asks only for a wave that came out
+  // in play (Waves.counts). Only a wave this child could have reached counts: one up to best + 1, the picker's range (play
+  // from a pick always is; a child swapped in mid-run by a hook isn't handed the waves another child played). Returns
+  // whether best rose
+  clearedWave(n) {
+    const C = this.child, r = this.rec;
+    if (!C || C.guest || !r || WAVE_JUMP || !Number.isInteger(n) || n < 1) return false;
+    fillWaves(r);
+    if (n > r.waves.best + 1) return false;
+    const was = r.waves.best; r.waves.best = Math.min(WAVES_MAX, Math.max(was, n));
+    if (r.waves.best === was) return false;
+    this.save(); return true;
   },
   // run fn with child c as the tracker's child (on the live record if c is playing; otherwise on their saved
   // record, which fn's own save() writes back), then put whoever is playing back
@@ -3679,7 +3767,7 @@ const Facts = {
 // rise: the counts (Backup.count) that only ever go up with play, so a restore that lowers one says so. (Known and
 // Learning aren't among them: a fact moving on to Mastered leaves them.)
 const BACKUP = { app: 'robot-battle', format: 2, prefix: 'robotbattle.', maxBytes: 5e6, choices: ['device', 'backup', 'best'],
-  rise: ['mastered', 'answered', 'step', 'parts', 'upgrades', 'unlocks', 'shapes', 'minutes'] };
+  rise: ['mastered', 'answered', 'step', 'parts', 'upgrades', 'unlocks', 'shapes', 'minutes', 'waves'] };   // (#129: waves = the best wave cleared)
 // keys that would reach an object's prototype rather than be its own (a hand-edited file could carry one)
 const ownKeys = (o) => (o && typeof o === 'object' ? Object.keys(o).filter((k) => k !== '__proto__' && k !== 'constructor' && k !== 'prototype') : []);
 const isObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
@@ -3781,6 +3869,7 @@ const Backup = {
   //   cheered, hints  every one either has, the earliest time
   //   puzzles   the one further along (higher seq), whole
   //   created   the earlier; v, child, ladder, wiring, last: this device's (wiring is a setting, not progress)
+  //   #129 waves  best: the higher (a record without the field counts as 0)
   //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
   //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
   //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
@@ -3829,6 +3918,8 @@ const Backup = {
     for (const f of ['cheered', 'hints']) if (dev[f] || bak[f]) out[f] = byKey(dev[f], bak[f], (p, q) => Math.min(num(p), num(q)));
     if (dev.puzzles || bak.puzzles) out.puzzles = clone(num(bak.puzzles?.seq) > num(dev.puzzles?.seq) ? bak.puzzles : dev.puzzles);
     if (dev.created != null && bak.created != null) out.created = Math.min(num(dev.created), num(bak.created));
+    // #129: the waves cleared: the higher best (its other fields: this device's, the backup's where this device has none)
+    if (dev.waves != null || bak.waves != null) out.waves = { ...(isObj(bak.waves) ? clone(bak.waves) : {}), ...(isObj(dev.waves) ? clone(dev.waves) : {}), best: Math.max(waveBest(dev), waveBest(bak)) };
     // #58: the saved squad
     if (dev.squad != null || bak.squad != null || dev.squadGone != null || bak.squadGone != null) Object.assign(out, this.mergeSquad(dev, bak));
     // the garage
@@ -3926,6 +4017,14 @@ const Backup = {
     if (isObj(sh) && isObj(so)) for (const k of ownKeys(sh)) if (Number.isInteger(sh[k]) && !(so[k] >= sh[k])) so[k] = sh[k];
     return fillGarage(out);
   },
+  // #129: Use the backup's record r, but a wave once cleared stays cleared (as keepMastered keeps the ⭐s): this device's best
+  // (0 if its record has no waves field) when it is higher than r's. Pure: a new record (or r itself when nothing changes)
+  keepWaves(r, here) {
+    if (!isObj(r) || !isObj(here) || waveBest(here) <= waveBest(r)) return r;
+    const out = clone(r);
+    out.waves = { ...(isObj(out.waves) ? out.waves : {}), best: waveBest(here) };
+    return out;
+  },
   // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
   count(r) {
     if (!r) return null;
@@ -3938,6 +4037,7 @@ const Backup = {
       parts: ownKeys(g.trophies).reduce((t, k) => t + num(g.trophies[k]?.n), 0), upgrades: ownKeys(g.upgrades).reduce((t, k) => t + num(g.upgrades[k]), 0),
       minutes: Math.round(ownKeys(r.practice).reduce((t, k) => t + num(r.practice[k]), 0) / 6e3) / 10,
       squad: Array.isArray(r.squad) ? r.squad.length : 0,   // #58: squadbots saved (not in BACKUP.rise: one can be destroyed)
+      waves: waveBest(r),                                    // #129: the best wave cleared
     };
   },
   // a choice per child: 'device' (keep this device's), 'backup' (use the backup's) or 'best' (keep the best). choices is
@@ -3964,8 +4064,9 @@ const Backup = {
       if (!bak && !here && !C.incoming) continue;
       const choice = this.choiceFor(choices, C.id);
       if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
-      // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone; #115: and its ⭐s: keepMastered)
-      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepMastered(this.keepGone(bak, here), here) : this.merge(here, bak);
+      // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone; #115: and its ⭐s: keepMastered;
+      // #129: and its best wave cleared: keepWaves)
+      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here) : this.merge(here, bak);
       const write = !!bak && canon(res) !== canon(here);
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
@@ -4257,6 +4358,8 @@ const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowR
 addEventListener('keydown', (e) => {
   // #49: the maker is up: every key goes to it first (its name box is an input too, and Enter there must not confirm a robot's name)
   if (Maker.on && Title.on) { Maker.key(e); return; }
+  // #129: the wave picker is up: its keys (arrows, Enter, Esc) go to it alone, so Enter doesn't also start a pilot
+  if (WavePick.on && Title.on) { if (e.code !== 'Tab') WavePick.key(e); return; }
   // typing a robot's name: the keys spell the name and don't drive the mech
   if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
   // the garage is open: keys go to it (Esc / G close, ◀ ▶ pick a tab), not the game
@@ -7134,6 +7237,7 @@ const Title = {
     [...$('wireB').children].forEach((i) => i.classList.toggle('on', i.dataset.w === wiringMode()));
     Progress.drawBadge();
     drawPauseMenu();
+    WavePick.draw();   // #129: the wave chip (and the picker, while it's open)
     $('parentB').classList.toggle('on', this.on && !Maker.on);   // the parent button: title / pause screen only (#49: not over the maker)
   },
   // scroll the tiles so the cursor's tile shows whole
@@ -7162,7 +7266,7 @@ const Title = {
     return Maker.open(how);
   },
   // pad Start on who's playing: picks the tile under the cursor (in the maker: saves); then the pilot
-  start() { if (Maker.on) return Maker.save(); if (!Game.child) return this.activate('pad'); return startGame(PILOTS[this.cur].id); },
+  start() { if (Maker.on) return Maker.save(); if (!Game.child) return this.activate('pad'); if (WavePick.on) return WavePick.choose(WavePick.cur); return startGame(PILOTS[this.cur].id); },   // (#129: in the wave picker it picks)
   // keys and pad on the title (not in manual mode: checks use __rb.player / __rb.start)
   input(pad) {
     if (Game.manual || !this.on || Progress.mode || Garage.on) return;
@@ -7176,6 +7280,7 @@ const Title = {
     } else if (!Game.pilot) {
       const n = PILOTS.length;
       if (kp('Escape', 'Backspace') || pad?.bP) { pickChild(null); Sfx.click(); return; }
+      if ((kp('ArrowUp', 'KeyW') || pad?.upP) && WavePick.shown) { WavePick.open(); return; }   // #129: ▲ / the d-pad's up: the wave picker
       if (d) { this.cur = (this.cur + d + n) % n; this.draw(); Sfx.click(); }
       if (kp('Enter', 'Space') || pad?.aP) startGame(PILOTS[this.cur].id);
     } else if (kp('KeyT') || pad?.yP) Progress.openGrid('pause');      // ⭐ my facts
@@ -7331,11 +7436,119 @@ const Maker = {
     if (pad.aP) this.activate();
   },
 };
+// #129 (Orion's answers: a wave picker for the waves already cleared, saved children only, the squad and the bag kept): on
+// the pilot pick, a saved child who has cleared a wave gets the wave chip (the wave the run starts at, 1 at first); a tap on
+// it, ▲ / W or the d-pad's up opens a small grid of tiles, waves 1 to their best + 1, a boss wave's (Waves.boss) marked ⚔️.
+// A tap on a tile picks it; the keys' arrows / WASD and the d-pad move a cursor (it starts on the pick, and doesn't wrap),
+// Enter / Space or pad A (or Start) picks it, and Esc / Backspace, pad B, ✖ or a tap outside close it with the pick as it
+// was. The pick is only the start: the run's first wave (firstWave) is Waves.spawn's as ever, so wave N's robots, boss,
+// copier, satellite and Ninja crew are what wave N always brings, and nothing else (the squad, the bag) is touched. A pick is
+// the child's own: it goes back to wave 1 when who's playing changes, and is clamped to their range when the run starts.
+// Hidden for Guest, for nobody, for a child with nothing cleared and on a page opened with ?wave=N (the address picks).
+const WavePick = {
+  on: false, pick: 1, cur: 1, drawn: '',
+  // the highest wave whoever is playing has cleared, as the picker reads it (0 on a ?wave=N page: the picker is hidden)
+  best() { return WAVE_JUMP ? 0 : Facts.waveBest(); },
+  top() { return Math.min(WAVES_MAX, this.best() + 1); },
+  offer() { return Array.from({ length: this.top() }, (_, i) => i + 1); },
+  get shown() { return !!Game.child && !Game.pilot && Title.on && !Maker.on && this.best() >= 1; },
+  // the wave the run starts at: the pick, if whoever is playing can start there (else wave 1)
+  wave() { const n = this.pick; return Number.isInteger(n) && n >= 1 && n <= this.top() ? n : 1; },
+  reset() { this.pick = 1; if (this.on) this.close(true); else this.draw(); },
+  init() {
+    $('waveB').addEventListener('click', (e) => { e.stopPropagation(); if (e.detail === 0 && !e.pointerType) return; this.open(); });   // (a key's click: ▲ opens it)
+    $('wavePickX').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
+    $('wavePick').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.detail === 0 && !e.pointerType) return;   // (Enter / Space on a focused tile: WavePick.key has it)
+      const t = e.target.closest('.wt');
+      if (t) this.choose(+t.dataset.n); else if (!e.target.closest('.wpanel')) this.close();   // a tap outside the panel closes it
+    });
+  },
+  open() {
+    if (!this.shown) return { ok: false, why: Game.pilot ? 'playing' : !Game.child ? 'nobody playing' : 'nothing cleared' };
+    this.on = true; this.cur = this.wave();
+    this.draw();
+    if (!Game.manual) { Sfx.unlock(); Sfx.click(); }
+    return { ok: true, ...this.status() };
+  },
+  close(quiet) {
+    if (!this.on) return { ok: false, why: 'not open' };
+    this.on = false; this.draw();
+    if (!Game.manual && !quiet) Sfx.click();
+    return { ok: true, ...this.status() };
+  },
+  // pick wave n (one of offer()) to start at; the picker closes
+  choose(n) {
+    if (!(Number.isInteger(n) && n >= 1 && n <= this.top()) || !Game.child || Game.pilot) return { ok: false, why: 'not one of the waves', offer: this.offer() };
+    this.pick = n; this.on = false; this.draw();
+    if (!Game.manual) Sfx.click();
+    return { ok: true, ...this.status() };
+  },
+  cols() { const n = getComputedStyle($('waveTiles')).gridTemplateColumns.split(' ').filter((c) => c && c !== 'none').length; return n || 5; },
+  // the cursor: dx along the tiles, dy a row up or down (the last row may be short: down onto it lands on its last tile)
+  move(dx, dy) {
+    const top = this.top(), c = this.cols(); let k = this.cur;
+    if (dx) k = clamp(k + dx, 1, top);
+    if (dy > 0) k = k + c <= top ? k + c : Math.ceil(k / c) < Math.ceil(top / c) ? top : k;
+    if (dy < 0 && k - c >= 1) k -= c;
+    if (k !== this.cur) { this.cur = k; this.draw(); if (!Game.manual) Sfx.click(); }
+    return k;
+  },
+  // the keys while it's open (every key comes here first, so Enter doesn't also start a pilot)
+  key(e) {
+    const c = e.code; e.preventDefault();
+    if (e.repeat && !/^Arrow|^Key[WASD]$/.test(c)) return;
+    const d = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1] }[c];
+    if (d) this.move(...d);
+    else if (c === 'Enter' || c === 'NumpadEnter' || c === 'Space') this.choose(this.cur);
+    else if (c === 'Escape' || c === 'Backspace') this.close();
+  },
+  // the pad while it's open
+  pad(pad) {
+    if (!pad) return;
+    if (pad.bP) { this.close(); return; }
+    const dx = (pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), dy = (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0);
+    if (dx || dy) this.move(dx, dy);
+    if (pad.aP || pad.startP) this.choose(this.cur);
+  },
+  draw() {
+    const show = this.shown; if (!show && this.on) this.on = false;
+    const n = this.wave(), boss = Waves.boss(n), chip = $('waveB');
+    chip.classList.toggle('on', show); chip.classList.toggle('boss', boss);
+    $('waveBN').textContent = n; chip.setAttribute('aria-label', `Start wave: ${n}${boss ? ', a boss wave' : ''}`);
+    $('wavePick').classList.toggle('on', this.on);
+    if (!this.on) return;
+    const top = this.top(), key = [top, n, this.cur].join();
+    if (key !== this.drawn) {
+      this.drawn = key;
+      const T = $('waveTiles'); T.style.setProperty('--cols', Math.min(5, top));
+      T.innerHTML = this.offer().map((w) => { const b = Waves.boss(w);
+        return `<button class="wt${b ? ' boss' : ''}${w === n ? ' on' : ''}${w === this.cur ? ' cur' : ''}" data-n="${w}"${b ? ' data-boss="1"' : ''} aria-label="Wave ${w}${b ? ', a boss wave' : ''}">${b ? `<span class="wb">${icon('sword')}</span>` : ''}<b>${w}</b></button>`; }).join('');
+    }
+    this.inView();
+  },
+  // scroll the tiles so the cursor's tile shows whole
+  inView() {
+    const box = $('waveTiles'), t = box.querySelector('.wt.cur'); if (!t || box.scrollHeight <= box.clientHeight) return;
+    const pad = 6, b = box.getBoundingClientRect(), r = t.getBoundingClientRect();
+    if (r.top - pad < b.top) box.scrollTop -= b.top - r.top + pad; else if (r.bottom + pad > b.bottom) box.scrollTop += r.bottom + pad - b.bottom;
+  },
+  // what the hooks see: shown = the chip is up; tiles = the open grid read back ({ n, boss, on: the pick, cur })
+  status() {
+    const chip = $('waveB');
+    return { shown: this.shown, on: this.on, best: this.best(), offer: this.offer(), boss: this.offer().filter((w) => Waves.boss(w)), pick: this.wave(), cur: this.on ? this.cur : null,
+      chipN: chip.classList.contains('on') ? +$('waveBN').textContent : null, chipBoss: chip.classList.contains('boss'),
+      tiles: this.on ? [...$('waveTiles').querySelectorAll('.wt')].map((t) => ({ n: +t.dataset.n, boss: !!t.dataset.boss && !!t.querySelector('.wb svg'), on: t.classList.contains('on'), cur: t.classList.contains('cur') })) : [] };
+  },
+};
+// #129: the wave the run's first wave out is: ?wave=N's (#122), else the wave picker's pick (1 unless a saved child picked one)
+function firstWave() { return WAVE_JUMP ? START_WAVE : WavePick.wave(); }
 // Who's playing: load child `c`'s record (an id, a name or an index into CHILDREN) and go on to the
 // pilot pick; null goes back to who's playing. The last child picked is remembered for next time
 // (the tile is highlighted); Guest's record is never saved. Mid-game it swaps whose record is used.
 function pickChild(c) {
-  if (c == null) { if (Game.pilot) return { ok: false, why: 'playing' }; Game.child = null; Title.draw(); return { ok: true, child: null }; }
+  if (c == null) { if (Game.pilot) return { ok: false, why: 'playing' }; Game.child = null; WavePick.reset(); Title.draw(); return { ok: true, child: null }; }
   const C = childOf(c);
   if (!C) return { ok: false, why: 'no such child' };
   // #58: switching child swaps the whole squad: the last child's is saved to their record and leaves the meadow (their
@@ -7347,7 +7560,7 @@ function pickChild(c) {
   // robotbattle.child naming nobody would make every backup of this device refused, "its last player is damaged")
   Facts.load(C); Game.child = C; if (C.guest || Profiles.saved(C.id)) store.set('child', C.id); Title.kid = CHILDREN.indexOf(C);
   applyUpgrades({ swap: true });   // G2: their upgrades on the mech (a fresh Guest has none); #68: the damage taken stays
-  if (was !== C) Squad.bring();
+  if (was !== C) { Squad.bring(); WavePick.reset(); }   // (#129: a wave pick is the child's own)
   Title.draw();
   return { ok: true, child: C.id };
 }
@@ -11391,6 +11604,8 @@ function gatherInput(dt) {
     if (Garage.on) { if (h.idx === 0) Garage.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // the fact grid or the parent view is open: player 0's pad works it, and the mech stands still
     if (h.idx === 0 && Progress.mode) { Progress.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
+    // #129: the wave picker is up: player 0's pad works it (its A picks a wave, not a pilot; Start picks too)
+    if (h.idx === 0 && WavePick.on && Title.on && !Game.manual) { WavePick.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // Start pauses and carries on; on the title it picks the highlighted child, then the highlighted pilot.
     // The title's own keys and pad (◀ ▶, A, B) go to Title.input, and while it's up (outside manual mode)
     // the mech isn't driven.
@@ -14281,8 +14496,8 @@ function startPlay() {
   setPause(false);
   // the first start (a pilot picked on the title screen) brings out wave 1; resuming from pause never
   // spawns again, even with the meadow empty (manual mode waits for __rb.nextWave())
-  // (#122: wave START_WAVE, 1 unless the page has ?wave=N)
-  if (Game.wave === 0 && Game.humans[0] && !Game.manual) Waves.spawn(START_WAVE);
+  // (#122: wave START_WAVE, 1 unless the page has ?wave=N; #129: or the wave picker's pick: firstWave)
+  if (Game.wave === 0 && Game.humans[0] && !Game.manual) Waves.spawn(firstWave());
   // (a pad's A or a hook isn't a user gesture, so the lock can be refused: the mouse just isn't captured yet)
   if (Game.humans.length === 1 && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {});   // (#94: never on a touch screen)
 }
@@ -14319,6 +14534,9 @@ $('tmSound').addEventListener('click', (e) => { e.stopPropagation(); Sfx.setMute
 // ===========================================================================
 const Waves = {
   party: 0,                                       // the wave whose clear has been celebrated
+  // #129: the wave out now came out in play (spawn, from the first wave out or the one before it), so its clear counts toward
+  // the waves cleared (Facts.clearedWave); __rb.waveTo, which sets the number without a wave, turns it off
+  counts: false,
   // the robot types in wave n (a drone is a whole swarm) and how much tougher its robots are
   // #120: from wave NINJA.from a Ninja and its minions (one entry, 'ninja': a crew) take the last extra robot's place
   // #122: a boss wave (Waves.boss) is the same plus its boss ('knight', last); with BOSS_WAVE.extras off, a boss wave's list
@@ -14346,7 +14564,7 @@ const Waves = {
   spawn(n) {
     const p = Game.humans[0]?.mech; if (!p) return [];
     const before = new Set(Game.robots);
-    Game.wave = n; Game.cleared = false;
+    Game.wave = n; Game.cleared = false; this.counts = true;
     Axes.clear();                                 // #122: a Knight's axes still out from the last wave drop
     if (p.adv?.shield) p.shield = ADV.shield;     // G4: the shield emitter is back to full each wave
     Object.assign(Game.waveStats, { fixed: 0, taken: 0, found0: Hidden.list.filter((q) => q.found).length, downs0: p.downs, robots: 0, fast: 0 });
@@ -14426,7 +14644,8 @@ const Waves = {
       const s = this.stats();
       $('clearFixed').textContent = s.fixed; $('clearTaken').textContent = s.taken; $('clearFound').textContent = s.found;
       [...$('clearStars').children].forEach((st, i) => { if (st.classList.contains('bonus')) st.classList.toggle('on', !!s.bonus); else st.classList.toggle('off', i >= s.stars); });
-      if (this.party !== Game.wave) { this.party = Game.wave; this.celebrate(); }
+      // (#129: the moment the clear's ⭐s show is the moment the wave counts as cleared: whoever is playing's best is latched)
+      if (this.party !== Game.wave) { this.party = Game.wave; if (this.counts) Facts.clearedWave(Game.wave); this.celebrate(); }
     }
     const wv = $('waveHud'); wv.classList.toggle('on', Game.wave > 0); $('waveN').textContent = Game.wave;
     wv.classList.toggle('boss', Game.wave > 0 && this.boss(Game.wave));   // #122: a boss wave's chip: the ⚔️ for the 🌊, edged gold
@@ -14447,7 +14666,7 @@ const Waves = {
 function nextWave() {
   if (!Game.humans[0]) return { ok: false, why: 'no player' };
   if (Game.wave > 0 && !Game.cleared) return { ok: false, why: 'not cleared', wave: Game.wave };
-  const fresh = Waves.spawn(Game.wave === 0 ? START_WAVE : Game.wave + 1);   // (#122: from wave 0, START_WAVE)
+  const fresh = Waves.spawn(Game.wave === 0 ? firstWave() : Game.wave + 1);   // (#122: from wave 0, START_WAVE; #129: or the picker's pick)
   if (!Game.manual) { Sfx.unlock(); Sfx.waveIn(); }
   if (!FixUI.mode) FixUI.relock();
   return { ok: true, wave: Game.wave, robots: fresh.length };
@@ -14614,6 +14833,23 @@ window.__rb = {
     return robotState(r);
   },
   Profiles, PROFILE, Title, Maker, Backup,   // (#49)
+  WavePick, WAVE_JUMP,   // (#129)
+  // #129: the waves child (whoever is playing if left out) has cleared and can start at: { child, best (0: none; always 0 for
+  // Guest), offer: the picker's waves (1..best + 1; only 1 on a ?wave=N page), boss: those that are boss waves, pick: the wave
+  // a run would start at now (firstWave), jumped: the page has ?wave=N, saved: best as this device's storage holds it }
+  waves(child) {
+    const C = child == null ? Game.child : childOf(child), best = C ? Facts.waveBest(C) : 0, top = Math.min(WAVES_MAX, (WAVE_JUMP ? 0 : best) + 1);
+    const offer = Array.from({ length: top }, (_, i) => i + 1), sv = C && !C.guest ? store.get('facts.' + C.id, null) : null;
+    return { child: C?.id ?? null, best, offer, boss: offer.filter((w) => Waves.boss(w)), pick: firstWave(), jumped: WAVE_JUMP, saved: sv ? waveBest(sv) : null };
+  },
+  // #129: the wave picker, as the chip and its tiles work it: 'open' (as a tap on the chip), 'close' (✖), 'pick' (v: a wave of
+  // its offer, as a tap on its tile: closes it), 'move' (v: [dx, dy], as the arrows), 'state'. Returns WavePick.status()
+  wavePick(what = 'state', v) {
+    const A = { open: () => WavePick.open(), close: () => WavePick.close(), pick: () => WavePick.choose(Number(v)), move: () => WavePick.move(...(v || [0, 0])), state: () => null }[what];
+    if (!A) return { ok: false, why: 'no such action' };
+    const res = A();
+    return { ...(res && typeof res === 'object' ? res : {}), ...WavePick.status() };
+  },
   manual(on = true) { Game.manual = on; Game.acc = 0; return on; },
   // #70: the sounds as played: thud = Sfx.thud calls so far (every source: footfalls, landings, props, robots; none in manual
   // mode, which plays no sound), roll = the level 🚜 Tracks' rolling loop was last set to (0 = silent), rolling, and with audio
@@ -14705,7 +14941,8 @@ window.__rb = {
   // `wave`: { band, math, puzzles: [types in slot order], slots, target (ms) }. Pure: changes nothing. Wave 0: no ramp.
   plan(wave, how, burnt = 0) { return fixPlan(wave, how, burnt); },
   // setup only: set the wave number without spawning anything (robots downed from now get that wave's board)
-  waveTo(n) { Game.wave = Math.max(0, Math.floor(Number(n) || 0)); Waves.check(); Waves.draw(); return { wave: Game.wave, cleared: Game.cleared }; },
+  // (#129: a wave set this way didn't come out in play, so its clear never counts toward the waves cleared)
+  waveTo(n) { Game.wave = Math.max(0, Math.floor(Number(n) || 0)); Waves.counts = false; Waves.check(); Waves.draw(); return { wave: Game.wave, cleared: Game.cleared }; },
   // answer puzzle `slot` (an index into state().robots[i].board.puzzles, the same as its slot's `puzzle`) of robot id's open
   // fix, as a tap does: a segment index for 🔥, a part id for 🔍. 'ok' | 'wrong' | 'done' (already solved) | 'not fixing' |
   // 'no such slot'. Through the open puzzle when it's up on screen.
@@ -15274,6 +15511,8 @@ window.__rb = {
       // clear = this wave's counts (fixed, taken apart, hidden parts found, robots it brought, left to beat,
       // player power-downs, stars once cleared); clearScreen = the clear screen is up
       wave: Game.wave, cleared: Game.cleared, clear: Waves.stats(), clearScreen: Waves.showing,
+      // #129: whoever is playing's best wave cleared, and the wave picker (WavePick.status)
+      waveBest: Facts.waveBest(), wavePick: WavePick.status(),
       // G1: the garage (on, from 'pause' | 'clear', tab, paused, trophies by part: { count, found, from }, dom = the wall read back)
       // G2: garage.upgrades = whoever is playing's upgrade levels (saved in their record), garage.offer = what each next level needs
       garage: Garage.status(),
@@ -15311,6 +15550,7 @@ Progress.init();
 BackupUI.init();
 Garage.init();
 Maker.init();             // #49: the profile maker's board, icons and colours
+WavePick.init();          // #129: the wave chip and the wave picker
 applyUpgrades();          // G2: nobody picked yet, so a bare mech (levels all 0)
 onResize();
 Title.build();
