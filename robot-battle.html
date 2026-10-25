@@ -2588,6 +2588,33 @@ const SATELLITE = {
   lockPitch: 0.12,
   part: 'solar',
 };
+// #124 (#117 N5, Dad's option (a)): the boys' Blender models, slimmed for phones (models/robot-battle/*-lo.glb), worn by the
+// five new robots in place of the ones built in code. Look only: no hitbox, number or brain changes. Models.load fetches them
+// in the background at boot (never on file://); a robot spawned before its model is in, or whose model failed (offline, a
+// 404), is built in code as before. Each model is anchored (`anchor`: its body joint's height in the file, put at the
+// robot's origin; 0 = feet on the ground) and grown (`scale`) so its head is where the code-built one's is: the Knight's
+// helm top at ROBOT_TYPES.knight.top, the Ninja's and the minion's head tops at their code-built ones' (just under `top`),
+// the satellite's wing span and dish tip (beamY) and the copier's rim (3.3 m) as built in code. `joints`: the nodes the
+// poses turn (MODEL_POSES); `keep`: meshes left whole to move on their own (the sword's glowing blade, the Ninja's side
+// blades, the copier's ring of lights); `drop`: what the game doesn't use (the Knight's spear: its axe goes in that hand,
+// at `axeAt`). hud: the health bar's height and width (robotHud), as built in code. rough / metal: the one body material's
+// (metalness ≤ 0.35, or with no environment map the models go near-black)
+const MODELS = {
+  dir: 'models/robot-battle/',
+  rough: 0.42, metal: 0.2,
+  knight: { file: 'knight-lo.glb', scale: 3.83, anchor: 0, hud: [10.4 * KNIGHT.scale, 5],
+    joints: ['J_Body', 'J_Head', 'J_Hip_L', 'J_Hip_R', 'J_Knee_L', 'J_Knee_R', 'J_Ankle_L', 'J_Ankle_R', 'J_Shoulder_L', 'J_Shoulder_R', 'J_Elbow_L', 'J_Elbow_R', 'J_Wrist_L', 'J_Wrist_R'],
+    keep: { SwordBlade: 'edge' }, drop: ['Spear'], axeAt: [-0.12, 0, 0] },
+  ninja: { file: 'ninja-lo.glb', scale: 1.82, anchor: 0, hud: [6.5, 3],
+    joints: ['NJ_Body', 'NJ_Head', 'NJ_Shoulder_L', 'NJ_Shoulder_R', 'NJ_Elbow_L', 'NJ_Elbow_R', 'NJ_Hip_L', 'NJ_Hip_R', 'NJ_Knee_L', 'NJ_Knee_R'],
+    keep: { NJ_FinL: 'body', NJ_FinR: 'body' } },
+  minion: { file: 'sprinter-lo.glb', scale: 1.32, anchor: 0, hud: [3.9, 1.8],
+    joints: ['SprinterA_Body', 'SprinterA_Head', 'SprinterA_Hip_L', 'SprinterA_Hip_R', 'SprinterA_Knee_L', 'SprinterA_Knee_R'] },
+  satellite: { file: 'satellite-lo.glb', scale: 2.0, anchor: 6, hud: [3.4, 3.4],
+    joints: ['SAT_Body', 'SAT_Panel_L', 'SAT_Panel_R'] },
+  copier: { file: 'copier-lo.glb', scale: 2.6, anchor: 3,
+    joints: ['CP_Body'], keep: Object.fromEntries(Array.from({ length: 10 }, (_, i) => ['CP_Light' + i, 'lamp'])), drop: ['CP_Beam'] },
+};
 
 const V3 = THREE.Vector3;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -8196,6 +8223,180 @@ function iconTex(name) {
 iconTex.pending = 0; iconTex.blank = 0;
 iconTex.preload = () => Promise.all([...WORLD_ICONS.map((n) => iconTex(n).userData.ready), ...PILOTS.map((P) => iconImage(P.emblemIc).ready)]);   // (I4: and the pilots' emblems)
 
+// ===========================================================================
+// #124 (#117 N5): the boys' Blender models (MODELS). Models.load fetches each .glb in the background with GLTFLoader (from
+// the import map, imported only then, so a page that can't reach it still runs) and Models.prep readies it once: the
+// meshes on each joint merged into one body mesh (each part's colour kept as vertex colours, so a robot's armour flashes
+// all over as one material) plus one glow mesh (every part that glowed in Blender: eyes, cores, antenna tips), and the
+// `keep` meshes left whole. Every robot made from it shares that geometry (geometry.userData.shared: removeRobot and
+// Copier.remove leave it alone) and gets its own materials: the body (armour), the glow (its glitch colour, setGlowColor),
+// and per type the Knight's blade (edge), the copier's dome and lights. Models.status: per model 'loading' | 'ready' |
+// 'failed' | 'skipped' (file://: the game's own look); Models.done resolves once every load has ended either way.
+// ===========================================================================
+const MODEL_POSES = {knight:{stance:{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]},walk:[{J_Shoulder_L:[0,0,70],J_Shoulder_R:[0,0,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-21.21,0,0],J_Knee_L:[28.28,0,0],J_Hip_R:[21.21,0,0],J_Shoulder_L:[0,17.68,70],J_Shoulder_R:[0,17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-30,0,0],J_Knee_L:[40,0,0],J_Hip_R:[30,0,0],J_Shoulder_L:[0,25,70],J_Shoulder_R:[0,25,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-21.21,0,0],J_Knee_L:[28.28,0,0],J_Hip_R:[21.21,0,0],J_Shoulder_L:[0,17.68,70],J_Shoulder_R:[0,17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Shoulder_L:[0,0,70],J_Shoulder_R:[0,0,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[21.21,0,0],J_Hip_R:[-21.21,0,0],J_Knee_R:[28.28,0,0],J_Shoulder_L:[0,-17.68,70],J_Shoulder_R:[0,-17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[30,0,0],J_Hip_R:[-30,0,0],J_Knee_R:[40,0,0],J_Shoulder_L:[0,-25,70],J_Shoulder_R:[0,-25,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[21.21,0,0],J_Hip_R:[-21.21,0,0],J_Knee_R:[28.28,0,0],J_Shoulder_L:[0,-17.68,70],J_Shoulder_R:[0,-17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]}],tl:{SLICE:{hit:0.45,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.25,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,45,-15],J_Elbow_R:[0,-20,0],J_Wrist_R:[0,40,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0]}],[0.45,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-85,-15],J_Elbow_R:[0,-15,0],J_Wrist_R:[0,40,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,-25,0]}],[0.85,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]},CHOP:{hit:0.48,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.3,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-20,60],J_Elbow_R:[0,-30,0],J_Wrist_R:[-110,0,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[-8,0,0]}],[0.48,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-60,-40],J_Elbow_R:[0,-10,0],J_Wrist_R:[20,70,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[12,0,0]}],[0.6,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-60,-40],J_Elbow_R:[0,-10,0],J_Wrist_R:[20,70,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[12,0,0]}],[0.95,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]},STAB:{hit:0.4,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.25,{J_Head:[0,-10,0],J_Shoulder_L:[0,-25,65],J_Elbow_L:[0,55,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,-15,0],J_Wrist_L:[90,0,0]}],[0.4,{J_Head:[0,-10,0],J_Shoulder_L:[0,60,20],J_Elbow_L:[0,-30,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-35,0,0],J_Knee_L:[30,0,0],J_Hip_R:[20,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0],J_Wrist_L:[90,0,0]}],[0.55,{J_Head:[0,-10,0],J_Shoulder_L:[0,60,20],J_Elbow_L:[0,-30,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-35,0,0],J_Knee_L:[30,0,0],J_Hip_R:[20,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0],J_Wrist_L:[90,0,0]}],[0.85,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]}}},ninja:{stance:{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]},guard:{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,80,10],NJ_Elbow_L:[0,60,0],NJ_Shoulder_R:[0,-80,-10],NJ_Elbow_R:[0,-60,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]},walk:[{NJ_Body:[6,0,0],NJ_Shoulder_L:[0,0,60],NJ_Shoulder_R:[0,0,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-21.21,0,0],NJ_Knee_L:[28.28,0,0],NJ_Hip_R:[21.21,0,0],NJ_Shoulder_L:[0,-21.21,60],NJ_Shoulder_R:[0,-21.21,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-30,0,0],NJ_Knee_L:[40,0,0],NJ_Hip_R:[30,0,0],NJ_Shoulder_L:[0,-30,60],NJ_Shoulder_R:[0,-30,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-21.21,0,0],NJ_Knee_L:[28.28,0,0],NJ_Hip_R:[21.21,0,0],NJ_Shoulder_L:[0,-21.21,60],NJ_Shoulder_R:[0,-21.21,-60]},{NJ_Body:[6,0,0],NJ_Shoulder_L:[0,0,60],NJ_Shoulder_R:[0,0,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[21.21,0,0],NJ_Hip_R:[-21.21,0,0],NJ_Knee_R:[28.28,0,0],NJ_Shoulder_L:[0,21.21,60],NJ_Shoulder_R:[0,21.21,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[30,0,0],NJ_Hip_R:[-30,0,0],NJ_Knee_R:[40,0,0],NJ_Shoulder_L:[0,30,60],NJ_Shoulder_R:[0,30,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[21.21,0,0],NJ_Hip_R:[-21.21,0,0],NJ_Knee_R:[28.28,0,0],NJ_Shoulder_L:[0,21.21,60],NJ_Shoulder_R:[0,21.21,-60]}],run:[{NJ_Body:[18,0,0],NJ_Knee_L:[10,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-31.82,0,0],NJ_Knee_L:[52.43,0,0],NJ_Hip_R:[31.82,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-45,0,0],NJ_Knee_L:[70,0,0],NJ_Hip_R:[45,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-31.82,0,0],NJ_Knee_L:[52.43,0,0],NJ_Hip_R:[31.82,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Knee_L:[10,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[31.82,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-31.82,0,0],NJ_Knee_R:[52.43,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[45,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-45,0,0],NJ_Knee_R:[70,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[31.82,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-31.82,0,0],NJ_Knee_R:[52.43,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]}],tl:{KICK:{hit:0.28,keys:[[0,{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]}],[0.15,{NJ_Body:[-5,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-40,0,0],NJ_Knee_R:[100,0,0]}],[0.3,{NJ_Body:[-20,0,0],NJ_Shoulder_L:[0,40,-10],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-40,10],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-95,0,0]}],[0.45,{NJ_Body:[-20,0,0],NJ_Shoulder_L:[0,40,-10],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-40,10],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-95,0,0]}],[0.7,{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]}]]}}},minion:{stance:{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]},walk:[{SprinterA_Body:[13.2,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-23.33,0,0],SprinterA_Knee_L:[39.7,0,0],SprinterA_Hip_R:[23.33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-33,0,0],SprinterA_Knee_L:[52,0,0],SprinterA_Hip_R:[33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-23.33,0,0],SprinterA_Knee_L:[39.7,0,0],SprinterA_Hip_R:[23.33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[23.33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-23.33,0,0],SprinterA_Knee_R:[39.7,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-33,0,0],SprinterA_Knee_R:[52,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[23.33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-23.33,0,0],SprinterA_Knee_R:[39.7,0,0],SprinterA_Head:[-6,0,0]}],run:[{SprinterA_Body:[22,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-38.89,0,0],SprinterA_Knee_L:[59.5,0,0],SprinterA_Hip_R:[38.89,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-55,0,0],SprinterA_Knee_L:[80,0,0],SprinterA_Hip_R:[55,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-38.89,0,0],SprinterA_Knee_L:[59.5,0,0],SprinterA_Hip_R:[38.89,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[38.89,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-38.89,0,0],SprinterA_Knee_R:[59.5,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[55,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-55,0,0],SprinterA_Knee_R:[80,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[38.89,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-38.89,0,0],SprinterA_Knee_R:[59.5,0,0],SprinterA_Head:[-10,0,0]}],tl:{KICK:{hit:0.28,keys:[[0,{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]}],[0.12,{SprinterA_Body:[-5,0,0],SprinterA_Hip_L:[-45,0,0],SprinterA_Knee_L:[100,0,0],SprinterA_Hip_R:[5,0,0],SprinterA_Knee_R:[20,0,0]}],[0.25,{SprinterA_Body:[-22,0,0],SprinterA_Hip_L:[-100,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[10,0,0]}],[0.4,{SprinterA_Body:[-22,0,0],SprinterA_Hip_L:[-100,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[10,0,0]}],[0.6,{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]}]]}}}};
+const DEG = Math.PI / 180, Z3 = [0, 0, 0];
+const Models = {
+  ready: {}, status: {}, info: {}, done: null,
+  kinds: ['knight', 'ninja', 'minion', 'satellite', 'copier'],
+  load() {
+    if (this.done) return this.done;
+    if (location.protocol === 'file:') { for (const k of this.kinds) this.status[k] = 'skipped'; return (this.done = Promise.resolve(this.status)); }
+    for (const k of this.kinds) this.status[k] = 'loading';
+    const fail = (k) => { if (this.status[k] === 'loading') this.status[k] = 'failed'; };
+    this.done = import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => {
+      const L = new GLTFLoader();
+      return Promise.all(this.kinds.map((k) => L.loadAsync(MODELS.dir + MODELS[k].file).then((g) => {
+        try { this.ready[k] = this.prep(k, g.scene); this.status[k] = 'ready'; } catch (e) { console.warn('model not used: ' + k, e); fail(k); return; }
+        for (const r of [...Game.robots]) if (r.type === k && !r.model.model) reskin(r);   // (any spawned before it was in: a squad restored at the pilot pick)
+      }, () => fail(k))));
+    }, () => this.kinds.forEach(fail)).then(() => this.status);
+    return this.done;
+  },
+  // merge parts (each { g: geometry in the joint's space, c: its colour or null }) into one indexed geometry
+  merge(parts) {
+    let nv = 0, ni = 0;
+    for (const p of parts) { nv += p.g.attributes.position.count; ni += p.g.index ? p.g.index.count : p.g.attributes.position.count; }
+    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), col = new Float32Array(nv * 3), idx = new Uint32Array(ni);
+    let v = 0, i = 0;
+    for (const p of parts) {
+      const P = p.g.attributes.position, N = p.g.attributes.normal, n = P.count;
+      for (let k = 0; k < n; k++) {
+        pos[(v + k) * 3] = P.getX(k); pos[(v + k) * 3 + 1] = P.getY(k); pos[(v + k) * 3 + 2] = P.getZ(k);
+        if (N) { nor[(v + k) * 3] = N.getX(k); nor[(v + k) * 3 + 1] = N.getY(k); nor[(v + k) * 3 + 2] = N.getZ(k); }
+        if (p.c) { col[(v + k) * 3] = p.c.r; col[(v + k) * 3 + 1] = p.c.g; col[(v + k) * 3 + 2] = p.c.b; }
+      }
+      if (p.g.index) { const I = p.g.index; for (let k = 0; k < I.count; k++) idx[i++] = I.getX(k) + v; } else for (let k = 0; k < n; k++) idx[i++] = v + k;
+      v += n;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    if (parts.some((p) => p.c)) g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1)); g.computeBoundingSphere(); g.userData.shared = true;
+    return g;
+  },
+  // ready model k: drop what the game doesn't use, then on each joint (and the root) one merged body mesh, one merged glow
+  // mesh (role 'glow'), a see-through one (role 'glass': the copier's dome), and each `keep` mesh on its own pivot at its
+  // middle (role as MODELS says), every geometry in its joint's space
+  prep(k, scene) {
+    const M = MODELS[k], J = new Set(M.joints), keep = M.keep || {};
+    for (const n of M.drop || []) { const o = scene.getObjectByName(n); if (o) o.parent.remove(o); }
+    scene.updateMatrixWorld(true);
+    const jointOf = (o) => { let p = o.parent; while (p && p !== scene && !J.has(p.name)) p = p.parent; return p || scene; };
+    const meshes = []; scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    const bins = new Map(), inv = new THREE.Matrix4(), m4 = new THREE.Matrix4(), mats = [], src = (mt) => (mats.includes(mt) ? mats : (mats.push(mt), mats)).indexOf(mt);
+    let tris = 0;
+    for (const o of meshes) {
+      const j = jointOf(o); inv.copy(j.matrixWorld).invert(); m4.multiplyMatrices(inv, o.matrixWorld);
+      const g = o.geometry.clone(); for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal') g.deleteAttribute(a);
+      g.applyMatrix4(m4);
+      tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+      const mt = o.material, lit = mt.emissive && (mt.emissive.r + mt.emissive.g + mt.emissive.b) > 0.05;
+      const role = keep[o.name] || (mt.transparent ? 'glass' : lit ? 'glow' : 'body');
+      o.parent.remove(o);
+      if (keep[o.name]) {
+        g.computeBoundingBox(); const c = g.boundingBox.getCenter(new V3()); g.translate(-c.x, -c.y, -c.z);
+        const piv = new THREE.Group(); piv.name = o.name; piv.position.copy(c); j.add(piv);
+        const mg = this.merge([{ g, c: role === 'body' ? mt.color : null }]), mesh = new THREE.Mesh(mg); mesh.userData.role = role; mesh.userData.src = src(mt); piv.add(mesh);
+        continue;
+      }
+      if (!bins.has(j)) bins.set(j, {});
+      const B = bins.get(j); (B[role] ||= { parts: [], mt }).parts.push({ g, c: role === 'body' ? mt.color : null });
+    }
+    let meshN = 0;
+    for (const [j, B] of bins) for (const [role, { parts, mt }] of Object.entries(B)) {
+      const mesh = new THREE.Mesh(this.merge(parts)); mesh.userData.role = role; mesh.userData.src = src(mt); j.add(mesh);
+    }
+    scene.traverse((o) => { if (o.isMesh) meshN++; });
+    this.info[k] = { tris, meshes: meshN, parts: meshes.length };
+    return { scene, mats };   // (mats: the file's own materials, by userData.src: a clone's userData is a copy, so it holds the index)
+  },
+  // a model k of its own: the shared template cloned (geometry shared), each mesh given mats[role] (a material, or a
+  // function of the file's material for one of its own), its joints set to turn in Blender's order (YZX), all in `fit` (turned to face
+  // the way a robot does, -z, grown and anchored) inside `body`
+  make(k, mats) {
+    const M = MODELS[k], R = this.ready[k], sc = R.scene.clone(true), joints = {}, kept = {};
+    for (const n of M.joints) { const o = sc.getObjectByName(n); if (o) { o.rotation.order = 'YZX'; joints[n] = o; } }
+    sc.traverse((o) => {
+      if (!o.isMesh) return;
+      const m = mats[o.userData.role] ?? mats.body; o.material = typeof m === 'function' ? m(R.mats[o.userData.src]) : m;
+      o.castShadow = o.userData.role !== 'glass'; o.receiveShadow = true;
+      if (o.parent && MODELS[k].keep?.[o.parent.name]) kept[o.parent.name] = o.parent;
+    });
+    const fit = new THREE.Group(); fit.rotation.y = Math.PI; fit.scale.setScalar(M.scale); fit.position.y = -M.anchor * M.scale; fit.add(sc);
+    const body = new THREE.Group(); body.add(fit);
+    return { body, fit, joints, kept };
+  },
+};
+// a robot's body material for a model: white, so the vertex colours show as the boys painted them, and its emissive white
+// for the hit flash (and the Ninja's tell)
+const modelArmour = () => new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: MODELS.rough, metalness: MODELS.metal, emissive: '#ffffff', emissiveIntensity: 0 });
+// model robot k (null until its model is in: then the code-built one). The same fields the code-built one has (root,
+// body, legs, glow, armour and its HUD), legs empty (the joints walk instead: modelGait), and gl: its joints and their eased
+// angles (modelPose)
+function modelRobot(k, paint) {
+  if (!Models.ready[k]) return null;
+  const root = new THREE.Group(), armour = modelArmour();
+  const glow = new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: paint.glow, emissiveIntensity: 3, roughness: 0.3 });
+  const mats = { body: armour, glow, glass: armour };
+  let edge = null;
+  if (k === 'knight') {
+    edge = new THREE.MeshStandardMaterial({ color: '#ffe08a', metalness: 0.25, roughness: 0.18, emissive: '#fff2a8', emissiveIntensity: 0.15 });
+    mats.edge = edge;
+    const g0 = glow.dispose.bind(glow); glow.dispose = () => { g0(); edge.dispose(); };   // (removeRobot frees the blade's own material too)
+  }
+  const { body, joints, kept } = Models.make(k, mats); root.add(body);
+  const md = { root, body, legs: [], glow, armour, gl: { k, joints, cur: {} }, model: k, ...robotHud(root, ...MODELS[k].hud) };
+  if (k === 'knight') {
+    // its axe where the spear was, in its other hand (at the code-built one's size: KNIGHT.scale), blade out
+    const axe = buildAxe(paint), at = MODELS.knight.axeAt; axe.position.set(at[0], at[1] - 0.4 * KNIGHT.scale / MODELS.knight.scale, at[2]);
+    axe.scale.setScalar(KNIGHT.scale / MODELS.knight.scale); axe.rotation.y = Math.PI; axe.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    joints.J_Wrist_L.add(axe);
+    Object.assign(md, { edge, axe });
+  }
+  if (k === 'ninja') md.blades = [kept.NJ_FinL, kept.NJ_FinR];
+  if (k === 'satellite') md.wings = [joints.SAT_Panel_L, joints.SAT_Panel_R];   // (satellitePose tilts them on x, as it does the wings built in code)
+  return md;
+}
+// The model poses (MODEL_POSES: degrees, YZX, a joint missing is at rest). pmix: a + (b − a) × w, joint by joint (the Euler
+// numbers themselves, never quaternions); tlAt: a move's timeline at t s; gaitAt: a gait's 8 samples at u (0..1 of a cycle);
+// pmirror: the same move on the other side (L ↔ R, y and z turned the other way)
+function pmix(a, b, w) {
+  const o = {};
+  for (const n in a) { const p = a[n], q = b[n] || Z3; o[n] = [p[0] + (q[0] - p[0]) * w, p[1] + (q[1] - p[1]) * w, p[2] + (q[2] - p[2]) * w]; }
+  for (const n in b) if (!(n in a)) { const q = b[n]; o[n] = [q[0] * w, q[1] * w, q[2] * w]; }
+  return o;
+}
+function tlAt(T, t) {
+  const K = T.keys; if (t <= K[0][0]) return K[0][1];
+  for (let i = 1; i < K.length; i++) if (t <= K[i][0]) return pmix(K[i - 1][1], K[i][1], (t - K[i - 1][0]) / (K[i][0] - K[i - 1][0]));
+  return K[K.length - 1][1];
+}
+function gaitAt(S, u) { const x = ((u % 1) + 1) % 1 * S.length, i = Math.floor(x); return pmix(S[i], S[(i + 1) % S.length], x - i); }
+function pmirror(p) {
+  const o = {};
+  for (const n in p) { const m = n.endsWith('_L') ? n.slice(0, -2) + '_R' : n.endsWith('_R') ? n.slice(0, -2) + '_L' : n, v = p[n]; o[m] = [v[0], -v[1], -v[2]]; }
+  return o;
+}
+// the walk: its stance, then (from a third of its top speed) its gait at its stride's phase over it; with a run, the run
+// takes over from 40% of its top speed (run: 1 forces it, as in a Ninja's dash)
+function modelGait(r, P, run) {
+  const k = clamp(Math.abs(r.speed) / r.spec.topSpeed, 0, 1), u = r.phase / (Math.PI * 2);
+  if (k < 0.02) return P.stance;
+  let g = gaitAt(P.walk, u);
+  const rw = run ?? clamp((k - 0.4) / 0.6, 0, 1);
+  if (P.run && rw > 0) g = pmix(g, gaitAt(P.run, u), rw);
+  return pmix(P.stance, { ...P.stance, ...g }, clamp(k * 3, 0, 1));
+}
+// each joint eases toward the target pose at rate k (1/s), and is set
+function modelPose(md, tgt, k, dt) {
+  const G = md.gl;
+  for (const n in G.joints) {
+    const t = tgt[n] || Z3, c = G.cur[n] || (G.cur[n] = [0, 0, 0]);
+    c[0] = damp(c[0], t[0], k, dt); c[1] = damp(c[1], t[1], k, dt); c[2] = damp(c[2], t[2], k, dt);
+    G.joints[n].rotation.set(c[0] * DEG, c[1] * DEG, c[2] * DEG);
+  }
+}
+
 // The Charger: a low, four-legged battering ram with one wide visor eye.
 function buildCharger(paint) {
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
@@ -8323,6 +8524,7 @@ function buildBouncer(paint) {
 // #120: Apollo's Ninja: green, a square head with two eyes and an antenna, thin arms out to small round hands, a blade
 // sticking out of each side of its body, and box legs that end in pointed feet. Fast. Its kick leg swings on its hip.
 function buildNinja(paint) {
+  const mdl = modelRobot('ninja', paint); if (mdl) return mdl;   // #124: the boys' model, once it's in
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
   const { armour, glow } = robotMats(paint);
@@ -8358,6 +8560,7 @@ function buildNinja(paint) {
 }
 // #120: a minion: small and grey, a round head with one eye on a box body, an antenna, two stubby legs and no arms
 function buildMinion(paint) {
+  const mdl = modelRobot('minion', paint); if (mdl) return mdl;   // #124: the boys' Sprinter, once it's in
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
   const { armour, glow } = robotMats(paint);
@@ -8391,6 +8594,7 @@ function buildAxe(paint) {
 // right) and two box legs with big boots. Its sword's edge glows as it winds up (edge); the axe in its hand (axe) hides
 // while one it threw is out
 function buildKnight(paint) {
+  const mdl = modelRobot('knight', paint); if (mdl) return mdl;   // #124: Apollo's model, once it's in
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
   const { armour, glow } = robotMats(paint);
@@ -8444,6 +8648,7 @@ function buildKnight(paint) {
 // solar-panel wings out either side on struts (each panel in cells, as drawn), a dish underneath with the glowing emitter
 // its link beams leave from (ROBOT_TYPES.satellite.beamY), and an antenna. The wings tilt on their struts (wings)
 function buildSatellite(paint) {
+  const mdl = modelRobot('satellite', paint); if (mdl) return mdl;   // #124: the boys' model, once it's in
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const metal = { metalness: 0.6, roughness: 0.35 }, steel = { metalness: 0.85, roughness: 0.25 };
   const { armour, glow } = robotMats(paint);
@@ -9576,7 +9781,34 @@ function cloneFixed(h, r) {
 // phase: wait → in → scan → print → out
 // ---------------------------------------------------------------------------
 function buildSaucer() {
-  const root = new THREE.Group(), metal = { metalness: 0.75, roughness: 0.3 }, own = (o) => { o.material = o.material.clone(); return o; };
+  const root = new THREE.Group();
+  const M = Models.ready.copier ? modelSaucer(root) : codeSaucer(root), { body, spin, lamps } = M;
+  // the scan beam: a cone of red light down from the emitter (unit tall, stretched to the ground) and a ring that sweeps up
+  // and down the mech in it
+  const cone = new THREE.CylinderGeometry(1.0, 4.2, 1, 32, 1, true); cone.translate(0, -0.5, 0);
+  const beam = new THREE.Mesh(cone, new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.25, 0.6), transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, toneMapped: false }));
+  beam.position.y = -0.45; beam.visible = false; root.add(beam);
+  const sweep = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.09, 6, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(3.4, 0.6, 1.2), transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false }));
+  sweep.rotation.x = Math.PI / 2; sweep.visible = false; root.add(sweep);
+  // its shield: a bubble that only shows as it stops a shot
+  const shield = new THREE.Mesh(new THREE.SphereGeometry(COPIER.shield, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 2.2, 3.2), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  shield.visible = false; root.add(shield);
+  root.traverse((o) => { if (o.isMesh && o.userData.role !== 'glass') o.castShadow = o !== beam && o !== sweep && o !== shield; });
+  scene.add(root);
+  return { root, body, spin, lamps, beam, sweep, shield, model: M.model || null };
+}
+// #124: the boys' copier: its blue saucer, see-through dome, eyes and antenna (their glow its own: each copy's materials
+// its own, Copier.remove frees them), and its ring of ten lights, each its own material so they can chase (Copier.sync)
+function modelSaucer(root) {
+  const lamps = [], own = (m) => m.clone();
+  const { body } = Models.make('copier', { body: modelArmour(), glow: own, glass: own, lamp: (s) => { const m = s.clone(); m.emissiveIntensity = 2; return m; } });
+  root.add(body);
+  for (let i = 0; i < 10; i++) { const p = body.getObjectByName('CP_Light' + i); if (p) lamps.push(p.children[0].material); }
+  return { body, spin: new THREE.Group(), lamps, model: 'copier' };
+}
+// the copier as built in code (before #124, and whenever its model isn't in)
+function codeSaucer(root) {
+  const metal = { metalness: 0.75, roughness: 0.3 }, own = (o) => { o.material = o.material.clone(); return o; };
   const body = new THREE.Group(); root.add(body);
   body.add(own(cyl(3.3, 2.2, 0.75, '#9aa1ad', metal, 36)));
   const top = own(cyl(2.2, 3.3, 0.45, '#c9ced8', metal, 36)); top.position.y = 0.6; body.add(top);
@@ -9593,19 +9825,7 @@ function buildSaucer() {
   }
   const emitter = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.16, 8, 32), new THREE.MeshStandardMaterial({ color: '#1a0008', emissive: '#ff2f5b', emissiveIntensity: 2.6 }));
   emitter.rotation.x = Math.PI / 2; emitter.position.y = -0.42; body.add(emitter);
-  // the scan beam: a cone of red light down from the emitter (unit tall, stretched to the ground) and a ring that sweeps up
-  // and down the mech in it
-  const cone = new THREE.CylinderGeometry(1.0, 4.2, 1, 32, 1, true); cone.translate(0, -0.5, 0);
-  const beam = new THREE.Mesh(cone, new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.25, 0.6), transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, toneMapped: false }));
-  beam.position.y = -0.45; beam.visible = false; root.add(beam);
-  const sweep = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.09, 6, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(3.4, 0.6, 1.2), transparent: true, opacity: 0.85, toneMapped: false, depthWrite: false }));
-  sweep.rotation.x = Math.PI / 2; sweep.visible = false; root.add(sweep);
-  // its shield: a bubble that only shows as it stops a shot
-  const shield = new THREE.Mesh(new THREE.SphereGeometry(COPIER.shield, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.6, 2.2, 3.2), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
-  shield.visible = false; root.add(shield);
-  root.traverse((o) => { if (o.isMesh) o.castShadow = o !== beam && o !== sweep && o !== shield; });
-  scene.add(root);
-  return { root, body, spin, lamps, beam, sweep, shield };
+  return { body, spin, lamps };
 }
 const Copier = {
   list: [], nextId: 1, fixed: [], made: [],   // fixed: clones fixed (cloneFixed); made: every copier launched, with its clone
@@ -9618,7 +9838,7 @@ const Copier = {
   pending() { return this.list.some((c) => c.phase === 'wait' || c.phase === 'in' || c.phase === 'scan'); },
   remove(c) {
     const i = this.list.indexOf(c); if (i >= 0) this.list.splice(i, 1);
-    if (c.md) { scene.remove(c.md.root); c.md.root.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); c.md = null; }
+    if (c.md) { scene.remove(c.md.root); c.md.root.traverse((o) => { if (o.isMesh) { if (!o.geometry.userData.shared) o.geometry.dispose(); o.material.dispose(); } }); c.md = null; }   // (#124: a model's geometry is shared; its materials are its own)
   },
   // where the clone walks out: COPIER.drop m from the mech, ahead of it if that's clear (else round it), inside the meadow
   dropSpot(p) {
@@ -9792,7 +10012,17 @@ function knightTick(r, dt) {
 // wind-up and slumps when it's down; the sword's edge glows while it winds up
 function knightPose(r, md, dt, mode) {
   const down = mode === 'down' || mode === 'repair', ai = r.ai, wind = mode === 'windup' ? clamp(1 - ai.t / KNIGHT[ai.w].windup, 0, 1) : 0;
-  const S = md.arms.sword, A = md.arms.axe;
+  if (md.gl) knightJoints(r, md, dt, mode, down, wind);   // #124: the model's joints
+  else knightArms(r, md, dt, mode, down, wind);
+  md.axe.visible = !(r.axeOut > 0);
+  md.edge.emissiveIntensity = mode === 'windup' && ai.w === 'sword' ? 0.6 + 2.4 * wind : 0.15;
+  md.body.position.y = damp(md.body.position.y, down ? -1.4 : 0, 6, dt);
+  md.body.rotation.x = damp(md.body.rotation.x, down ? 0.25 : mode === 'windup' ? 0.1 * wind : 0, 8, dt);
+  md.body.rotation.z = damp(md.body.rotation.z, down ? 0.3 : 0, 6, dt);
+}
+// the arms built in code: each swings on its shoulder
+function knightArms(r, md, dt, mode, down, wind) {
+  const ai = r.ai, S = md.arms.sword, A = md.arms.axe;
   // raise (up +) and forward (+) for each arm: resting a little lowered
   let sr = -0.5, sf = 0, ar = -0.5, af = 0;
   if (down) { sr = ar = -1.1; }
@@ -9803,11 +10033,22 @@ function knightPose(r, md, dt, mode) {
   const fast = r.swipeT > 0 || r.throwT > 0 ? 40 : 10;
   S.arm.rotation.z = damp(S.arm.rotation.z, S.s * sr, fast, dt); S.arm.rotation.y = damp(S.arm.rotation.y, S.s * sf, fast, dt);
   A.arm.rotation.z = damp(A.arm.rotation.z, A.s * ar, fast, dt); A.arm.rotation.y = damp(A.arm.rotation.y, A.s * af, fast, dt);
-  md.axe.visible = !(r.axeOut > 0);
-  md.edge.emissiveIntensity = mode === 'windup' && ai.w === 'sword' ? 0.6 + 2.4 * wind : 0.15;
-  md.body.position.y = damp(md.body.position.y, down ? -1.4 : 0, 6, dt);
-  md.body.rotation.x = damp(md.body.rotation.x, down ? 0.25 : mode === 'windup' ? 0.1 * wind : 0, 8, dt);
-  md.body.rotation.z = damp(md.body.rotation.z, down ? 0.3 : 0, 6, dt);
+}
+// #124: Apollo's model. It marches (its gait.walk). Every wind-up is the same big tell, as the code-built one's: the
+// weapon raised overhead, CHOP's raise key (its sword arm), or the same on its other arm for the axe (mirrored), reached
+// by 80% of the wind-up and held. Its swipes are SLICE and CHOP in turn (the 1st, 3rd … a SLICE), swung from the raise to
+// the move's hit key over the swing (swipeT); the throw swings from the axe's raise to STAB's lunge (throwT: the axe is
+// where the spear was, in its left hand). Down, it's in its stance (its body slumps as built)
+function knightJoints(r, md, dt, mode, down, wind) {
+  const P = MODEL_POSES.knight, ai = r.ai, n = r.kn?.swipes || 0, T = P.tl;
+  const up = tlAt(T.CHOP, T.CHOP.keys[1][0]), hit = (M) => tlAt(M, M.hit);
+  let tgt, k = 10;
+  if (down) tgt = P.stance;
+  else if (mode === 'windup') { tgt = pmix(P.stance, ai.w === 'axe' ? pmirror(up) : up, Math.min(1, wind / 0.8)); k = 14; }
+  else if (r.swipeT > 0) { tgt = pmix(up, hit(n % 2 ? T.SLICE : T.CHOP), 1 - r.swipeT / KNIGHT.sword.swing); k = 40; }
+  else if (r.throwT > 0) { tgt = pmix(pmirror(up), hit(T.STAB), 1 - r.throwT / 0.3); k = 40; }
+  else tgt = modelGait(r, P);
+  modelPose(md, tgt, k, dt);
 }
 
 // #122 The Knight's axes in flight. Each goes straight along the ground from where it was thrown (KNIGHT.axe.speed m/s,
@@ -10630,9 +10871,22 @@ function unlockWeapon(w) {
 // the cached mat() materials and three's shared sprite geometry stay
 function removeRobot(r) {
   const i = Game.robots.indexOf(r); if (i >= 0) Game.robots.splice(i, 1);
-  scene.remove(r.model.root);
-  const md = r.model; md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose(); md.treads?.tex.dispose();   // (#121: a clone's tracks)
-  md.root.traverse((o) => { if (o.isMesh) o.geometry.dispose(); else if (o.isSprite) o.material.dispose(); });
+  freeModel(r.model);
+}
+function freeModel(md) {
+  scene.remove(md.root);
+  md.glow.dispose(); md.armour.dispose(); md.label?.material.map?.dispose(); md.treads?.tex.dispose();   // (#121: a clone's tracks)
+  md.root.traverse((o) => { if (o.isMesh) { if (!o.geometry.userData.shared) o.geometry.dispose(); } else if (o.isSprite) o.material.dispose(); });   // (#124: a model's geometry is shared)
+}
+// #124: robot r, built in code because its model wasn't in yet when it came (a squad restored as the pilot is picked, a
+// fast first wave), puts its model on once it is: the same glow colour and name tag, the code-built one freed
+function reskin(r) {
+  const T = ROBOT_TYPES[r.type], old = r.model, md = T.build(T.paint);
+  if (!md.model) { freeModel(md); return; }
+  md.root.position.copy(old.root.position); md.root.rotation.copy(old.root.rotation); md.root.visible = old.root.visible;
+  freeModel(old); scene.add(md.root); r.model = md;
+  setGlowColor(r, r.glowColor);
+  if (r.name) setRobotName(r, r.name);
 }
 // A squadmate's brain: the same 20 Hz think and the same input fields as a
 // glitched robot, but it walks to its slot beside and behind its leader.
@@ -11021,14 +11275,32 @@ function ninjaPose(r, md, dt, mode) {
   md.body.rotation.x = damp(md.body.rotation.x, down ? 0.3 : mode === 'dash' ? -0.5 : 0, 12, dt);
   md.body.rotation.z = damp(md.body.rotation.z, down ? 0.45 : 0, 6, dt);
   for (const b of md.blades) b.rotation.x = mode === 'tell' ? Math.sin(r.t * 40) * 0.25 : 0;
-  if (r.kickT > 0 && !down) md.legs[(r.nj?.tries ?? r.fl?.kicks ?? 0) % 2].hip.rotation.x = 1.35 * Math.sin(Math.PI * r.kickT / 0.22);
+  if (md.gl) {
+    // #124: the model: its walk and run (a dash is a run), its GUARD crouch while it tells, and each kick its KICK from
+    // the chamber to the hit key (kickT), the other leg every other kick
+    const P = MODEL_POSES.ninja; let tgt, k = 12;
+    if (down) tgt = P.stance;
+    else if (r.kickT > 0) { tgt = tlAt(P.tl.KICK, 0.15 + 0.3 * (1 - r.kickT / 0.22)); if ((r.nj?.tries ?? r.fl?.kicks ?? 0) % 2) tgt = pmirror(tgt); k = 30; }
+    else if (mode === 'tell') { tgt = P.guard; k = 20; }
+    else tgt = modelGait(r, P, mode === 'dash' ? 1 : undefined);
+    modelPose(md, tgt, k, dt);
+  } else if (r.kickT > 0 && !down) md.legs[(r.nj?.tries ?? r.fl?.kicks ?? 0) % 2].hip.rotation.x = 1.35 * Math.sin(Math.PI * r.kickT / 0.22);
 }
 function minionPose(r, md, dt, mode) {
   const down = mode === 'down' || mode === 'repair';
   r.kickT = Math.max(0, (r.kickT || 0) - dt);
   md.body.position.y = damp(md.body.position.y, down ? -0.5 : 0, 10, dt);
   md.body.rotation.z = down ? damp(md.body.rotation.z, 0.5, 6, dt) : mode === 'windup' ? Math.sin(r.t * 26) * 0.22 : damp(md.body.rotation.z, 0, 10, dt);
-  if (r.kickT > 0 && !down) md.legs[0].hip.rotation.x = 1.2 * Math.sin(Math.PI * r.kickT / 0.22);
+  if (md.gl) {
+    // #124: the Sprinter model: its walk and run; through the wind-up (it still wobbles) its kick leg draws back to KICK's
+    // chamber, and the kick goes from there to the hit key (kickT)
+    const P = MODEL_POSES.minion; let tgt, k = 12;
+    if (down) tgt = P.stance;
+    else if (r.kickT > 0) { tgt = tlAt(P.tl.KICK, 0.12 + 0.28 * (1 - r.kickT / 0.22)); k = 30; }
+    else if (mode === 'windup') { tgt = tlAt(P.tl.KICK, 0.12 * clamp(1 - r.ai.t / NINJA.minion.windup, 0, 1)); k = 20; }
+    else tgt = modelGait(r, P);
+    modelPose(md, tgt, k, dt);
+  } else if (r.kickT > 0 && !down) md.legs[0].hip.rotation.x = 1.2 * Math.sin(Math.PI * r.kickT / 0.22);
 }
 
 // Next / previous unlocked weapon (wheel, pad LB / RB)
@@ -14205,6 +14477,15 @@ window.__rb = {
   COPIER, Copier, Waves, Bullets,   // (#121)
   BOSS_WAVE, KNIGHT, Axes, Bosses, START_WAVE,   // (#122: BOSS_WAVE is read when each wave comes out, so a switch set here counts from the next)
   SATELLITE, Satellites,   // (#123)
+  MODELS, MODEL_POSES, Models,   // (#124)
+  // #124: the models' loads: { status: per model 'loading' | 'ready' | 'failed' | 'skipped', info: per model ready { tris,
+  // meshes (after the merge), parts (meshes in the file) }, wearing: per robot in the meadow, the model it wears (null: built
+  // in code) }; wait: true waits for every load to end first
+  async models(wait = false) {
+    if (wait) await Models.load();
+    return { status: { ...Models.status }, info: JSON.parse(JSON.stringify(Models.info)), wearing: Game.robots.map((r) => ({ id: r.id, type: r.type, model: r.model.model || null })),
+      copiers: Copier.list.filter((c) => c.md).map((c) => ({ id: c.id, model: c.md.model })) };
+  },
   // #123: which of waves 1..n bring a satellite (Waves.satellite)
   satelliteWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.satellite(w)); },
   // #122: which of waves 1..n are boss waves (Waves.boss), and the robot types each brings (Waves.list)
@@ -14935,6 +15216,7 @@ Game.state = 'play';
 setPause(true);           // waits on the title screen for a pilot; hooks can still step
 Game.paused = false;      // ...but the sim runs, so the mech idles in the meadow
 iconTex.preload();         // I1: every world icon drawn now, long before a sprite can show one (iconTex.blank counts any that did)
+Models.load();             // #124: the boys' models, in the background while the title shows (nothing waits on them)
 $('loading').remove();
 requestAnimationFrame(frame);
 </script>
