@@ -26,7 +26,7 @@
 //   node scripts/rb-fact-progress.mjs --size 568x320         # one size only (repeatable); no logic run
 //   node scripts/rb-fact-progress.mjs --shots DIR            # also save a screenshot of the grid and parent view per size
 //   node scripts/rb-fact-progress.mjs path/or/url.html --json
-// Sizes by default: 390x844, 568x320, 768x1024, 820x1180, 1280x800 (#133), and 740x360, 844x390, 667x375 (the
+// Sizes by default: 390x844, 568x320, 768x1024, 820x1180, 1024x768 (iPad sideways), 1280x800 (#133), and 740x360, 844x390, 667x375 (the
 // sideways phones in docs/review-lenses.md). Each size is its own Chrome launch.
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
@@ -36,7 +36,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
-const SIZES = ['390x844', '568x320', '768x1024', '820x1180', '1280x800', '740x360', '844x390', '667x375'];
+const SIZES = ['390x844', '568x320', '768x1024', '820x1180', '1024x768', '1280x800', '740x360', '844x390', '667x375'];
 const args = process.argv.slice(2);
 let json = false, target = null, logicOnly = false, shots = null; const sizes = [];
 for (let i = 0; i < args.length; i++) {

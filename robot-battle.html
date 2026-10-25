@@ -586,7 +586,7 @@
   /* ---------- PROGRESS (M4): the fact grid, the ⭐ badge, the table cheer and the parent view ----------
      A fact cell's stage is its colour AND its shape, so colour is never the only signal:
      New ○ dashed and empty · Learning ◐ striped orange · Known ● solid blue · Mastered ★ glowing gold */
-  .fgrid { --cs: min(44px, calc((100vw - 110px) / 10), calc((100vh - 310px) / 10)); display: grid; grid-template-columns: repeat(10, var(--cs)); gap: 3px; justify-content: center; }
+  .fgrid { --cs: min(44px, calc((100vw - 110px) / 10), calc((100vh - 360px) / 10)); display: grid; grid-template-columns: repeat(10, var(--cs)); gap: 3px; justify-content: center; }
   .fgrid .hd { display: flex; align-items: center; justify-content: center; font: 900 calc(var(--cs) * .5) 'Asap', sans-serif; font-style: normal; color: rgba(255,255,255,.7); }
   .fgrid .hd.corner { color: var(--cyan); }
   .fgrid .hd.done { color: var(--yellow); text-shadow: 0 0 8px var(--yellow); }
