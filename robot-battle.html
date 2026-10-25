@@ -135,6 +135,8 @@
   /* #123: the bag's tiles get the panel's full width (a centred panel shrinks to fit, which left one tile a row on a phone and
      ran the bag off the screen, on main too), and on a phone on its side smaller tiles, so all 11 parts fit */
   #bag .tiles { width: min(560px, 86vw); }
+  /* #136: a narrow phone upright (360 wide): the tiles' 86vw and the panel's 22 px sides came to 4 px past the screen; slimmer sides */
+  @media (max-width: 389px) { #bag .panel { padding-left: 12px; padding-right: 12px; } }
   @media (max-height: 460px) { #bag .tiles { gap: 10px; } #bag .tile { width: 62px; height: 62px; font-size: 30px; border-width: 4px; box-shadow: 0 4px 0 var(--ink); } }
   .slots { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; }
   .slot { width: 70px; height: 70px; border-radius: 50%; border: 5px dashed rgba(255,255,255,.45); display: flex; align-items: center; justify-content: center; font-size: 36px; }
@@ -1192,6 +1194,16 @@
     .lcard .lon { width: 22px; height: 22px; font-size: 13px; border-width: 2px; right: 3px; top: 3px; } .lcard .tv { bottom: 22px; }
     .lcard .lfx { font-size: 12px; bottom: 2px; gap: 2px 2px; } .lcard .lfx i { padding: 1px 1px; } .lcard .lfx b { font-size: 9px; }   /* (#42: a little smaller, for the section's icon beside the cards) */ .lcard .llock { font-size: 15px; } .lcard .llock b { font-size: 14px; }
     .lcard .llock { top: 32%; }   /* (I2: Tracks' seven chips take three rows here: the lock sits higher, clear of them) */
+  }
+  /* #136: a small phone on its side, 568 × 320: the 🎨 tab's five rows (body and trim two lines of swatches each) ran off the
+     screen's foot. Each row is one line here: a row's label is its icon (its word dropped), and the ten colours a little
+     smaller, so they fit across */
+  @media (max-height: 340px) and (min-width: 561px) {
+    .gwall.paint .prow { padding: 2px 6px; }
+    .gwall.paint .plab { width: 26px; } .gwall.paint .plab small { display: none; }
+    .gwall.paint .psw { gap: 3px; flex-wrap: nowrap; }
+    .gwall.paint :is(.swatch, .decal, .metal, .crownsw) { width: 30px; height: 30px; } .gwall.paint .crownsw { width: auto; }
+    .gwall.paint .decal :is(img, .ic, .dtint) { width: 22px; height: 22px; } .gwall.paint :is(.metal, .crownsw) > .ic { width: 20px; height: 20px; }
   }
   #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 60px; background: #8fc8ff; }
   /* ---------- #89: build projects. A shape not built yet is a blueprint card (dashed, blueprint blue: its parts, in / needed,
