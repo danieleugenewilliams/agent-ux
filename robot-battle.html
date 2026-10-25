@@ -3461,7 +3461,8 @@ const Facts = {
   // 'check' step holding it. answer() asks this, so progress() reads it the same way (r needn't be whoever is playing)
   checkFirst(r, key) {
     const st = LADDERS[r?.ladder]?.[(r?.step ?? 0) - 1];
-    return !((r?.facts?.[key]?.n || 0) > 0) && st?.kind === 'check' && stepFacts(st).some((q) => q.key === key);
+    const e = r?.facts?.[key];
+    return (e ? e.n === 0 : true) && st?.kind === 'check' && stepFacts(st).some((q) => q.key === key);
   },
   // #133: where a fact is and what it takes to go on, read straight from its entry e (none = never answered) on day
   // `today`. Pure: never writes. It follows answer() exactly, and the rules don't change:
@@ -12181,7 +12182,8 @@ const toStarText = (p) => (p.toMastered === 0 ? `next right answer to ${icon('st
   : `${p.toMastered} more fast day${p.toMastered === 1 ? '' : 's'} to ${icon('star')}`);
 // #133: the child's grid: what a fact takes next, icons first and counts a kid reads at a glance, never the answer:
 //   [⚡⚡○ fast days 2/3 ➜ ★] (pips: what the next stage takes; ✔ for right in a row), "1 more fast day to ⭐" (all the
-//   way), and today: ✔ counted (come back tomorrow) | ✖ a miss today (tomorrow) | ⚡ under 3 s today counts
+//   way), and today: ✔ counted (come back tomorrow) | ✖ a miss today (tomorrow) | ⚡ under 3 s today counts (a New fact,
+//   which climbs on right answers in a row any day, is never told to wait for tomorrow)
 function gridProgHTML(p) {
   if (!p) return '';
   const N = p.need;
@@ -12190,7 +12192,9 @@ function gridProgHTML(p) {
   const pip = N.kind === 'streak' ? 'check' : 'power', n = Math.max(N.want, N.have);
   const pips = Array.from({ length: n }, (_, i) => (i < N.have ? icon(pip) : '<i class="pip0"></i>')).join('');
   const lab = N.kind === 'streak' ? `in a row ${N.have}/${N.want}` : N.kind === 'check' ? 'fast once' : `fast days ${N.have}/${N.want}`;
-  const day = { counted: `today ${icon('check')} — come back tomorrow`, blocked: `today ${icon('cross')} — try again tomorrow`, open: `today ${icon('power')} under 3 s counts` }[p.today];
+  // (a New fact climbs on right answers in a row, any day: it is never told to wait for tomorrow)
+  const day = N.kind === 'streak' ? { counted: `today ${icon('check')} a fast day`, blocked: `today ${icon('cross')} a miss — keep going`, open: `today ${icon('power')} under 3 s counts` }[p.today]
+    : { counted: `today ${icon('check')} — come back tomorrow`, blocked: `today ${icon('cross')} — try again tomorrow`, open: `today ${icon('power')} under 3 s counts` }[p.today];
   return `<span class="gprog"><span class="gl gneed" data-kind="${N.kind}" data-have="${N.have}" data-want="${N.want}"><span class="pips">${pips}</span><small>${lab}</small>${icon('arrow')}<i class="cell s-${p.next}">${icon(STAGE_LOOK[p.next].ic)}</i></span>`
     + `<span class="gl gstar">${toStarText(p)}</span><span class="gl gday" data-today="${p.today}">${day}</span></span>`;
 }
@@ -12198,7 +12202,7 @@ function gridProgHTML(p) {
 function parentProgHTML(p) {
   if (!p) return '';
   const N = p.need, nm = (s) => STAGE_LOOK[s].name;
-  const day = { counted: `today ${icon('check')} counted`, blocked: `today ${icon('cross')} missed: counts again tomorrow`, open: 'today not yet' }[p.today];
+  const day = { counted: `today ${icon('check')} fast day counted`, blocked: `today ${icon('cross')} missed: fast days count again tomorrow`, open: 'no fast day today yet' }[p.today];
   const t = !N ? `${icon('star')} Mastered for good`
     : N.kind === 'polish' ? `${icon('sparkle')} needs a polish: 1 answer under 3 s`
     : (N.kind === 'streak' ? `right in a row ${N.have}/${N.want} → ${nm(p.next)}` : N.kind === 'check' ? `quick check: 1 answer under 3 s → ${nm(p.next)}` : `fast days ${N.have}/${N.want} → ${nm(p.next)}`)

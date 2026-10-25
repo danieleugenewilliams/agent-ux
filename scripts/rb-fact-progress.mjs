@@ -16,7 +16,7 @@
 //             * reading never writes: the saved record, the stage counts, the star total and the backup are the same
 //               before and after opening the grid and the parent view and tapping facts; entries keep their old fields
 //               only; a saved record reloads as it was, with the same progress.
-//   size    - at each size: the grid's tap info (by touch, then the keyboard's arrows) and the parent view (a touch on a
+//   size    - at each size: the grid's tap info (by touch, the keyboard's arrows, the gamepad's d-pad) and the parent view (a touch on a
 //             cell) show the progress for Apollo's records, every element on screen (bounding boxes), the grid panel not
 //             scrolling, no horizontal overflow, the rules key there, and no answer in the grid's info.
 //
@@ -152,6 +152,14 @@ const LOGIC = String.raw`(() => {
   r = fast(1, 8);
   p = P(1, 8);
   ok('polish: a fast answer the same day clears it, as progress said', r.polished === true && has(p, { stage: 'mastered', need: null, polish: false }), { r, p });
+
+  // a New fact climbs on right answers in a row, any day: today counted or blocked doesn't hold it back
+  p = P(1, 3); r = fast(1, 3);
+  ok('New with today counted (1 x 3, streak 1): a 2nd right answer today makes it Learning', p.today === 'counted' && p.need.have === 1 && r.to === 'learning', { p, r });
+  miss(1, 5); p = P(1, 5);
+  ok('New missed today (1 x 5): today blocked, streak 0/2', has(p, { stage: 'new', today: 'blocked', need: { kind: 'streak', have: 0, want: 2 } }), p);
+  fast(1, 5); r = fast(1, 5);
+  ok('New missed today: 2 right answers today still make it Learning (with no fast day)', r.to === 'learning' && P(1, 5).need.have === 0, { r, p: P(1, 5) });
 
   // ---- the next day: answer() does what progress said
   day();
@@ -354,9 +362,10 @@ async function runSize(C, size) {
   const cellAt = async (sel) => C.ev(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); if (!el) return null; el.scrollIntoView({ block: 'nearest' }); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width }; })()`);
   const info = (sel) => C.ev(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); if (!el) return null; const rd = (n) => { let s = ''; for (const c of n.childNodes) s += c.nodeType === 3 ? c.data : c.nodeType !== 1 ? '' : c.matches('svg.ic') ? '{' + c.dataset.icon + '}' : rd(c); return s; };
     const need = el.querySelector('[data-want]'); return { text: rd(el).replace(/\\s+/g, ' ').trim(), prog: [...el.querySelectorAll('.gprog, .pprog')].map(rd).join(' | ').replace(/\\s+/g, ' ').trim(), have: need ? +need.dataset.have : null, want: need ? +need.dataset.want : null, today: el.querySelector('[data-today]')?.dataset.today ?? null }; })()`);
-  const grid = async (label, want) => {
+  const grid = async (label, want, not = []) => {
     const g = await info('#gridInfo');
     for (const s of want) ok(`grid ${label} shows "${s}"`, g?.text.includes(s), g);
+    for (const s of not) ok(`grid ${label} doesn't show "${s}"`, g && !g.text.includes(s), g);
     const fact = label.split(' ')[0].split('x').map(Number), ans = fact[0] * fact[1];
     ok(`grid ${label}: no answer (no "=", the product not in its progress)`, g && !g.text.includes('=') && (ans < 4 || !new RegExp('(^|[^0-9.])' + ans + '([^0-9]|$)').test(g.prog)) && (ans < 10 ? true : !g.text.includes(String(ans))), g);
     const b = await C.ev(BOX + `('#grid .panel, #grid .panel .top, #grid .panel .top *, #gridCells .cell, #gridInfo, #gridInfo *, #gridLegend, #gridLegend .lg', '#grid .panel')`);
@@ -383,10 +392,14 @@ async function runSize(C, size) {
   await C.key('ArrowUp', 38); for (let i = 0; i < 3; i++) await C.key('ArrowRight', 39);
   g = await info('#gridInfo');
   ok('grid by keyboard: the arrows land on 1 x 6 and show its progress', g?.text.includes('1 × 6') && g.text.includes('1 more fast day to {star}'), g);
+  // the gamepad: its d-pad, as the pad loop hands it to the open grid (Progress.pad): down then up lands back on 1 x 6
+  await C.ev(`(() => { const P = __rb.Progress; P.pad({ downP: true }); P.pad({ upP: true }); return true; })()`);
+  g = await info('#gridInfo');
+  ok('grid by gamepad d-pad: down then up lands back on 1 x 6 with its progress', g?.text.includes('1 × 6') && g.text.includes('1 more fast day to {star}'), g);
   // the other stages, each must fit too (picked with the hook: the same drawGrid)
-  for (const [a, b, label, want] of [[1, 9, 'blocked', ['today {cross}']], [1, 8, 'polish', ['{sparkle}']], [1, 7, 'mastered', ['{star}']], [1, 1, 'new', ['3 fast days to {star}']], [2, 7, 'known', []], [1, 4, 'learning', ['3 fast days to {star}']]]) {
+  for (const [a, b, label, want, not] of [[1, 3, 'new, today counted', ['today {check}'], ['tomorrow']], [1, 9, 'blocked', ['today {cross}']], [1, 8, 'polish', ['{sparkle}']], [1, 7, 'mastered', ['{star}']], [1, 1, 'new', ['3 fast days to {star}']], [2, 7, 'known', []], [1, 4, 'learning', ['3 fast days to {star}']]]) {
     await C.ev(`__rb.tapCell(${a}, ${b})`);
-    await grid(`${a}x${b} (${label})`, want);
+    await grid(`${a}x${b} (${label})`, want, not);
   }
   await C.ev('__rb.showGrid(false)');
   // the parent view: a touch on 1 x 6 in its grid
