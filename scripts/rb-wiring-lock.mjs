@@ -18,7 +18,7 @@
 //                    the backup's wiring, "Keep the best" and "Keep this device" keep this device's (as before #134), a
 //                    fresh device takes the backup's, and the file carries rec.wiring;
 //                  * the gamepad in the parent view doesn't change it (the view's buttons are touch and keyboard, as before).
-//   sweep-mouse  - at 1280 x 800, Apollo on math: every visible control on who's playing, the pilot pick, play (the HUD), the
+//   sweep-mouse  - (a run per screen: sweep-mouse:who, :pick, :play, :pause, :garage:<tab>) at 1280 x 800, Apollo on math: every visible control on who's playing, the pilot pick, play (the HUD), the
 //   sweep-touch  - at 844 x 390 with touch, Orion on colour (the touch pause menu):
 //                  pause screen and each garage tab is clicked (a tap with touch) after a reload into that screen, and then
 //                  every control that click brought up, in turn; then Tab to each focusable control and Enter, and again
@@ -60,7 +60,9 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['logic', 'sweep-mouse', 'sweep-touch', ...SIZES];
+// (each sweep is a run per screen, each its own Chrome: 'sweep-mouse' alone means all of its screens)
+const SCREENS = ['who', 'pick', 'play', 'pause', 'garage:trophies', 'garage:mech', 'garage:squad', 'garage:paint', 'garage:body'];
+const runs = (picked.length ? picked : ['logic', 'sweep-mouse', 'sweep-touch', ...SIZES]).flatMap((r) => (/^sweep-(mouse|touch)$/.test(r) ? SCREENS.map((q) => r + ':' + q) : [r]));
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 target ??= path.join(repo, 'robot-battle.html');
 const url = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve(target)).href;
@@ -314,16 +316,17 @@ async function runLogic(C) {
 }
 
 // ---- the sweep: every control a child reaches, then every key and pad button, on each screen
-async function runSweep(C, touch) {
+async function runSweep(C, touch, only) {
   const [w, h] = touch ? [844, 390] : [1280, 800], who = touch ? 'orion' : 'apollo', mode = touch ? 'colour' : 'math', ids = ['apollo', 'orion'];
-  const out = [], ok = (name, pass, got) => { out.push({ name: `sweep-${touch ? 'touch' : 'mouse'}: ${name}`, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const out = [], ok = (name, pass, got) => { out.push({ name: `sweep-${touch ? 'touch' : 'mouse'}:${only}: ${name}`, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   await C.open(w, h, touch);
   // seed: Apollo on math, Orion on colour; whoever is swept has a wave cleared (so the wave chip shows) and parts in the bag
   await C.ev(`(() => { const R = window.__rb; R.player('apollo'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.player('orion'); R.Facts.rec.wiring = 'colour'; R.Facts.save(); return true; })()`);
   await C.ev(SEED_WAVES(who, 3));
   const want = { apollo: 'math', orion: 'colour' };
   const GTABS = await C.ev(`window.__rb.garage().tabs.map((t) => t.id)`);
-  const screens = ['who', 'pick', 'play', 'pause', ...GTABS.map((t) => 'garage:' + t)];
+  if (only === 'who') ok(`the garage's tabs are the ones swept (${GTABS.join(', ')})`, SCREENS.filter((q) => q.startsWith('garage:')).map((q) => q.slice(7)).join() === GTABS.join(), GTABS);
+  const screens = [only];
   const enter = async (s) => {
     await C.open(w, h, touch);
     const r = await C.ev(String.raw`(async () => { const R = window.__rb, s = ${JSON.stringify(s)}; const wait = (ms) => new Promise((f) => setTimeout(f, ms));
@@ -340,7 +343,8 @@ async function runSweep(C, touch) {
   const check = async (what) => {
     const r = await C.ev(READ(ids));
     const bad = r.saved.apollo !== want.apollo || r.saved.orion !== want.orion || (r.playing && r.playing in want && r.live !== want[r.playing]);
-    if (bad) fails.push({ what, ...r });
+    if (bad) { fails.push({ what, ...r }); await C.ev(`(() => { const R = window.__rb; for (const [id, m] of Object.entries(${JSON.stringify(want)})) { const k = 'robotbattle.facts.' + id, v = JSON.parse(localStorage.getItem(k)); v.wiring = m; localStorage.setItem(k, JSON.stringify(v)); }
+      if (R.Facts.rec && R.Game.child && ${JSON.stringify(want)}[R.Game.child.id]) R.Facts.rec.wiring = ${JSON.stringify(want)}[R.Game.child.id]; return true; })()`); }
   };
   const fails = [], counts = {}, unentered = [];
   for (const s of screens) {
@@ -373,7 +377,8 @@ async function runSweep(C, touch) {
     }
     // the keyboard: Tab to each focusable control and press Enter (then again with Space)
     for (const press of ['Enter', 'Space']) {
-      let firstKey = null; dirty = true;
+      let firstKey = null;
+      if (!dirty) await C.ev(`(document.activeElement?.blur?.(), true)`); else await back();
       for (let k = 1; k <= 30; k++) {
         if (dirty) { await back(); for (let i = 0; i < k; i++) await C.key('Tab'); } else await C.key('Tab');
         const f = await C.ev(`(() => { const e = document.activeElement; if (!e || e === document.body) return null; return (e.id ? '#' + e.id : e.tagName) + '|' + (e.getAttribute('aria-label') || e.textContent.trim().slice(0, 16)); })()`);
@@ -386,14 +391,15 @@ async function runSweep(C, touch) {
       }
     }
     // every game key
-    await back();
+    if (dirty || await moved()) await back();
     for (const code of Object.keys(KEYS).filter((k) => k !== 'Tab')) {
       await C.key(code); counts[s].keys++;
       await check(`${s}: key ${code}`);
       if (await moved()) await back();
     }
     // every gamepad button
-    await back(); await C.padOn(); await sleep(100);
+    if (await moved()) await back();
+    await C.padOn(); await sleep(100);
     for (let b = 0; b <= 16; b++) {
       await C.padBtn(b); counts[s].pad++;
       await check(`${s}: pad button ${b}`);
@@ -518,7 +524,7 @@ async function main() {
     const S = launch(); const t0 = Date.now();
     try {
       const C = await connect(S);
-      const res = run === 'logic' ? await runLogic(C) : run.startsWith('sweep-') ? await runSweep(C, run === 'sweep-touch') : await runSize(C, run);
+      const res = run === 'logic' ? await runLogic(C) : run.startsWith('sweep-') ? await runSweep(C, run.startsWith('sweep-touch'), run.split(':').slice(1).join(':')) : await runSize(C, run);
       if (C.errs.length) res.push({ name: run + ': no page errors', pass: false, got: C.errs.slice(0, 10) });
       else res.push({ name: run + ': no page errors', pass: true });
       all.push(...res);

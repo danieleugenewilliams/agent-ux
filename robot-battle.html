@@ -244,7 +244,8 @@
   .pilot:hover, .pilot.cur { transform: scale(1.07); box-shadow: 0 7px 0 var(--ink), inset 0 0 0 4px var(--c), 0 0 0 5px var(--c), 0 0 30px var(--c); }
   .pilot:active { transform: translateY(5px) scale(1.03); box-shadow: 0 2px 0 var(--ink), inset 0 0 0 4px var(--c); }
   @media (max-width: 700px) { .pilot { width: 104px; font-size: 17px; } .pilot img { width: 80px; height: 80px; } #start .logo { font-size: 44px; } #start .keys { display: none; } }
-  /* ---------- WHO'S PLAYING: a big tile per child before the pilot pick; then a chip (◀ back) and the wiring setting ---------- */
+  /* ---------- WHO'S PLAYING: a big tile per child before the pilot pick; then a chip (◀ back). (#134: the wiring setting is the
+     parent view's now) ---------- */
   #start .ask { display: none; margin-top: 22px; font: 900 30px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
   /* #49: up to 12 profiles, then Guest, then ➕: a grid, 4 a row (3 on a phone), each row --th tall, that scrolls after 3 rows
      (and sooner on a short screen), so the logo always shows; Title.inView keeps the cursor's tile in view */
@@ -267,7 +268,7 @@
   .pilot.kid.add.full { opacity: .6; }
   .pilot.kid.shake { animation: shake .3s; }
   #start .kidbar { display: flex; margin-top: 18px; align-items: center; justify-content: center; gap: 14px; }
-  /* (#132: a phone held upright: the four chips (who, wiring, wave, mode) take two rows rather than run off the sides) */
+  /* (#132: a phone held upright: the chips (who, wave, mode; #134: the wiring chip is gone) take two rows rather than run off the sides) */
   @media (max-width: 560px) { #start .kidbar { flex-wrap: wrap; row-gap: 14px; max-width: calc(100vw - 24px); margin-left: auto; margin-right: auto; } }
   .chip { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px 0 8px; border-radius: 28px; border: 4px solid var(--ink); background: rgba(20,24,42,.78); color: var(--c, #fff); cursor: pointer;
     box-shadow: 0 5px 0 var(--ink), inset 0 0 0 3px var(--c, #fff); font: 900 22px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
@@ -276,9 +277,6 @@
   #kidB .back { font-size: 20px; }
   #start:not(.title) #kidB { cursor: default; pointer-events: none; }
   #start:not(.title) #kidB .back { display: none; }
-  #wireB { --c: var(--yellow); padding: 0 16px; font-size: 26px; }
-  #wireB i { font-style: normal; opacity: .35; }
-  #wireB i.on { opacity: 1; }
   /* #129: the wave chip (the wave the run starts at; a boss wave's ⚔️ for the 🌊, edged gold, as on the HUD's wave chip) and
      the wave picker it opens: a small grid of tiles over the pilot pick, at most 5 a row, that scrolls inside its panel */
   #waveB { --c: var(--cyan); display: none; position: relative; padding: 0 16px 0 12px; font-size: 26px; }
@@ -320,7 +318,7 @@
   @media (max-width: 700px) { #start .kids { --tw: min(108px, 27vw); --th: 140px; --gap: 12px; grid-template-columns: repeat(3, var(--tw)); padding: 10px 10px 14px; max-height: min(calc(3 * var(--th) + 2 * var(--gap) + 26px), calc(100dvh - 150px)); }
     #start .kids .pilot.kid { font-size: 18px; padding: 8px 4px; } #start .kids .pilot.kid .face { width: 76px; height: 76px; font-size: 42px; } }
   /* #129: the pilot pick on a phone held sideways: the six pilots in one row of smaller tiles, the key hints left out, and the
-     whole pick set just above the parent button (bottom left), so the chips (◀ who's playing, the wiring, the wave chip) and
+     whole pick set just above the parent button (bottom left), so the chips (◀ who's playing, the wave chip, the mode chip) and
      every pilot are on screen and clear of it (before, the chips ran off the top and the pilots off the bottom at 844 x 390,
      740 x 360 and 568 x 320). Up to 400 tall the logo is left out (it was off screen there before), so nothing meets the
      health bar */
@@ -838,6 +836,16 @@
   .pchart text.dim { fill: rgba(255,255,255,.55); }
   .pchart .todayDot { fill: #fff; }   /* I4: today's mark (was a ● glyph) */
   .pact { display: flex; flex-wrap: wrap; gap: 10px; }
+  /* #134: the child's settings, a parent's to change: a group each (Quick Fix wiring, 🔢 math or 🌈 colours), side by side,
+     wrapping (#142's division switch goes beside it) */
+  .psets { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+  .pset { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .pset h3 { margin: 0; }
+  .pset p { margin: 0; font-size: 14px; opacity: .75; }
+  .pseg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pbtn.pw { min-width: 44px; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.12); color: #fff; }
+  .pbtn.pw.on { background: var(--yellow); color: var(--ink); box-shadow: 0 4px 0 var(--ink), 0 0 12px rgba(255,216,61,.55); }
+  .pbtn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
   .pbtn { position: relative; min-height: 50px; padding: 6px 16px; line-height: 1.15; border-radius: 25px; border: 4px solid var(--ink); font: 900 17px 'Asap', sans-serif; cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
   .pbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   .pbtn.step { background: var(--cyan); color: var(--ink); }
@@ -1509,8 +1517,9 @@
     <!-- WHO'S PLAYING: one big tile per child (their progress is theirs, whoever they pilot); a tap goes on to the pilots -->
     <div class="ask"><i data-ic="pad"></i> Who's playing?</div>
     <div class="kids" id="kids"></div>
-    <!-- who's playing (◀ picks again, on the title) and the Quick Fix setting: 🔢 math wiring or 🌈 colour wiring -->
-    <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><button class="chip" id="wireB" aria-label="Math or colour wiring"><i data-w="math"><i data-ic="math"></i></i><i data-w="colour"><i data-ic="colours"></i></i></button><!--
+    <!-- who's playing (◀ picks again, on the title). (#134: the Quick Fix setting, 🔢 math wiring or 🌈 colour wiring, is set in the
+         parent view only: a child can't turn the math off) -->
+    <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><!--
       #129: the wave the run starts at (a saved child who has cleared a wave): a tap, ▲ or the d-pad's up opens the wave picker
       --><button class="chip" id="waveB" aria-label="Start wave"><span class="wi"><i data-ic="wave"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveBN">1</b><small><i data-ic="up"></i></small></button><!--
       #132: Easy, Normal or Hard, whoever is playing's own: 1, 2 or 3 bars lit in green, yellow or red; a tap, ▼ / S or the
@@ -3107,7 +3116,8 @@ const srange = (a, b) => a + (b - a) * srand();
 // re-keying anyone's record.
 // ===========================================================================
 // The children. Progress belongs to the child, not the pilot, and is saved per child;
-// Guest saves nothing. wiring: each child's default Quick Fix setting ('math' or 'colour'), which they can change.
+// Guest saves nothing. wiring: each child's default Quick Fix setting ('math' or 'colour'). #134: only a parent changes it, in the
+// parent view (Progress.act 'wiring'); nothing a child reaches does. Guest is always on colour.
 // #49: anyone can make a profile now. The profiles are saved as robotbattle.profiles: [{ id, name, icon, hex, ladder,
 // wiring, created }], in the order they were made, at most PROFILE.max. CHILDREN is that list (each entry with its icon as
 // ic, as the rest of the game reads it) plus Guest, last. CHILDREN and its entries are the same objects for the whole page
@@ -3562,8 +3572,10 @@ const Facts = {
     this.save();
     return { ok: true, step: this.rec.step };
   },
+  // the Quick Fix setting of whoever is the tracker's child (#134: the parent view's switch, through Facts.as; and the hook).
+  // Guest keeps colour wiring
   setWiring(mode) {
-    if (!this.rec || !['math', 'colour'].includes(mode)) return false;
+    if (!this.rec || this.child?.guest || !['math', 'colour'].includes(mode)) return false;
     this.rec.wiring = mode; this.save(); return true;
   },
   // #132: whoever is playing's mode (MODES), saved in their record (Guest's record is never saved, so theirs lasts until
@@ -7286,7 +7298,6 @@ const Title = {
     if (P && who.dataset.p !== P.id) { who.dataset.p = P.id; who.style.setProperty('--c', P.hex); who.innerHTML = `<img alt="" src="${pilotFace(P).toDataURL()}"><span>${P.name}</span>`; }
     const kb = $('kidB');
     if (C && (kb.dataset.k !== C.id || kb.dataset.n !== C.name)) { kb.dataset.k = C.id; kb.dataset.n = C.name; kb.style.setProperty('--c', C.hex); kb.innerHTML = `<span class="back">${icon('back')}</span><b class="face">${icon(C.ic)}</b><span>${esc(C.name)}</span>`; }
-    [...$('wireB').children].forEach((i) => i.classList.toggle('on', i.dataset.w === wiringMode()));
     Progress.drawBadge();
     drawPauseMenu();
     WavePick.draw();   // #129: the wave chip (and the picker, while it's open)
@@ -7655,8 +7666,9 @@ function pickChild(c) {
 }
 // the Quick Fix setting for whoever is playing: 'math' or 'colour' (colour until someone's picked)
 const wiringMode = () => (Game.child && Facts.rec ? Facts.rec.wiring : 'colour');
+// (#134: the hook's way in, __rb.wiring(mode); a parent's is the parent view's switch. No child-facing control calls it)
 function setWiring(mode) {
-  if (!Facts.setWiring(mode)) return { ok: false, why: Game.child ? 'math or colour' : 'nobody playing' };
+  if (!Facts.setWiring(mode)) return { ok: false, why: !Game.child ? 'nobody playing' : Game.child.guest ? 'guest keeps colour wiring' : 'math or colour' };
   Title.draw();
   return { ok: true, wiring: mode };
 }
@@ -12444,6 +12456,8 @@ const STAGE_LOOK = { new: { ic: 'new', name: 'New' }, learning: { ic: 'learning'
 // hold: how long the parent button is held to open the view (ms); slowest / days: what the parent view lists;
 // cheer: how long the table cheer stays up (ms)
 const PARENT = { hold: 2000, slowest: 10, days: 14, cheer: 5000 };
+// #134: the parent view's wiring switch, a button per Quick Fix setting
+const PWIRE = [{ id: 'math', ic: 'math', name: 'Math' }, { id: 'colour', ic: 'colours', name: 'Colours' }];
 const TABLES = Array.from({ length: OPS['×'].hi - OPS['×'].lo + 1 }, (_, i) => OPS['×'].lo + i);
 const secs = (ms) => (ms == null ? '—' : (ms / 1000).toFixed(1) + ' s');
 const mins = (ms) => { const m = ms / 60000; return m === 0 ? '0' : m < 10 ? m.toFixed(1) : String(Math.round(m)); };
@@ -12542,7 +12556,7 @@ const Progress = {
       const c = e.target.closest('.cell'); if (c && c.dataset.a) { this.psel = [+c.dataset.a, +c.dataset.b]; this.drawParent(); return; }
       // #69: back up / restore (in the tap itself: Safari keeps a download, and opens a file picker, only from a tap)
       const k = e.target.closest('[data-bk]'); if (k) { BackupUI.act(k.dataset.bk); return; }
-      const b = e.target.closest('[data-act]'); if (b) this.act(b.dataset.act, this.tab);
+      const b = e.target.closest('[data-act]'); if (b) this.act(b.dataset.act, this.tab, b.dataset.w);   // (#134: the wiring button's mode)
     });
     $('pConfirm').addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (b) this.act(b.dataset.act, this.tab); });
     Facts.onCheer = (tables, C) => this.cheer(tables, C);
@@ -12700,6 +12714,7 @@ const Progress = {
       todayMs: Math.round(td.ms), today: +(td.ms / 60000).toFixed(2),
       fixMs: (() => { const f = Facts.fixDays(rec, PARENT.days); return { today: f[f.length - 1].median, days: f }; })(),   // #48: median fix times
       grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number), polish: [...Facts.polished(rec)],   // #115: the ⭐ facts that need a polish
+      wiring: rec.wiring,   // #134: their Quick Fix setting ('math' or 'colour'), the parent's switch
     };
   },
   // minutes a day for the last two weeks as a small bar chart (hand-drawn SVG); today's bar is blue, marked with a dot (I4: a
@@ -12741,6 +12756,10 @@ const Progress = {
       + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div>${key}</div>`
       + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
+      // #134: the child's Quick Fix wiring, math or colours: only here (a child can't turn the math off)
+      + `<div class="psets"><div class="pset" role="group" aria-label="Quick Fix wiring for ${esc(D.name)}"><h3>Quick Fix wiring</h3><div class="pseg">`
+      + PWIRE.map((W) => `<button class="pbtn pw${D.wiring === W.id ? ' on' : ''}" data-act="wiring" data-w="${W.id}" aria-pressed="${D.wiring === W.id}">${icon(W.ic)}<span>${W.name}</span></button>`).join('')
+      + `</div><p>${D.wiring === 'math' ? 'Each wire is a times fact.' : 'Colours only: no facts are practised.'}</p></div></div>`
       + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}</div>`
       // (#50: 🗑️ Reset and 🗑️ Remove side by side, on a row of their own)
       + `<div class="pact pdanger"><button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${esc(D.name)}</button><button class="pbtn remove" data-act="remove">${icon('bin')} Remove ${esc(D.name)}</button></div></div></div>`
@@ -12755,17 +12774,24 @@ const Progress = {
   },
   // the parent view's buttons (and __rb.parentDo): 'tab' (show child c), 'step' (open their next step),
   // 'reset' (ask), 'confirm' (reset them, once asked), 'cancel' (don't: Reset's or Remove's),
-  // #50: 'remove' (ask), 'confirmRemove' (remove them, once asked about them: Profiles.remove)
-  act(what, c) {
+  // #50: 'remove' (ask), 'confirmRemove' (remove them, once asked about them: Profiles.remove),
+  // #134: 'wiring' (their Quick Fix setting to v, 'math' or 'colour'; left out: the other one). It's saved in their record (the live
+  // one if they're playing), so the next Quick Fix uses it; the keyboard's focus stays on the button pressed
+  act(what, c, v) {
     if (this.mode !== 'parent') return { ok: false, why: 'parent view closed' };
     if (what === 'cancel' && c == null && this.tab == null) { this.confirm = false; this.rm = null; this.drawParent(); return { ok: true }; }
     const C = childOf(c ?? this.tab); if (!C || C.guest) return { ok: false, why: 'no such child' };
-    let res = { ok: true };
+    let res = { ok: true }, refocus = null;
     if (what === 'tab') { this.tab = C.id; this.psel = null; this.confirm = false; this.rm = null; }
     else if (what === 'step') res = Facts.as(C, () => (Facts.rec.step < Facts.steps.length ? Facts.openStep(Facts.rec.step + 1) : { ok: false, why: 'every step is open' }));
     else if (what === 'reset') { this.tab = C.id; this.confirm = true; this.rm = null; $('parentPanel').scrollTop = 0; }
     else if (what === 'remove') { this.tab = C.id; this.rm = C.id; this.confirm = false; $('parentPanel').scrollTop = 0; }
     else if (what === 'cancel') { this.confirm = false; this.rm = null; }
+    else if (what === 'wiring') {
+      const m = v ?? (Facts.peek(C).wiring === 'math' ? 'colour' : 'math');
+      res = Facts.as(C, () => Facts.setWiring(m)) ? { ok: true, wiring: m } : { ok: false, why: 'math or colour' };
+      if (res.ok) refocus = m;
+    }
     else if (what === 'confirm') { if (!this.confirm || this.rm || C.id !== this.tab) return { ok: false, why: 'not asked' }; res = Facts.reset(C); this.confirm = false; this.psel = null; }
     else if (what === 'confirmRemove') {
       if (!this.rm || this.confirm || C.id !== this.rm || C.id !== this.tab) return { ok: false, why: 'not asked' };
@@ -12780,6 +12806,7 @@ const Progress = {
     else return { ok: false, why: 'no such button' };
     if (!Game.manual) Sfx.click();
     this.drawParent(); this.drawBadge(); Title.draw();
+    if (refocus) $('pBody').querySelector(`[data-act="wiring"][data-w="${refocus}"]`)?.focus({ preventScroll: true });
     return res;
   },
 };
@@ -14798,7 +14825,6 @@ $('kids').addEventListener('click', (e) => {
 $('kids').addEventListener('focusin', (e) => { const b = e.target.closest('.kid'); if (b && !Game.child) { const i = [...$('kids').children].indexOf(b); if (i !== Title.kid) { Title.kid = i; Title.draw(); } } });
 // ◀ on the pilot pick: back to who's playing (on the pause screen the chip only shows who it is)
 $('kidB').addEventListener('click', (e) => { e.stopPropagation(); if (!Game.pilot) { Sfx.click(); pickChild(null); } });
-$('wireB').addEventListener('click', (e) => { e.stopPropagation(); Sfx.click(); setWiring(wiringMode() === 'math' ? 'colour' : 'math'); });
 
 // ===========================================================================
 // Test hooks: the Chrome test tab gets no animation frames, so checks drive
@@ -15119,7 +15145,8 @@ window.__rb = {
   },
   // press a button in the open parent view: 'tab' | 'step' | 'reset' | 'confirm' | 'cancel', on child (the tab shown if left out)
   // (#50: | 'remove' (asks) | 'confirmRemove' (removes the profile and its record, once asked about it))
-  parentDo(what, child) { const res = Progress.act(what, child); return { ...res, view: this.parent() }; },
+  // (#134: | 'wiring' with v = 'math' | 'colour' (left out: the other one): the child's Quick Fix setting, saved)
+  parentDo(what, child, v) { const res = Progress.act(what, child, v); return { ...res, view: this.parent() }; },
   // ---- storage D1 (#69): back up and restore ----
   // the backup of this device as an object, the same as the file ⬇ Back up downloads: { app, format, exported, device, data }
   backup() { return Backup.now(); },
@@ -15299,7 +15326,8 @@ window.__rb = {
       spikes: { arms: live.filter((o) => o.userData.upgrade === 'armspike').length, feet: live.filter((o) => o.userData.upgrade === 'spike').length },
       legs: md.legShape, armShape: md.armShape, paint: md.paintNow ? { ...md.paintNow } : null, finish: md.finish ?? null };
   },
-  // the Quick Fix setting for whoever is playing: 'math' or 'colour'
+  // the Quick Fix setting for whoever is playing: 'math' or 'colour' (#134: a test's way to set it; refused for Guest, who keeps
+  // colour. A parent's is the parent view's switch, parentDo('wiring', child, mode); no child-facing control sets it)
   wiring(mode) { return mode == null ? { wiring: wiringMode() } : setWiring(mode); },
   step(n = 60) { for (let i = 0; i < n; i++) { gatherInput(DT); tick(DT); } return this.state(); },
   render(dt = 1 / 60) { render(dt); return true; },
