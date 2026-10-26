@@ -447,6 +447,21 @@
   #hud .bossbar.shield .bsh { display: block; }
   #hud .bossbar.shield .blade { outline: 3px solid #ff5ad8; outline-offset: 1px; animation: bossShield .9s ease-in-out infinite alternate; }
   @keyframes bossShield { from { outline-color: #ff5ad8; } to { outline-color: #ffb3ee; } }
+  /* #141: the Centipede's bar (.cent): its own style, a body of segments. Its head (glitch-red eye, dark mandibles, red
+     antennae) at the left end and its tail tip at the right, in the sword's ends' places; the bar in orange segments (a dark
+     band every 18 px). The same box as the Knight's, so every fit rule above holds for it too */
+  #hud .bossbar .cend { display: none; flex: none; width: 30px; height: 44px; margin: 0 -3px; position: relative; z-index: 1; }
+  #hud .bossbar.cent :is(.bend, .bmid) { display: none; }
+  #hud .bossbar.cent .cend { display: block; }
+  #hud .bossbar .cend .chd { fill: #ff7a1a; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+  #hud .bossbar .cend .cey { fill: #ff2f5b; stroke: var(--ink); stroke-width: 1.5; }
+  #hud .bossbar .cend .cmd { fill: none; stroke: var(--ink); stroke-width: 3.2; stroke-linecap: round; }
+  #hud .bossbar .cend .can { fill: none; stroke: #e0283c; stroke-width: 2; stroke-linecap: round; }
+  #hud .bossbar.cent .blade { border-radius: 12px; box-shadow: 0 0 10px rgba(255,122,26,.5); }
+  #hud .bossbar.cent .blade b { background: linear-gradient(#ffc07a, #ff7a1a 45%, #c84a0a); }
+  #hud .bossbar.cent .blade::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(90deg, transparent 0 15px, rgba(20,24,42,.7) 15px 18px); }
+  #hud .bossbar.cent :is(.bname, .bsh) { z-index: 1; }
+  #hud .bossbar.cent.hot .blade { box-shadow: 0 0 14px #ff4d5e; }
   #clear .banner { position: absolute; left: 50%; top: 100px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 22px 16px; border-radius: 26px;
     background: rgba(20,24,42,.82); border: 5px solid var(--yellow); box-shadow: 0 0 30px rgba(255,216,61,.5); animation: clearIn .5s cubic-bezier(.2,1.5,.4,1); white-space: nowrap; }
   @keyframes clearIn { from { transform: translateX(-50%) scale(.4); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
@@ -965,7 +980,7 @@
   .glock b { font: 900 26px 'Asap', sans-serif; color: var(--yellow); }
   /* G4: the advanced shelf, under the trophies: five slots across, lit once unlocked, an outline with its milestone till then */
   /* (#120: nine parts with the 🥷 jet boots: five a row, the last place on the shelf free for the next) */
-  .gwall.trophies { grid-template-columns: repeat(6, 1fr); grid-template-rows: 1fr 1fr 1.15fr; }   /* (#122: the tenth, the ⚔️ sword, takes the free place; #123: eleven with the 🔆 solar panel: six a row, one place free) */
+  .gwall.trophies { grid-template-columns: repeat(6, 1fr); grid-template-rows: 1fr 1fr 1.15fr; }   /* (#122: the tenth, the ⚔️ sword, takes the free place; #123: eleven with the 🔆 solar panel: six a row, one place free; #141: twelve with the 🪚 saw, which takes it) */
   .ashelf { grid-column: 1 / -1; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding-top: 8px; border-top: 4px dashed rgba(255,216,61,.35); }
   .aslot { position: relative; min-height: 0; min-width: 0; border-radius: 18px; border: 3px dashed rgba(255,255,255,.28); }   /* (no fill: the 3D piece is drawn under this layer) */
   .aslot.got { border: 3px solid var(--pc); box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 55%, transparent); }
@@ -1206,7 +1221,7 @@
     .gtier .tu { font-size: 22px; } .gtier .tp i { width: 9px; height: 9px; }
     .glock .big { font-size: 64px; }
     .gwall.mech { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }
-    .gwall.trophies { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr 1fr 1.15fr; }   /* (#120: nine parts, three a row; #122: ten, with the ⚔️ sword; #123: eleven, with the 🔆 solar panel) */
+    .gwall.trophies { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr 1fr 1.15fr; }   /* (#120: nine parts, three a row; #122: ten, with the ⚔️ sword; #123: eleven, with the 🔆 solar panel; #141: twelve, with the 🪚 saw: four full rows) */
     .ucard { padding: 4px 6px 6px; border-width: 3px; border-radius: 14px; }
     .ucard .ufx { font-size: 17px; } .ucard .pips i { width: 12px; height: 12px; border-width: 2px; } .ucard .pips { gap: 2px; }
     .ucard .ucost { font-size: 16px; } .ucard .uhave { font-size: 15px; } .ucard .ukey { display: none; }
@@ -1596,7 +1611,7 @@
   <!-- #122: the boss bar, in the boys' sword style (#117, page 3): a long blade with a hilt and a point at each end and a sword
        standing across its middle; the boss's name on it, its health as the blade's gold. While a boss is up it takes the squad
        chips' place (.right.boss-on) -->
-  <div class="right"><div class="bossbar" id="bossBar" role="img" aria-label="Boss"><svg class="bend" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M3 22 L17 15 L29 15 L29 29 L17 29 Z"/><path class="bh" d="M8 22 L18 18.5"/><rect class="bg" x="29" y="6" width="8" height="32" rx="2.5"/></svg><div class="blade"><b id="bossFill"></b><span class="bname" id="bossName"></span><span class="bsh" id="bossShield" aria-hidden="true"><i data-ic="shield"></i></span></div><svg class="bend r" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M37 22 L23 15 L11 15 L11 29 L23 29 Z"/><path class="bh" d="M32 22 L22 18.5"/><rect class="bg" x="3" y="6" width="8" height="32" rx="2.5"/></svg><svg class="bmid" viewBox="0 0 24 46" aria-hidden="true"><path class="bl" d="M8.5 31 L8.5 6 L12 1.5 L15.5 6 L15.5 31 Z"/><rect class="bg" x="2" y="30" width="20" height="5" rx="2"/><rect class="bgrip" x="9.5" y="35" width="5" height="5.5" rx="1"/><circle class="bg" cx="12" cy="42.5" r="3"/></svg></div><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
+  <div class="right"><div class="bossbar" id="bossBar" role="img" aria-label="Boss"><svg class="cend" viewBox="0 0 40 44" aria-hidden="true"><path class="can" d="M24 12 L19 2.5 M30 13 L33 3.5"/><path class="cmd" d="M13 26 Q4 28 5 36 M13 18 Q4 16 5 8"/><circle class="chd" cx="23" cy="22" r="12.5"/><circle class="cey" cx="17" cy="18.5" r="3.4"/><circle class="cey" cx="17" cy="26" r="2.4"/></svg><svg class="bend" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M3 22 L17 15 L29 15 L29 29 L17 29 Z"/><path class="bh" d="M8 22 L18 18.5"/><rect class="bg" x="29" y="6" width="8" height="32" rx="2.5"/></svg><div class="blade"><b id="bossFill"></b><span class="bname" id="bossName"></span><span class="bsh" id="bossShield" aria-hidden="true"><i data-ic="shield"></i></span></div><svg class="bend r" viewBox="0 0 40 44" aria-hidden="true"><path class="bl" d="M37 22 L23 15 L11 15 L11 29 L23 29 Z"/><path class="bh" d="M32 22 L22 18.5"/><rect class="bg" x="3" y="6" width="8" height="32" rx="2.5"/></svg><svg class="cend r" viewBox="0 0 40 44" aria-hidden="true"><path class="chd" d="M2 14 L22 17 Q34 20 37 22 Q34 24 22 27 L2 30 Z"/></svg><svg class="bmid" viewBox="0 0 24 46" aria-hidden="true"><path class="bl" d="M8.5 31 L8.5 6 L12 1.5 L15.5 6 L15.5 31 Z"/><rect class="bg" x="2" y="30" width="20" height="5" rx="2"/><rect class="bgrip" x="9.5" y="35" width="5" height="5.5" rx="1"/><circle class="bg" cx="12" cy="42.5" r="3"/></svg></div><div id="squad" class="squad"></div><div class="counts"><div class="parts" id="partsBox"><span><i data-ic="bolt"></i></span><b id="partsN">0</b></div><div class="parts found" aria-label="Hidden parts found"><span><i data-ic="search"></i></span><b id="foundN">0</b></div><button class="bagb" id="bagBtn" aria-label="Parts bag"><i data-ic="bag"></i><small>B</small></button></div></div>
   <div class="prompt" id="prompt">
     <button class="pfix" id="pFix" aria-label="Fix"><i data-ic="wrench"></i><small>F</small><span class="hm"><i data-ic="home"></i></span></button>
     <button class="pparts" id="pParts" aria-label="Take parts"><i data-ic="bolt"></i><small>G</small></button>
@@ -1986,6 +2001,8 @@ const ROBOT_HITS = {
   // #122: the Knight's sword swipe and its axe throw, on a player or a squadmate (their damage and knock-back: KNIGHT.sword /
   // KNIGHT.axe)
   sword: { push: 10 }, axe: { push: 6 },
+  // #141: the Centipede's laser, crunch and dig (their damage and knock-back: CENTIPEDE.laser / .crunch / .dig)
+  laser: { push: 3 }, crunch: { push: 9 }, dig: { push: 8 },
 };
 const ROBOT = {
   downTime: 12,              // seconds a beaten robot stays powered down
@@ -2006,7 +2023,8 @@ const ROBOT = {
 const FAULTS = {
   weight: { em: 0, punch: 0.6, setup: 1, gun: 1.4, snipe: 1.4, kick: 1.6, stomp: 1.6, rail: 2, flank: 1.6,   // (#120: a flanker's kick, as a kick)
     cgun: 1.4, cpunch: 0.6, ckick: 1.6, crail: 2, cem: 0,   // (#121: a clone's hits on a squadmate, as the weapon's own)
-    sword: 1.4, axe: 1.6 },                                 // (#122: the Knight's, on a squadmate: a cut, and a blow to the legs)
+    sword: 1.4, axe: 1.6,                                   // (#122: the Knight's, on a squadmate: a cut, and a blow to the legs)
+    laser: 2, crunch: 1.4, dig: 1.6 },                      // (#141: the Centipede's: a burn like a rail shot, a cut, and a blow from under)
   em: 0.5, burnt: [1.2, 1.8], scrub: 3,
 };
 // Fix it or take the parts. A downed robot within promptRange shows the choice.
@@ -2034,6 +2052,9 @@ const PARTS = {
   // #123: the satellite's solar panel, its own part (it carries one; taking a beaten satellite apart gets it). A fixed
   // satellite's 🤖 job boost costs them (SQUAD_JOB.satellite)
   solar: { icon: '🔆', ic: 'solar', hex: '#3f8cff', fixes: null },
+  // #141: the Centipede's saw (its serrated CRUNCH blade), its rare part: only fixing the Centipede gives one (Q4 A). A trophy
+  // for the 🏆 wall: it buys nothing yet
+  saw: { icon: '🪚', ic: 'saw', hex: '#ff7a1a', fixes: null },
 };
 // Getting hearts back. Damage lands in areas of the mech (AREAS); its health is
 // always maxHealth minus the damage in every area, so every heal mends areas too
@@ -2051,7 +2072,8 @@ const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };
 // (#121: a clone's kick mostly in the legs, its pulse in the power and wiring; its rounds, rail and punch on the hull)
 const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 }, nkick: { hull: 0.4, legs: 0.6 }, flank: { hull: 0.4, legs: 0.6 },
   ckick: { hull: 0.4, legs: 0.6 }, cem: { power: 0.5, wiring: 0.5 },
-  axe: { hull: 0.3, legs: 0.7 } };   // (#122: the Knight's axe comes along the ground: mostly the legs; its sword, the hull)
+  axe: { hull: 0.3, legs: 0.7 },
+  laser: { hull: 0.5, power: 0.5 }, crunch: { hull: 0.7, legs: 0.3 }, dig: { hull: 0.3, legs: 0.7 } };   // (#141: the Centipede's: its laser burns, its dig comes up from under)   // (#122: the Knight's axe comes along the ground: mostly the legs; its sword, the hull)
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
@@ -2526,9 +2548,9 @@ function median(a) { if (!a?.length) return null; const b = [...a].sort((x, y) =
 // Kick, stomp, punch (and a squadmate's ram) leave it limping; rounds leave holes; the rail gun drains it; anything
 // else (setup damage, an electromagnet) leaves its wiring sparking.
 const SYMPTOMS = {
-  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram', 'nkick', 'flank', 'ckick', 'cpunch', 'axe'] },   // (#120: a Ninja's kicks too; #121: a clone's; #122: the Knight's axe)
-  holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe', 'cgun', 'sword'] },   // (#122: and its sword's cuts)
-  drained: { ic: 'drained', parts: ['battery', 'wiring'], by: ['rail', 'crail'] },
+  limp: { ic: 'limp', parts: ['motor', 'rotor'], by: ['kick', 'stomp', 'punch', 'ram', 'nkick', 'flank', 'ckick', 'cpunch', 'axe', 'dig'] },   // (#120: a Ninja's kicks too; #121: a clone's; #122: the Knight's axe; #141: the Centipede's dig)
+  holes: { ic: 'holes', parts: ['armour', 'rotor'], by: ['gun', 'snipe', 'cgun', 'sword', 'crunch'] },   // (#122: and its sword's cuts; #141: the Centipede's saw)
+  drained: { ic: 'drained', parts: ['battery', 'wiring'], by: ['rail', 'crail', 'laser'] },   // (#141: and the Centipede's laser)
   sparks: { ic: 'power', parts: ['wiring', 'battery'], by: ['setup', 'em', 'cem'] },
 };
 const symptomOf = (how) => Object.keys(SYMPTOMS).find((k) => SYMPTOMS[k].by.includes(how)) || 'sparks';
@@ -2633,7 +2655,8 @@ const COPIER = {
 // #122 (#117 N3, Orion's Q8 A / Q9 A / Q10 A): boss waves and the Knight. Every number here is a starting value, tuned at the
 // playtest. Waves (boss, list, copier, satellite), ROBOT_TYPES.knight, its brain, its axes (Axes), its fix board (bossPlan),
 // the boss bar and the 🏆 latch all read them.
-// BOSS_WAVE: every `every`th wave (5, 10, 15 …) is a boss wave: the wave's normal robots plus its boss (the Knight). What a
+// BOSS_WAVE: every `every`th wave (5, 10, 15 …) is a boss wave: the wave's normal robots plus its boss (the Knight; #141: the
+// Knight and the Centipede in turn, Waves.bossOf). What a
 // boss wave keeps of the normal wave is one switch a line, all on as Orion chose (Dad, #117: no boss-wave exception), so
 // dropping one later is a one-line change:
 //   extras     the robots past WAVE.base's four, with the Ninja crew that takes the last extra's place (from wave NINJA.from)
@@ -2671,6 +2694,44 @@ const KNIGHT = {
   axe: { min: 14, max: 60, aim: 0.12, windup: 0.8, speed: 17, range: 75, y: 0.55, h: 1.0, r: 0.7, dmg: 18, push: 6, back: 2.5, cool: 4.5 },
   board: { math: 1, puzzles: 1 },
   part: 'sword',
+};
+// #141 (#117 N6, Orion's and Apollo's Q1 A / Q2 A / Q3 A / Q4 A): Apollo's centipede, the second boss. Every number here is a
+// starting value, tuned at the playtest. Waves.bossOf, ROBOT_TYPES.centipede, its brain (centipedeAI), its moves (centStep),
+// its hit shape (centBalls), its fix board (bossPlan) and the 🏆 latch read them.
+//   Q1 A: it alternates with the Knight on the boss waves: the Knight on 5, 15, 25 …, the Centipede on 10, 20, 30 … (bossOf)
+//   scale:  its size against the model's (Apollo's model is about 5 m long and 3 m to its antenna tips in Blender; ×3 here, so it
+//           rears up past a mech's head); radius: its front's body circle (what pushes against a mech)
+//   hit:    its hit shape, in the model's metres (× scale): a ball on its head, its neck and its front segment ([forward, up,
+//           radius]), and one on each of its 8 tail segments (`seg` m apart, `tailY` up, radius `tail[i]`), the tail's balls
+//           following the tail's wave as it walks. Rounds, the rail, punches and kicks land on any of them
+//   Q3 A, the coordinator's three moves, each after a wind-up (the ❗, it rears up and its armour pulses red, and it doesn't
+//   turn), then on the move's own clock (centStep), as the poses' timeline has it:
+//   laser:  `windup` s, then two red beams straight ahead from its laser lenses (`beam` s into the move, `r` m thick × scale);
+//           at `at` s it hits the first running mech or ground squadmate whose body's near edge is within `reach` m of its
+//           front (measured from r.pos along where it faces, and within `wide` m to the side of the body's edge): `dmg`. A
+//           tree or a rock in front of the body stops it. It fires when a target is `min` m off or more, facing within `aim`
+//   crunch: `windup` s, then its neck lunges, the saw swings across and its mandibles bite: at `at` s every running mech or
+//           ground squadmate within `reach` m past the two bodies' edges and `arc` rad of where it faces takes `dmg`
+//   dig:    `windup` s (it scoops at the ground), then the move on the timeline's DIG clock: it scoops down and is under by
+//           0.5 s (the timeline's lift −3 m × scale puts it all under the floor), then tunnels at `speed` m/s to where its
+//           target stood the moment it went under (that spot is locked: a homing dig could never miss), a moving dirt trail
+//           over it the whole way (Q2 A's tell: a puff of dirt every `trail` s; the clock holds at 0.5 however long that takes). There it pops up (the clock
+//           runs on from 1.05: lift +0.5 m × scale), and at 1.15 every running mech or ground squadmate within `reach` m of
+//           the pop point (to the body's edge) whose feet are lower than `feet` m (a jump clears it) takes `dmg`; done at
+//           1.5. Chosen at `min` to `max` m off. Q2 A: from going under to popping up nothing can hit it (rounds and blows
+//           pass over it, the 🧲 can't shock it, nothing locks on to it)
+//   cool:   s from a move's end to that move again
+//   heavy, board, downTime: as the Knight's (Q4 A: beaten like the Knight); fixed it gives its rare part (`part`: the 🪚 saw)
+//           and the Centipede trophy (garage.bosses.centipede, latched with ||=), and doesn't join the squad
+const CENTIPEDE = {
+  name: 'Centipede', health: 500, scale: 3, topSpeed: 4, legTurn: 0.7, radius: 2.4, notice: 95, downTime: 40,
+  weight: 0.15, shockK: 0.35, pushK: 0.3,
+  hit: { head: [0.28, 2.03, 0.62], neck: [0.12, 1.17, 0.5], body: [0, 0.45, 0.46], seg: 0.56, tailY: 0.42, tail: [0.44, 0.43, 0.42, 0.41, 0.4, 0.38, 0.36, 0.34] },
+  laser: { windup: 0.85, reach: 18, wide: 0.6, at: 0.15, beam: [0.1, 0.55], dur: 0.75, r: 0.06, dmg: 14, push: 3, min: 5, aim: 0.15, cool: 3.2 },
+  crunch: { windup: 0.85, reach: 2.8, arc: 0.9, at: 0.38, dur: 0.8, dmg: 20, push: 9, cool: 2 },
+  dig: { windup: 0.85, speed: 9, reach: 3, feet: 1, dmg: 22, push: 8, min: 10, max: 34, trail: 0.07, cool: 7 },
+  board: { math: 1, puzzles: 1 },
+  part: 'saw',
 };
 // #123 (#117 N4, Orion's Q11): the satellite (the boys' drawing, page 1: a round body between two long solar-panel wings, "makes
 // enemies stronger", "off the ground"). Every number here is a starting value, tuned at the playtest.
@@ -2743,6 +2804,14 @@ const MODELS = {
     joints: ['SAT_Body', 'SAT_Panel_L', 'SAT_Panel_R'] },
   copier: { file: 'copier-lo.glb', scale: 2.6, anchor: 3,
     joints: ['CP_Body'], keep: Object.fromEntries(Array.from({ length: 10 }, (_, i) => ['CP_Light' + i, 'lamp'])), drop: ['CP_Beam'] },
+  // #141: Apollo's centipede, anchored at its feet and grown CENTIPEDE.scale (its hit shape is CENTIPEDE.hit, the same for
+  // the code-built one). Its joints include mesh nodes the poses turn themselves (its 16 legs and 2 mandibles: Models.prep
+  // gives each a pivot of its own, its rest turn kept), and `anchors` are meshes whose place the game needs (its laser
+  // lenses, where the beams leave from)
+  centipede: { file: 'centipede-lo.glb', scale: CENTIPEDE.scale, anchor: 0, hud: [3.4 * CENTIPEDE.scale, 5],
+    joints: ['CE_Body', 'CE_Neck_1', 'CE_Neck_2', 'CE_Head', ...['Shoulder', 'Elbow', 'Wrist'].flatMap((j) => ['CE_' + j + '_L', 'CE_' + j + '_R']),
+      ...Array.from({ length: 8 }, (_, i) => 'CE_Tail_' + (i + 1)), ...['L', 'R'].flatMap((s) => Array.from({ length: 8 }, (_, i) => `CE_Leg_${i + 1}_${s}`)), 'CE_Mandible_L', 'CE_Mandible_R'],
+    anchors: ['CE_LaserLens_L', 'CE_LaserLens_R'] },
 };
 
 const V3 = THREE.Vector3;
@@ -2871,6 +2940,9 @@ const ICONS = {
   // #123: the satellite's solar panel: a blue panel of cells in a steel frame, on the slant, with its stub
   solar: ['solar panel', ['🔆'], rot(-20, re(2.6, 6.4, 18.8, 11.2, 1.2, G('blue')) + '<path d="M7.3 6.8 L7.3 17.2 M12 6.8 L12 17.2 M16.7 6.8 L16.7 17.2 M3 12 L21 12" fill="none" stroke="#173c86" stroke-width="0.9"/>' + hl('M4.4 8.2 L6 8.2'))
     + re(10.4, 18.2, 3.2, 3.8, 0.8, G('steel'))],
+  // #141: the Centipede's saw (its rare part): a steel blade with its teeth along the bottom and an orange grip, on the slant
+  saw: ['saw', ['🪚'], rot(-30, pa('M2.2 8.6 L16.4 8.6 L16.4 15 L2.2 12.6 Z', G('steel')) + '<path d="M2.6 12.6 L3.6 14.4 L4.8 13 L5.8 14.8 L7 13.4 L8 15.2 L9.2 13.8 L10.2 15.6 L11.4 14.2 L12.4 16 L13.6 14.6 L14.6 16.2" fill="none" stroke="#14182a" stroke-width="1"/>'
+    + re(15.6, 6.4, 6.6, 11, 2.6, G('orange')) + rn(17.6, 9.4, 2.6, 5, 1.3, '#14182a') + hl('M3.8 10 L14.8 10'))],
   // ---- robot types: each one's own silhouette, in its armour colour ----
   charger: ['Charger', ['🐏'], re(3.6, 17, 3.4, 4.4, 1, G('dark')) + re(17, 17, 3.4, 4.4, 1, G('dark')) + re(2.4, 6.4, 19.2, 11.6, 3.4, G('purple')) + rn(5.4, 9.2, 13.2, 3.6, 1.8, INK) + rn(7, 10.2, 10, 1.6, 0.8, '#ff2f5b')
     + re(7.2, 14.6, 9.6, 4.6, 1, G('steel')) + hl('M4.6 9 L4.6 13')],
@@ -2890,6 +2962,11 @@ const ICONS = {
   // #121: your clone: the mech's chest in its orange, its steel shoulders, a dark visor with two glitch-red eyes, and a
   // glitch tear (a red and a cyan bar) across it
   // #122: Apollo's Knight: a tall yellow helmet with its antenna and a dark visor (two glitch-red eyes), on broad yellow shoulders
+  // #141: Apollo's Centipede: its round orange head (a glitch-red eye, dark mandibles, red antennae) reared up over its
+  // segments trailing down to the right, each on its legs
+  centipede: ['Centipede', [], ln('M9.8 4 L8 1 M12.2 4.8 L15 2', G('red'), 1) + ln('M12.6 17.6 L11.6 20.4 M16.4 19.4 L16 22 M19.8 20.6 L20.6 22.8', G('dark'), 1)
+    + ci(19.8, 18.4, 2.6, G('orange')) + ci(15.8, 16.4, 3, G('orange')) + ci(11.6, 13.6, 3.4, G('orange')) + ln('M3.6 10.4 Q1.4 12 2.6 14.4', '#14182a', 1.2)
+    + ci(8.4, 8.6, 4.8, G('orange')) + cn(6.6, 7.4, 1.4, '#ff2f5b') + hl('M6 5.8 C6.6 5 7.4 4.6 8.2 4.4')],
   knight: ['Knight', [], ln('M12 1.8 L12 4.2', G('dark'), 1.2) + ci(12, 1.8, 1.3, G('gold')) + re(2.4, 14.2, 19.2, 8, 2.4, G('yellow')) + rn(2.4, 18.6, 19.2, 1.8, 0, '#b8860b')
     + re(6.8, 4, 10.4, 10.4, 1.8, G('yellow')) + rn(8.2, 7.6, 7.6, 2.8, 1.2, INK) + cn(10.2, 9, 0.9, '#ff2f5b') + cn(13.8, 9, 0.9, '#ff2f5b') + hl('M4.6 16.4 L4.6 18') + hl('M8.4 5.8 L8.4 6.8')],
   // #123: the satellite (the PDF on #117, page 1): a round body with a glitch-red eye between two long solar-panel wings
@@ -7885,6 +7962,7 @@ const Bullets = {
         for (const r of Game.robots) {
           if (r.state === 'ally' || r === b.owner) continue;   // shots pass squadmates
           const T = ROBOT_TYPES[r.type];
+          if (T.balls) { for (const [x, y, z, R] of T.balls(r)) { const t = sweep(x, y, z, R, best); if (t != null) { best = t; hit = r; at = q.clone(); } } continue; }   // #141: the Centipede's hit shape
           const t = sweep(r.pos.x, r.pos.y + T.hitY, r.pos.z, T.hitR, best);
           if (t != null) { best = t; hit = r; at = q.clone(); }
         }
@@ -8018,7 +8096,7 @@ const Impacts = {
       // p is the round's closest pass to the robot's middle; walk back out to its plating, on the shooter's side
       const T = ROBOT_TYPES[r.type], cx = p.x - r.pos.x, cz = p.z - r.pos.z, side = cx * bz - cz * bx;
       const out = Math.sqrt(Math.max(0, T.hitR * T.hitR - side * side)) * 0.95, back = out - (cx * bx + cz * bz);
-      p = p.clone(); p.x += bx * back; p.z += bz * back;
+      p = p.clone(); if (!T.balls) { p.x += bx * back; p.z += bz * back; }   // (#141: a ball of the Centipede's: p is on it already)
       Sparks.spray(p.x, p.y, p.z, 12, SPARK_HOT, 9, bx, bz);
       this.flash(p, 1.7);
       this.chip(p, 2, ['#c9ced8', '#3a4152'], 4, bx, bz, 0.08);
@@ -8232,8 +8310,11 @@ function aimDir(m, from, range, props = true) {
   const yaw = m.torsoYaw, cp = Math.cos(m.aimPitch), dir = new V3(-Math.sin(yaw) * cp, Math.sin(m.aimPitch), -Math.cos(yaw) * cp);
   let best = AIM_ASSIST, hb = AIM_ASSIST, high = null;
   for (const r of Game.robots) {
-    if (r.state !== 'glitched') continue;
-    const T = ROBOT_TYPES[r.type], c = new V3(r.pos.x, r.pos.y + T.hitY, r.pos.z), dx = c.x - m.pos.x, dz = c.z - m.pos.z;
+    if (r.state !== 'glitched' || r.under) continue;   // (#141: nothing locks on to the Centipede underground)
+    const T = ROBOT_TYPES[r.type], c = new V3(r.pos.x, r.pos.y + T.hitY, r.pos.z);
+    // #141: a long body (the Centipede's balls): the lock goes to the ball nearest the aim, so aiming at its tail hits its tail
+    if (T.balls) { let bo = Infinity; for (const [x, y, z] of T.balls(r)) { const o = Math.abs(wrapAngle(Math.atan2(-(x - m.pos.x), -(z - m.pos.z)) - yaw)); if (o < bo) { bo = o; c.set(x, y, z); } } }
+    const dx = c.x - m.pos.x, dz = c.z - m.pos.z;
     const off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - yaw));
     if (T.high) { if (off < hb && Math.hypot(dx, dz) < range) { hb = off; high = c; m.lockHighId = r.id; } continue; }
     if (off < best && Math.hypot(dx, dz) < range) { best = off; dir.subVectors(c, from).normalize(); }
@@ -8300,7 +8381,14 @@ function railShot(m) {
   const hits = [], c = new V3();
   for (const r of Game.robots) {
     if (r.state === 'ally') continue;
-    const T = ROBOT_TYPES[r.type]; c.set(r.pos.x, r.pos.y + T.hitY, r.pos.z);
+    const T = ROBOT_TYPES[r.type];
+    if (T.balls) {   // #141: the Centipede's hit shape: where the line first passes one of its balls
+      let first = null;
+      for (const [x, y, z, R] of T.balls(r)) { c.set(x, y, z); const t = c.clone().sub(from).dot(dir); if (t < 0 || t > len) continue; const at = from.clone().addScaledVector(dir, t); if (at.distanceTo(c) <= R && (!first || t < first.t)) first = { r, t, at }; }
+      if (first) hits.push(first);
+      continue;
+    }
+    c.set(r.pos.x, r.pos.y + T.hitY, r.pos.z);
     const t = c.clone().sub(from).dot(dir);
     if (t < 0 || t > len) continue;
     const at = from.clone().addScaledVector(dir, t);
@@ -8326,7 +8414,14 @@ function meleeStrike(m, w) {
   let any = false;
   for (const r of Game.robots) {
     if (r.state === 'ally') continue;
-    const T = ROBOT_TYPES[r.type], dx = r.pos.x - m.pos.x, dz = r.pos.z - m.pos.z, d = Math.hypot(dx, dz) || 1;
+    const T = ROBOT_TYPES[r.type];
+    if (T.balls) {   // #141: the Centipede: the ball of its hit shape nearest the mech, if one is in reach and the arc
+      let best = null;
+      for (const [x, y, z, R] of T.balls(r)) { const dx = x - m.pos.x, dz = z - m.pos.z, d = Math.hypot(dx, dz) || 1; if (d > MECH.radius + R + W.reach || Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue; if (!best || d - R < best.e) best = { e: d - R, dx, dz, d, x, y, z, R }; }
+      if (best) { hitRobot(r, dmg, w, best.dx, best.dz, new V3(best.x - best.dx / best.d * best.R, best.y, best.z - best.dz / best.d * best.R), push); any = true; }
+      continue;
+    }
+    const dx = r.pos.x - m.pos.x, dz = r.pos.z - m.pos.z, d = Math.hypot(dx, dz) || 1;
     if (T.high && r.lift > SATELLITE.reach) continue;   // #123: a satellite up in the sky is out of a punch's or kick's reach
     if (d > MECH.radius + r.spec.radius + W.reach) continue;
     if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
@@ -8354,6 +8449,7 @@ function meleeStrike(m, w) {
 // An electromagnetic hit also loads shock; enough shock shuts the robot down (shockRobot).
 // (#42: pushK × its knock-back: the Heavy fists' punch)
 function hitRobot(r, dmg, w, dx, dz, at, pushK) {
+  if (r.under) { centNote(r).immune++; return; }   // #141 (Q2 A): the Centipede underground can't be hit
   const W = WEAPON[w] || ROBOT_HITS[w], L = Math.hypot(dx, dz) || 1, round = w === 'gun' || w === 'snipe' || w === 'rail', P = (pushK ? W.push * pushK : W.push) * (ROBOT_TYPES[r.type].pushK ?? 1);   // (#122: a Knight is heavy)
   r.hits[w] = (r.hits[w] || 0) + 1;
   r.push.x += dx / L * P; r.push.z += dz / L * P;
@@ -8377,6 +8473,8 @@ function hitRobot(r, dmg, w, dx, dz, at, pushK) {
 // r.harm: the damage it has taken since it last booted, by weapon (sets its faults when it goes down)
 function hurtRobot(r, amount, w) {
   if (r.state === 'down') return false;
+  if (r.under) { centNote(r).immune++; return false; }   // #141 (Q2 A): nor hurt
+
   if (r.state === 'ally') { hurtMech(r, amount, w); return true; }   // #59: a squadmate takes it in its damage areas
   const dealt = Math.min(Math.max(0, amount), r.health);
   r.health = Math.max(0, r.health - amount); r.lastHitBy = w;
@@ -8388,7 +8486,7 @@ function hurtRobot(r, amount, w) {
 // Electromagnetic shock: loads up with each pulse and drains away (robotTick). At
 // ROBOT.shockMax a glitched robot's electronics cut out and it powers down mostly intact.
 function shockRobot(r, amount) {
-  if (r.state !== 'glitched') return false;
+  if (r.state !== 'glitched' || r.under) return false;   // (#141: nor shocked underground)
   r.shock = Math.min(ROBOT.shockMax, r.shock + amount * (ROBOT_TYPES[r.type].shockK ?? 1));   // (#122: a Knight's is a fraction)
   if (r.shock < ROBOT.shockMax) return false;
   powerDown(r, 'em');
@@ -8608,10 +8706,22 @@ iconTex.preload = () => Promise.all([...WORLD_ICONS.map((n) => iconTex(n).userDa
 // 'failed' | 'skipped' (file://: the game's own look); Models.done resolves once every load has ended either way.
 // ===========================================================================
 const MODEL_POSES = {knight:{stance:{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]},walk:[{J_Shoulder_L:[0,0,70],J_Shoulder_R:[0,0,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-21.21,0,0],J_Knee_L:[28.28,0,0],J_Hip_R:[21.21,0,0],J_Shoulder_L:[0,17.68,70],J_Shoulder_R:[0,17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-30,0,0],J_Knee_L:[40,0,0],J_Hip_R:[30,0,0],J_Shoulder_L:[0,25,70],J_Shoulder_R:[0,25,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-21.21,0,0],J_Knee_L:[28.28,0,0],J_Hip_R:[21.21,0,0],J_Shoulder_L:[0,17.68,70],J_Shoulder_R:[0,17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Shoulder_L:[0,0,70],J_Shoulder_R:[0,0,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[21.21,0,0],J_Hip_R:[-21.21,0,0],J_Knee_R:[28.28,0,0],J_Shoulder_L:[0,-17.68,70],J_Shoulder_R:[0,-17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[30,0,0],J_Hip_R:[-30,0,0],J_Knee_R:[40,0,0],J_Shoulder_L:[0,-25,70],J_Shoulder_R:[0,-25,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[21.21,0,0],J_Hip_R:[-21.21,0,0],J_Knee_R:[28.28,0,0],J_Shoulder_L:[0,-17.68,70],J_Shoulder_R:[0,-17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]}],tl:{SLICE:{hit:0.45,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.25,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,45,-15],J_Elbow_R:[0,-20,0],J_Wrist_R:[0,40,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0]}],[0.45,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-85,-15],J_Elbow_R:[0,-15,0],J_Wrist_R:[0,40,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,-25,0]}],[0.85,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]},CHOP:{hit:0.48,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.3,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-20,60],J_Elbow_R:[0,-30,0],J_Wrist_R:[-110,0,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[-8,0,0]}],[0.48,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-60,-40],J_Elbow_R:[0,-10,0],J_Wrist_R:[20,70,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[12,0,0]}],[0.6,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-60,-40],J_Elbow_R:[0,-10,0],J_Wrist_R:[20,70,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[12,0,0]}],[0.95,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]},STAB:{hit:0.4,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.25,{J_Head:[0,-10,0],J_Shoulder_L:[0,-25,65],J_Elbow_L:[0,55,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,-15,0],J_Wrist_L:[90,0,0]}],[0.4,{J_Head:[0,-10,0],J_Shoulder_L:[0,60,20],J_Elbow_L:[0,-30,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-35,0,0],J_Knee_L:[30,0,0],J_Hip_R:[20,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0],J_Wrist_L:[90,0,0]}],[0.55,{J_Head:[0,-10,0],J_Shoulder_L:[0,60,20],J_Elbow_L:[0,-30,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-35,0,0],J_Knee_L:[30,0,0],J_Hip_R:[20,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0],J_Wrist_L:[90,0,0]}],[0.85,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]}}},ninja:{stance:{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]},guard:{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,80,10],NJ_Elbow_L:[0,60,0],NJ_Shoulder_R:[0,-80,-10],NJ_Elbow_R:[0,-60,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]},walk:[{NJ_Body:[6,0,0],NJ_Shoulder_L:[0,0,60],NJ_Shoulder_R:[0,0,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-21.21,0,0],NJ_Knee_L:[28.28,0,0],NJ_Hip_R:[21.21,0,0],NJ_Shoulder_L:[0,-21.21,60],NJ_Shoulder_R:[0,-21.21,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-30,0,0],NJ_Knee_L:[40,0,0],NJ_Hip_R:[30,0,0],NJ_Shoulder_L:[0,-30,60],NJ_Shoulder_R:[0,-30,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-21.21,0,0],NJ_Knee_L:[28.28,0,0],NJ_Hip_R:[21.21,0,0],NJ_Shoulder_L:[0,-21.21,60],NJ_Shoulder_R:[0,-21.21,-60]},{NJ_Body:[6,0,0],NJ_Shoulder_L:[0,0,60],NJ_Shoulder_R:[0,0,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[21.21,0,0],NJ_Hip_R:[-21.21,0,0],NJ_Knee_R:[28.28,0,0],NJ_Shoulder_L:[0,21.21,60],NJ_Shoulder_R:[0,21.21,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[30,0,0],NJ_Hip_R:[-30,0,0],NJ_Knee_R:[40,0,0],NJ_Shoulder_L:[0,30,60],NJ_Shoulder_R:[0,30,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[21.21,0,0],NJ_Hip_R:[-21.21,0,0],NJ_Knee_R:[28.28,0,0],NJ_Shoulder_L:[0,21.21,60],NJ_Shoulder_R:[0,21.21,-60]}],run:[{NJ_Body:[18,0,0],NJ_Knee_L:[10,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-31.82,0,0],NJ_Knee_L:[52.43,0,0],NJ_Hip_R:[31.82,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-45,0,0],NJ_Knee_L:[70,0,0],NJ_Hip_R:[45,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-31.82,0,0],NJ_Knee_L:[52.43,0,0],NJ_Hip_R:[31.82,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Knee_L:[10,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[31.82,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-31.82,0,0],NJ_Knee_R:[52.43,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[45,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-45,0,0],NJ_Knee_R:[70,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[31.82,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-31.82,0,0],NJ_Knee_R:[52.43,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]}],tl:{KICK:{hit:0.28,keys:[[0,{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]}],[0.15,{NJ_Body:[-5,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-40,0,0],NJ_Knee_R:[100,0,0]}],[0.3,{NJ_Body:[-20,0,0],NJ_Shoulder_L:[0,40,-10],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-40,10],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-95,0,0]}],[0.45,{NJ_Body:[-20,0,0],NJ_Shoulder_L:[0,40,-10],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-40,10],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-95,0,0]}],[0.7,{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]}]]}}},minion:{stance:{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]},walk:[{SprinterA_Body:[13.2,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-23.33,0,0],SprinterA_Knee_L:[39.7,0,0],SprinterA_Hip_R:[23.33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-33,0,0],SprinterA_Knee_L:[52,0,0],SprinterA_Hip_R:[33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-23.33,0,0],SprinterA_Knee_L:[39.7,0,0],SprinterA_Hip_R:[23.33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[23.33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-23.33,0,0],SprinterA_Knee_R:[39.7,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-33,0,0],SprinterA_Knee_R:[52,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[23.33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-23.33,0,0],SprinterA_Knee_R:[39.7,0,0],SprinterA_Head:[-6,0,0]}],run:[{SprinterA_Body:[22,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-38.89,0,0],SprinterA_Knee_L:[59.5,0,0],SprinterA_Hip_R:[38.89,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-55,0,0],SprinterA_Knee_L:[80,0,0],SprinterA_Hip_R:[55,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-38.89,0,0],SprinterA_Knee_L:[59.5,0,0],SprinterA_Hip_R:[38.89,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[38.89,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-38.89,0,0],SprinterA_Knee_R:[59.5,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[55,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-55,0,0],SprinterA_Knee_R:[80,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[38.89,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-38.89,0,0],SprinterA_Knee_R:[59.5,0,0],SprinterA_Head:[-10,0,0]}],tl:{KICK:{hit:0.28,keys:[[0,{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]}],[0.12,{SprinterA_Body:[-5,0,0],SprinterA_Hip_L:[-45,0,0],SprinterA_Knee_L:[100,0,0],SprinterA_Hip_R:[5,0,0],SprinterA_Knee_R:[20,0,0]}],[0.25,{SprinterA_Body:[-22,0,0],SprinterA_Hip_L:[-100,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[10,0,0]}],[0.4,{SprinterA_Body:[-22,0,0],SprinterA_Hip_L:[-100,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[10,0,0]}],[0.6,{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]}]]}}}};
+// #141: Apollo's Centipede (centipede.poses.json, copied from: degrees, YZX). UNLIKE the others its shoulders, elbows, wrists,
+// legs (∓40°) and mandibles (x 12°) rest turned, so each of its poses is whole: every one of its 36 nodes (MODELS.centipede.
+// joints) with its absolute angle. To keep the page small it's written here as the stance in full (its rest: the same angles
+// as the .glb's) and each pose, gait sample and timeline key as only the nodes that differ from it, made whole again as the
+// page loads ({ ...stance, ...diff }): a node that isn't listed is at its stance angle, which is its rest, never at 0. The
+// run is the walk (the same samples, faster). tl: each move's duration, hit time and keys [t, pose, lift m]; bite: the
+// mandibles' bite through CRUNCH, [t, left mandible's y°] (the right's is its mirror)
+MODEL_POSES.centipede = ((D) => {
+  const S = D.stance, X = (d) => ({ ...S, ...d });
+  return { stance: S, curl: X(D.poses.curl_up), laser: X(D.poses.laser), crunch: X(D.poses.crunch), dig: X(D.poses.dig), walk: D.walk.map(X),
+    tl: Object.fromEntries(Object.entries(D.tl).map(([k, T]) => [k, { dur: T.dur, hit: T.hit, keys: T.keys.map(([t, d, lift]) => [t, X(d), lift ?? 0]) }])), bite: D.bite };
+})({stance:{CE_Body:[0,0,0],CE_Neck_1:[0,0,0],CE_Neck_2:[0,0,0],CE_Head:[0,0,0],CE_Shoulder_L:[0,0,-20],CE_Shoulder_R:[0,0,20],CE_Elbow_L:[0,0,15],CE_Elbow_R:[0,0,-15],CE_Wrist_L:[10,0,0],CE_Wrist_R:[10,0,0],CE_Tail_1:[0,0,0],CE_Tail_2:[0,0,0],CE_Tail_3:[0,0,0],CE_Tail_4:[0,0,0],CE_Tail_5:[0,0,0],CE_Tail_6:[0,0,0],CE_Tail_7:[0,0,0],CE_Tail_8:[0,0,0],CE_Leg_1_L:[0,0,40],CE_Leg_2_L:[0,0,40],CE_Leg_3_L:[0,0,40],CE_Leg_4_L:[0,0,40],CE_Leg_5_L:[0,0,40],CE_Leg_6_L:[0,0,40],CE_Leg_7_L:[0,0,40],CE_Leg_8_L:[0,0,40],CE_Leg_1_R:[0,0,-40],CE_Leg_2_R:[0,0,-40],CE_Leg_3_R:[0,0,-40],CE_Leg_4_R:[0,0,-40],CE_Leg_5_R:[0,0,-40],CE_Leg_6_R:[0,0,-40],CE_Leg_7_R:[0,0,-40],CE_Leg_8_R:[0,0,-40],CE_Mandible_L:[12,0,0],CE_Mandible_R:[12,0,0]},poses:{laser:{CE_Neck_2:[-6,0,0]},crunch:{CE_Neck_1:[22,0,0],CE_Neck_2:[15,-10,0],CE_Shoulder_R:[0,-80,5],CE_Elbow_R:[0,0,-10]},dig:{CE_Neck_1:[25,0,0],CE_Neck_2:[25,0,0],CE_Shoulder_L:[0,70,20],CE_Wrist_L:[60,0,0]},curl_up:{CE_Neck_1:[30,0,0],CE_Neck_2:[30,0,0],CE_Shoulder_L:[0,60,30],CE_Shoulder_R:[0,-60,-30]}},walk:[{CE_Tail_1:[0,-5.8,0],CE_Tail_2:[0,-8.87,0],CE_Tail_3:[0,-7.77,0],CE_Tail_4:[0,-3.01,0],CE_Tail_5:[0,3.16,0],CE_Tail_6:[0,7.84,0],CE_Tail_7:[0,8.84,0],CE_Tail_8:[0,5.68,0],CE_Leg_1_L:[-16.61,0,40],CE_Leg_2_L:[-25.41,0,40],CE_Leg_3_L:[-22.26,0,40],CE_Leg_4_L:[-8.64,0,40],CE_Leg_5_L:[9.04,0,40],CE_Leg_6_L:[22.47,0,40],CE_Leg_7_L:[25.33,0,40],CE_Leg_8_L:[16.28,0,40],CE_Leg_1_R:[16.61,0,-40],CE_Leg_2_R:[25.41,0,-40],CE_Leg_3_R:[22.26,0,-40],CE_Leg_4_R:[8.64,0,-40],CE_Leg_5_R:[-9.04,0,-40],CE_Leg_6_R:[-22.47,0,-40],CE_Leg_7_R:[-25.33,0,-40],CE_Leg_8_R:[-16.28,0,-40]},{CE_Neck_2:[2.83,0,0],CE_Tail_1:[0,0.77,0],CE_Tail_2:[0,-5.19,0],CE_Tail_3:[0,-8.71,0],CE_Tail_4:[0,-8.13,0],CE_Tail_5:[0,-3.73,0],CE_Tail_6:[0,2.43,0],CE_Tail_7:[0,7.44,0],CE_Tail_8:[0,8.95,0],CE_Leg_1_L:[2.2,0,40],CE_Leg_2_L:[-14.87,0,40],CE_Leg_3_L:[-24.94,0,40],CE_Leg_4_L:[-23.29,0,40],CE_Leg_5_L:[-10.68,0,40],CE_Leg_6_L:[6.95,0,40],CE_Leg_7_L:[21.31,0,40],CE_Leg_8_L:[25.65,0,40],CE_Leg_1_R:[-2.2,0,-40],CE_Leg_2_R:[14.87,0,-40],CE_Leg_3_R:[24.94,0,-40],CE_Leg_4_R:[23.29,0,-40],CE_Leg_5_R:[10.68,0,-40],CE_Leg_6_R:[-6.95,0,-40],CE_Leg_7_R:[-21.31,0,-40],CE_Leg_8_R:[-25.65,0,-40]},{CE_Neck_2:[4,0,0],CE_Tail_1:[0,6.88,0],CE_Tail_2:[0,1.53,0],CE_Tail_3:[0,-4.54,0],CE_Tail_4:[0,-8.48,0],CE_Tail_5:[0,-8.43,0],CE_Tail_6:[0,-4.41,0],CE_Tail_7:[0,1.68,0],CE_Tail_8:[0,6.98,0],CE_Leg_1_L:[19.72,0,40],CE_Leg_2_L:[4.38,0,40],CE_Leg_3_L:[-13.02,0,40],CE_Leg_4_L:[-24.29,0,40],CE_Leg_5_L:[-24.14,0,40],CE_Leg_6_L:[-12.64,0,40],CE_Leg_7_L:[4.81,0,40],CE_Leg_8_L:[20,0,40],CE_Leg_1_R:[-19.72,0,-40],CE_Leg_2_R:[-4.38,0,-40],CE_Leg_3_R:[13.02,0,-40],CE_Leg_4_R:[24.29,0,-40],CE_Leg_5_R:[24.14,0,-40],CE_Leg_6_R:[12.64,0,-40],CE_Leg_7_R:[-4.81,0,-40],CE_Leg_8_R:[-20,0,-40]},{CE_Neck_2:[2.83,0,0],CE_Tail_1:[0,8.97,0],CE_Tail_2:[0,7.35,0],CE_Tail_3:[0,2.28,0],CE_Tail_4:[0,-3.86,0],CE_Tail_5:[0,-8.19,0],CE_Tail_6:[0,-8.67,0],CE_Tail_7:[0,-5.07,0],CE_Tail_8:[0,0.92,0],CE_Leg_1_L:[25.69,0,40],CE_Leg_2_L:[21.06,0,40],CE_Leg_3_L:[6.53,0,40],CE_Leg_4_L:[-11.07,0,40],CE_Leg_5_L:[-23.47,0,40],CE_Leg_6_L:[-24.83,0,40],CE_Leg_7_L:[-14.51,0,40],CE_Leg_8_L:[2.63,0,40],CE_Leg_1_R:[-25.69,0,-40],CE_Leg_2_R:[-21.06,0,-40],CE_Leg_3_R:[-6.53,0,-40],CE_Leg_4_R:[11.07,0,-40],CE_Leg_5_R:[23.47,0,-40],CE_Leg_6_R:[24.83,0,-40],CE_Leg_7_R:[14.51,0,-40],CE_Leg_8_R:[-2.63,0,-40]},{CE_Tail_1:[0,5.8,0],CE_Tail_2:[0,8.87,0],CE_Tail_3:[0,7.77,0],CE_Tail_4:[0,3.01,0],CE_Tail_5:[0,-3.16,0],CE_Tail_6:[0,-7.84,0],CE_Tail_7:[0,-8.84,0],CE_Tail_8:[0,-5.68,0],CE_Leg_1_L:[16.61,0,40],CE_Leg_2_L:[25.41,0,40],CE_Leg_3_L:[22.26,0,40],CE_Leg_4_L:[8.64,0,40],CE_Leg_5_L:[-9.04,0,40],CE_Leg_6_L:[-22.47,0,40],CE_Leg_7_L:[-25.33,0,40],CE_Leg_8_L:[-16.28,0,40],CE_Leg_1_R:[-16.61,0,-40],CE_Leg_2_R:[-25.41,0,-40],CE_Leg_3_R:[-22.26,0,-40],CE_Leg_4_R:[-8.64,0,-40],CE_Leg_5_R:[9.04,0,-40],CE_Leg_6_R:[22.47,0,-40],CE_Leg_7_R:[25.33,0,-40],CE_Leg_8_R:[16.28,0,-40]},{CE_Neck_2:[-2.83,0,0],CE_Tail_1:[0,-0.77,0],CE_Tail_2:[0,5.19,0],CE_Tail_3:[0,8.71,0],CE_Tail_4:[0,8.13,0],CE_Tail_5:[0,3.73,0],CE_Tail_6:[0,-2.43,0],CE_Tail_7:[0,-7.44,0],CE_Tail_8:[0,-8.95,0],CE_Leg_1_L:[-2.2,0,40],CE_Leg_2_L:[14.87,0,40],CE_Leg_3_L:[24.94,0,40],CE_Leg_4_L:[23.29,0,40],CE_Leg_5_L:[10.68,0,40],CE_Leg_6_L:[-6.95,0,40],CE_Leg_7_L:[-21.31,0,40],CE_Leg_8_L:[-25.65,0,40],CE_Leg_1_R:[2.2,0,-40],CE_Leg_2_R:[-14.87,0,-40],CE_Leg_3_R:[-24.94,0,-40],CE_Leg_4_R:[-23.29,0,-40],CE_Leg_5_R:[-10.68,0,-40],CE_Leg_6_R:[6.95,0,-40],CE_Leg_7_R:[21.31,0,-40],CE_Leg_8_R:[25.65,0,-40]},{CE_Neck_2:[-4,0,0],CE_Tail_1:[0,-6.88,0],CE_Tail_2:[0,-1.53,0],CE_Tail_3:[0,4.54,0],CE_Tail_4:[0,8.48,0],CE_Tail_5:[0,8.43,0],CE_Tail_6:[0,4.41,0],CE_Tail_7:[0,-1.68,0],CE_Tail_8:[0,-6.98,0],CE_Leg_1_L:[-19.72,0,40],CE_Leg_2_L:[-4.38,0,40],CE_Leg_3_L:[13.02,0,40],CE_Leg_4_L:[24.29,0,40],CE_Leg_5_L:[24.14,0,40],CE_Leg_6_L:[12.64,0,40],CE_Leg_7_L:[-4.81,0,40],CE_Leg_8_L:[-20,0,40],CE_Leg_1_R:[19.72,0,-40],CE_Leg_2_R:[4.38,0,-40],CE_Leg_3_R:[-13.02,0,-40],CE_Leg_4_R:[-24.29,0,-40],CE_Leg_5_R:[-24.14,0,-40],CE_Leg_6_R:[-12.64,0,-40],CE_Leg_7_R:[4.81,0,-40],CE_Leg_8_R:[20,0,-40]},{CE_Neck_2:[-2.83,0,0],CE_Tail_1:[0,-8.97,0],CE_Tail_2:[0,-7.35,0],CE_Tail_3:[0,-2.28,0],CE_Tail_4:[0,3.86,0],CE_Tail_5:[0,8.19,0],CE_Tail_6:[0,8.67,0],CE_Tail_7:[0,5.07,0],CE_Tail_8:[0,-0.92,0],CE_Leg_1_L:[-25.69,0,40],CE_Leg_2_L:[-21.06,0,40],CE_Leg_3_L:[-6.53,0,40],CE_Leg_4_L:[11.07,0,40],CE_Leg_5_L:[23.47,0,40],CE_Leg_6_L:[24.83,0,40],CE_Leg_7_L:[14.51,0,40],CE_Leg_8_L:[-2.63,0,40],CE_Leg_1_R:[25.69,0,-40],CE_Leg_2_R:[21.06,0,-40],CE_Leg_3_R:[6.53,0,-40],CE_Leg_4_R:[-11.07,0,-40],CE_Leg_5_R:[-23.47,0,-40],CE_Leg_6_R:[-24.83,0,-40],CE_Leg_7_R:[-14.51,0,-40],CE_Leg_8_R:[2.63,0,-40]}],tl:{LASER:{dur:0.75,hit:0.15,keys:[[0,{}],[0.1,{CE_Neck_2:[-6,0,0]}],[0.55,{CE_Neck_2:[-6,0,0]}],[0.75,{}]]},CRUNCH:{dur:0.8,hit:0.38,keys:[[0,{}],[0.15,{CE_Neck_2:[-5,10,0],CE_Shoulder_R:[0,25,35]}],[0.35,{CE_Neck_1:[22,0,0],CE_Neck_2:[15,-10,0],CE_Shoulder_R:[0,-80,5],CE_Elbow_R:[0,0,-10]}],[0.55,{CE_Neck_1:[22,0,0],CE_Neck_2:[15,-10,0],CE_Shoulder_R:[0,-80,5],CE_Elbow_R:[0,0,-10]}],[0.8,{}]]},DIG:{dur:1.5,hit:1.15,keys:[[0,{}],[0.3,{CE_Neck_1:[25,0,0],CE_Neck_2:[25,0,0],CE_Shoulder_L:[0,70,20],CE_Wrist_L:[60,0,0]},0],[0.5,{CE_Neck_1:[25,0,0],CE_Neck_2:[25,0,0],CE_Shoulder_L:[0,70,20],CE_Wrist_L:[60,0,0]},-3],[1.05,{CE_Neck_1:[25,0,0],CE_Neck_2:[25,0,0],CE_Shoulder_L:[0,70,20],CE_Wrist_L:[60,0,0]},-3],[1.25,{CE_Neck_1:[-15,0,0],CE_Shoulder_L:[0,0,-50],CE_Shoulder_R:[0,0,50]},0.5],[1.5,{}]]}},bite:[[0,0],[0.04,-3.64],[0.08,-12.32],[0.12,-22.68],[0.16,-31.36],[0.2,-35],[0.24,-35],[0.28,-35],[0.32,8],[0.36,8],[0.4,8],[0.44,8],[0.48,8],[0.52,8],[0.56,8],[0.6,0],[0.64,0],[0.68,0],[0.72,0],[0.76,0],[0.8,0]]});
 const DEG = Math.PI / 180, Z3 = [0, 0, 0];
 const Models = {
   ready: {}, status: {}, info: {}, done: null,
-  kinds: ['knight', 'ninja', 'minion', 'satellite', 'copier'],
+  kinds: ['knight', 'ninja', 'minion', 'satellite', 'copier', 'centipede'],   // (#141: the Centipede)
   load() {
     if (this.done) return this.done;
     if (location.protocol === 'file:') { for (const k of this.kinds) this.status[k] = 'skipped'; return (this.done = Promise.resolve(this.status)); }
@@ -8654,6 +8764,8 @@ const Models = {
   prep(k, scene) {
     const M = MODELS[k], J = new Set(M.joints), keep = M.keep || {};
     for (const n of M.drop || []) { const o = scene.getObjectByName(n); if (o) o.parent.remove(o); }
+    // #141: an anchor (a laser lens) leaves an empty marker where it is in its parent, as `name@` (the mesh itself is merged)
+    for (const n of M.anchors || []) { const o = scene.getObjectByName(n); if (o) { const a = new THREE.Object3D(); a.name = n + '@'; a.position.copy(o.position); o.parent.add(a); } }
     scene.updateMatrixWorld(true);
     const jointOf = (o) => { let p = o.parent; while (p && p !== scene && !J.has(p.name)) p = p.parent; return p || scene; };
     const meshes = []; scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
@@ -8666,6 +8778,15 @@ const Models = {
       tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
       const mt = o.material, lit = mt.emissive && (mt.emissive.r + mt.emissive.g + mt.emissive.b) > 0.05;
       const role = keep[o.name] || (mt.transparent ? 'glass' : lit ? 'glow' : 'body');
+      // #141: a mesh node the poses turn (a Centipede leg or mandible): a pivot in its own place and turn (its rest turn kept,
+      // so a pose's absolute angle lands as in Blender), its geometry with only its own scale in it
+      if (J.has(o.name)) {
+        const ga = o.geometry.clone(); for (const a of Object.keys(ga.attributes)) if (a !== 'position' && a !== 'normal') ga.deleteAttribute(a);
+        ga.scale(o.scale.x, o.scale.y, o.scale.z);
+        const piv = new THREE.Group(); piv.name = o.name; piv.position.copy(o.position); piv.quaternion.copy(o.quaternion); o.parent.add(piv); o.parent.remove(o);
+        const mesh = new THREE.Mesh(this.merge([{ g: ga, c: role === 'body' ? mt.color : null }])); mesh.userData.role = role; mesh.userData.src = src(mt); piv.add(mesh);
+        continue;
+      }
       o.parent.remove(o);
       if (keep[o.name]) {
         g.computeBoundingBox(); const c = g.boundingBox.getCenter(new V3()); g.translate(-c.x, -c.y, -c.z);
@@ -8729,6 +8850,7 @@ function modelRobot(k, paint) {
   }
   if (k === 'ninja') md.blades = [kept.NJ_FinL, kept.NJ_FinR];
   if (k === 'satellite') md.wings = [joints.SAT_Panel_L, joints.SAT_Panel_R];   // (satellitePose tilts them on x, as it does the wings built in code)
+  if (k === 'centipede') centRig(md, joints, [body.getObjectByName('CE_LaserLens_L@'), body.getObjectByName('CE_LaserLens_R@')]);   // #141
   return md;
 }
 // The model poses (MODEL_POSES: degrees, YZX, a joint missing is at rest). pmix: a + (b − a) × w, joint by joint (the Euler
@@ -8765,7 +8887,7 @@ function modelGait(r, P, run) {
 function modelPose(md, tgt, k, dt) {
   const G = md.gl;
   for (const n in G.joints) {
-    const t = tgt[n] || Z3, c = G.cur[n] || (G.cur[n] = [0, 0, 0]);
+    const t = tgt[n] || G.rest?.[n] || Z3, c = G.cur[n] || (G.cur[n] = [...(G.rest?.[n] || Z3)]);   // (#141: G.rest, a model whose rest isn't 0: the Centipede)
     c[0] = damp(c[0], t[0], k, dt); c[1] = damp(c[1], t[1], k, dt); c[2] = damp(c[2], t[2], k, dt);
     G.joints[n].rotation.set(c[0] * DEG, c[1] * DEG, c[2] * DEG);
   }
@@ -9018,6 +9140,72 @@ function buildKnight(paint) {
   body.scale.setScalar(KNIGHT.scale);                    // (built at a mech's size, then grown: KNIGHT.scale)
   return { root, body, legs, glow, armour, head, arms, edge, axe, ...robotHud(root, 10.4 * KNIGHT.scale, 5) };
 }
+// #141: the Centipede's rig, on its model or the one built in code: its joints start at their stance angles, which are its rest
+// (gl.rest: so nothing eases in from 0, and a joint a pose leaves out is at rest); its two laser beams (thin red glowing
+// cylinders, CENTIPEDE.laser.r m × its scale thick: they aren't in the .glb), hidden till it fires, on its root so they go
+// straight ahead wherever its arms are; and its two lenses, where they leave from
+function centRig(md, joints, lenses) {
+  const S = MODEL_POSES.centipede.stance;
+  md.gl.rest = S; md.gl.cur = Object.fromEntries(Object.keys(joints).map((n) => [n, [...(S[n] || Z3)]]));
+  for (const n in joints) { const v = md.gl.cur[n]; joints[n].rotation.set(v[0] * DEG, v[1] * DEG, v[2] * DEG); }
+  const geo = new THREE.CylinderGeometry(1, 1, 1, 8, 1, true); geo.rotateX(Math.PI / 2); geo.translate(0, 0, -0.5);   // (unit long, out along −z)
+  const bm = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.1, 0.1), toneMapped: false, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+  md.beams = [0, 1].map(() => { const b = new THREE.Mesh(geo, bm); b.visible = false; md.root.add(b); return b; });
+  md.lenses = lenses; md.iconY0 = md.iconY;
+  const g0 = md.glow.dispose.bind(md.glow); md.glow.dispose = () => { g0(); bm.dispose(); };   // (removeRobot frees the beams' material too)
+}
+// #141: Apollo's Centipede built in code, for when its model isn't in (offline, a 404, file://): the model's own joints, by name
+// and in their places (so the same poses drive it), each with a plain piece: an orange segment on each, a round head with
+// glitch-red eyes, red antennae and two dark mandibles, red arms with a laser box at each elbow, the DIG scoop on its left
+// wrist and the CRUNCH saw on its right, and a leg each side of every tail segment
+function buildCentipede(paint) {
+  const mdl = modelRobot('centipede', paint); if (mdl) return mdl;
+  const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+  const { armour, glow } = robotMats(paint), metal = { metalness: 0.45, roughness: 0.45 }, steel = { metalness: 0.85, roughness: 0.25 };
+  const sph = new THREE.SphereGeometry(0.5, 14, 10), J = {}, lenses = [];
+  const sc = new THREE.Group(), fit = new THREE.Group(); fit.rotation.y = Math.PI; fit.scale.setScalar(CENTIPEDE.scale); fit.add(sc); body.add(fit);
+  const node = (n, parent, p) => { const g = new THREE.Group(); g.name = n; g.rotation.order = 'YZX'; g.position.set(p[0], p[1], p[2]); parent.add(g); J[n] = g; return g; };
+  const put = (parent, m, p, s) => { m.position.set(p[0], p[1], p[2]); if (s) m.scale.set(s[0], s[1], s[2]); parent.add(m); return m; };
+  const seg = (parent, s) => put(parent, ownMesh(sph, armour), Z3, s);
+  const B = node('CE_Body', sc, [0, 0.45, 0]); seg(B, [0.64, 0.47, 0.43]);
+  const N1 = node('CE_Neck_1', B, [0, 0.48, 0.08]); seg(N1, [0.6, 0.45, 0.41]);
+  const N2 = node('CE_Neck_2', N1, [0, 0.48, 0.08]); seg(N2, [0.62, 0.46, 0.42]);
+  const H = node('CE_Head', N2, [0, 0.62, 0.12]); seg(H, [1.05, 1, 1]);
+  for (const s of [-1, 1]) {
+    const S = s < 0 ? 'L' : 'R';
+    put(H, ownMesh(sph, glow), [s * 0.19, 0.14, 0.42], [0.26, 0.17, 0.12]);
+    const ant = put(H, cyl(0.02, 0.02, 0.5, '#c01818', metal, 6), [s * 0.22, 0.68, 0]); ant.rotation.z = -s * 0.44;
+    put(H, ball(0.08, '#e0283c', metal), [s * 0.32, 0.93, 0]);
+    const mand = node('CE_Mandible_' + S, H, [s * 0.16, -0.2, 0.38]);
+    const cone = new THREE.ConeGeometry(0.07, 0.5, 6); cone.rotateX(Math.PI / 2); cone.translate(0, 0, 0.25);
+    put(mand, new THREE.Mesh(cone, mat('#1a0a06', metal)), Z3);
+    const sh = node('CE_Shoulder_' + S, N2, [s * 0.38, 0.22, 0]);
+    put(sh, rbox(0.62, 0.26, 0.3, 0.06, '#c01818', metal), [s * 0.3, 0, 0]);
+    const el = node('CE_Elbow_' + S, sh, [s * 0.62, 0, 0]);
+    put(el, rbox(0.34, 0.34, 0.42, 0.06, '#c01818', metal), Z3);
+    put(el, cyl(0.055, 0.055, 0.25, '#1a1f2c', metal, 10), [0, 0, 0.3]).rotation.x = Math.PI / 2;
+    put(el, ownMesh(sph, glow), [0, 0, 0.43], [0.15, 0.15, 0.06]);
+    const lens = new THREE.Object3D(); lens.position.set(0, 0, 0.43); el.add(lens); lenses.push(lens);
+    const wr = node('CE_Wrist_' + S, el, [0, -0.2, 0]);
+    put(wr, cyl(0.035, 0.035, 0.6, '#c01818', metal, 8), [0, -0.3, 0]);
+    if (S === 'L') put(wr, rbox(0.34, 0.3, 0.16, 0.05, '#c9ced8', steel), [0, -0.78, 0.08]);   // the DIG scoop
+    else {                                                                                   // the CRUNCH saw and its teeth
+      put(wr, rbox(0.08, 0.75, 0.05, 0.02, '#c9ced8', steel), [0, -0.65, 0]);
+      for (let k = 0; k < 6; k++) for (const t of [-1, 1]) put(wr, rbox(0.1, 0.05, 0.03, 0.01, '#c9ced8', steel), [t * 0.08, -0.32 - 0.12 * k, 0]);
+    }
+  }
+  let prev = B;
+  for (let k = 1; k <= 8; k++) {
+    const t = node('CE_Tail_' + k, prev, [0, k === 1 ? -0.03 : 0, -0.56]); seg(t, [0.61 - 0.03 * (k - 1), 0.413 - 0.019 * (k - 1), 0.6]);
+    for (const s of [-1, 1]) put(node(`CE_Leg_${k}_${s < 0 ? 'L' : 'R'}`, t, [s * (0.465 - 0.015 * (k - 1)), -0.2, 0]), cyl(0.03, 0.03, 0.5, paint.frame, metal, 6), Z3);
+    prev = t;
+  }
+  put(prev, cyl(0.12, 0.01, 0.4, paint.armour, metal, 8), [0, 0, -0.42]).rotation.x = -Math.PI / 2;
+  root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  const md = { root, body, legs: [], glow, armour, gl: { k: 'centipede', joints: J, cur: {} }, model: null, ...robotHud(root, ...MODELS.centipede.hud) };
+  centRig(md, J, lenses);
+  return md;
+}
 // #123: the satellite (the boys' drawing, #117 page 1): a round body with its glitch-red eye and a dark band, two long
 // solar-panel wings out either side on struts (each panel in cells, as drawn), a dish underneath with the glowing emitter
 // its link beams leave from (ROBOT_TYPES.satellite.beamY), and an antenna. The wings tilt on their struts (wings)
@@ -9164,11 +9352,29 @@ const ROBOT_TYPES = {
     paint: { armour: '#f2b200', frame: '#3a3f52', dark: '#1a1f2c', ram: '#d7dce6', stripe: '#b0700c', glow: '#ff2f5b' },
     build: buildKnight, ai: knightAI, ally: allyAI, pose: knightPose, tick: knightTick,
     parts: ['armour', 'motor', 'battery', 'wiring'], rare: KNIGHT.part,
-    boss: true, noSquad: true, name: KNIGHT.name,
+    boss: true, noSquad: true, name: KNIGHT.name, cfg: KNIGHT,   // (#141: cfg, its config: its board for bossPlan)
     notice: KNIGHT.notice, downTime: KNIGHT.downTime, weight: KNIGHT.weight, shockK: KNIGHT.shockK, pushK: KNIGHT.pushK,
     tell: 'raise',       // it stops and raises its sword (the blade glowing) or its axe before every blow
     hot: (r) => r.ai.mode === 'windup',
     sparkBox: [4, 2.6, 6, 4],
+  },
+  // #141: Apollo's Centipede, the second boss (CENTIPEDE: its numbers). Long and low, rearing up at the front; LASER at range,
+  // CRUNCH up close and DIG under the ground (centipedeAI; each move runs on its own clock in centStep, the dig's tunnel in
+  // move). balls: its hit shape (centBalls), a ball on its head, neck and front and one on each tail segment, so a shot at its
+  // tail lands. Beaten like the Knight (Q4 A): its bigger board (bossPlan, cfg.board), its rare part (the 🪚 saw) and its
+  // trophy, and it doesn't join the squad. flash: its armour pulses red through every wind-up, with the ❗ (hot)
+  centipede: {
+    ic: 'centipede', health: CENTIPEDE.health, hitY: CENTIPEDE.hit.neck[1] * CENTIPEDE.scale, hitR: CENTIPEDE.hit.neck[2] * CENTIPEDE.scale, top: 2.6 * CENTIPEDE.scale, beamY: 1.6 * CENTIPEDE.scale,
+    spec: { topSpeed: CENTIPEDE.topSpeed, backSpeed: 1.5, accel: 2.4, brake: 5, legTurn: CENTIPEDE.legTurn, torsoTurn: 1.2, stride: 0.9 * 2.2 * CENTIPEDE.scale / 2, radius: CENTIPEDE.radius },
+    paint: { armour: '#ff7a1a', frame: '#7a2a08', dark: '#1a0a06', ram: '#c9ced8', stripe: '#e0283c', glow: '#ff2f5b' },
+    build: buildCentipede, ai: centipedeAI, ally: allyAI, pose: centipedePose, tick: centipedeTick, move: centipedeMove, balls: centBalls,
+    parts: ['armour', 'motor', 'battery', 'wiring'], rare: CENTIPEDE.part,
+    boss: true, noSquad: true, name: CENTIPEDE.name, cfg: CENTIPEDE,
+    notice: CENTIPEDE.notice, downTime: CENTIPEDE.downTime, weight: CENTIPEDE.weight, shockK: CENTIPEDE.shockK, pushK: CENTIPEDE.pushK,
+    tell: 'rear',        // it stops and rears up (its armour pulsing red) before every move
+    hot: (r) => r.ai.mode === 'windup' || !!r.mv,
+    flash: (r) => (r.state === 'glitched' && r.ai.mode === 'windup' ? 0.35 + 0.3 * Math.sin(r.t * 24) : 0),
+    sparkBox: [3, 6, 0.5, 4],
   },
   // #123: the satellite (SATELLITE: its numbers). It floats high (flies: no ground robot's ram, stomp, kick or sword reaches it as a
   // squadmate; high: out of a punch's or kick's reach while it's up, and the cannon's lock-on aims up at it) and never attacks:
@@ -10426,6 +10632,264 @@ function knightJoints(r, md, dt, mode, down, wind) {
   modelPose(md, tgt, k, dt);
 }
 
+// ---------------------------------------------------------------------------
+// #141 Apollo's Centipede (Q3 A: the coordinator's three moves). Glitched, it crawls at its target, turning slowly
+// (CENTIPEDE.legTurn). It picks a move by how far off its target is: CRUNCH within its reach and arc, DIG from dig.min to
+// dig.max off when the laser can't reach (or is cooling), LASER from laser.min to its reach while it faces its target. Each
+// starts with a wind-up (centWindup: it stops and won't turn, rears up, the ❗, its armour pulsing red), then runs on its own
+// clock every tick (r.mv: centStep; the dig's tunnel moves it in centipedeMove). r.cn counts it all for the hooks: lasers,
+// crunches, digs (moves started), hits and misses by move, immune (hits it shrugged off underground), dealt, last { what,
+// hit }, log (the last 24 { what, t })
+// ---------------------------------------------------------------------------
+const centNote0 = () => ({ lasers: 0, crunches: 0, digs: 0, hits: { laser: 0, crunch: 0, dig: 0 }, misses: { laser: 0, crunch: 0, dig: 0 }, immune: 0, dealt: 0, last: null, log: [] });
+function centNote(r, what) {
+  const N = r.cn ||= centNote0();
+  if (what) { N.log.push({ what, t: r3(r.t) }); if (N.log.length > 24) N.log.shift(); }
+  return N;
+}
+// its tail's wave now, as its walk has it (degrees about y for Tail_1..8; none while a move is under way or it stands still):
+// its look (the poses) and its hit shape both follow it
+function centTail(r) {
+  const k = r.mv || r.state !== 'glitched' ? 0 : clamp(Math.abs(r.speed) / r.spec.topSpeed * 3, 0, 1);
+  if (k < 0.02) return [0, 0, 0, 0, 0, 0, 0, 0];
+  const S = MODEL_POSES.centipede.walk, x = ((r.phase / (Math.PI * 2)) % 1 + 1) % 1 * S.length, i = Math.floor(x), f = x - i, a = S[i], b = S[(i + 1) % S.length];
+  return Array.from({ length: 8 }, (_, j) => { const n = 'CE_Tail_' + (j + 1); return (a[n][1] + (b[n][1] - a[n][1]) * f) * k; });
+}
+// its hit shape (CENTIPEDE.hit, × its scale): [x, y, z, radius] for its head, neck and front, then each tail segment along its
+// tail's wave; none while it's underground (Q2 A). Worked out once a tick (and again if it's moved since)
+function centBalls(r) {
+  if (r.under) return [];
+  const c0 = r.ballsAt;
+  if (c0 && c0[0] === Game.ticks && c0[1] === r.pos.x && c0[2] === r.pos.z && c0[3] === r.legHeading && c0[4] === r.pos.y) return r.balls;
+  const H = CENTIPEDE.hit, s = CENTIPEDE.scale, h = r.legHeading, c = Math.cos(h), sn = Math.sin(h);
+  // (lx, lz: on the robot, its forward is −z; turned by its heading, as its model is)
+  const at = (lx, ly, lz, R) => [r.pos.x + (lx * c + lz * sn) * s, r.pos.y + ly * s, r.pos.z + (-lx * sn + lz * c) * s, R * s];
+  const out = [at(0, H.head[1], -H.head[0], H.head[2]), at(0, H.neck[1], -H.neck[0], H.neck[2]), at(0, H.body[1], -H.body[0], H.body[2])];
+  const tail = centTail(r); let x = 0, z = 0, a = 0;
+  for (let i = 0; i < 8; i++) { if (i) a += tail[i - 1] * DEG; x += Math.sin(a) * H.seg; z += Math.cos(a) * H.seg; out.push(at(x, H.tailY, z, H.tail[i])); }
+  r.balls = out; r.ballsAt = [Game.ticks, r.pos.x, r.pos.z, r.legHeading, r.pos.y];
+  return out;
+}
+// the balls rounds and blows land on, for robot r: [x, y, z, radius] each. Most robots are one ball (hitY up, hitR round); a
+// type with `balls` (the Centipede) has its own
+function hitBalls(r) { const T = ROBOT_TYPES[r.type]; return T.balls ? T.balls(r) : [[r.pos.x, r.pos.y + T.hitY, r.pos.z, T.hitR]]; }
+// the dig's lift (m, in the model's metres) at t s of a timeline: its keys' lifts, between them
+function tlLift(T, t) {
+  const K = T.keys; if (t <= K[0][0]) return K[0][2];
+  for (let i = 1; i < K.length; i++) if (t <= K[i][0]) return K[i - 1][2] + (K[i][2] - K[i - 1][2]) * (t - K[i - 1][0]) / (K[i][0] - K[i - 1][0]);
+  return K[K.length - 1][2];
+}
+const crunchReach = (r, b) => r.spec.radius + bodyR(b) + CENTIPEDE.crunch.reach;
+function inCrunch(r, b, k = 1) {
+  const dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z;
+  return Math.hypot(dx, dz) <= crunchReach(r, b) && Math.abs(wrapAngle(Math.atan2(-dx, -dz) - r.legHeading)) <= CENTIPEDE.crunch.arc * k;
+}
+// the wind-up before move w ('laser' | 'crunch' | 'dig') at tgt: it stops, and doesn't turn till the move is done
+function centWindup(r, w, tgt) {
+  const ai = r.ai; ai.mode = 'windup'; ai.w = w; ai.t = CENTIPEDE[w].windup; ai.foe = tgt || null;
+  r.input.throttle = r.input.turn = 0;
+  centNote(r, 'ready ' + w);
+  const k = loud(r.pos); if (k > 0) Sfx.snort(k);
+}
+// move w starts now, on its own clock (centStep)
+function centStart(r, w) {
+  const N = centNote(r, w); N[{ laser: 'lasers', crunch: 'crunches', dig: 'digs' }[w]]++;
+  r.mv = { w, t: 0, pt: 0, hit: false, ph: w === 'dig' ? 'scoop' : null, puffs: 0, trailT: 0, trail: 0, went: 0, spot: null, len: CENTIPEDE.laser.reach };
+  r.ai.mode = w; r.input.throttle = r.input.turn = 0;
+  const k = loud(r.pos); if (k > 0) { if (w === 'laser') Sfx.tone(1500, 0.4, 'sawtooth', 0.05 * k, 260); else Sfx.swing(); }
+}
+function centEnd(r) {
+  const w = r.mv.w; r.ai[w + 'T'] = CENTIPEDE[w].cool;
+  r.mv = null; r.under = false; r.ai.mode = 'recover'; r.ai.t = 0.5;
+}
+// dirt thrown up at (x, z): puffs and clods (the dig's scoop, its trail and its pop)
+function centDirt(x, z, k) {
+  const p = new V3(x, groundH(x, z), z);
+  Impacts.puff(p, Math.max(1, Math.round(2 * k)), 1.2 * k); Impacts.chip(p, Math.max(1, Math.round(2 * k)), ['#6b4a2b', '#4f7d32', '#7d5a36'], 4 * k, 0, 0, 0.16);
+}
+// the move under way, a tick on (dt s): its hit lands at its time; the dig scoops, goes under (Q2 A: r.under, nothing can
+// hit it), tunnels (centipedeMove), pops up and lands its hit, its lift following the timeline's
+function centStep(r, dt) {
+  const M = r.mv, C = CENTIPEDE;
+  M.t += dt;
+  if (M.w === 'laser') { if (!M.hit && M.t >= C.laser.at) { M.hit = true; centLaser(r); } if (M.t >= C.laser.dur) centEnd(r); return; }
+  if (M.w === 'crunch') { if (!M.hit && M.t >= C.crunch.at) { M.hit = true; centCrunch(r); } if (M.t >= C.crunch.dur) centEnd(r); return; }
+  const D = MODEL_POSES.centipede.tl.DIG;
+  if (M.ph === 'scoop') {
+    M.pt = M.t;
+    if (!M.puffs && M.pt >= 0.35) { M.puffs = 1; centDirt(r.pos.x, r.pos.z, 2); }
+    if (M.pt >= 0.5) { M.pt = 0.5; M.ph = 'tunnel'; r.under = true; M.spot ||= centSpot(r); centNote(r, 'under'); }
+  } else if (M.ph === 'pop') {
+    M.pt += dt;
+    if (M.puffs < 2 && M.pt >= 1.12) { M.puffs = 2; centDirt(r.pos.x, r.pos.z, 3); }
+    if (!M.hit && M.pt >= D.hit) { M.hit = true; centDig(r); }
+    if (M.pt >= D.dur) { r.lift = 0; centEnd(r); return; }
+  }
+  r.lift = tlLift(D, M.pt) * C.scale;
+}
+// where the dig comes up: where its target stands now (the moment it goes under), no further than dig.max, inside the meadow
+function centSpot(r) {
+  const f = r.ai.foe, b = f && (Game.mechs.includes(f) || Game.squad.includes(f)) && kickable(f) ? f : nearestFoe(r, true);
+  if (!b) return { x: r.pos.x, z: r.pos.z };
+  let dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z; const d = Math.hypot(dx, dz), K = CENTIPEDE.dig.max;
+  if (d > K) { dx *= K / d; dz *= K / d; }
+  let x = r.pos.x + dx, z = r.pos.z + dz; const o = Math.hypot(x, z), M = WORLD_R - 6; if (o > M) { x *= M / o; z *= M / o; }
+  return { x, z };
+}
+// the dig's tunnel: under the ground straight to its spot at dig.speed m/s, a moving dirt trail over it, then it pops up.
+// (Every other tick of a move it stands, so it walks as any robot does: this returns false)
+function centipedeMove(r, dt) {
+  if (!r.mv || r.state !== 'glitched') return false;
+  centStep(r, dt);
+  const M = r.mv; if (!M || M.ph !== 'tunnel') return false;
+  const K = CENTIPEDE.dig, dx = M.spot.x - r.pos.x, dz = M.spot.z - r.pos.z, d = Math.hypot(dx, dz), step = K.speed * dt;
+  if (d > 0.05) r.legHeading = r.torsoYaw = Math.atan2(-dx, -dz);
+  if (d <= step) { r.pos.x = M.spot.x; r.pos.z = M.spot.z; M.went += d; M.ph = 'pop'; M.pt = MODEL_POSES.centipede.tl.DIG.keys[3][0]; r.under = false; centNote(r, 'pop'); }
+  else { r.pos.x += dx / d * step; r.pos.z += dz / d * step; M.went += step; }
+  r.speed = 0;
+  M.trailT -= dt;
+  if (M.trailT <= 0) { M.trailT = K.trail; M.trail++; centDirt(r.pos.x, r.pos.z, 1.6); if (M.trail % 4 === 1) { const k = loud(r.pos); if (k > 0) Sfx.dirt(k); } }
+  r.pos.y = groundH(r.pos.x, r.pos.z) + r.lift;
+  return true;
+}
+// each tick it walks (no move under way): it settles back to the ground. A move stops if it's powered down
+function centipedeTick(r, dt) {
+  if (r.mv && r.state !== 'glitched') { r.mv = null; r.under = false; }
+  if (!r.mv) r.lift = approach(r.lift, 0, 14 * dt);
+}
+// LASER's hit: the first running mech or ground squadmate along its beams (its near edge within laser.reach of its front, and
+// within laser.wide of the beam to the side), unless a tree or a rock is in front of it. Returns how many it hit
+function centLaser(r) {
+  const L = CENTIPEDE.laser, N = centNote(r, 'beam'), fx = -Math.sin(r.legHeading), fz = -Math.cos(r.legHeading), M = r.mv;
+  let best = null, bt = Infinity, wall = Infinity;
+  for (const b of [...Game.mechs, ...Game.squad]) {
+    if (!kickable(b)) continue;
+    const px = b.pos.x - r.pos.x, pz = b.pos.z - r.pos.z, along = px * fx + pz * fz, R = bodyR(b);
+    if (along <= 0 || along - R > L.reach || Math.abs(px * fz - pz * fx) > R + L.wide) continue;
+    if (along < bt) { bt = along; best = b; }
+  }
+  for (const o of obstacles) {
+    const px = o.x - r.pos.x, pz = o.z - r.pos.z, along = px * fx + pz * fz;
+    if (along > 0 && along - o.r < L.reach && Math.abs(px * fz - pz * fx) < o.r) wall = Math.min(wall, along - o.r);
+  }
+  if (best && wall < bt - bodyR(best)) best = null;
+  if (best) {
+    const R = bodyR(best), dealt = hurtMech(best, L.dmg * linkHit(r), 'laser'), kb = (best.fx?.push ?? 1) * L.push;   // (#123: × a satellite's link)
+    best.push.x += fx * kb; best.push.z += fz * kb;
+    Sparks.burst(best.pos.x - fx * R, r.pos.y + 1.6 * CENTIPEDE.scale, best.pos.z - fz * R, 22, SPARK_HOT, 9);
+    N.hits.laser++; N.dealt = r3(N.dealt + dealt); if (M) M.len = Math.max(2, bt - R);
+  } else { N.misses.laser++; if (M) M.len = Math.min(L.reach, wall); }
+  N.last = { what: 'laser', hit: best ? [best.type ? best.id : 'p' + best.human?.idx] : [] };
+  return best ? 1 : 0;
+}
+// CRUNCH's hit: every running mech or ground squadmate in its reach and arc. Returns how many it hit
+function centCrunch(r) {
+  const K = CENTIPEDE.crunch, N = centNote(r, 'bite'), hit = [];
+  for (const b of [...Game.mechs, ...Game.squad]) {
+    if (!kickable(b) || !inCrunch(r, b)) continue;
+    const dealt = hurtMech(b, K.dmg * linkHit(r), 'crunch'), dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1, kb = (b.fx?.push ?? 1) * K.push;   // (#123: × a satellite's link)
+    b.push.x += dx / d * kb; b.push.z += dz / d * kb;
+    Sparks.burst(b.pos.x - dx / d * bodyR(b), r.pos.y + 2 * CENTIPEDE.scale, b.pos.z - dz / d * bodyR(b), 24, SPARK_HOT, 10);
+    N.dealt = r3(N.dealt + dealt); hit.push(b.type ? b.id : 'p' + b.human?.idx);
+  }
+  if (hit.length) N.hits.crunch += hit.length; else N.misses.crunch++;
+  N.last = { what: 'crunch', hit };
+  const k = loud(r.pos); if (k > 0 && hit.length) Sfx.whack(k);
+  return hit.length;
+}
+// DIG's hit, as it pops up: every running mech or ground squadmate within dig.reach of where it came up (to the body's edge)
+// whose feet are under dig.feet (a mech in a jump is clear). Returns how many it hit
+function centDig(r) {
+  const K = CENTIPEDE.dig, N = centNote(r, 'spin'), hit = [];
+  for (const b of [...Game.mechs, ...Game.squad]) {
+    if (!kickable(b) || Axes.feet(b) >= K.feet) continue;
+    const dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z, d = Math.hypot(dx, dz);
+    if (d - bodyR(b) > K.reach) continue;
+    const dealt = hurtMech(b, K.dmg * linkHit(r), 'dig'), kb = (b.fx?.push ?? 1) * K.push, u = d || 1;   // (#123: × a satellite's link)
+    b.push.x += (d ? dx / u : -Math.sin(r.legHeading)) * kb; b.push.z += (d ? dz / u : -Math.cos(r.legHeading)) * kb;
+    Sparks.burst(b.pos.x, r.pos.y + 1.5, b.pos.z, 26, SPARK_HOT, 10);
+    N.dealt = r3(N.dealt + dealt); hit.push(b.type ? b.id : 'p' + b.human?.idx);
+  }
+  if (hit.length) N.hits.dig += hit.length; else N.misses.dig++;
+  N.last = { what: 'dig', hit };
+  const k = loud(r.pos); if (k > 0) Sfx.whack(k);
+  return hit.length;
+}
+function centipedeAI(r, dt) {
+  const ai = r.ai, inp = r.input, C = CENTIPEDE;
+  inp.boost = false; inp.aimYaw = r.legHeading;
+  ai.t = (ai.t ?? 0) - dt; ai.laserT = (ai.laserT ?? 1.5) - dt; ai.crunchT = (ai.crunchT ?? 0) - dt; ai.digT = (ai.digT ?? 3) - dt;
+  if (r.mv) { inp.throttle = inp.turn = 0; return; }       // a move under way runs on its own clock (centStep)
+  if (ai.mode === 'windup') {
+    inp.throttle = inp.turn = 0;                         // committed: it doesn't turn as it winds up, so stepping aside dodges
+    if (ai.t <= 0) centStart(r, ai.w);
+    return;
+  }
+  if (ai.mode === 'recover') { inp.throttle = inp.turn = 0; if (ai.t > 0) return; ai.mode = 'stalk'; }
+  const tgt = nearestFoe(r, true);
+  if (!engaged(r, tgt)) { roam(r, dt, 0.5); return; }
+  ai.mode = 'stalk';
+  const dx = tgt.pos.x - r.pos.x, dz = tgt.pos.z - r.pos.z, dist = Math.hypot(dx, dz), off = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - r.legHeading));
+  const laserIn = dist >= C.laser.min && dist - bodyR(tgt) <= C.laser.reach;
+  steer(r, tgt.pos.x, tgt.pos.z, 1);
+  if (dist < crunchReach(r, tgt) - 0.6) inp.throttle = 0;   // close enough: it only turns (slowly) to face its target
+  if (ai.crunchT <= 0 && inCrunch(r, tgt, 0.7)) centWindup(r, 'crunch', tgt);
+  else if (ai.digT <= 0 && dist >= C.dig.min && dist <= C.dig.max && (!laserIn || ai.laserT > 0)) centWindup(r, 'dig', tgt);
+  else if (ai.laserT <= 0 && laserIn && off <= C.laser.aim) centWindup(r, 'laser', tgt);
+}
+// its look, on its model or the one built in code (the same joints): its walk (a tail wave, a leg ripple, a head bob); each
+// wind-up its move's ready pose (LASER: it rears back; CRUNCH: the saw drawn back, buzzing, its mandibles open; DIG: it
+// scoops at the ground), reached by 80% of it; each move its timeline (CRUNCH with the mandibles' bite and the saw's buzz,
+// DIG's scoop till it's under); down, it curls up (CURL UP) and sinks a little. Its beams while LASER fires; its body hidden
+// deep underground, its HUD bar and ❗ kept at the ground over it (over the dirt trail)
+const CENT_FX = { saw: (t) => 10 + 25 * Math.sin(t * 45), scoop: (t) => 60 + 30 * Math.sin(t * 30) };
+function centReady(w) {
+  const T = MODEL_POSES.centipede.tl;
+  if (w === 'laser') return { ...tlAt(T.LASER, 0.1), CE_Neck_1: [-15, 0, 0] };
+  if (w === 'crunch') { const p = tlAt(T.CRUNCH, 0.15), b = 35; return { ...p, CE_Mandible_L: [12, -b, 0], CE_Mandible_R: [12, b, 0] }; }
+  return tlAt(T.DIG, 0.3);
+}
+function centBite(p, t) {
+  const B = MODEL_POSES.centipede.bite; let y = B[B.length - 1][1];
+  for (let i = 1; i < B.length; i++) if (t <= B[i][0]) { const [t0, a] = B[i - 1], [t1, b] = B[i]; y = a + (b - a) * (t - t0) / (t1 - t0); break; }
+  const L = p.CE_Mandible_L, R = p.CE_Mandible_R;
+  return { ...p, CE_Mandible_L: [L[0], y, L[2]], CE_Mandible_R: [R[0], -y, R[2]] };
+}
+function centipedePose(r, md, dt, mode) {
+  const down = mode === 'down' || mode === 'repair', P = MODEL_POSES.centipede, T = P.tl, ai = r.ai, C = CENTIPEDE, M = r.state === 'glitched' ? r.mv : null;
+  const wr = (p, n, x) => ({ ...p, [n]: [x, p[n][1], p[n][2]] });
+  let tgt, k = 10;
+  if (down) { tgt = P.curl; k = 6; }
+  else if (M) {
+    k = 30;
+    if (M.w === 'laser') tgt = tlAt(T.LASER, M.t);
+    else if (M.w === 'crunch') tgt = wr(centBite(tlAt(T.CRUNCH, M.t), M.t), 'CE_Wrist_R', CENT_FX.saw(M.t));
+    else { tgt = tlAt(T.DIG, M.pt); if (M.pt < 0.5) tgt = wr(tgt, 'CE_Wrist_L', CENT_FX.scoop(M.pt)); }
+  } else if (mode === 'windup' && C[ai.w]) {
+    tgt = pmix(P.stance, centReady(ai.w), Math.min(1, clamp(1 - ai.t / C[ai.w].windup, 0, 1) / 0.8)); k = 14;
+    if (ai.w === 'crunch') tgt = wr(tgt, 'CE_Wrist_R', CENT_FX.saw(r.t)); else if (ai.w === 'dig') tgt = wr(tgt, 'CE_Wrist_L', CENT_FX.scoop(r.t));
+  } else tgt = modelGait(r, P);
+  modelPose(md, tgt, k, dt);
+  // LASER's beams: from each lens straight ahead, growing to full length in 0.06 s, flickering in width
+  const B = md.beams, on = !!(M && M.w === 'laser' && M.t >= C.laser.beam[0] && M.t <= C.laser.beam[1]);
+  if (B) {
+    B[0].visible = B[1].visible = on;
+    if (on) {
+      md.root.updateMatrixWorld(true);
+      const len = (M.hit ? M.len : C.laser.reach) * clamp((M.t - C.laser.beam[0]) / 0.06, 0, 1);
+      for (let i = 0; i < 2; i++) {
+        const p = md.lenses[i].getWorldPosition(new V3()); md.root.worldToLocal(p);
+        const w = C.laser.r * C.scale * (1 + 0.35 * Math.sin(r.t * 70 + i * 2));
+        B[i].position.copy(p); B[i].scale.set(w, w, Math.max(0.1, len + p.z));
+      }
+    }
+  }
+  md.body.visible = r.lift > -2.2 * C.scale;
+  const up = Math.max(0, -r.lift);
+  md.back.position.y = md.fill.position.y = md.barY + up; md.iconY = md.iconY0 + up;
+  md.body.position.y = damp(md.body.position.y, down ? -0.25 * C.scale : 0, 6, dt);
+}
+
 // #122 The Knight's axes in flight. Each goes straight along the ground from where it was thrown (KNIGHT.axe.speed m/s,
 // KNIGHT.axe.y m up, spinning) and hits the first running mech or ground squadmate it reaches whose feet are lower than
 // KNIGHT.axe.h (a mech in a jump over it, or a Bouncer squadmate mid-hop, is clear; a flying squadmate is never hit). The
@@ -10489,8 +10953,10 @@ const Axes = {
 // P3-1 for the Knight: the wave's board (fixPlan) with KNIGHT.board.math more math wires (at most the WIRE_COLORS) and
 // KNIGHT.board.puzzles more puzzle cards (puzzleTypes deals each type once: 2 at most, a 🧲 board 3), the target time grown
 // with the slots. Wave 0 (a Knight dropped in by hand) gets its first boss wave's board. of: the wave's own board's counts
-function bossPlan(wave, how) {
-  const w = Math.max(Math.floor(Number(wave) || 0), BOSS_WAVE.every), P = fixPlan(w, how), K = KNIGHT.board, em = how === 'em';
+// (#141: per boss `type`: its own cfg.board, and wave 0 gets that boss's first boss wave's board: the Centipede's is wave 10)
+function bossPlan(wave, how, type = 'knight') {
+  const T = ROBOT_TYPES[type]?.boss ? ROBOT_TYPES[type] : ROBOT_TYPES.knight, K = T.cfg.board, em = how === 'em';
+  const w = Math.max(Math.floor(Number(wave) || 0), Waves.firstOf(type) ?? BOSS_WAVE.every), P = fixPlan(w, how);
   const math = Math.min(WIRE_COLORS.length, P.math + K.math), n = Math.min(em ? 3 : 2, P.puzzles.length + K.puzzles);
   const puzzles = puzzleTypes(n, false, em), slots = math + puzzles.length;
   return { ...P, math, puzzles, slots, target: Math.round(P.target * slots / P.slots), boss: true, of: { math: P.math, puzzles: P.puzzles.length, slots: P.slots, target: P.target } };
@@ -10619,7 +11085,7 @@ function powerDown(r, how) {
   // P3-1: from wave 1 the wave sets the board (fixPlan): its math wires, none burnt (a burnt wire is 🔥's charred
   // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
   // (#122: a Knight's board is bigger, bossPlan: from any wave, wave 0 too)
-  const P = ROBOT_TYPES[r.type].boss ? bossPlan(Game.wave, r.beatenBy) : Game.wave >= 1 ? fixPlan(Game.wave, r.beatenBy) : null;
+  const P = ROBOT_TYPES[r.type].boss ? bossPlan(Game.wave, r.beatenBy, r.type) : Game.wave >= 1 ? fixPlan(Game.wave, r.beatenBy) : null;   // (#141: the boss's own)
   r.board = P && { wave: Game.wave, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
   r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
   r.shock = 0;
@@ -11378,7 +11844,7 @@ function rams() {
 // Keep bodies apart: a light robot gives way to a heavy mech. A Bouncer mid-hop is above
 // it all; a drone keeps its height (lift) as it's nudged.
 function separate() {
-  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air && !(ROBOT_TYPES[r.type].high && r.lift > SATELLITE.reach)).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own; #123: a satellite up in the sky is over it all)
+  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air && !r.under && !(ROBOT_TYPES[r.type].high && r.lift > SATELLITE.reach)).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own; #123: a satellite up in the sky is over it all; #141: the Centipede underground is under it all)
   for (let a = 0; a < bodies.length; a++) for (let b = a + 1; b < bodies.length; b++) {
     const [A, ra, wa] = bodies[a], [B, rb, wb] = bodies[b];
     const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz) || 1e-3, min = ra + rb;
@@ -13050,6 +13516,7 @@ function updateHud() {
   if (boss) {
     const T = ROBOT_TYPES[boss.type], f = clamp(boss.health / boss.maxHealth, 0, 1);
     if ($('bossName').textContent !== T.name) { $('bossName').textContent = T.name; bb.setAttribute('aria-label', T.name); }
+    bb.classList.toggle('cent', boss.type === 'centipede');   // #141: the Centipede's own bar, in segments
     $('bossFill').style.width = (f * 100).toFixed(1) + '%';
     bb.classList.toggle('down', boss.state === 'down'); bb.classList.toggle('hot', boss.state === 'glitched' && T.hot(boss));
     bb.classList.toggle('shield', !!boss.linkBy);         // #123: a satellite's link: the boss's shield shows on the bar
@@ -14452,6 +14919,13 @@ function partPiece(id) {
     for (let k = 0; k <= 4; k++) { const rib = rbox(0.06, 0.14, 1.24, 0.02, steel, metal); rib.position.x = -1 + k * 0.5; s.add(rib); }
     const spar = rbox(2.04, 0.14, 0.06, 0.02, steel, metal); s.add(spar);
     const strut = cyl(0.07, 0.07, 0.7, steel, metal, 8); strut.rotation.z = Math.PI / 2; strut.position.x = -1.3; s.add(strut);
+  } else if (id === 'saw') {
+    // #141: the Centipede's saw, on the slant: a long steel blade with its teeth along one edge, on an orange grip
+    const s = new THREE.Group(); g.add(s); s.rotation.z = Math.PI / 6;
+    const blade = rbox(2.0, 0.55, 0.08, 0.03, steel, metal); blade.position.x = -0.2; s.add(blade);
+    for (let k = 0; k < 9; k++) { const t = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.2, 4), mat(steel, metal)); t.rotation.z = Math.PI; t.position.set(-1.1 + k * 0.22, -0.36, 0); s.add(t); }
+    const grip = rbox(0.6, 0.75, 0.22, 0.12, P.hex, { metalness: 0.2, roughness: 0.5 }); grip.position.x = 1.05; s.add(grip);
+    const hole = rbox(0.24, 0.36, 0.26, 0.08, '#1a1f2c', metal); hole.position.set(1.1, 0.05, 0); s.add(hole);
   }
   return g;
 }
@@ -14679,8 +15153,12 @@ const Waves = {
   fixed(n, m = this.mode()) { return !!MODES[modeOf(m)].waves[n]; },
   // #122 (Q9 A): is wave n a boss wave? Every BOSS_WAVE.every waves (5, 10, 15 …). Its boss: the Knight (the first boss; later
   // bosses can take later boss waves here)
+  // #141 (Q1 A): the Knight and the Centipede in turn: the Knight on the odd boss waves (5, 15, 25 …), the Centipede on the even
+  // ones (10, 20, 30 …), in every mode (a mode's written-out 'boss' is this too: Easy's wave 5 is the Knight)
   boss(n) { const E = BOSS_WAVE.every; return Number.isInteger(n) && n >= E && n % E === 0; },
-  bossOf(n) { return this.boss(n) ? 'knight' : null; },
+  bossOf(n) { return this.boss(n) ? ((n / BOSS_WAVE.every) % 2 ? 'knight' : 'centipede') : null; },
+  // #141: the first boss wave boss `type` comes on (null: none up to wave 99)
+  firstOf(type) { for (let n = BOSS_WAVE.every; n <= 99; n += BOSS_WAVE.every) if (this.bossOf(n) === type) return n; return null; },
   // #123 (Q11): does wave n bring a satellite? Every wave from SATELLITE.from (5), boss waves too while BOSS_WAVE.satellite is on.
   // The one place it's asked (it isn't in list(n): it comes beside the wave's robots, like the copier)
   // (#132: in mode m: from MODES[m].satellite, Normal's SATELLITE.from; never on a wave the mode writes out)
@@ -14917,9 +15395,18 @@ function robotState(r) {
     // #122: a Knight: its counts (knightNote: swipes, swordHits, swordMisses, throws, dealt, last, log), w = the blow it's
     // winding up ('sword' | 'axe'), windup = s left of it, axeOut = s till the axe in its hand is back (0: it's there),
     // swordIn = player 1 in its sword's reach and arc now, edge = its sword's glow, boss = the boss bar shows it
-    knight: ROBOT_TYPES[r.type].boss ? { ...JSON.parse(JSON.stringify(r.kn || { swipes: 0, swordHits: 0, swordMisses: 0, throws: 0, dealt: 0, last: null, log: [] })),
+    knight: r.type === 'knight' ? { ...JSON.parse(JSON.stringify(r.kn || { swipes: 0, swordHits: 0, swordMisses: 0, throws: 0, dealt: 0, last: null, log: [] })),   // (#141: the Knight's only)
       w: r.ai.mode === 'windup' ? r.ai.w : null, windup: r.ai.mode === 'windup' ? r3(r.ai.t) : null, axeOut: r3(r.axeOut || 0), axeInHand: !!r.model.axe?.visible,
       swordIn: p0 ? inSword(r, p0) : null, reach: p0 ? r3(swordReach(r, p0)) : null, edge: r3(r.model.edge?.emissiveIntensity ?? 0), boss: bossUp() === r } : null,
+    // #141: the Centipede: its counts (centNote: lasers, crunches, digs, hits and misses by move, immune, dealt, last, log), w = the
+    // move it's winding up, windup = s left of it, mv = the move under way (w, t s into it; a dig's pt = its timeline clock, ph =
+    // scoop | tunnel | pop, spot = where it comes up, went = m tunnelled, trail = dirt puffs left), under = underground (Q2 A:
+    // nothing hits it), balls = its hit shape now ([x, y, z, r]), beams = its laser beams showing (beamLen m), crunchIn = player 1
+    // in CRUNCH's reach and arc, model = the model it wears (null: built in code), joints, boss = the boss bar shows it
+    centipede: r.type === 'centipede' ? { ...JSON.parse(JSON.stringify(r.cn || centNote0())), w: r.ai.mode === 'windup' ? r.ai.w : null, windup: r.ai.mode === 'windup' ? r3(r.ai.t) : null,
+      mv: r.mv ? { w: r.mv.w, t: r3(r.mv.t), pt: r3(r.mv.pt), ph: r.mv.ph, spot: r.mv.spot ? { x: r3(r.mv.spot.x), z: r3(r.mv.spot.z) } : null, went: r3(r.mv.went), trail: r.mv.trail } : null,
+      under: !!r.under, balls: hitBalls(r).map((b) => b.map(r3)), beams: !!r.model.beams?.[0]?.visible, beamLen: r.model.beams?.[0]?.visible ? r3(r.model.beams[0].scale.z) : null,
+      crunchIn: p0 ? inCrunch(r, p0) : null, model: r.model.model || null, joints: Object.keys(r.model.gl?.joints || {}).length, bodyShown: !!r.model.body.visible, boss: bossUp() === r } : null,
     clone: r.clone ? { ...JSON.parse(JSON.stringify(r.clone)), paint: paintLook(r.model), eyes: [...new Set(r.model.eyes.map((L) => '#' + L.mat.emissive.getHexString()))],
       pilot: !!r.model.pilot, printed: r3(r.model.root.scale.y), pieces: upgradeLook(r.model)?.kinds ?? null, lastRail: r.lastRail ?? null, burst: r.ai.burst || 0, swing: r.swing?.w ?? null, charging: !!r.charge,
       spec: { topSpeed: r3(r.spec.topSpeed), legTurn: r3(r.spec.legTurn), radius: r.spec.radius } } : null,
@@ -14932,6 +15419,7 @@ window.__rb = {
   CAM_FAR,   // (#103)
   NINJA, WAVE,   // (#120)
   COPIER, Copier, Waves, Bullets,   // (#121)
+  CENTIPEDE, hitBalls, bossPlan,   // (#141)
   BOSS_WAVE, KNIGHT, Axes, Bosses, START_WAVE,   // (#122: BOSS_WAVE is read when each wave comes out, so a switch set here counts from the next)
   SATELLITE, Satellites,   // (#123)
   MODELS, MODEL_POSES, Models,   // (#124)
@@ -14956,6 +15444,17 @@ window.__rb = {
     if (w === 'sword') knightSwipe(r);
     else if (w === 'axe') knightThrow(r, face || !p ? null : { x: p.pos.x, z: p.pos.z });
     else if (w === 'windup-sword' || w === 'windup-axe') knightWindup(r, w.slice(7));
+    else return null;
+    return robotState(r);
+  },
+  // #141: the Centipede `id` starts move w now, as its brain would at the end of a wind-up ('laser' | 'crunch' | 'dig'; a dig
+  // comes up at `at` ({ x, z }) if given, else where its target stands as it goes under), or 'windup-laser' | 'windup-crunch'
+  // | 'windup-dig' starts the wind-up instead (the move follows when it ends). Its target: the nearest (nearestFoe). Returns its state
+  centipedeAttack(id, w, at) {
+    const r = Game.robots.find((q) => q.id === id && q.type === 'centipede'); if (!r || r.state !== 'glitched') return null;
+    const m = /^windup-(laser|crunch|dig)$/.exec(w || '');
+    if (m) { r.mv = null; r.under = false; centWindup(r, m[1], nearestFoe(r, true)); }
+    else if (['laser', 'crunch', 'dig'].includes(w)) { r.ai.foe = nearestFoe(r, true); centStart(r, w); if (w === 'dig' && at) r.mv.spot = { x: at.x, z: at.z }; }
     else return null;
     return robotState(r);
   },
@@ -15574,7 +16073,7 @@ window.__rb = {
       bossWave: Waves.boss(Game.wave), startWave: START_WAVE,
       boss: (() => { const b = bossUp(), el = $('bossBar'), on = !!el.offsetParent && getComputedStyle(el).display !== 'none';
         return { up: b ? { id: b.id, type: b.type, name: ROBOT_TYPES[b.type].name, health: r3(b.health), maxHealth: b.maxHealth, state: b.state } : null,
-          bar: { shown: on, fill: parseFloat($('bossFill').style.width) || 0, name: $('bossName').textContent, down: el.classList.contains('down'),
+          bar: { shown: on, fill: parseFloat($('bossFill').style.width) || 0, name: $('bossName').textContent, down: el.classList.contains('down'), style: el.classList.contains('cent') ? 'segments' : 'sword',   // (#141: its style)
             shield: el.classList.contains('shield'), shieldIcon: getComputedStyle($('bossShield')).display !== 'none' && !!$('bossShield').querySelector('svg.ic') },   // (#123: its shield)
           squadHidden: getComputedStyle($('squad')).display === 'none' }; })(),
       // #123: every satellite link now ({ sat, to, type, ally }: Satellites.state); satelliteWave = this wave brings a satellite
