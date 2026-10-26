@@ -2072,8 +2072,8 @@ const AREA_IC = { hull: 'torso', legs: 'legs', power: 'power', wiring: 'wire' };
 // (#121: a clone's kick mostly in the legs, its pulse in the power and wiring; its rounds, rail and punch on the hull)
 const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hull: 1 }, zap: { power: 0.5, wiring: 0.5 }, stomp: { hull: 0.4, legs: 0.6 }, nkick: { hull: 0.4, legs: 0.6 }, flank: { hull: 0.4, legs: 0.6 },
   ckick: { hull: 0.4, legs: 0.6 }, cem: { power: 0.5, wiring: 0.5 },
-  axe: { hull: 0.3, legs: 0.7 },
-  laser: { hull: 0.5, power: 0.5 }, crunch: { hull: 0.7, legs: 0.3 }, dig: { hull: 0.3, legs: 0.7 } };   // (#141: the Centipede's: its laser burns, its dig comes up from under)   // (#122: the Knight's axe comes along the ground: mostly the legs; its sword, the hull)
+  axe: { hull: 0.3, legs: 0.7 },   // (#122: the Knight's axe comes along the ground: mostly the legs; its sword, the hull)
+  laser: { hull: 0.5, power: 0.5 }, crunch: { hull: 0.7, legs: 0.3 }, dig: { hull: 0.3, legs: 0.7 } };   // (#141: the Centipede's: its laser burns, its dig comes up from under)
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
@@ -8474,7 +8474,6 @@ function hitRobot(r, dmg, w, dx, dz, at, pushK) {
 function hurtRobot(r, amount, w) {
   if (r.state === 'down') return false;
   if (r.under) { centNote(r).immune++; return false; }   // #141 (Q2 A): nor hurt
-
   if (r.state === 'ally') { hurtMech(r, amount, w); return true; }   // #59: a squadmate takes it in its damage areas
   const dealt = Math.min(Math.max(0, amount), r.health);
   r.health = Math.max(0, r.health - amount); r.lastHitBy = w;
