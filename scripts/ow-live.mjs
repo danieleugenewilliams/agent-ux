@@ -12,28 +12,30 @@
 // counts requests to it, so a real request is impossible and would fail a check. (three.js itself still loads from
 // cdn.jsdelivr.net, as the page always does.)
 //
-//   logic   - at 1280 x 800 through window.__game (state, as main has it) and window.__ow (#144's hook):
-//             * clock: 2026-06-21 13:15Z opens at 09:15 (EDT), not 18:06; the tick follows a new minute; a real input
-//               on the Time slider stops the tick; 2026-11-01 05:30Z and 06:30Z both read 01:30 (EDT, then EST: the
-//               repeated hour), 12:00Z reads 07:00 and 2026-10-31 12:00Z reads 08:00; 2026-12-21 17:00Z reads 12:00;
-//             * sun (the scene's own direction, SKYU.uSunDir, and __ow.skyAt): max elevation 76.7 deg on 2026-06-21 and
-//               29.8 deg on 2026-12-21, due south at noon (+x is north), east in the morning (+z is east), west in the
-//               evening; sunset after 20:00 in June and before 17:00 in December;
-//             * moon: the 2026-03-03 eclipse (full) and the 2026-08-12 eclipse (new), a waxing quarter on 2026-08-20 and
-//               a waning one on 2026-03-11; the disk's phase uniform follows the moon's illuminated fraction;
-//             * weather: the request (the issue's exact URL, credentials omitted, no referrer, no geolocation), the scene
-//               on its defaults until the answer comes, then each WMO code group at its boundaries (3, 45, 51, 56, 67,
-//               71, 77, 80, 86, 95, 99 and 0) sets the button and the sea state (the wind inverted through the slider),
-//               the wind direction and the cloud cover; a failure, a bad answer and a 3 s timeout leave Sunny and 0.4
-//               with no page error; a late answer never overrides a control the player has touched;
-//             * URL params: ?t= (no tick), ?weather=&sea= (no request at all), ?weather= alone and ?sea= alone.
-//   size    - at each size: the panel opened the way a player opens it (the touch menu's Conditions on a touch screen),
-//             the live label shown, every part of the panel on screen, the label on one line inside its row (the row
-//             no taller than the Time row) and no horizontal overflow.
+// Runs, each at 1280 x 800 (?dpr=0.3: they read state, not pixels) through window.__game (state, as main has it) and
+// window.__ow (#144's hook):
+//   sky     - clock: 2026-06-21 13:15Z opens at 09:15 (EDT), not 18:06; the tick follows a new minute; a real input on the
+//             Time slider stops the tick; 2026-11-01 05:30Z and 06:30Z both read 01:30 (EDT, then EST: the repeated
+//             hour), 12:00Z reads 07:00 and 2026-10-31 12:00Z reads 08:00; 2026-12-21 17:00Z reads 12:00.
+//             sun (the scene's own SKYU.uSunDir, and __ow.skyAt): max elevation 76.7 deg on 2026-06-21 and 29.8 deg on
+//             2026-12-21, due south at noon (+x is north), east in the morning (+z is east), west in the evening; sunset
+//             after 20:00 in June and before 17:00 in December.
+//             moon: the 2026-03-03 eclipse (full) and the 2026-08-12 eclipse (new), a waxing quarter on 2026-08-20, a
+//             waning one on 2026-03-11 and a waxing crescent on 2026-08-15; the disk's phase uniform follows the moon.
+//   weather - the request (the issue's exact URL, credentials omitted, no referrer, no geolocation), the scene already
+//             drawing on its defaults when it asks, then each WMO code group at its boundaries sets the button and the
+//             sea state (the wind inverted through the slider), the wind direction, the heading and the cloud cover; a
+//             failure, a bad answer and a 3 s timeout leave Sunny and 0.4 with no page error; an answer that lands after
+//             the player changed Weather and/or Sea never overrides what they changed.
+//   params  - ?weather=&sea= (no request at all), ?t= (no tick), ?weather= alone and ?sea= alone.
+//   size    - at each size: Help closed and the panel opened the way a player does (the touch menu's Conditions on a
+//             touch screen), the live label shown, every part of the panel on screen, the label on one line inside its
+//             row (the row no taller than the Time row) and no page overflow.
 //
 // Usage:
-//   node scripts/ow-live.mjs                        # ./ocean.html: logic, then every size
-//   node scripts/ow-live.mjs --logic                # the logic run only
+//   node scripts/ow-live.mjs                        # ./ocean.html: sky, weather, params, then every size
+//   node scripts/ow-live.mjs --logic                # sky, weather and params only
+//   node scripts/ow-live.mjs --run weather          # one named run (repeatable)
 //   node scripts/ow-live.mjs --size 568x320         # one size only (repeatable); no logic run
 //   node scripts/ow-live.mjs --shots DIR            # also save a screenshot of the panel per size
 //   node scripts/ow-live.mjs path/or/url.html --json
@@ -49,16 +51,18 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const SIZES = ['568x320', '740x360', '844x390', '667x375', '390x844', '1024x768', '1280x800'];
 const args = process.argv.slice(2);
-let json = false, target = null, logicOnly = false, shots = null; const sizes = [];
+let json = false, target = null, logicOnly = false, shots = null; const sizes = [], named = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--json') json = true;
   else if (args[i] === '--logic') logicOnly = true;
   else if (args[i] === '--size') sizes.push(args[++i]);
+  else if (args[i] === '--run') named.push(args[++i]);
   else if (args[i] === '--shots') shots = path.resolve(args[++i]);
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = logicOnly ? ['logic'] : sizes.length ? sizes : ['logic', ...SIZES];
+const LOGIC_RUNS = ['sky', 'weather', 'params'];
+const runs = logicOnly ? LOGIC_RUNS : named.length ? named : sizes.length ? sizes : [...LOGIC_RUNS, ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 target ??= path.join(repo, 'ocean.html');
 const baseUrl = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve(target)).href;
@@ -82,7 +86,8 @@ const chromeBin = findChrome();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- injected before the page's own scripts on every navigation ----
-// window.__owStub: { mode: 'ok' | 'manual' | 'fail' | 'bad' | 'hang', body } ('manual' waits for __owResolve(); 'hang'
+// window.__owStub: { mode: 'ok' | 'touch' | 'manual' | 'fail' | 'bad' | 'hang', body } ('touch' changes the player's controls
+// while the request is out, then answers; 'manual' waits for __owResolve(); 'hang'
 // never answers, so only the page's own timeout ends it). Every stubbed request honours init.signal.
 const INJECT = String.raw`(() => {
   const RealDate = Date;
@@ -93,6 +98,9 @@ const INJECT = String.raw`(() => {
   }
   window.Date = FakeDate;
   window.__owReq = [];
+  window.__rafN = 0;
+  const rAF = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) => rAF((t) => { window.__rafN++; cb(t); });
   window.__geoCalls = 0;
   try {
     const geo = { getCurrentPosition() { window.__geoCalls++; }, watchPosition() { window.__geoCalls++; return 0; }, clearWatch() {} };
@@ -103,6 +111,8 @@ const INJECT = String.raw`(() => {
     const url = typeof input === 'string' ? input : input?.url;
     if (!/open-meteo\.com/.test(url || '')) return realFetch(input, init);
     const S = window.__owStub || { mode: 'fail' };
+    const g = window.__game;   // what the scene showed when it asked: the defaults, a frame already drawn
+    window.__owAtCall = g ? { weather: g.state.weather, sea: g.state.sea, label: document.getElementById('wLab')?.textContent ?? null, frames: window.__rafN } : null;
     window.__owReq.push({ url, credentials: init.credentials ?? null, referrerPolicy: init.referrerPolicy ?? null, method: init.method || 'GET', hasBody: init.body != null, headers: init.headers ? JSON.stringify(init.headers) : null, mode: S.mode, at: window.__fakeNow });
     return new Promise((resolve, reject) => {
       const sig = init.signal;
@@ -115,6 +125,13 @@ const INJECT = String.raw`(() => {
       };
       if (S.mode === 'hang') return;
       if (S.mode === 'manual') { window.__owResolve = answer; return; }
+      if (S.mode === 'touch') {   // the player changes controls while the request is out (a real click and input), then the answer comes
+        return setTimeout(() => {
+          if (S.weather) document.querySelector('.seg button[data-w="' + S.weather + '"]').click();
+          if (S.sea != null) { const s = document.getElementById('sea'); s.value = S.sea; s.dispatchEvent(new Event('input', { bubbles: true })); }
+          answer();   // in the same task: a busy swiftshader start can make any later timer lose to the page's 3 s one
+        }, 0);
+      }
       setTimeout(answer, S.delay || 0);
     });
   };
@@ -192,7 +209,6 @@ async function connect(S) {
     injected = r.result?.identifier;
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
-    errs.length = 0;
     await send('Page.navigate', { url: baseUrl + (query ? '?' + query : '') });
     for (let i = 0; i < 300; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__game').catch(() => false)) return; }
     throw new Error('page did not load window.__game: ' + baseUrl + '?' + query);
@@ -219,29 +235,17 @@ const hasOw = `typeof window.__ow === 'object' && typeof window.__ow.skyAt === '
 const near = (a, b, e) => typeof a === 'number' && Math.abs(a - b) <= e;
 const H = (iso) => Date.parse(iso);
 
-async function runLogic(C) {
-  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
-  const W = 1280, Hh = 800;
+const LQ = 'dpr=0.3';   // the logic runs read state, not pixels: a small canvas keeps swiftshader's frames quick
+async function until(C, expr, ms = 30000) { const t = Date.now(); while (Date.now() - t < ms) { if (await C.ev(expr).catch(() => false)) return true; await sleep(100); } return false; }
 
-  // ---- June: the clock, the tick, the sun; the request, the defaults until the answer, then the answer
-  await C.open(W, Hh, false, { now: H('2026-06-21T13:15:00Z'), stub: { mode: 'manual', body: body(61, 9, 200, 90) } });
+// ---- the clock, the tick, the sun and the moon
+async function runSky(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(1280, 800, false, { query: LQ, now: H('2026-06-21T13:15:00Z'), stub: { mode: 'fail' } });
   let r = await C.ev(READ);
   ok('clock: 2026-06-21 13:15Z opens at 09:15 New York (EDT), in a Tokyo browser', near(r.tod, 9.25, 0.01) && near(r.todIn, 9.25, 0.05) && r.tLab === '09:15', r);
   const owOk = ok('window.__ow hook exists (skyAt, moonAt, live)', await C.ev(hasOw), await C.ev('typeof window.__ow'));
-  ok('weather: one request, before any answer', r.req === 1, r.req);
-  const q = await C.ev('window.__owReq[0] || null');
-  ok('weather: the request is the issue\'s exact URL (fixed coordinates, nothing about the player)', q?.url === WX_URL, q);
-  ok('weather: credentials omitted, no referrer, a plain GET with no body or headers', q && q.credentials === 'omit' && q.referrerPolicy === 'no-referrer' && q.method === 'GET' && !q.hasBody && !q.headers, q);
-  ok('weather: the scene renders on its defaults while the answer is pending (Sunny, 0.4, frames running)', r.weather === 'sunny' && near(r.sea, 0.4, 1e-6) && (await C.ev(`(${FRAMES}).then(() => !!window.__ready || true)`)) && !/live/i.test(r.label || ''), r);
-  await C.ev('window.__owResolve && window.__owResolve()'); await sleep(300); await C.ev(FRAMES);
-  r = await C.ev(READ);
-  ok('weather: the answer arrives: code 61 -> Rain, the button pressed', r.weather === 'rain' && r.pressed === 'rain', r);
-  ok('weather: wind 9 m/s -> sea slider inverted through windFromSlider less Rain\'s windAdd', near(r.sea, invSea(9 - 3), 0.002) && near(r.seaIn, r.sea, 0.006) && near(windFromSlider(r.sea) + 3, 9, 0.05), { r, want: invSea(6) });
-  ok('weather: wind from 200 deg -> windAngle toward 20 deg (+x north, +z east)', near(r.windAngle, 20 * Math.PI / 180, 1e-3) || near(r.windAngle, 20 * Math.PI / 180 + 2 * Math.PI, 1e-3), r.windAngle);
-  ok('label: "Live · Chesapeake" while the live weather is in use', /Live · Chesapeake/.test(r.label || ''), r.label);
-  ok('privacy: geolocation never asked for', r.geo === 0, r.geo);
   if (owOk) {
-    // the sun the scene uses, against the hook, at a few hours of 2026-06-21
     const dirs = await C.ev(`(async () => { const g = window.__game, U = window.__ow.SKYU, res = {};
       for (const h of [7, 13.1, 19]) { g.state.tod = h; await ${FRAMES}; const d = U.uSunDir.value, k = window.__ow.skyAt(h); res[h] = { scene: [d.x, d.y, d.z], hook: k.sunDir }; }
       g.state.tod = 9.25; return res; })()`);
@@ -263,91 +267,125 @@ async function runLogic(C) {
     ok('moon: 2026-08-15 is a waxing crescent', moon.cres.illum < 0.25 && moon.cres.waxing === true, moon.cres);
     const ph = await C.ev(`(async () => { await ${FRAMES}; const k = window.__ow.skyAt(window.__game.state.tod), U = window.__ow.SKYU; return { phase: U.uMoonPhase?.value, illum: k.moon.illum, want: 1 - 2 * k.moon.illum, moonDir: [U.uMoonDir.value.x, U.uMoonDir.value.y, U.uMoonDir.value.z], hook: k.moonDir }; })()`);
     ok('moon (scene): the disk\'s phase uniform is 1 - 2 x illum, its direction the hook\'s', ph.phase != null && near(ph.phase, ph.want, 1e-4) && ph.moonDir.every((v, i) => near(v, ph.hook[i], 1e-4)), ph);
-    // each WMO group, at its boundaries, through the same request path
-    const groups = [[0, 'sunny'], [3, 'sunny'], [45, 'sunny'], [51, 'rain'], [56, 'rain'], [67, 'rain'], [71, 'rain'], [77, 'rain'], [80, 'rain'], [86, 'rain'], [95, 'storm'], [99, 'storm'], [48, 'sunny'], [68, 'sunny'], [90, 'sunny']];
-    for (const [code, want] of groups) {
-      const wind = 4 + (code % 7);
-      await C.ev(`${STUB({ mode: 'ok', body: body(code, wind, 90, 80) })} window.__ow.relive(); window.__ow.request()`); await sleep(50);
-      r = await C.ev(READ);
-      ok(`weather: code ${code} -> ${want}, sea from ${wind} m/s`, r.weather === want && r.pressed === want && near(r.sea, invSea(wind - WIND_ADD[want]), 0.002), { r, want: invSea(wind - WIND_ADD[want]) });
-    }
-    r = await C.ev(READ);
-    ok('weather: a Sunny answer with 80% cloud raises the cloud cover above Sunny\'s 0.42 (the target, not just W)', r.cover?.target > 0.6, r.cover);
-    await C.ev(`${STUB({ mode: 'ok', body: body(1, 4, 90, 0) })} window.__ow.relive(); window.__ow.request()`); await sleep(50);
-    r = await C.ev(READ);
-    ok('weather: 0% cloud lowers it below 0.42', r.cover?.target < 0.3, r.cover);
-    for (const mode of ['fail', 'bad']) {
-      await C.ev(`${STUB({ mode, status: mode === 'bad' ? 500 : 200 })} window.__ow.relive(); window.__ow.request()`); await sleep(100);
-      r = await C.ev(READ);
-      ok(`weather: a ${mode === 'fail' ? 'network failure' : 'bad answer (500, not JSON)'} -> Sunny and 0.4, no live label`, r.weather === 'sunny' && near(r.sea, 0.4, 1e-6) && !/live/i.test(r.label || ''), r);
-    }
-    const t0 = Date.now();
-    await C.ev(`${STUB({ mode: 'hang' })} window.__ow.relive(); window.__ow.request()`);
-    let to = null;
-    for (let i = 0; i < 60; i++) { await sleep(100); to = await C.ev('window.__ow.live.status'); if (to !== 'pending') break; }
-    const took = (Date.now() - t0) / 1000;
-    r = await C.ev(READ);
-    ok('weather: a request that never answers times out at about 3 s -> Sunny and 0.4', to === 'failed' && took > 2.5 && took < 5 && r.weather === 'sunny' && near(r.sea, 0.4, 1e-6), { to, took, r });
   }
   // the tick: a new minute moves the clock and the slider; a real input on the slider stops it
-  await C.ev(`window.__fakeNow += 60e3`); await sleep(1600);
+  await C.ev(`window.__fakeNow += 60e3`);
+  await until(C, `window.__game.state.tod > 9.26`);
   r = await C.ev(READ);
   ok('clock: the next minute ticks the time and the slider (09:16)', near(r.tod, 9.25 + 1 / 60, 0.005) && near(r.todIn, r.tod, 0.05) && r.tLab === '09:16', r);
   await C.ev(`(() => { const t = document.getElementById('tod'); t.value = 15; t.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-  await C.ev(`window.__fakeNow += 180e3`); await sleep(1600);
+  await C.ev(`window.__fakeNow += 180e3`);
+  const ticked = await until(C, `!!window.__ow && window.__ow.clock.min === 9 * 60 + 19`);
   r = await C.ev(READ);
-  ok('clock: after the player moves the Time slider, the tick leaves it alone', near(r.tod, 15, 1e-6) && r.tLab === '15:00', r);
-  ok('logic/June: no request reached open-meteo.com', C.net.length === 0, C.net);
+  ok('clock: after the player moves the Time slider, the tick leaves it alone (the clock itself moved on to 09:19)', ticked && near(r.tod, 15, 1e-6) && r.tLab === '15:00', { ticked, r });
 
-  // ---- a late answer never overrides what the player already touched
-  await C.open(W, Hh, false, { now: H('2026-06-21T13:15:00Z'), stub: { mode: 'manual', body: body(95, 15, 200, 90) } });
-  const btn = await C.ev(`(() => { document.getElementById('ui').classList.remove('hidden'); const b = document.querySelector('.seg button[data-w="rain"]').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })()`);
-  await C.click(btn.x, btn.y);
-  await C.ev(`(() => { const s = document.getElementById('sea'); s.value = 0.1; s.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-  await C.ev('window.__owResolve && window.__owResolve()'); await sleep(300); await C.ev(FRAMES);
-  r = await C.ev(READ);
-  ok('late answer: a Storm answer after the player picked Rain and Sea 0.1 changes neither', r.weather === 'rain' && near(r.sea, 0.1, 1e-6), r);
-  ok('late answer: no live label once the player has chosen', !/live/i.test(r.label || ''), r.label);
-  // and one control touched, the other still live
-  await C.open(W, Hh, false, { now: H('2026-06-21T13:15:00Z'), stub: { mode: 'manual', body: body(95, 15, 200, 90) } });
-  await C.ev(`(() => { const s = document.getElementById('sea'); s.value = 0.1; s.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-  await C.ev('window.__owResolve && window.__owResolve()'); await sleep(300);
-  r = await C.ev(READ);
-  ok('late answer: Sea touched, Weather not: the answer sets Storm and leaves Sea at 0.1', r.weather === 'storm' && near(r.sea, 0.1, 1e-6), r);
-
-  // ---- December, and the DST boundary
-  await C.open(W, Hh, false, { now: H('2026-12-21T17:00:00Z'), stub: { mode: 'fail' } });
+  // ---- December
+  await C.open(1280, 800, false, { query: LQ, now: H('2026-12-21T17:00:00Z'), stub: { mode: 'fail' } });
   r = await C.ev(READ);
   ok('clock: 2026-12-21 17:00Z opens at 12:00 (EST)', near(r.tod, 12, 0.01) && r.tLab === '12:00', r);
   if (owOk) {
     const d = await C.ev(`(async () => { window.__game.state.tod = 12.08; await ${FRAMES}; const v = window.__ow.SKYU.uSunDir.value; return [v.x, v.y, v.z]; })()`);
     ok('sun (scene): 2026-12-21 near noon the scene\'s sun is about 29.8 deg up, due south', near(Math.asin(d[1]) * 180 / Math.PI, 29.8, 0.4) && d[0] < -0.8, d);
   }
-  await C.open(W, Hh, false, { now: H('2026-11-01T05:30:00Z'), stub: { mode: 'fail' } });
+  // ---- the DST boundary, through the tick
+  await C.open(1280, 800, false, { query: LQ, now: H('2026-11-01T05:30:00Z'), stub: { mode: 'fail' } });
   r = await C.ev(READ);
-  ok('clock: 2026-11-01 05:30Z reads 01:30 (EDT, before the change)', near(r.tod, 1.5, 0.01) && r.tLab === '01:30' && (r.live == null || r.live.dst === true), r);
+  ok('clock: 2026-11-01 05:30Z reads 01:30 (EDT, before the change)', near(r.tod, 1.5, 0.01) && r.tLab === '01:30' && r.live?.dst === true, r);
   const steps = [['2026-11-01T06:30:00Z', 1.5, '01:30', false, '06:30Z reads 01:30 again (EST: the repeated hour)'], ['2026-11-01T12:00:00Z', 7, '07:00', false, '12:00Z reads 07:00, not 08:00'], ['2026-10-31T12:00:00Z', 8, '08:00', true, '2026-10-31 12:00Z reads 08:00 (EDT)']];
   for (const [iso, want, lab, dst, name] of steps) {
-    await C.ev(`window.__fakeNow = ${H(iso)}`); await sleep(1600);
+    await C.ev(`window.__fakeNow = ${H(iso)}`);
+    await until(C, `!!window.__ow && window.__ow.live.dst === ${dst} && Math.abs(window.__game.state.tod - ${want}) < 0.01`);
     r = await C.ev(READ);
-    ok('clock: ' + name, near(r.tod, want, 0.01) && r.tLab === lab && (r.live == null || r.live.dst === dst), r);
+    ok('clock: ' + name, near(r.tod, want, 0.01) && r.tLab === lab && r.live?.dst === dst, r);
   }
+  ok('sky: no request reached open-meteo.com (Network domain)', C.net.length === 0, C.net);
+  return out;
+}
 
-  // ---- URL params
-  await C.open(W, Hh, false, { query: 'weather=storm&sea=0.7', now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(0, 3) } });
-  await sleep(500); r = await C.ev(READ);
+// ---- the live weather
+async function runWeather(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  // the stub notes what the scene showed when it asked (__owAtCall), then answers at once
+  await C.open(1280, 800, false, { query: LQ, now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(61, 9, 200, 90) } });
+  await until(C, `(window.__owReq || []).length > 0 && !!window.__ow && window.__ow.live.status !== 'pending'`);
+  await C.ev(FRAMES);
+  let r = await C.ev(READ);
+  const owOk = ok('window.__ow hook exists (skyAt, moonAt, live)', await C.ev(hasOw), await C.ev('typeof window.__ow'));
+  ok('weather: exactly one request on open', r.req === 1, r.req);
+  const q = await C.ev('window.__owReq[0] || null');
+  ok('weather: the request is the issue\'s exact URL (fixed coordinates, nothing about the player)', q?.url === WX_URL, q);
+  ok('weather: credentials omitted, no referrer, a plain GET with no body or headers', q && q.credentials === 'omit' && q.referrerPolicy === 'no-referrer' && q.method === 'GET' && !q.hasBody && !q.headers, q);
+  const before = await C.ev('window.__owAtCall || null');
+  ok('weather: the scene was already drawing on its defaults (Sunny, 0.4, no live label) when it asked', before && before.weather === 'sunny' && near(before.sea, 0.4, 1e-6) && !/live/i.test(before.label || '') && before.frames >= 1, before);
+  ok('weather: the answer arrives: code 61 -> Rain, the button pressed', r.weather === 'rain' && r.pressed === 'rain', r);
+  ok('weather: wind 9 m/s -> sea slider inverted through windFromSlider less Rain\'s windAdd', near(r.sea, invSea(9 - 3), 0.002) && near(r.seaIn, r.sea, 0.006) && near(windFromSlider(r.sea) + 3, 9, 0.05), { r, want: invSea(6) });
+  ok('weather: wind from 200 deg -> windAngle toward 20 deg (+x north, +z east)', near(r.windAngle, 20 * Math.PI / 180, 1e-3), r.windAngle);
+  ok('label: "Live · Chesapeake" while the live weather is in use', /Live · Chesapeake/.test(r.label || ''), r.label);
+  ok('privacy: geolocation never asked for', r.geo === 0, r.geo);
+  const head = await C.ev(`(() => { const g = window.__game, d = ((g.player.psi - g.sea.windAngle) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI; return { psi: g.player.psi, wa: g.sea.windAngle, rel: d }; })()`);
+  ok('weather: the opening heading keeps its reach on the live wind (not in irons)', near(Math.abs(head.rel), Math.abs(((-0.49 - 1.35) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI), 1e-3), head);
+  if (owOk) {
+    const groups = [[0, 'sunny'], [3, 'sunny'], [45, 'sunny'], [48, 'sunny'], [51, 'rain'], [56, 'rain'], [67, 'rain'], [68, 'sunny'], [71, 'rain'], [77, 'rain'], [80, 'rain'], [86, 'rain'], [90, 'sunny'], [95, 'storm'], [99, 'storm']];
+    for (const [code, want] of groups) {
+      const wind = 4 + (code % 7);
+      await C.ev(`${STUB({ mode: 'ok', body: body(code, wind, 90, 80) })} window.__ow.relive(); window.__ow.request()`);
+      r = await C.ev(READ);
+      ok(`weather: code ${code} -> ${want}, sea from ${wind} m/s`, r.weather === want && r.pressed === want && near(r.sea, invSea(wind - WIND_ADD[want]), 0.002), { r, want: invSea(wind - WIND_ADD[want]) });
+    }
+    await C.ev(`${STUB({ mode: 'ok', body: body(2, 4, 90, 80) })} window.__ow.relive(); window.__ow.request()`);
+    r = await C.ev(READ);
+    ok('weather: a Sunny answer with 80% cloud raises the cloud cover target above Sunny\'s 0.42', r.cover?.target > 0.6, r.cover);
+    await C.ev(`${STUB({ mode: 'ok', body: body(1, 4, 90, 0) })} window.__ow.relive(); window.__ow.request()`);
+    r = await C.ev(READ);
+    ok('weather: 0% cloud lowers it below 0.42', r.cover?.target < 0.3, r.cover);
+    for (const mode of ['fail', 'bad']) {
+      await C.ev(`${STUB({ mode: 'ok', body: body(95, 15) })} window.__ow.relive(); window.__ow.request()`);   // a storm first, so the fallback has to undo it
+      await C.ev(`${STUB({ mode, status: mode === 'bad' ? 500 : 200 })} window.__ow.relive(); window.__ow.request()`);
+      r = await C.ev(READ);
+      ok(`weather: a ${mode === 'fail' ? 'network failure' : 'bad answer (500, not JSON)'} -> Sunny and 0.4, no live label`, r.weather === 'sunny' && near(r.sea, 0.4, 1e-6) && r.live?.status === 'failed' && !/live/i.test(r.label || ''), r);
+    }
+    await C.ev(`${STUB({ mode: 'hang' })} window.__ow.relive(); window.__ow.request()`);
+    r = await C.ev(READ);
+    ok('weather: a request that never answers is given up at 3 s (timeout) -> Sunny and 0.4', r.live?.status === 'failed' && r.live?.reason === 'timeout' && r.live.ms >= 2950 && r.weather === 'sunny' && near(r.sea, 0.4, 1e-6) && !/live/i.test(r.label || ''), r);
+  }
+  ok('weather: no page error from a failure, a bad answer or the timeout', C.errs.length === 0, C.errs.slice(0, 5));
+
+  // ---- a late answer never overrides what the player already touched: the stub clicks and slides while the request is out
+  const late = async (touch, ans) => {
+    await C.open(1280, 800, false, { query: LQ, now: H('2026-06-21T13:15:00Z'), stub: { mode: 'touch', ...touch, body: ans } });
+    await until(C, `(window.__owReq || []).length > 0 && !!window.__ow && window.__ow.live.status !== 'pending'`);
+    return C.ev(READ);
+  };
+  r = await late({ weather: 'rain', sea: 0.1 }, body(95, 15, 200, 90));
+  ok('late answer: a Storm answer after the player picked Rain and Sea 0.1 changes neither', r.live?.status === 'ok' && r.weather === 'rain' && near(r.sea, 0.1, 1e-6), r);
+  ok('late answer: no live label once the player has chosen', !/live/i.test(r.label || ''), r.label);
+  r = await late({ sea: 0.1 }, body(95, 15, 200, 90));
+  ok('late answer: Sea touched, Weather not: the answer sets Storm and leaves Sea at 0.1 (and no label: Sea was changed)', r.live?.status === 'ok' && r.weather === 'storm' && near(r.sea, 0.1, 1e-6) && !/live/i.test(r.label || ''), r);
+  r = await late({ weather: 'storm' }, body(0, 6, 200, 90));
+  ok('late answer: Weather touched, Sea not: Storm stays, the answer sets Sea from 6 m/s less Storm\'s 10 (0)', r.live?.status === 'ok' && r.weather === 'storm' && near(r.sea, invSea(6 - 10), 1e-6), r);
+  ok('weather: no request reached open-meteo.com (Network domain)', C.net.length === 0, C.net);
+  return out;
+}
+
+// ---- URL params
+async function runParams(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(1280, 800, false, { query: LQ + '&weather=storm&sea=0.7', now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(0, 3) } });
+  await C.ev(FRAMES); await sleep(800); let r = await C.ev(READ);
   ok('params: ?weather=storm&sea=0.7 -> Storm, 0.7, and no weather request at all', r.weather === 'storm' && near(r.sea, 0.7, 1e-6) && r.req === 0 && !/live/i.test(r.label || ''), r);
   ok('params: the clock is still live with them (09:15)', near(r.tod, 9.25, 0.01), r);
-  await C.open(W, Hh, false, { query: 't=9.5', now: H('2026-06-21T20:00:00Z'), stub: { mode: 'ok', body: body(0, 3) } });
-  await C.ev(`window.__fakeNow += 120e3`); await sleep(1600); r = await C.ev(READ);
-  ok('params: ?t=9.5 -> 09:30, and the clock does not tick it', near(r.tod, 9.5, 1e-6) && r.tLab === '09:30', r);
-  await C.open(W, Hh, false, { query: 'weather=rain', now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(0, 10) } });
-  await sleep(500); r = await C.ev(READ);
-  ok('params: ?weather=rain alone -> Rain stays, the request still sets Sea (10 m/s less Rain\'s 3)', r.weather === 'rain' && r.req === 1 && near(r.sea, invSea(7), 0.002), { r, want: invSea(7) });
-  await C.open(W, Hh, false, { query: 'sea=0.2', now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(63, 12) } });
-  await sleep(500); r = await C.ev(READ);
+  await C.open(1280, 800, false, { query: LQ + '&t=9.5', now: H('2026-06-21T20:00:00Z'), stub: { mode: 'ok', body: body(0, 3) } });
+  await C.ev(`window.__fakeNow += 120e3`);
+  const ticked = await until(C, `!!window.__ow && window.__ow.clock.min === 16 * 60 + 2`);
+  r = await C.ev(READ);
+  ok('params: ?t=9.5 -> 09:30, and the clock does not tick it', ticked && near(r.tod, 9.5, 1e-6) && r.tLab === '09:30', { ticked, r });
+  await C.open(1280, 800, false, { query: LQ + '&weather=rain', now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(0, 10) } });
+  await until(C, `!!window.__ow && window.__ow.live.status === 'ok'`); r = await C.ev(READ);
+  ok('params: ?weather=rain alone -> Rain stays, the request still sets Sea (10 m/s less Rain\'s 3), no live label', r.weather === 'rain' && r.req === 1 && near(r.sea, invSea(7), 0.002) && !/live/i.test(r.label || ''), { r, want: invSea(7) });
+  await C.open(1280, 800, false, { query: LQ + '&sea=0.2', now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(63, 12) } });
+  await until(C, `!!window.__ow && window.__ow.live.status === 'ok'`); r = await C.ev(READ);
   ok('params: ?sea=0.2 alone -> Sea stays 0.2, the request sets Rain', r.weather === 'rain' && r.req === 1 && near(r.sea, 0.2, 1e-6), r);
-  ok('logic: no request reached open-meteo.com (Network domain)', C.net.length === 0, C.net);
+  ok('params: no request reached open-meteo.com (Network domain)', C.net.length === 0, C.net);
   return out;
 }
 
@@ -370,6 +408,10 @@ async function runSize(C, size) {
   const out = [], ok = (name, pass, got) => out.push({ name: size + ': ' + name, pass: !!pass, got: pass ? undefined : got });
   await C.open(w, h, touch, { now: H('2026-06-21T13:15:00Z'), stub: { mode: 'ok', body: body(3, 6, 200, 70) } });
   await sleep(600);
+  // a first visit opens Help over everything: close it as a player would (its OK button)
+  const okB = await C.ev(`(() => { const h = document.getElementById('help'); if (!h || h.classList.contains('hidden')) return null; const b = document.getElementById('helpOk'); b.scrollIntoView({ block: 'nearest' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  if (okB) { if (touch) await C.tap(okB.x, okB.y); else await C.click(okB.x, okB.y); }
+  ok('Help closes from its OK button', await C.ev(`document.getElementById('help').classList.contains('hidden')`), okB);
   // open Conditions the way a player does: on a touch screen the controller hides it; the menu's Conditions brings it back
   const tp = await C.ev(`document.body.classList.contains('tp-on')`);
   if (touch && tp) {
@@ -397,7 +439,7 @@ async function main() {
     const S = launch(); const t0 = Date.now();
     try {
       const C = await connect(S);
-      const res = run === 'logic' ? await runLogic(C) : await runSize(C, run);
+      const res = run === 'sky' ? await runSky(C) : run === 'weather' ? await runWeather(C) : run === 'params' ? await runParams(C) : await runSize(C, run);
       if (C.errs.length) res.push({ name: run + ': no page errors', pass: false, got: C.errs.slice(0, 10) });
       else res.push({ name: run + ': no page errors', pass: true });
       all.push(...res);
