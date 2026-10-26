@@ -267,6 +267,8 @@
   .pilot.kid.add.full { opacity: .6; }
   .pilot.kid.shake { animation: shake .3s; }
   #start .kidbar { display: flex; margin-top: 18px; align-items: center; justify-content: center; gap: 14px; }
+  /* (#132: a phone held upright: the four chips (who, wiring, wave, mode) take two rows rather than run off the sides) */
+  @media (max-width: 560px) { #start .kidbar { flex-wrap: wrap; row-gap: 14px; max-width: calc(100vw - 24px); margin-left: auto; margin-right: auto; } }
   .chip { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px 0 8px; border-radius: 28px; border: 4px solid var(--ink); background: rgba(20,24,42,.78); color: var(--c, #fff); cursor: pointer;
     box-shadow: 0 5px 0 var(--ink), inset 0 0 0 3px var(--c, #fff); font: 900 22px 'Asap', sans-serif; text-shadow: 2px 2px 0 var(--ink); }
   .chip .face { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); display: flex; align-items: center; justify-content: center; font-size: 24px; }
@@ -284,6 +286,15 @@
   #waveB .bw, #waveB.boss .wi { display: none; } #waveB.boss .bw { display: inline-flex; }
   #waveB.boss { --c: #ffd21f; }
   #waveB small { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center; text-shadow: none; }
+  /* #132: the mode chip: 1, 2 or 3 bars lit (Easy, Normal, Hard) in the mode's colour (--c, MODES[m].hex); on the pilot pick
+     only (not the pause screen: a run keeps its mode) */
+  #modeB { --c: var(--yellow); display: none; position: relative; padding: 0 16px 0 14px; }
+  #start.title #modeB { display: flex; }
+  #modeB .mbars { display: flex; align-items: flex-end; gap: 4px; height: 30px; pointer-events: none; }
+  #modeB .mbars i { display: block; width: 10px; border-radius: 3px; border: 2px solid var(--ink); background: rgba(255,255,255,.18); }
+  #modeB .mbars i:nth-child(1) { height: 13px; } #modeB .mbars i:nth-child(2) { height: 21px; } #modeB .mbars i:nth-child(3) { height: 30px; }
+  #modeB .mbars i.on { background: var(--c); box-shadow: 0 0 7px var(--c); }
+  #modeB small { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center; text-shadow: none; }
   #start .wpick { display: none; position: absolute; inset: 0; z-index: 5; align-items: center; justify-content: center; padding: 12px; pointer-events: auto; background: rgba(12,14,28,.72); }
   #start .wpick.on { display: flex; }
   /* (while it's up, the HUD behind it and the parent button hide, as on who's playing: nothing sits over its panel) */
@@ -1501,7 +1512,10 @@
     <!-- who's playing (◀ picks again, on the title) and the Quick Fix setting: 🔢 math wiring or 🌈 colour wiring -->
     <div class="kidbar"><button class="chip" id="kidB" aria-label="Who's playing"></button><button class="chip" id="wireB" aria-label="Math or colour wiring"><i data-w="math"><i data-ic="math"></i></i><i data-w="colour"><i data-ic="colours"></i></i></button><!--
       #129: the wave the run starts at (a saved child who has cleared a wave): a tap, ▲ or the d-pad's up opens the wave picker
-      --><button class="chip" id="waveB" aria-label="Start wave"><span class="wi"><i data-ic="wave"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveBN">1</b><small><i data-ic="up"></i></small></button></div>
+      --><button class="chip" id="waveB" aria-label="Start wave"><span class="wi"><i data-ic="wave"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveBN">1</b><small><i data-ic="up"></i></small></button><!--
+      #132: Easy, Normal or Hard, whoever is playing's own: 1, 2 or 3 bars lit in green, yellow or red; a tap, ▼ / S or the
+      d-pad's down picks the next one (on the pilot pick only: a run keeps the mode it started with)
+      --><button class="chip" id="modeB" data-m="normal" aria-label="Mode: Normal"><span class="mbars"><i></i><i></i><i></i></span><small><i data-ic="down"></i></small></button></div>
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
@@ -2671,6 +2685,29 @@ const SATELLITE = {
   lockPitch: 0.12,
   part: 'solar',
 };
+// #132 (Dad's and Orion's and Apollo's answers, 2026-10-25): Easy, Normal and Hard. Each saved child picks theirs on the pilot
+// pick (rec.mode; a new child, an old record and anything unknown: Normal); Guest can pick too, unsaved. A run keeps the mode
+// it started with (Game.mode, latched by startGame). Every number of every mode is here, so a wave list or a multiplier is
+// a one-line change. Waves (list, satellite, copier, spawn), the copier's clone and the mode chip (ModePick) read it.
+//   order:     the chip's cycle (a tap, ▼ / S or the d-pad's down: the next one)
+//   waves:     wave n's robots, written out, in place of Normal's rules on that wave (no extras, Ninja crew, copier or
+//              satellite but what's listed). 'boss' is that wave's boss (Waves.bossOf), so a later boss (#141) slots in there.
+//              Wave 5 here is the boss alone, whatever BOSS_WAVE says (which still holds on every wave not written out)
+//   extras:    from the first wave not written out, Normal's extra robots × this, rounded down (the Ninja crew still takes the
+//              last one's place)
+//   ninja, copier, satellite: the first wave each can come on (Normal's rules after that); null: Normal's own (NINJA.from,
+//              COPIER.wave.from, SATELLITE.from)
+//   health:    × every glitched robot's health a wave brings (the satellite, the bosses and the copier's clone too), on top of
+//              the wave's toughness (Waves.tough is untouched). Squadmates aren't glitched: a fix sets their own
+//   bars, hex: the chip's look (1, 2 or 3 bars lit, in this colour); name: its label, for screen readers
+const MODES = {
+  order: ['easy', 'normal', 'hard'],
+  easy: { name: 'Easy', bars: 1, hex: '#3ee07a', health: 1, extras: 0.5, ninja: 6, copier: 6, satellite: 7,
+    waves: { 1: ['drone'], 2: ['drone', 'charger'], 3: ['drone', 'charger', 'bouncer'], 4: ['drone', 'charger', 'bouncer', 'sniper'], 5: ['boss'] } },
+  normal: { name: 'Normal', bars: 2, hex: '#ffd83d', health: 1, extras: 1, ninja: null, copier: null, satellite: null, waves: {} },
+  hard: { name: 'Hard', bars: 3, hex: '#ff4d5e', health: 1.25, extras: 1, ninja: null, copier: null, satellite: null, waves: {} },
+};
+const modeOf = (m) => (MODES.order.includes(m) ? m : 'normal');
 // #124 (#117 N5, Dad's option (a)): the boys' Blender models, slimmed for phones (models/robot-battle/*-lo.glb), worn by the
 // five new robots in place of the ones built in code. Look only: no hitbox, number or brain changes. Models.load fetches them
 // in the background at boot (never on file://); a robot spawned before its model is in, or whose model failed (offline, a
@@ -3378,6 +3415,7 @@ const Facts = {
     fillSquad(r);                                                         // #58: the saved squad (none before #58)
     if (!C.guest) this.keepStars(r);                                      // #115: stars a cheered table shows were earned
     if (!C.guest) fillWaves(r);                                           // #129: the waves cleared (best 0 before #129)
+    r.mode = modeOf(r.mode);                                              // #132: Easy, Normal or Hard (Normal before #132)
     this.child = C; this.rec = r;
     this.advance(); const got = this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
     // #43: and any tier rise this record holds that hasn't been checked: a milestone just latched, or a backup's merge (which
@@ -3430,7 +3468,7 @@ const Facts = {
     const r = C.guest ? null : store.get('facts.' + C.id, null);
     const out = this.valid(r, C) ? r : this.blank(C);
     out.practice ||= {}; out.opened ||= []; out.cheered ||= {}; fillGarage(out);
-    out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out); if (!C.guest) { this.keepStars(out); fillWaves(out); }   // (#115, #129: as load will; not saved here)
+    out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out); if (!C.guest) { this.keepStars(out); fillWaves(out); } out.mode = modeOf(out.mode);   // (#115, #129, #132: as load will; not saved here)
     return out;
   },
   // #129: the highest wave child c (whoever is playing if left out) has cleared: 0 for none, and always 0 for Guest. Never writes
@@ -3507,11 +3545,11 @@ const Facts = {
     return out;
   },
   // a parent resets child c: their record starts again from blank (the Quick Fix setting is kept: it's a
-  // setting, not progress; so is the garage: trophies and upgrades earned stay earned; #58: and so is the saved squad,
+  // setting, not progress, and so is #132's mode; so is the garage: trophies and upgrades earned stay earned; #58: and so is the saved squad,
   // which the squad in the meadow would write back anyway). Only that child's record is touched; Guest has none.
   reset(c) {
     const C = childOf(c); if (!C || C.guest) return { ok: false, why: C ? 'guest keeps nothing' : 'no such child' };
-    const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.garage = was.garage; r.squad = was.squad; r.squadGone = was.squadGone;
+    const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.mode = modeOf(was.mode); r.garage = was.garage; r.squad = was.squad; r.squadGone = was.squadGone;
     if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else if (Profiles.saved(C.id)) store.set('facts.' + C.id, r);
     return { ok: true, child: C.id };
   },
@@ -3527,6 +3565,12 @@ const Facts = {
   setWiring(mode) {
     if (!this.rec || !['math', 'colour'].includes(mode)) return false;
     this.rec.wiring = mode; this.save(); return true;
+  },
+  // #132: whoever is playing's mode (MODES), saved in their record (Guest's record is never saved, so theirs lasts until
+  // Guest is picked again or the page reloads)
+  setMode(m) {
+    if (!this.rec || !MODES.order.includes(m)) return false;
+    this.rec.mode = m; this.save(); return true;
   },
   // move a fact down a stage (a miss below Mastered; #115: a Mastered fact slips instead, and never drops): it keeps the fast days that
   // stage starts with (Learning 1, Known 2), and today no longer counts, so it climbs back on a later day
@@ -3870,6 +3914,7 @@ const Backup = {
   //   puzzles   the one further along (higher seq), whole
   //   created   the earlier; v, child, ladder, wiring, last: this device's (wiring is a setting, not progress)
   //   #129 waves  best: the higher (a record without the field counts as 0)
+  //   #132 mode  this device's (a record without the field: Normal): it's a setting, not progress, as wiring is
   //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
   //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
   //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
@@ -3920,6 +3965,8 @@ const Backup = {
     if (dev.created != null && bak.created != null) out.created = Math.min(num(dev.created), num(bak.created));
     // #129: the waves cleared: the higher best (its other fields: this device's, the backup's where this device has none)
     if (dev.waves != null || bak.waves != null) out.waves = { ...(isObj(bak.waves) ? clone(bak.waves) : {}), ...(isObj(dev.waves) ? clone(dev.waves) : {}), best: Math.max(waveBest(dev), waveBest(bak)) };
+    // #132: the mode: this device's (not the backup's where this device has none: no field there is Normal)
+    if (dev.mode != null || bak.mode != null) out.mode = modeOf(dev.mode);
     // #58: the saved squad
     if (dev.squad != null || bak.squad != null || dev.squadGone != null || bak.squadGone != null) Object.assign(out, this.mergeSquad(dev, bak));
     // the garage
@@ -4025,6 +4072,11 @@ const Backup = {
     out.waves = { ...(isObj(out.waves) ? out.waves : {}), best: waveBest(here) };
     return out;
   },
+  // #132: Use the backup's record r, but this device's mode (a setting, not progress: no field here is Normal). Pure
+  keepMode(r, here) {
+    if (!isObj(r) || !isObj(here) || (r.mode == null && here.mode == null) || r.mode === modeOf(here.mode)) return r;
+    return { ...clone(r), mode: modeOf(here.mode) };
+  },
   // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
   count(r) {
     if (!r) return null;
@@ -4065,8 +4117,8 @@ const Backup = {
       const choice = this.choiceFor(choices, C.id);
       if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
       // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone; #115: and its ⭐s: keepMastered;
-      // #129: and its best wave cleared: keepWaves)
-      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here) : this.merge(here, bak);
+      // #129: and its best wave cleared: keepWaves; #132: and its mode: keepMode)
+      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepMode(this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here), here) : this.merge(here, bak);
       const write = !!bak && canon(res) !== canon(here);
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
@@ -7172,7 +7224,7 @@ class CamRig {
 // child = who's playing (a CHILDREN entry), null until picked; their record is Facts.rec
 // wave = the wave in the meadow (0 until the first one comes out); cleared = no glitched or powered-down
 // robot is left in it (#59: a powered-down squadmate doesn't count: its rescue clock runs on); waveStats = this wave's robots fixed and taken apart, and where its counts began
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null,
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null, mode: null,   // (#132: mode: the run's mode, latched by startGame; null before a run)
   wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0, fast: 0 },
   // P3-1: every fix this session (board open to reboot, with its slot counts), and the last one
   fixes: [], lastFix: null,
@@ -7238,6 +7290,7 @@ const Title = {
     Progress.drawBadge();
     drawPauseMenu();
     WavePick.draw();   // #129: the wave chip (and the picker, while it's open)
+    ModePick.draw();   // #132: the mode chip
     $('parentB').classList.toggle('on', this.on && !Maker.on);   // the parent button: title / pause screen only (#49: not over the maker)
   },
   // scroll the tiles so the cursor's tile shows whole
@@ -7281,6 +7334,7 @@ const Title = {
       const n = PILOTS.length;
       if (kp('Escape', 'Backspace') || pad?.bP) { pickChild(null); Sfx.click(); return; }
       if ((kp('ArrowUp', 'KeyW') || pad?.upP) && WavePick.shown) { WavePick.open(); return; }   // #129: ▲ / the d-pad's up: the wave picker
+      if (kp('ArrowDown', 'KeyS') || pad?.downP) { ModePick.cycle(); return; }                  // #132: ▼ / the d-pad's down: the next mode
       if (d) { this.cur = (this.cur + d + n) % n; this.draw(); Sfx.click(); }
       if (kp('Enter', 'Space') || pad?.aP) startGame(PILOTS[this.cur].id);
     } else if (kp('KeyT') || pad?.yP) Progress.openGrid('pause');      // ⭐ my facts
@@ -7542,6 +7596,41 @@ const WavePick = {
       tiles: this.on ? [...$('waveTiles').querySelectorAll('.wt')].map((t) => ({ n: +t.dataset.n, boss: !!t.dataset.boss && !!t.querySelector('.wb svg'), on: t.classList.contains('on'), cur: t.classList.contains('cur') })) : [] };
   },
 };
+// #132: the mode chip on the pilot pick: whoever is playing's mode (Facts.rec.mode, Normal for a new child; Guest's lasts
+// until Guest is picked again or the page reloads). A tap on it, ▼ / S or the d-pad's down picks the next of MODES.order
+// (Easy -> Normal -> Hard -> Easy) and saves it. Only before a run: once a pilot is picked the run keeps the mode it
+// started with (Game.mode), the chip is gone and set() refuses
+const ModePick = {
+  drawn: null,
+  pick() { return Game.child && Facts.rec ? modeOf(Facts.rec.mode) : 'normal'; },
+  get shown() { return !!Game.child && !Game.pilot && Title.on && !Maker.on; },
+  init() { $('modeB').addEventListener('click', (e) => { e.stopPropagation(); if (e.detail === 0 && !e.pointerType) return; this.cycle(); }); },   // (a key's click: ▼ does it)
+  set(m) {
+    if (Game.pilot) return { ok: false, why: 'playing', ...this.status() };
+    if (!Game.child) return { ok: false, why: 'nobody playing', ...this.status() };
+    if (!Facts.setMode(m)) return { ok: false, why: 'easy, normal or hard', ...this.status() };
+    this.draw();
+    return { ok: true, ...this.status() };
+  },
+  cycle(d = 1) {
+    const O = MODES.order, res = this.set(O[(O.indexOf(this.pick()) + d + O.length) % O.length]);
+    if (res.ok && !Game.manual) { Sfx.unlock(); Sfx.click(); }
+    return res;
+  },
+  draw() {
+    const m = this.pick(), M = MODES[m], el = $('modeB');
+    if (this.drawn !== m) {
+      this.drawn = el.dataset.m = m; el.style.setProperty('--c', M.hex); el.setAttribute('aria-label', `Mode: ${M.name}`);
+      [...el.querySelectorAll('.mbars i')].forEach((b, i) => b.classList.toggle('on', i < M.bars));
+    }
+  },
+  // what the hooks see: pick = whoever is playing's mode; run = the run's (null before one); saved = as this device's storage
+  // holds it (null: Guest, nobody, or no field)
+  status() {
+    const C = Game.child, sv = C && !C.guest ? store.get('facts.' + C.id, null) : null;
+    return { pick: this.pick(), run: Game.mode, shown: this.shown, saved: sv?.mode ?? null, order: [...MODES.order] };
+  },
+};
 // #129: the wave the run's first wave out is: ?wave=N's (#122), else the wave picker's pick (1 unless a saved child picked one)
 function firstWave() { return WAVE_JUMP ? START_WAVE : WavePick.wave(); }
 // Who's playing: load child `c`'s record (an id, a name or an index into CHILDREN) and go on to the
@@ -7577,6 +7666,7 @@ function startGame(p) {
   const P = pilotOf(p), h = Game.humans[0];
   if (!P || !h) return { ok: false, why: 'no such pilot' };
   if (!Game.child) pickChild('guest');
+  if (!Game.pilot) Game.mode = ModePick.pick();   // #132: the run's mode, latched as it starts (it can't change mid-run)
   Game.pilot = P; setPilot(h, P); store.set('pilot', P.id); Title.cur = PILOTS.indexOf(P);
   startPlay();
   return { ok: true, pilot: P.id };
@@ -10151,6 +10241,7 @@ const Copier = {
         if (c.t <= 0) {
           c.drop = this.dropSpot(p);
           const r = spawnClone(h, c.drop.x, c.drop.z);
+          const hp = Waves.health(); if (hp !== 1) r.health = r.maxHealth = r.maxHealth * hp;   // #132: Hard's clone is 25% tougher too
           c.clone = r.id; this.made.find((q) => q.id === c.id).clone = r.id;
           if (Game.wave >= 1) Game.waveStats.robots++;
           c.phase = 'print'; c.t = COPIER.print;
@@ -14541,26 +14632,40 @@ const Waves = {
   // #120: from wave NINJA.from a Ninja and its minions (one entry, 'ninja': a crew) take the last extra robot's place
   // #122: a boss wave (Waves.boss) is the same plus its boss ('knight', last); with BOSS_WAVE.extras off, a boss wave's list
   // is WAVE.base and the boss (the extras, and the Ninja crew in their place, stay on every other wave)
-  list(n) {
+  // #132: in mode m (the run's, else whoever is playing's pick: Waves.mode): a wave MODES[m].waves writes out is that list
+  // ('boss': the wave's boss); otherwise Normal's rules with MODES[m].extras × the extras (rounded down), the Ninja crew from
+  // MODES[m].ninja (Normal: NINJA.from). Normal and Hard are exactly as before
+  list(n, m = this.mode()) {
+    const M = MODES[modeOf(m)], F = M.waves[n];
+    if (F) return F.map((t) => (t === 'boss' ? this.bossOf(n) : t)).filter(Boolean);
     if (n <= 1) return ['charger', 'sniper', 'drone', 'bouncer'];
-    let L = WAVE.base.concat(Array.from({ length: Math.min(n - 1, WAVE.extraMax) }, (_, i) => WAVE.extras[i % WAVE.extras.length]));
-    if (n >= NINJA.from) L[L.length - 1] = 'ninja';
+    const x = Math.floor(Math.min(n - 1, WAVE.extraMax) * M.extras);
+    let L = WAVE.base.concat(Array.from({ length: x }, (_, i) => WAVE.extras[i % WAVE.extras.length]));
+    if (n >= (M.ninja ?? NINJA.from) && x > 0) L[L.length - 1] = 'ninja';
     const boss = this.bossOf(n);
     if (boss) { if (!BOSS_WAVE.extras) L = WAVE.base.slice(); L.push(boss); }
     return L;
   },
+  // #132: the mode the waves follow: the run's (latched when the pilot is picked), else whoever is playing's pick
+  mode() { return modeOf(Game.mode ?? ModePick.pick()); },
+  // #132: is wave n written out in mode m (MODES[m].waves)? Then it brings only what's listed: no copier, no satellite
+  fixed(n, m = this.mode()) { return !!MODES[modeOf(m)].waves[n]; },
   // #122 (Q9 A): is wave n a boss wave? Every BOSS_WAVE.every waves (5, 10, 15 …). Its boss: the Knight (the first boss; later
   // bosses can take later boss waves here)
   boss(n) { const E = BOSS_WAVE.every; return Number.isInteger(n) && n >= E && n % E === 0; },
   bossOf(n) { return this.boss(n) ? 'knight' : null; },
   // #123 (Q11): does wave n bring a satellite? Every wave from SATELLITE.from (5), boss waves too while BOSS_WAVE.satellite is on.
   // The one place it's asked (it isn't in list(n): it comes beside the wave's robots, like the copier)
-  satellite(n) { return Number.isInteger(n) && n >= SATELLITE.from && (!this.boss(n) || BOSS_WAVE.satellite); },
+  // (#132: in mode m: from MODES[m].satellite, Normal's SATELLITE.from; never on a wave the mode writes out)
+  satellite(n, m = this.mode()) { const M = MODES[modeOf(m)]; return Number.isInteger(n) && n >= (M.satellite ?? SATELLITE.from) && !this.fixed(n, m) && (!this.boss(n) || BOSS_WAVE.satellite); },
   tough(n) { return n <= 1 ? 1 : Math.min(WAVE.toughMax, 1 + WAVE.tough * (n - 1)); },
   // #121 (Q7): does wave n get a copier? Every COPIER.wave.every waves from COPIER.wave.from (4, 6, 8, 10 …), boss waves too.
   // The one place it's asked (N3's BOSS_WAVE.copier switch goes here)
   // (#122: a boss wave keeps its copier only with BOSS_WAVE.copier on)
-  copier(n) { const W = COPIER.wave; return n >= W.from && (n - W.from) % W.every === 0 && (!this.boss(n) || BOSS_WAVE.copier); },
+  // (#132: in mode m: not before MODES[m].copier, nor on a wave the mode writes out; Normal's cadence otherwise)
+  copier(n, m = this.mode()) { const W = COPIER.wave, M = MODES[modeOf(m)]; return n >= W.from && n >= (M.copier ?? W.from) && !this.fixed(n, m) && (n - W.from) % W.every === 0 && (!this.boss(n) || BOSS_WAVE.copier); },
+  // #132: × every glitched robot's health in mode m's waves (Hard 1.25), on top of tough(n)
+  health(m = this.mode()) { return MODES[modeOf(m)].health; },
   spawn(n) {
     const p = Game.humans[0]?.mech; if (!p) return [];
     const before = new Set(Game.robots);
@@ -14568,15 +14673,24 @@ const Waves = {
     Axes.clear();                                 // #122: a Knight's axes still out from the last wave drop
     if (p.adv?.shield) p.shield = ADV.shield;     // G4: the shield emitter is back to full each wave
     Object.assign(Game.waveStats, { fixed: 0, taken: 0, found0: Hidden.list.filter((q) => q.found).length, downs0: p.downs, robots: 0, fast: 0 });
+    const hp = this.health();                     // #132: the mode's × health (1 in Easy and Normal, so they're untouched)
     if (n === 1) {
-      // as it always was: a Charger out of the trees ahead; a Sniper, a drone swarm and a Bouncer
-      // already roaming the meadow further out
       const at = (a, d) => [p.pos.x - Math.sin(p.legHeading + a) * d, p.pos.z - Math.cos(p.legHeading + a) * d];
-      spawnRobot('charger', ...at(0, 45));
-      spawn('sniper', ...at(1.9, 85)); spawn('drone', ...at(-2.0, 75)); spawn('bouncer', ...at(Math.PI, 65));
+      if (!this.fixed(1)) {
+        // as it always was: a Charger out of the trees ahead; a Sniper, a drone swarm and a Bouncer
+        // already roaming the meadow further out
+        spawnRobot('charger', ...at(0, 45));
+        spawn('sniper', ...at(1.9, 85)); spawn('drone', ...at(-2.0, 75)); spawn('bouncer', ...at(Math.PI, 65));
+      } else {
+        // #132: a mode's own wave 1 (Easy: the drone swarm alone): each of its robots where wave 1 always puts that type
+        const spot = { charger: [0, 45], sniper: [1.9, 85], drone: [-2.0, 75], bouncer: [Math.PI, 65] };
+        this.list(1).forEach((t, i) => spawn(t, ...at(...(spot[t] || [i * 1.3, 70]))));
+      }
+      if (hp !== 1) for (const r of Game.robots) if (!before.has(r)) r.health = r.maxHealth = Math.round(r.maxHealth * hp);
     } else {
       // spread along the edge on the far side of the meadow, each heading for a spot well inside it
-      const types = this.list(n), k = this.tough(n), R = Math.hypot(p.pos.x, p.pos.z);
+      // (#132: each robot's health × the mode's too: Hard's 1.25)
+      const types = this.list(n), k = this.tough(n) * hp, R = Math.hypot(p.pos.x, p.pos.z);
       const base = R > 10 ? Math.atan2(-p.pos.z, -p.pos.x) : Math.random() * Math.PI * 2;
       types.forEach((type, i) => {
         const a = base + ((i + 0.5) / types.length - 0.5) * WAVE.arc, at = this.edgeSpot(a, p);
@@ -14598,7 +14712,7 @@ const Waves = {
       if (at) { const dx = at.pos.x - p.pos.x, dz = at.pos.z - p.pos.z, d = Math.hypot(dx, dz) || 1; x = at.pos.x + dx / d * 8; z = at.pos.z + dz / d * 8; }
       else ({ x, z } = this.edgeSpot(Math.random() * Math.PI * 2, p));
       const s = spawn('satellite', x, z);
-      s.health = s.maxHealth = Math.round(s.maxHealth * this.tough(n));
+      s.health = s.maxHealth = Math.round(s.maxHealth * this.tough(n) * hp);   // (#132: × the mode's health)
       if (at) { s.ai.wp = { ...(at.ai.wp || { x: at.pos.x, z: at.pos.z }) }; s.ai.wpT = 25; }
       fresh.push(s); Game.waveStats.robots = fresh.length;
     }
@@ -14804,10 +14918,10 @@ window.__rb = {
       copiers: Copier.list.filter((c) => c.md).map((c) => ({ id: c.id, model: c.md.model })) };
   },
   // #123: which of waves 1..n bring a satellite (Waves.satellite)
-  satelliteWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.satellite(w)); },
+  satelliteWaves(n = 20, mode) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.satellite(w, mode)); },   // (#132: in mode, else the run's)
   // #122: which of waves 1..n are boss waves (Waves.boss), and the robot types each brings (Waves.list)
-  bossWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.boss(w)); },
-  waveList(n) { return Waves.list(n); },
+  bossWaves(n = 20, mode) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.boss(w) && Waves.list(w, mode).includes(Waves.bossOf(w))); },
+  waveList(n, mode) { return Waves.list(n, mode); },   // (#132: in mode, else the run's or whoever is playing's)
   // #122: the Knight `id` uses its sword or its axe now, as its brain would at the end of a wind-up ('sword': the swipe lands
   // now on whatever is in reach and arc; 'axe': an axe leaves its hand toward player 1, or where it faces with face = true).
   // 'windup-sword' | 'windup-axe' start the wind-up instead (its brain throws or swipes when it ends). Returns its state
@@ -14822,7 +14936,7 @@ window.__rb = {
   // #121: send a copier now (or in `wait` s), as a copier wave does; returns its state (Copier.state)
   copier(wait = 0) { return Copier.state(Copier.launch(wait)); },
   // #121: which of waves 1..n get a copier (Waves.copier)
-  copierWaves(n = 20) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.copier(w)); },
+  copierWaves(n = 20, mode) { return Array.from({ length: n }, (_, i) => i + 1).filter((w) => Waves.copier(w, mode)); },   // (#132: in mode)
   // #121: clone `id` uses weapon w on player 1 now, as its brain would ('gun': one round | 'em' | 'rail': its charge starts |
   // 'punch' | 'kick': the swing starts, landing at the weapon's strike), whether or not the player had it. Returns its state
   cloneAttack(id, w) {
@@ -14834,6 +14948,10 @@ window.__rb = {
   },
   Profiles, PROFILE, Title, Maker, Backup,   // (#49)
   WavePick, WAVE_JUMP,   // (#129)
+  MODES, ModePick,       // (#132)
+  // #132: the mode chip: no argument: its state (ModePick.status: pick, run, shown, saved); 'next': the next mode, as a tap
+  // does; 'easy' | 'normal' | 'hard': that one (refused mid-run: { ok: false, why: 'playing' })
+  mode(m) { return m == null ? ModePick.status() : m === 'next' ? ModePick.cycle() : ModePick.set(m); },
   // #129: the waves child (whoever is playing if left out) has cleared and can start at: { child, best (0: none; always 0 for
   // Guest), offer: the picker's waves (1..best + 1; only 1 on a ?wave=N page), boss: those that are boss waves, pick: the wave
   // a run would start at now (firstWave), jumped: the page has ?wave=N, saved: best as this device's storage holds it }
@@ -15513,6 +15631,7 @@ window.__rb = {
       wave: Game.wave, cleared: Game.cleared, clear: Waves.stats(), clearScreen: Waves.showing,
       // #129: whoever is playing's best wave cleared, and the wave picker (WavePick.status)
       waveBest: Facts.waveBest(), wavePick: WavePick.status(),
+      mode: ModePick.status(),   // #132: the mode chip and the run's mode
       // G1: the garage (on, from 'pause' | 'clear', tab, paused, trophies by part: { count, found, from }, dom = the wall read back)
       // G2: garage.upgrades = whoever is playing's upgrade levels (saved in their record), garage.offer = what each next level needs
       garage: Garage.status(),
@@ -15551,6 +15670,7 @@ BackupUI.init();
 Garage.init();
 Maker.init();             // #49: the profile maker's board, icons and colours
 WavePick.init();          // #129: the wave chip and the wave picker
+ModePick.init();          // #132: the mode chip
 applyUpgrades();          // G2: nobody picked yet, so a bare mech (levels all 0)
 onResize();
 Title.build();
