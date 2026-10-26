@@ -13,6 +13,8 @@
 //                misses at 23 m in front and 6 m to the side, landing at 0.15 s; CRUNCH hits (20) up close in front and misses
 //                out of its reach and behind it; DIG pops up under a standing mech (22), and misses one that moved away after
 //                it went under and one in a jump as it pops; a wind-up shows the ❗ and the move follows it;
+//              * its own brain (no hooks), 60 s of game time with player 1 standing 25 m off, then up close: it lasers, digs
+//                and crunches and lands hits, and each dig comes up where player 1 stood as it went under;
 //              * underground (Q2 A): no balls in its hit shape, a hook's damage, the cannon's rounds and the 🧲 do nothing to it
 //                (health, hits and shock unchanged), nothing locks on to it; it's hittable again once it's up;
 //              * the hit shape covers the segments: a round at its tail (behind its front, from the side) lands;
@@ -21,14 +23,16 @@
 //              * beaten (Q4 A): its board is the boss's (bossPlan: one more math wire and one more puzzle than wave 10's), the
 //                fix done through the hooks gives the 🪚 saw (bag, wall) and the Centipede trophy (latched with ||=: a second
 //                fix doesn't move it), and it doesn't join the squad; the trophy and the saw on the 🏆 wall survive a reload and
-//                a backup restored with both choices; a backup made by main (ec659a0) restores here; a backup from this build
-//                restores into main and main's garage and bag open with no errors.
+//                a backup restored with both choices; a save made by main (ec659a0: the Knight trophy, 2 swords, 3 armour) loads
+//                here as it stands and its backup restores here, nothing lost; a backup from this build restores into main and
+//                main's garage and bag open with no errors.
 //   model    - over http with the models in: the Centipede's model loads (ready, its triangles), a Centipede wears it with
 //              its 36 joints; at its stance every joint's turn (YZX) and place match the raw .glb's own nodes loaded fresh with
 //              GLTFLoader (legs ∓40°, mandibles x 12°: the non-zero rests), every pose in MODEL_POSES.centipede lists all 36
 //              nodes, a LASER shows two beams from its lenses, and a dig hides its body underground.
 //   fallback - with models/ blocked (Network.setBlockedURLs): its model fails, wave 10 (?wave=10, a real start) brings a
-//              code-built Centipede with the same 36 joints, it plays 8 s in real time with no errors, and its laser still lands.
+//              code-built Centipede with the same 36 joints, it plays 8 s in real time with no errors, its brain picks all three
+//              moves and lands hits over 40 s of manual ticks, and its laser still lands.
 //   perf     - at 390 x 844 with touch: wave 10 here (the Centipede) against main's wave 10 (ec659a0: the Knight), and wave 5
 //              here (the Knight), each a real start (?wave=N) played for 5 s after a 1.5 s warm-up (player 1 can't go down):
 //              the median ms between frames, 3 runs each taken in turn (the median of the 3), and one render's draw calls and
@@ -199,6 +203,19 @@ const H = String.raw`
   // the 🏆 wall as shown (a run started if none is, paused as the mouse let go does, the garage opened on the trophies)
   const wall = () => { R.manual(true); if (!G.pilot) R.start(0); document.dispatchEvent(new Event('pointerlockchange')); R.garage(true, 'trophies'); const d = R.Garage.dom(); R.garage(false); return d; };
   const stepUntil = (f, max = 600) => { for (let i = 0; i < max; i++) { if (f()) return i; R.step(1); } return -1; };
+  // its own brain, unfrozen, on manual ticks: player 1 stands sec/2 s about 25 m off, then sec/2 s in front within CRUNCH's
+  // reach; healed every second so it never goes down. Each dig that goes under: where it will come up and where player 1 stood
+  const brain = (sec) => {
+    empty(); const c0 = clear(), m = P0(); const s = R.spawn('centipede', c0.x, c0.z), c = G.robots.find((q) => q.id === s.id); R.teleport(0, c0.x + 6, c0.z - 25);
+    const digs = [];
+    for (let i = 0; i < sec * 60; i++) {
+      if (i === sec * 30) { const d = c.spec.radius + R.MECH.radius + 1.5; R.teleport(0, c.pos.x - Math.sin(c.legHeading) * d, c.pos.z - Math.cos(c.legHeading) * d); }
+      if (i % 60 === 0) heal();
+      const was = !!c.under; R.step(1);
+      if (!was && c.under) digs.push({ spot: { ...c.mv.spot }, stood: { x: m.pos.x, z: m.pos.z } });
+    }
+    const n = st(c).centipede; return { lasers: n.lasers, crunches: n.crunches, digs: n.digs, hits: n.hits, misses: n.misses, digSpots: digs.slice(0, 3), model: n.model, log: n.log.slice(-8).map((e) => e.what) };
+  };
   const solve = (id) => {
     for (let pass = 0; pass < 12; pass++) {
       const s = R.state().robots.find((q) => q.id === id); if (!s) return true;
@@ -263,6 +280,12 @@ async function runLogic(C) {
   ok(`CRUNCH hits a mech up close in front (${r.crunchIn.dealt} = 20, reach ${r.reach.toFixed(1)} m centre to centre)`, r.crunchIn.dealt === 20, r.crunchIn);
   ok(`CRUNCH misses a mech out of its reach (${r.crunchOut.dealt}) and one behind it (${r.crunchBack.dealt})`, r.crunchOut.dealt === 0 && r.crunchBack.dealt === 0, { out: r.crunchOut, back: r.crunchBack });
   ok('a wind-up shows the ❗ (hot) and its move follows when it ends', r.windup.hot && r.windup.wind === 'laser' && r.windup.then === 'laser', r.windup);
+
+  // ---- its own brain picks its moves (no hooks): 60 s of game time
+  r = await C.ev(String.raw`(() => { ${H} R.manual(true); R.player('guest'); R.start(0); return brain(60); })()`);
+  const tot = (o) => o.laser + o.crunch + o.dig;
+  ok(`its brain, 60 s on its own: it lasers (${r.lasers}), digs (${r.digs}) and crunches (${r.crunches}), and lands hits (${tot(r.hits)})`, r.lasers > 0 && r.digs > 0 && r.crunches > 0 && tot(r.hits) > 0, r);
+  ok('... and each dig it chose comes up where player 1 stood as it went under', r.digSpots.length > 0 && r.digSpots.every((d) => Math.hypot(d.spot.x - d.stood.x, d.spot.z - d.stood.z) < 0.01), r.digSpots);
 
   // ---- DIG: standing, moved away, jumped; and immunity underground
   r = await C.ev(String.raw`(() => { ${H} R.manual(true); R.player('guest'); R.start(0); empty(); const c0 = clear(), K = R.CENTIPEDE, out = {};
@@ -340,12 +363,18 @@ async function runLogic(C) {
   ok('after a reload: the Centipede trophy and the saw on the 🏆 wall', !!r.b.centipede && r.wall?.boss === 'centipede' && r.wall.n === 2, { wall: r.wall, b: r.b });
   for (const ch of ['backup', 'best']) ok(`a backup restored with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}" keeps the Centipede trophy and the saws`, r.res[ch].ok && !!r.res[ch].bosses.centipede && r.res[ch].saw?.count === 2, r.res[ch]);
   const bk = r.bk;
-  // a backup made by main (no Centipede, no saw) restores here
+  // an old save and a backup made by main: Orion with the Knight trophy, 2 swords and 3 armour plates, saved by main (the same
+  // origin, so the same storage); then this build loads that save as it stands, and restores that backup, with nothing lost
   await C.open(1280, 800, false, '', 'main.html');
-  const old = await C.ev(String.raw`(() => { const R = window.__rb; localStorage.clear(); R.player('orion'); R.Facts.rec.garage ||= {}; R.Facts.save(); return JSON.parse(JSON.stringify(R.backup())); })()`);
+  const old = await C.ev(String.raw`(() => { const R = window.__rb; localStorage.clear(); R.player('orion'); R.manual(true); R.start(0);
+    R.Garage.collect('sword', 'knight'); R.Garage.collect('sword', 'knight'); for (let i = 0; i < 3; i++) R.Garage.collect('armour', 'charger'); R.Garage.latchBoss('knight'); R.Facts.save();
+    return { bk: JSON.parse(JSON.stringify(R.backup())), bosses: R.Garage.bosses(), tr: R.Garage.trophies() }; })()`);
+  const same = (x) => x.bosses.knight?.at === old.bosses.knight.at && x.sword?.count === 2 && x.sword.from.knight === 2 && x.armour?.count === 3 && x.armour.from.charger === 3 && !x.bosses.centipede && !x.saw?.found;
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { ${H} localStorage.clear(); const x = R.restore(${JSON.stringify(old)}, 'backup'); const p = R.player('orion'); const d = wall(); return { ok: x.ok, player: p.ok, saw: d?.slots?.saw ?? null }; })()`);
-  ok(`a backup made by main (${MAIN_SHA}) restores here, and the child loads (the saw not found yet)`, r.ok && r.player && r.saw && !r.saw.found, r);
+  r = await C.ev(String.raw`(() => { ${H} const p = R.player('orion'), t = R.Garage.trophies(); const d = wall(); return { player: p.ok, bosses: R.Garage.bosses(), sword: t.sword, armour: t.armour, saw: t.saw, wallSword: d?.slots?.sword ?? null }; })()`);
+  ok(`a save made by main (${MAIN_SHA}) loads here with nothing lost: the Knight trophy, 2 swords, 3 armour plates (the saw not found yet)`, r.player && same(r) && r.wallSword?.boss === 'knight', r);
+  r = await C.ev(String.raw`(() => { ${H} localStorage.clear(); const x = R.restore(${JSON.stringify(old.bk)}, 'backup'); const p = R.player('orion'), t = R.Garage.trophies(); return { ok: x.ok, player: p.ok, bosses: R.Garage.bosses(), sword: t.sword, armour: t.armour, saw: t.saw }; })()`);
+  ok(`a backup made by main restores here with nothing lost (the same)`, r.ok && r.player && same(r), r);
   // this build's backup into main: restores, the child loads, main's garage (trophies) and bag open
   for (const ch of ['backup', 'best']) {
     await C.open(1280, 800, false, '', 'main.html');
@@ -415,6 +444,8 @@ async function runFallback(C) {
   ok('?wave=10 starts wave 10 with the Centipede', r.wave === 10 && r.types.includes('centipede'), r);
   await sleep(8000);
   r = await C.ev(String.raw`(() => { ${H} R.manual(true); const c = G.robots.find((q) => q.type === 'centipede'); const s = st(c); return { ticks: G.ticks, model: s.centipede.model, joints: s.centipede.joints, state: s.state, log: s.centipede.log.slice(-6) }; })()`);
+  const brainF = await C.ev(String.raw`(() => { ${H} R.manual(true); return brain(40); })()`);
+  ok(`the code-built one's brain, 40 s on manual ticks: it lasers (${brainF.lasers}), digs (${brainF.digs}) and crunches (${brainF.crunches}) and lands hits`, brainF.model === null && brainF.lasers > 0 && brainF.digs > 0 && brainF.crunches > 0 && brainF.hits.laser + brainF.hits.crunch + brainF.hits.dig > 0, brainF);
   ok(`it's code-built (model ${r.model}) with the same 36 joints, and wave 10 played 8 s of real time (${r.ticks} ticks: at least 60, a second of game time, on a loaded machine)`, r.model === null && r.joints === 36 && r.ticks >= 60, r);
   r = await C.ev(String.raw`(() => { ${H} empty(); const c0 = clear(); const c = cent(c0.x, c0.z, 0); heal(); R.teleport(0, c0.x, c0.z - 16); const h0 = hp(); R.centipedeAttack(c.id, 'laser'); stepUntil(() => !c.mv); return { dealt: h0 - hp(), model: st(c).centipede.model }; })()`);
   ok(`the code-built one's laser lands (${r.dealt})`, r.dealt === 14 && r.model === null, r);
