@@ -42,6 +42,8 @@
 // Sizes by default: 568x320 (#144), 740x360, 844x390, 667x375 (the sideways phones in docs/review-lenses.md), 390x844,
 // 1024x768 and 1280x800. Each size is its own Chrome launch.
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
+// Each run has a 4 min deadline and the whole check 9.5 min (OW_RUN_TIMEOUT_MS / OW_HARD_TIMEOUT_MS override them); every
+// run took 0.5-3 min here, so on a busy machine run `--logic` and the sizes as two calls.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -170,9 +172,15 @@ async function kill(S) {
 }
 process.on('exit', () => killSync(shared));
 for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) process.on(sig, () => { kill(shared).finally(() => process.exit(code)); });
-// under the 10 min a foreground tool call may run, so a timed-out caller never orphans Chrome
-const HARD_TIMEOUT_MS = 9 * 60 * 1000;
-setTimeout(() => { console.error(`hard timeout: over ${HARD_TIMEOUT_MS / 60000} min; closing Chrome`); kill(shared).finally(() => process.exit(124)); }, HARD_TIMEOUT_MS).unref();
+// Each run has its own deadline (its Chrome is killed and the run counted unfinished); the whole check stops under the
+// 10 min a foreground tool call may run, printing what finished, so a timed-out caller never orphans Chrome. On a busy
+// machine, run the logic and the sizes as separate calls (--logic, then --size ...).
+const RUN_TIMEOUT_MS = +process.env.OW_RUN_TIMEOUT_MS || 4 * 60 * 1000, HARD_TIMEOUT_MS = +process.env.OW_HARD_TIMEOUT_MS || 9.5 * 60 * 1000;
+const all = [], unfinished = [];
+setTimeout(() => {
+  console.error(`hard timeout: over ${HARD_TIMEOUT_MS / 60000} min; closing Chrome`);
+  kill(shared).finally(() => { unfinished.push('the rest: hard timeout'); summary(); process.exit(2); });
+}, HARD_TIMEOUT_MS).unref();
 
 async function connect(S) {
   let tgt, port;
@@ -433,13 +441,22 @@ async function runSize(C, size) {
   return out;
 }
 
+function summary() {
+  const failed = all.filter((r) => !r.pass);
+  if (json) console.log(JSON.stringify({ url: baseUrl, runs, checks: all, failed: failed.length, unfinished }, null, 1));
+  else console.log(`${baseUrl}\n${all.length - failed.length}/${all.length} checks pass${unfinished.length ? `, ${unfinished.length} run(s) did not finish` : ''}: ${failed.length || unfinished.length ? 'FAIL' : 'PASS'}`);
+  return unfinished.length ? 2 : failed.length ? 1 : 0;
+}
+
 async function main() {
-  const all = []; const unfinished = [];
   for (const run of runs) {
     const S = launch(); const t0 = Date.now();
     try {
       const C = await connect(S);
-      const res = run === 'sky' ? await runSky(C) : run === 'weather' ? await runWeather(C) : run === 'params' ? await runParams(C) : await runSize(C, run);
+      const job = run === 'sky' ? runSky(C) : run === 'weather' ? runWeather(C) : run === 'params' ? runParams(C) : runSize(C, run);
+      job.catch(() => {});   // after a deadline its Chrome is gone: the abandoned run's errors go nowhere
+      let timer;
+      const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min`)), RUN_TIMEOUT_MS); })]).finally(() => clearTimeout(timer));
       if (C.errs.length) res.push({ name: run + ': no page errors', pass: false, got: C.errs.slice(0, 10) });
       else res.push({ name: run + ': no page errors', pass: true });
       all.push(...res);
@@ -453,10 +470,7 @@ async function main() {
       if (!json) console.log(`${run}: did not finish: ${e?.message || e}`);
     } finally { await kill(S); }
   }
-  const failed = all.filter((r) => !r.pass);
-  if (json) console.log(JSON.stringify({ url: baseUrl, runs, checks: all, failed: failed.length, unfinished }, null, 1));
-  else console.log(`${baseUrl}\n${all.length - failed.length}/${all.length} checks pass${unfinished.length ? `, ${unfinished.length} run(s) did not finish` : ''}: ${failed.length || unfinished.length ? 'FAIL' : 'PASS'}`);
-  return unfinished.length ? 2 : failed.length ? 1 : 0;
+  return summary();
 }
 
 let code = 2;
