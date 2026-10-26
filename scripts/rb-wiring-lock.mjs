@@ -185,7 +185,7 @@ const WHERE = `(() => { const R = window.__rb, s = R.state(), G = R.Game; return
 // every control a tap would reach now: a button, chip, tile or other clickable thing on screen, the topmost at its middle,
 // outside the parent view. Each with a key (to find it again after a reload) and its middle
 const CONTROLS = String.raw`(() => {
-  const sel = 'button, [role=button], [data-act], [data-k], [data-t], [data-w], .chip, .pilot, .cell, .wt, .tm, .gtab, a[href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"]), [onclick]';
+  const sel = 'button, [role=button], [data-act], [data-k], [data-t], [data-w], [data-tp], .tp-btn, .tp-stick, .chip, .pilot, .cell, .wt, .tm, .gtab, a[href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"]), [onclick]';
   const W = innerWidth, H = innerHeight, out = [], seen = new Map();
   for (const el of document.querySelectorAll(sel)) {
     if (el.closest('#parent')) continue;
@@ -195,7 +195,7 @@ const CONTROLS = String.raw`(() => {
     const top = document.elementFromPoint(x, y); if (!top || !(top === el || el.contains(top))) continue;
     if (getComputedStyle(el).pointerEvents === 'none') continue;
     const base = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).filter((c) => !['on', 'cur', 'holding'].includes(c)).join('.') : '')
-      + ['k', 't', 'w', 'act', 'p', 'm', 'a', 'b'].filter((d) => el.dataset[d] != null).map((d) => '[' + d + '=' + el.dataset[d] + ']').join('');
+      + ['k', 't', 'w', 'tp', 'act', 'p', 'm', 'a', 'b'].filter((d) => el.dataset[d] != null).map((d) => '[' + d + '=' + el.dataset[d] + ']').join('');
     const n = seen.get(base) || 0; seen.set(base, n + 1);
     out.push({ key: base + '#' + n, x: Math.round(x), y: Math.round(y), label: el.getAttribute('aria-label') || (el.textContent || '').trim().slice(0, 24) });
   }
@@ -330,6 +330,8 @@ async function runSweep(C, touch, only) {
   const enter = async (s) => {
     await C.open(w, h, touch);
     const r = await C.ev(String.raw`(async () => { const R = window.__rb, s = ${JSON.stringify(s)}; const wait = (ms) => new Promise((f) => setTimeout(f, ms));
+      // (a touch run: touch mode on, as a finger on the screen turns it on, so the on-screen controller shows in play)
+      if (${!!touch}) dispatchEvent(new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true }));
       R.player('${who}'); if (s === 'who') { R.player(null); return R.state().title; }
       if (s === 'pick') return R.state().title;
       R.start(0); await wait(120); if (s === 'play') return R.state().title ?? 'play';
