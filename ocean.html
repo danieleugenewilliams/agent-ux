@@ -189,6 +189,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 // ---------------------------------------------------------------- params
 const Q = new URLSearchParams(location.search);
@@ -996,6 +998,7 @@ function fogPatch(mat, translucent = 0) {
         gl_FragColor.rgb = mix(gl_FragColor.rgb, fc, 1.0 - exp(-fdist*uFogDen));
         gl_FragColor.rgb = mix(gl_FragColor.rgb, uHazeCol, uHaze*smoothstep(20.0, 2500.0, fdist)); }`);
   };
+  mat.customProgramCacheKey = () => 'fogPatch' + translucent;   // the source above is the same text for every translucency
   return mat;
 }
 function sailTexture(battens) {
@@ -1475,6 +1478,67 @@ Object.assign(player, {
 });
 player.sail = player.sailTarget;
 scene.add(player.group);
+
+// ---------------------------------------------------------------- the photoreal yacht (#145)
+// models/yacht.glb is dewilliams.co's boat.py exported sailing (Draco, WebP, one baked PBR material), on the game's axes: bow +x,
+// starboard +z, origin at the waterline, Lh 11. It goes inside player.inner (heel, pitch and roll apply) in place of the
+// procedural hull, deck and rig, which show until the file loads and stay if it doesn't. The sails are the exported ones: the
+// game's luffing is a flutter of the pivots, never a change of shape, so rigid sails luff, lower and swing as buildBoat's do.
+//   yacht_main_pivot (the gooseneck) turns about y. Its boom and mainsail come as one mesh: split here, so the sail lowers onto
+//     the boom and the boom stays when the sails are down.
+//   yacht_jib_pivot (the tack) turns about the forestay (the tack to the jib's head), so the head stays on the stay; the jib
+//     furls onto the stay (scale.x across it), as buildBoat's does.
+//   At rest each sail bellies to +z: on the other tack the pivot's child takes scale.z = -1 and the pivot turns the other way.
+const yacht = { status: 'loading', reason: null, stay: null };
+function splitBoom(geo) {   // the boom: every triangle within 7 cm of its axis (y = 0, z = 0 at the pivot); the sail is the rest
+  const P = geo.attributes.position, I = geo.index.array, ix = [[], []];
+  for (let t = 0; t < I.length; t += 3) {
+    let rod = 1;
+    for (let k = 0; k < 3; k++) if (P.getY(I[t + k]) > 0.07 || Math.abs(P.getZ(I[t + k])) > 0.07) rod = 0;
+    ix[rod ? 0 : 1].push(I[t], I[t + 1], I[t + 2]);
+  }
+  return ix.map((a) => {   // each part keeps only its own vertices, so its bounds are its own
+    const map = new Map(), idx = a.map((v) => { if (!map.has(v)) map.set(v, map.size); return map.get(v); }), g = new THREE.BufferGeometry();
+    for (const k in geo.attributes) {
+      const A = geo.attributes[k], out = new A.array.constructor(map.size * A.itemSize);
+      for (const [v, n] of map) for (let c = 0; c < A.itemSize; c++) out[n * A.itemSize + c] = A.getComponent(v, c);
+      g.setAttribute(k, new THREE.BufferAttribute(out, A.itemSize, A.normalized));
+    }
+    g.setIndex(idx); g.computeBoundingSphere(); return g;
+  });
+}
+function useYacht(gltf) {
+  const root = gltf.scene.getObjectByName('yacht'), node = (n) => root && root.getObjectByName(n);
+  const hull = node('yacht_hull'), mainPivot = node('yacht_main_pivot'), jibPivot = node('yacht_jib_pivot');
+  const mainMesh = mainPivot?.children.find((o) => o.isMesh), jibMesh = jibPivot?.children.find((o) => o.isMesh);
+  if (!hull?.isMesh || !mainMesh || !jibMesh) throw new Error('yacht.glb: no yacht_hull / yacht_main_pivot / yacht_jib_pivot');
+  const baked = fogPatch(hull.material), cloth = fogPatch(hull.material.clone(), 0.55);   // the sails glow through from behind, as buildBoat's do
+  const [boomG, sailG] = splitBoom(mainMesh.geometry);
+  const boom = new THREE.Mesh(boomG, baked), mainSail = new THREE.Mesh(sailG, cloth), mainSide = new THREE.Group();
+  boom.name = 'yacht_boom'; mainSail.name = 'yacht_main';
+  mainPivot.remove(mainMesh); mainSide.add(boom, mainSail); mainPivot.add(mainSide);
+  const P = jibMesh.geometry.attributes.position; let h = 0;
+  for (let i = 1; i < P.count; i++) if (P.getY(i) > P.getY(h)) h = i;
+  const head = new THREE.Vector3(P.getX(h), P.getY(h), 0), axis = head.clone().normalize(), zAx = new THREE.Vector3(0, 0, 1);
+  const furl = new THREE.Group(), jibSide = new THREE.Group();
+  furl.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(axis, zAx).normalize(), axis, zAx));
+  jibMesh.quaternion.copy(furl.quaternion).invert(); jibMesh.material = cloth;
+  jibPivot.remove(jibMesh); furl.add(jibMesh); jibSide.add(furl); jibPivot.add(jibSide);
+  root.traverse((o) => { o.frustumCulled = true; o.layers.enable(1); });
+  yacht.stay = [...jibPivot.position.toArray(), ...jibPivot.position.clone().add(head).toArray()];
+  player.inner.add(root);
+  player.mirror.visible = false;
+  // the helm: 1.6 m over the cockpit sole (y 1.13), a metre behind the wheel (x -4.0) and clear of the backstay, which comes
+  // down the centreline right where buildBoat's eye (-4.73, 2.88, 0) would stand
+  Object.assign(player, { mainSail, jibSail: furl, helm: [-5.05, 2.72, 0.4], yacht: { main: mainPivot, jib: jibPivot, axis, mainSide, jibSide } });
+}
+{
+  const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/gltf/');
+  const fail = (e) => { yacht.status = 'failed'; yacht.reason = String(e?.message || e); draco.dispose(); console.warn('Open Water: keeping the procedural yacht:', yacht.reason); };
+  new GLTFLoader().setDRACOLoader(draco).load(new URL('models/yacht.glb', location.href).href, (gltf) => {
+    try { useYacht(gltf); yacht.status = 'ok'; draco.dispose(); } catch (e) { fail(e); }
+  }, undefined, fail);
+}
 const HULL_V = 4.3;                                  // ~8.4 kn hull speed for an 11 m (36 ft) sloop
 function polar(twa) {                                // fraction of true wind converted to boat speed, by true wind angle
   const d = twa * 180 / PI;
@@ -1532,8 +1596,12 @@ function poseSails(b, t) {
   const flutter = luff * (0.07 * Math.sin(t * 9.1) + 0.04 * Math.sin(t * 15.7));
   b.sailSide = b.sideS >= 0 ? 1 : -1;
   const up = clamp(b.sail * 3, 0, 1), boom = lerp(0.03, b.boom, up);
-  b.mainPivot.rotation.y = swing * boom + flutter * up;
-  b.jibPivot.rotation.y = swing * Math.min(boom * 0.9, 0.85) + flutter * 1.4;
+  const aMain = swing * boom + flutter * up, aJib = swing * Math.min(boom * 0.9, 0.85) + flutter * 1.4;
+  if (b.yacht) {   // the glb's pivots (#145): the sails' own mirror on the other tack, and the turn the other way
+    const Y = b.yacht, s = b.sailSide;
+    Y.main.rotation.y = s * aMain; Y.jib.quaternion.setFromAxisAngle(Y.axis, s * aJib);
+    Y.mainSide.scale.z = Y.jibSide.scale.z = s;
+  } else { b.mainPivot.rotation.y = aMain; b.jibPivot.rotation.y = aJib; }
   const f = Math.max(0.02, b.sail);
   b.mainSail.scale.y = f; b.jibSail.scale.x = f;
   b.mainSail.visible = b.jibSail.visible = b.sail > 0.03;
@@ -1729,7 +1797,7 @@ function updateCamera() {
   _q2.slerpQuaternions(_I, p.inner.quaternion, 0.4);
   _q.copy(p.group.quaternion).multiply(_q2);
   cam.crouch = lerp(cam.crouch ?? 0, cam.mode === 'fish' && fishing.card ? 1 : 0, FIXED_TIME !== null ? 1 : 0.05);
-  const eye = cam.mode === 'fish' ? _v.set(-p.Lh * lerp(0.42, 0.4, cam.crouch), p.deckH + lerp(1.6, 1.05, cam.crouch), lerp(0.55, 0.3, cam.crouch) * p.lee) : _v.set(-p.Lh * 0.43, p.deckH + 1.72, 0);
+  const eye = cam.mode === 'fish' ? _v.set(-p.Lh * lerp(0.42, 0.4, cam.crouch), p.deckH + lerp(1.6, 1.05, cam.crouch), lerp(0.55, 0.3, cam.crouch) * p.lee) : p.helm ? _v.fromArray(p.helm) : _v.set(-p.Lh * 0.43, p.deckH + 1.72, 0);
   if (fishing.card && deckFish.visible) {                     // keep the catch framed while crouching
     const dx = deckFish.position.x - eye.x, dz = deckFish.position.z - eye.z, dy = deckFish.position.y - eye.y;
     cam.lookTarget = { yaw: Math.atan2(-dz, dx), pitch: Math.atan2(dy, Math.hypot(dx, dz)) + 0.1 };
@@ -3093,6 +3161,7 @@ window.__game = { player, boats, cam, state, W, sea, get fishing() { return fish
 // test hook (#144, scripts/ow-live.mjs): the live clock and weather, and the sky the scene uses
 window.__ow = {
   live: LIVE, get clock() { return clock; }, SKYU, skyAt, moonAt, vaClock, request: requestWeather,
+  yacht,   // #145 (scripts/ow-yacht.mjs): status 'loading' | 'ok' | 'failed', reason, the rest forestay (tack, head) in player.inner
   cover: () => ({ target: liveCover() ?? WEATHER[state.weather].cover, W: W.cover }),
   relive() {   // back to how the page opened, for the next stubbed answer: the defaults, every live source on again
     LIVE.weather = !Q.has('weather'); LIVE.sea = !Q.has('sea'); LIVE.status = 'off'; LIVE.answer = null; LIVE.cover = null;
