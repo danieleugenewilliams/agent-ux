@@ -184,14 +184,16 @@ setTimeout(() => { console.error(`hard timeout: over ${HARD_TIMEOUT_MS / 60000} 
 
 async function connect(S) {
   let tgt, port;
-  for (let i = 0; i < 100 && !tgt; i++) {
+  for (let i = 0; i < 450 && !tgt && !S.exited; i++) {   // (up to 90 s: a loaded machine starts Chrome slowly)
     try { const f = fs.readFileSync(path.join(S.prof, 'DevToolsActivePort'), 'utf8'); if (f.includes('\n')) port = parseInt(f, 10) || undefined; } catch {}
     if (port) try { tgt = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page'); } catch {}
     if (!tgt) await sleep(200);
   }
   if (!tgt) throw new Error('Chrome did not start (' + chromeBin + ')');
-  const ws = S.ws = new WebSocket(tgt.webSocketDebuggerUrl); await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
+  const ws = S.ws = new WebSocket(tgt.webSocketDebuggerUrl); await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; ws.onclose = () => j(new Error('Chrome closed the connection')); });
   let id = 0; const pend = new Map(), errs = [];
+  // (Chrome gone mid-run: every call still waiting fails, so the run is reported as not finished rather than hanging)
+  ws.onclose = () => { for (const [, f] of pend) f({ result: { exceptionDetails: { text: 'Chrome closed the connection' } } }); pend.clear(); };
   ws.onmessage = (e) => {
     const m = JSON.parse(e.data);
     if (m.id) { pend.get(m.id)?.(m); pend.delete(m.id); }
@@ -199,7 +201,7 @@ async function connect(S) {
     else if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errs.push('console.error: ' + m.params.args.map((a) => a.value ?? a.description).join(' '));
     else if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error' && !/favicon/.test(m.params.entry.url || '')) errs.push('log: ' + m.params.entry.text);
   };
-  const send = (method, params = {}) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
+  const send = (method, params = {}) => new Promise((r) => { if (ws.readyState !== 1) return r({ result: { exceptionDetails: { text: 'Chrome closed the connection' } } }); const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   const ev = async (expression) => {
     const v = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
     if (v.result?.exceptionDetails) throw new Error('page threw: ' + (v.result.exceptionDetails.exception?.description || v.result.exceptionDetails.text));
