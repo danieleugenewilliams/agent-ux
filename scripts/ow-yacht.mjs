@@ -17,27 +17,29 @@
 //              buildBoat's, and the player's Lh (uBoats, the wake) still 11.
 //   sails    - on each tack (beam reach, sails up, not luffing): the boom angle read from yacht_main_pivot's transform
 //              follows player.boom within 1 deg and swings to the lee side (sailSide); the main and the jib belly to
-//              leeward; the jib head stays on the forestay. Head to wind: the luff flutter shows on the pivot. Sails
-//              lowered (sailTarget 0): main and jib hidden, the boom still there; raised again: both back at full size.
+//              leeward; the jib head stays on the forestay. Head to wind: the luff flutter shows on the pivot.
+//   hoist    - sails lowered (sailTarget 0): main and jib hidden, the boom still there; raised again: both back at full size.
 //   fish     - ?mode=fish: the sails are down, the boom stays; the fishing eye clears the exported hull.
 //   stub404  - yacht.glb answered by a stubbed 404: status failed, the procedural boat still shows, no page error.
 //   cockpit  - ?cam=cockpit: the helm's eye clears every part of the exported hull by more than the near plane (rays in
-//              all directions), stands 1.2-2.4 m over the cockpit sole, and the wheel is in front of it.
+//              all directions), stands 1.2-2.4 m over the cockpit sole, and the wheel is in the view.
 //   perf, perf-main - 390 x 844 (touch, ?dpr=1): median frame time and draw calls per frame over 150 frames, on this
 //              page and on main's (git show origin/main:ocean.html). With both: draw calls no more than main's, and
 //              median frame time no more than 15% over main's (swiftshader: relative numbers only).
 //   WxH      - at each device size: the model loads, the yacht is on screen in the chase view, no page overflow, and
 //              no page error; the median frame time is printed.
-//   shots-day, shots-dusk, shots-night (with --shots DIR) - the chase and cockpit cameras in Sunny, Rain and Storm at
-//              13:00, 18:20 and 21:30 on 2026-10-25, 960 x 540, saved as DIR/<tod>-<weather>-<cam>.png.
+//   shots-<day|dusk|night>-<sunny|rain|storm> (with --shots DIR) - the chase and cockpit cameras at 13:00, 18:20 and 21:30
+//              on 2026-10-25, 960 x 540, the chase camera turned to show the sails (?yaw=1.2), saved as
+//              DIR/<tod>-<weather>-<cam>.png (nine runs, 18 screenshots).
 //
 // Usage:
-//   node scripts/ow-yacht.mjs                       # load, sails, fish, stub404, cockpit, perf-main, perf, every size
-//   node scripts/ow-yacht.mjs --logic               # load, sails, fish, stub404, cockpit
+//   node scripts/ow-yacht.mjs                       # load, sails, hoist, fish, stub404, cockpit, perf-main, perf, every size
+//   node scripts/ow-yacht.mjs --logic               # load, sails, hoist, fish, stub404, cockpit
 //   node scripts/ow-yacht.mjs --perf                # perf-main and perf, then the comparison
 //   node scripts/ow-yacht.mjs --size 844x390        # one size only (repeatable)
 //   node scripts/ow-yacht.mjs --run sails           # one named run (repeatable)
-//   node scripts/ow-yacht.mjs --shots DIR           # the three shot runs, saving 18 screenshots in DIR
+//   node scripts/ow-yacht.mjs --shots DIR           # the nine shot runs, saving 18 screenshots in DIR
+//   node scripts/ow-yacht.mjs --shots DIR --run shots-dusk-rain   # one of them
 //   node scripts/ow-yacht.mjs --page other.html --json   # another page in the repo
 // Sizes by default: 568x320, 740x360, 844x390, 667x375 (docs/review-lenses.md), 390x844, 1024x768 and 1280x800.
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
@@ -52,7 +54,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SIZES = ['568x320', '740x360', '844x390', '667x375', '390x844', '1024x768', '1280x800'];
-const LOGIC_RUNS = ['load', 'sails', 'fish', 'stub404', 'cockpit'], PERF_RUNS = ['perf-main', 'perf'], SHOT_RUNS = ['shots-day', 'shots-dusk', 'shots-night'];
+const LOGIC_RUNS = ['load', 'sails', 'hoist', 'fish', 'stub404', 'cockpit'], PERF_RUNS = ['perf-main', 'perf'];
+const SHOT_RUNS = ['day', 'dusk', 'night'].flatMap((t) => ['sunny', 'rain', 'storm'].map((w) => `shots-${t}-${w}`));
 const args = process.argv.slice(2);
 let json = false, page = 'ocean.html', logicOnly = false, perfOnly = false, shots = null; const sizes = [], named = [];
 for (let i = 0; i < args.length; i++) {
@@ -66,7 +69,9 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else { console.error('unknown argument: ' + args[i]); process.exit(2); }
 }
-const runs = [...(logicOnly ? LOGIC_RUNS : []), ...(perfOnly ? PERF_RUNS : []), ...named, ...sizes, ...(shots ? SHOT_RUNS : [])];
+const runs = [...new Set([...(logicOnly ? LOGIC_RUNS : []), ...(perfOnly ? PERF_RUNS : []), ...named, ...sizes])];
+if (shots && !runs.some((r) => r.startsWith('shots-'))) runs.push(...SHOT_RUNS);
+if (runs.some((r) => r.startsWith('shots-')) && !shots) { console.error('a shots run needs --shots DIR'); process.exit(2); }
 if (!runs.length) runs.push(...LOGIC_RUNS, ...PERF_RUNS, ...SIZES);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (shots) fs.mkdirSync(shots, { recursive: true });
@@ -261,7 +266,7 @@ const YREAD = String.raw`(async () => {
   return out;
 })()`;
 
-const res = () => { const out = []; return { out, ok: (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; } }; };
+const res = () => { const out = []; return { out, ok: (name, pass, got) => { if (process.env.OW_DEBUG) console.log('  .. ' + name + ': ' + !!pass); out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; } }; };
 const LQ = 'dpr=0.3&' + PIN;
 
 async function runLoad(C) {
@@ -321,17 +326,25 @@ async function runSails(C) {
   for (let i = 0; i < 10; i++) { await C.ev(`(() => { const p = window.__game.player; p.psi = window.__game.sea.windAngle + Math.PI + 0.3; })()`); await C.ev(FRAMES(1)); lf.push(await C.ev(YREAD)); }
   const ang = lf.map((r) => r.boomNode).filter((v) => v != null), mean = ang.reduce((a, b) => a + b, 0) / (ang.length || 1), sd = Math.sqrt(ang.reduce((a, b) => a + (b - mean) ** 2, 0) / (ang.length || 1));
   ok('sails: head to wind the sails luff: the main pivot flutters (sd > 0.3 deg over 10 frames)', lf[0]?.luff > 0.9 && sd * DEG > 0.3, { luff: lf[0]?.luff, sdDeg: sd * DEG, ang });
+  return out;
+}
+
+async function runHoist(C) {
+  const { out, ok } = res();
+  await C.open(1280, 800, false, { query: LQ });
+  const done = await until(C, LOADED, 60000);
+  if (!ok('hoist: the yacht loaded', done && (await C.ev('window.__ow.yacht.status')) === 'ok', await C.ev('window.__ow && window.__ow.yacht'))) return out;
   // lower, then raise
   await C.ev(`(() => { const p = window.__game.player; p.psi = window.__game.sea.windAngle + Math.PI / 2; p.sailTarget = 0; })()`);
   const down = await until(C, `window.__game.player.sail < 0.02`, 90000);
   await C.ev(FRAMES(2));
   let r = await C.ev(YREAD);
-  ok('sails: lowered (sailTarget 0): the main and the jib are hidden, the boom stays', down && r.main && !r.main.shown && r.jib && !r.jib.shown && r.boomMesh?.shown, { down, main: r.main, jib: r.jib, boom: r.boomMesh });
+  ok('hoist: lowered (sailTarget 0): the main and the jib are hidden, the boom stays', down && r.main && !r.main.shown && r.jib && !r.jib.shown && r.boomMesh?.shown, { down, main: r.main, jib: r.jib, boom: r.boomMesh });
   await C.ev(`window.__game.player.sailTarget = 1`);
   const up = await until(C, `window.__game.player.sail > 0.995`, 90000);
   await C.ev(FRAMES(2));
   r = await C.ev(YREAD);
-  ok('sails: raised again: the main reaches the masthead area and the jib is back at full width', up && r.main?.shown && r.jib?.shown && r.main.top > 14 && r.jib.top > 12 && r.jib.width > 2.5, { up, main: r.main, jib: r.jib });
+  ok('hoist: raised again: the main reaches the masthead area and the jib is back at full width', up && r.main?.shown && r.jib?.shown && r.main.top > 14 && r.jib.top > 12 && r.jib.width > 2.5, { up, main: r.main, jib: r.jib });
   return out;
 }
 
@@ -350,14 +363,15 @@ const EYE = String.raw`(async () => {
   }
   const down = new THREE.Vector3(0, -1, 0).applyQuaternion(g.player.group.quaternion);
   rc.set(eye, down); rc.far = 5; const hd = rc.intersectObject(hull, true)[0];
-  // the wheel: a hull hit in front of the eye, within 1.5 m, inside the view (the camera's -z)
-  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(g.camera.quaternion); let front = Infinity;
-  for (let i = 0; i < 200; i++) {
-    const a = (i % 20 - 9.5) * 0.04, b = (Math.floor(i / 20) - 6) * 0.05;
-    const d = fwd.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a); d.y += b; d.normalize();
-    rc.set(eye, d); rc.far = 1.5; const h = rc.intersectObject(hull, true)[0]; if (h) front = Math.min(front, h.distance);
+  // what the view shows close by: rays through a grid over the whole frame; the wheel is a hit on the pedestal and rim
+  // (x -4.35 .. -3.85 and above the sole, in the hull's own frame), in view and further than the near plane
+  let front = Infinity, wheel = 0; const inv = new THREE.Matrix4().copy(hull.matrixWorld).invert();
+  for (let i = 0; i <= 16; i++) for (let j = 0; j <= 12; j++) {
+    const d = new THREE.Vector3(-0.98 + 1.96 * i / 16, -0.98 + 1.96 * j / 12, 0.5).unproject(g.camera).sub(eye).normalize();
+    rc.set(eye, d); rc.far = 2.5; const h = rc.intersectObject(hull, true)[0]; if (!h) continue;
+    front = Math.min(front, h.distance); const q = h.point.clone().applyMatrix4(inv); if (q.x > -4.35 && q.x < -3.85 && q.y > 1.25) wheel++;
   }
-  return { min, at, down: hd ? hd.distance : null, front: front === Infinity ? null : front, near: g.camera.near, mode: g.cam.mode };
+  return { min, at, down: hd ? hd.distance : null, front: front === Infinity ? null : front, wheel, near: g.camera.near, mode: g.cam.mode };
 })()`;
 
 async function runCockpit(C) {
@@ -372,7 +386,7 @@ async function runCockpit(C) {
     ok(`cockpit (look ${look}): every part of the hull is more than the near plane + 5 cm from the eye`, e && e.mode === 'cockpit' && e.min > e.near + 0.05, e);
     if (look === 0) {
       ok('cockpit: the eye stands 1.2-2.4 m over the cockpit sole', e && e.down > 1.2 && e.down < 2.4, e);
-      ok('cockpit: the wheel is in front of the eye (a hull hit ahead within 1.5 m)', e && e.front != null && e.front > e.near, e);
+      ok('cockpit: the wheel is in the view (rays through the frame hit it within 2.5 m)', e && e.wheel > 0 && e.front > e.near, e);
     }
   }
   await C.ev(`window.__game.cam.lookYaw = 0`);
@@ -446,22 +460,20 @@ async function runSize(C, size) {
   return out.map((x) => ({ ...x, name: size + ': ' + x.name }));
 }
 
-const SHOT_TOD = { 'shots-day': ['day', 13], 'shots-dusk': ['dusk', 18.33], 'shots-night': ['night', 21.5] };
+const SHOT_TOD = { day: 13, dusk: 18.33, night: 21.5 };
 async function runShots(C, run) {
   const { out, ok } = res();
-  const [label, tod] = SHOT_TOD[run];
-  for (const wx of ['sunny', 'rain', 'storm']) {
-    await C.open(960, 540, false, { query: `t=${tod}&sea=0.4&weather=${wx}&simTime=40&hideUI&dpr=1` });
-    const done = await until(C, LOADED, 60000);
-    ok(`${label} ${wx}: the yacht loaded`, done && (await C.ev('window.__ow.yacht.status')) === 'ok', await C.ev('window.__ow && window.__ow.yacht'));
-    for (const cm of ['chase', 'cockpit']) {
-      await C.ev(`(() => { const c = window.__game.cam; c.mode = '${cm}'; c.lookYaw = 0; c.lookPitch = -0.03; })()`);
-      await C.ev(FRAMES(4));
-      const s = await C.send('Page.captureScreenshot', { format: 'png' });
-      const buf = Buffer.from(s.result.data, 'base64');
-      fs.writeFileSync(path.join(shots, `${label}-${wx}-${cm}.png`), buf);
-      ok(`${label} ${wx} ${cm}: screenshot saved`, buf.length > 10000, buf.length);
-    }
+  const [, label, wx] = run.split('-'), tod = SHOT_TOD[label];
+  await C.open(960, 540, false, { query: `t=${tod}&sea=0.4&weather=${wx}&simTime=40&hideUI&dpr=1&yaw=1.2&dist=26` });
+  const done = await until(C, LOADED, 90000);
+  ok(`${label} ${wx}: the yacht loaded`, done && (await C.ev('window.__ow.yacht.status')) === 'ok', await C.ev('window.__ow && window.__ow.yacht'));
+  for (const cm of ['chase', 'cockpit']) {
+    await C.ev(`(() => { const c = window.__game.cam; c.mode = '${cm}'; c.lookYaw = 0; c.lookPitch = -0.03; })()`);
+    await C.ev(FRAMES(3));
+    const s = await C.send('Page.captureScreenshot', { format: 'png' });
+    const buf = Buffer.from(s.result.data, 'base64');
+    fs.writeFileSync(path.join(shots, `${label}-${wx}-${cm}.png`), buf);
+    ok(`${label} ${wx} ${cm}: screenshot saved`, buf.length > 10000, buf.length);
   }
   return out;
 }
@@ -478,7 +490,7 @@ async function main() {
     const S = launch(); const t0 = Date.now();
     try {
       const C = await connect(S);
-      const job = run === 'load' ? runLoad(C) : run === 'sails' ? runSails(C) : run === 'fish' ? runFish(C) : run === 'stub404' ? runStub(C)
+      const job = run === 'load' ? runLoad(C) : run === 'sails' ? runSails(C) : run === 'hoist' ? runHoist(C) : run === 'fish' ? runFish(C) : run === 'stub404' ? runStub(C)
         : run === 'cockpit' ? runCockpit(C) : run.startsWith('perf') ? runPerf(C, run) : run.startsWith('shots-') ? runShots(C, run) : /^\d+x\d+$/.test(run) ? runSize(C, run) : Promise.reject(new Error('unknown run ' + run));
       job.catch(() => {});
       let timer;
