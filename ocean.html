@@ -615,7 +615,7 @@ float cloudDensity(vec2 xz, vec2 gx, vec2 gy){
 const SKYU = {
   uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonDir: { value: new THREE.Vector3(0, 1, 0) },
   uSunI: { value: ATM.iSun }, uSunE: { value: new THREE.Vector3() }, uSkyAmb: { value: new THREE.Vector3() },
-  uNight: { value: new THREE.Vector3() }, uMoonI: { value: 0 }, uStars: { value: 0 },
+  uNight: { value: new THREE.Vector3() }, uMoonI: { value: 0 }, uMoonPhase: { value: 0 }, uStars: { value: 0 },
   uOvercast: { value: 0 }, uOvercastCol: { value: new THREE.Vector3() }, uCloudDark: { value: 0 },
   uFlash: { value: 0 }, uFlashDir: { value: new THREE.Vector3(0, 0.3, -1).normalize() },
   uNoiseTex: { value: NOISE }, uCloudTex: { value: null }, uCloudCover: { value: 0.3 }, uCloudOff: { value: new THREE.Vector2() }, uTime: { value: 0 },
@@ -647,7 +647,7 @@ const float PI = 3.14159265;
 ${GLSL_CLOUDS}
 uniform samplerCube uAtmos;
 uniform vec3 uSunDir, uMoonDir, uSunE, uSkyAmb, uNight, uOvercastCol, uFlashDir, uHazeCol;
-uniform float uMaxL, uSunI, uMoonI, uStars, uOvercast, uCloudDark, uFlash, uIsCube, uTime, uHaze, uPixAng, uCloudH;
+uniform float uMaxL, uSunI, uMoonI, uMoonPhase, uStars, uOvercast, uCloudDark, uFlash, uIsCube, uTime, uHaze, uPixAng, uCloudH;
 varying vec3 vDir;
 float hash13(vec3 p){ p = fract(p*0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y)*p.z); }
 float hg(float mu, float g){ float gg = g*g; return (1.0 - gg)/(4.0*PI*pow(1.0 + gg - 2.0*g*mu, 1.5)); }
@@ -712,7 +712,13 @@ void main(){
     float mdisk = smoothstep(0.99995, 0.99997, md);
     vec3 moonRel = d - uMoonDir;
     float maria = 0.75 + 0.25*vnoise(moonRel.xy*3000.0 + 11.0);
-    col += uMoonI*mdisk*maria*vec3(0.9, 0.9, 0.85)*14.0*pow(clamp(1.0 - uOvercast*1.08, 0.0, 1.0), 3.0);
+    // the phase (#144): the terminator across the disk, the lit limb toward the sun (no handedness to get wrong)
+    vec3 sp = uSunDir - dot(uSunDir, uMoonDir)*uMoonDir;
+    vec3 mx = dot(sp, sp) > 1e-8 ? normalize(sp) : normalize(cross(vec3(0.0, 1.0, 0.0), uMoonDir));
+    vec3 my = cross(uMoonDir, mx);
+    float px = dot(moonRel, mx)/0.0089, py = dot(moonRel, my)/0.0089;
+    float lit = smoothstep(-0.06, 0.06, px - uMoonPhase*sqrt(max(0.0, 1.0 - py*py)));
+    col += uMoonI*mdisk*maria*lit*vec3(0.9, 0.9, 0.85)*14.0*pow(clamp(1.0 - uOvercast*1.08, 0.0, 1.0), 3.0);
   }
   col = mix(col, cl.rgb, cl.a);
   col = mix(col, uHazeCol, uHaze*(1.0 - 0.7*smoothstep(0.0, 0.5, d.y)));
@@ -1316,20 +1322,87 @@ const WEATHER = {
   rain: { cover: 0.88, overcast: 0.85, rain: 0.6, storm: 0, windAdd: 3, fog: 2.2e-4, dark: 0.45, haze: 0.25, cloudH: 1100, fetch: 200000 },
   storm: { cover: 0.86, overcast: 0.96, rain: 1.0, storm: 1, windAdd: 10, fog: 4.0e-4, dark: 0.85, haze: 0.4, cloudH: 700, fetch: 450000 },
 };
-const state = { tod: qn('t', 18.1), sea: qn('sea', 0.4), weather: Q.get('weather') || 'sunny' };
+// ---------------------------------------------------------------- Chesapeake, right now (#144)
+// The clock, the sun and the moon are a port of dewilliams.co's src/lib/clock.ts and src/sea/astro.ts: America/New_York
+// for every player, the sun by declination and the equation of time, the moon by Meeus's main terms (about half a degree).
+// The world here is +x north, +z east (astro.ts has x east, z north), so dirAE swaps them.
+const RAD = PI / 180, LAT = 36.77 * RAD, LON_DEG = -76.29;
+/** US Eastern daylight time: second Sunday of March 2:00 to first Sunday of November 2:00 (local). */
+function dstAt(y, mo, d, min) {
+  const nth = (month, k) => 1 + ((7 - new Date(Date.UTC(y, month, 1)).getUTCDay()) % 7) + 7 * (k - 1);
+  const a = nth(2, 2), b = nth(10, 1), md = mo * 100 + d;
+  if (md < 200 + a || md > 1000 + b) return false;
+  if (md > 200 + a && md < 1000 + b) return true;
+  return md === 200 + a ? min >= 120 : min < 120;
+}
+const doyOf = (y, mo, d) => Math.round((Date.UTC(y, mo, d) - Date.UTC(y, 0, 0)) / 864e5);
+/** The date and time in Chesapeake at `now`. `dst` comes from the instant itself, so the repeated November hour reads right. */
+function vaClock(now = new Date()) {
+  let y, mo, d, min, dst = null;
+  try {
+    const p = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23', timeZoneName: 'short' })
+      .formatToParts(now).forEach((x) => { p[x.type] = x.value; });
+    y = +p.year; mo = +p.month - 1; d = +p.day; min = (+p.hour % 24) * 60 + +p.minute;
+    if (p.timeZoneName === 'EDT') dst = true; else if (p.timeZoneName === 'EST') dst = false;
+  } catch (e) {
+    const n = new Date(now.getTime() - 5 * 36e5);
+    y = n.getUTCFullYear(); mo = n.getUTCMonth(); d = n.getUTCDate(); min = n.getUTCHours() * 60 + n.getUTCMinutes();
+  }
+  return { y, mo, d, min, doy: doyOf(y, mo, d), dst: dst ?? dstAt(y, mo, d, min) };
+}
+const declination = (doy) => 23.44 * RAD * Math.sin(2 * PI * (284 + doy) / 365);
+const eqTime = (doy) => { const B = 2 * PI * (doy - 81) / 364; return 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B); };   // minutes
+/** [azimuth from north, clockwise; elevation] of the sun for an hour angle. */
+function sunAE(H, dec) {
+  const el = Math.asin(Math.sin(LAT) * Math.sin(dec) + Math.cos(LAT) * Math.cos(dec) * Math.cos(H));
+  const az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(LAT) - Math.tan(dec) * Math.cos(LAT)) + PI;
+  return [az, el];
+}
+const dirAE = (az, el) => [Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el)];
+/** The moon where it really is for an instant in ms: az, alt, illuminated fraction 0..1, waxing. */
+function moonAt(ms) {
+  const d = ms / 864e5 + 2440587.5 - 2451545, n = (x) => ((x % 360) + 360) % 360, s = Math.sin;
+  const L0 = n(218.3164477 + 13.17639648 * d), D = n(297.8501921 + 12.19074912 * d), M = n(357.5291092 + 0.98560028 * d);
+  const Mp = n(134.9633964 + 13.06499295 * d), F = n(93.272095 + 13.22935024 * d);
+  const lon = L0 + 6.289 * s(Mp * RAD) + 1.274 * s((2 * D - Mp) * RAD) + 0.658 * s(2 * D * RAD) + 0.214 * s(2 * Mp * RAD) - 0.186 * s(M * RAD) - 0.114 * s(2 * F * RAD)
+    - 0.059 * s((2 * D - 2 * Mp) * RAD) - 0.057 * s((2 * D - M - Mp) * RAD) + 0.053 * s((2 * D + Mp) * RAD) + 0.046 * s((2 * D - M) * RAD);
+  const lat = 5.128 * s(F * RAD) + 0.281 * s((Mp + F) * RAD) + 0.278 * s((Mp - F) * RAD) + 0.173 * s((2 * D - F) * RAD);
+  const eps = (23.4393 - 4e-7 * d) * RAD, la = lon * RAD, be = lat * RAD;
+  const ra = Math.atan2(s(la) * Math.cos(eps) - Math.tan(be) * s(eps), Math.cos(la));
+  const dec = Math.asin(s(be) * Math.cos(eps) + Math.cos(be) * s(eps) * s(la));
+  const H = n(280.46061837 + 360.98564736629 * d + LON_DEG) * RAD - ra;
+  let alt = Math.asin(s(LAT) * s(dec) + Math.cos(LAT) * Math.cos(dec) * Math.cos(H));
+  let az = Math.atan2(-s(H) * Math.cos(dec), Math.cos(LAT) * s(dec) - s(LAT) * Math.cos(dec) * Math.cos(H));
+  if (az < 0) az += 2 * PI;
+  alt -= 0.95 * RAD * Math.cos(alt);   // parallax: seen from the surface
+  const i = 180 - D - 6.289 * s(Mp * RAD) + 2.1 * s(M * RAD) - 1.274 * s((2 * D - Mp) * RAD) - 0.658 * s(2 * D * RAD) - 0.214 * s(2 * Mp * RAD) - 0.11 * s(D * RAD);
+  return { az, alt, illum: (1 + Math.cos(i * RAD)) / 2, waxing: D < 180 };
+}
+// The live sources: each is on until a URL param or the player takes that value over.
+const LIVE = { clock: !Q.has('t'), weather: !Q.has('weather'), sea: !Q.has('sea'), status: 'off', reason: null, ms: null, answer: null, cover: null, dst: null };
+let clock = vaClock(new Date());
+LIVE.dst = clock.dst;
+/** The sun and the moon at `h` hours (New York wall clock) on a date (today by default): the Time slider keeps the date. */
+function skyAt(h, D = clock) {
+  const today = D === clock || (D.y === clock.y && D.mo === clock.mo && D.d === clock.d);
+  const min = h * 60, doy = doyOf(D.y, D.mo, D.d);
+  const dst = today && Math.abs(min - clock.min) < 0.5 ? clock.dst : dstAt(D.y, D.mo, D.d, min);   // the clock's own instant knows which 01:30 it is
+  const dec = declination(doy);
+  const sun = sunAE((h - (dst ? 1 : 0) + (LON_DEG + 75) / 15 + eqTime(doy) / 60 - 12) * 15 * RAD, dec);
+  const moon = moonAt(Date.UTC(D.y, D.mo, D.d, 0, 0) + min * 6e4 + (dst ? 4 : 5) * 36e5);
+  return { sun, sunDir: dirAE(sun[0], sun[1]), moon, moonDir: dirAE(moon.az, moon.alt), phase: 1 - 2 * moon.illum };
+}
+const state = { tod: LIVE.clock ? clock.min / 60 : qn('t', 18.1), sea: qn('sea', 0.4), weather: Q.get('weather') || 'sunny' };
 const W = { ...WEATHER[state.weather] };
 // camera: 'chase' (orbit behind the yacht), 'cockpit' (at the helm), 'fish' (standing aft with the rod)
 const cam = { mode: Q.get('mode') === 'fish' ? 'fish' : (Q.get('cam') || 'chase'), yaw: qn('yaw', 0.55), pitch: qn('pitch', -0.12), dist: qn('dist', 24), lookYaw: qn('lookYaw', 0), lookPitch: qn('lookPitch', -0.03) };
 
-function sunDirAt(h) {
-  const lat = 36 * PI / 180, dec = 14 * PI / 180, H = (h - 12) / 12 * PI;
-  const E = -Math.cos(dec) * Math.sin(H), Nn = Math.sin(dec) * Math.cos(lat) - Math.cos(dec) * Math.cos(H) * Math.sin(lat), U = Math.sin(dec) * Math.sin(lat) + Math.cos(dec) * Math.cos(H) * Math.cos(lat);
-  return new THREE.Vector3(Nn, U, E).normalize(); // world: +x north, +z east, looking -z = west
-}
-function moonDirAt(h) {
-  const lat = 36 * PI / 180, dec = 6 * PI / 180, H = ((h - 12) / 12 * PI) - 1.75;
-  const E = -Math.cos(dec) * Math.sin(H), Nn = Math.sin(dec) * Math.cos(lat) - Math.cos(dec) * Math.cos(H) * Math.sin(lat), U = Math.sin(dec) * Math.sin(lat) + Math.cos(dec) * Math.cos(H) * Math.cos(lat);
-  return new THREE.Vector3(Nn, U, E).normalize();
+let skyKey = '', sky = null;
+function skyNow() {   // cached: the moon theory isn't free, and the hour changes far less often than frames
+  const k = state.tod + '|' + clock.y + '-' + clock.mo + '-' + clock.d + '|' + clock.min + clock.dst;
+  if (k !== skyKey) { sky = skyAt(state.tod); skyKey = k; }
+  return sky;
 }
 
 const sunLight = new THREE.DirectionalLight(0xffffff, 1); scene.add(sunLight); scene.add(sunLight.target);
@@ -1338,8 +1411,8 @@ let lastSpecKey = '', envFrame = 0, exposure = 1;
 const v3 = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 
 function updateAtmosphere(dtReal) {
-  const sd = sunDirAt(state.tod), md = moonDirAt(state.tod);
-  SKYU.uSunDir.value.copy(sd); SKYU.uMoonDir.value.copy(md);
+  const S = skyNow(), sd = v3(S.sunDir), md = v3(S.moonDir);
+  SKYU.uSunDir.value.copy(sd); SKYU.uMoonDir.value.copy(md); SKYU.uMoonPhase.value = S.phase;
   const T = transmittanceJS([sd.x, sd.y, sd.z]);
   const vis = smooth(-0.012, 0.012, sd.y);
   const sunE = T.map(t => t * ATM.iSun * 0.42 * vis);
@@ -1352,7 +1425,7 @@ function updateAtmosphere(dtReal) {
   // clouds keep catching light for a while after sunset (they sit ~1.5 km up)
   const Ttw = transmittanceJS([sTw.x, sTw.y, sTw.z]), cloudSunE = Ttw.map(t => t * ATM.iSun * 0.42 * Math.exp(Math.min(0, sd.y + 0.012) * 45));
   const night = smooth(0.02, -0.2, sd.y), moonUp = smooth(-0.05, 0.1, md.y);
-  const moonI = night * moonUp * 1.0;
+  const moonI = night * moonUp * (0.35 + 0.65 * S.moon.illum);   // a new-moon night is darker
   const nightSky = [0.0016, 0.0026, 0.0052].map(v => v * night * (0.35 + 0.65 * moonUp));
   for (let k = 0; k < 3; k++) amb[k] += nightSky[k] * 0.8;
   const ovLum = (0.2126 * (sunE[0] * Math.max(sd.y, 0) + amb[0] * 3) + 0.7152 * (sunE[1] * Math.max(sd.y, 0) + amb[1] * 3) + 0.0722 * (sunE[2] * Math.max(sd.y, 0) + amb[2] * 3)) / PI;
@@ -1366,7 +1439,7 @@ function updateAtmosphere(dtReal) {
   SKYU.uNight.value.set(...nightSky);
   SKYU.uMoonI.value = moonI; SKYU.uStars.value = night * (1 - W.cover * 0.9);
   SKYU.uOvercast.value = ov; SKYU.uOvercastCol.value.set(...ovCol); SKYU.uCloudDark.value = W.dark;
-  SKYU.uCloudCover.value = Q.has('cover') ? qn('cover', 0.3) : W.cover;
+  SKYU.uCloudCover.value = Q.has('cover') ? qn('cover', 0.3) : W.cover;   // (?cover= wins over the live cloud cover too)
   SKYU.uCloudH.value = W.cloudH;
   SKYU.uHaze.value = W.haze * 0.6; SKYU.uHazeCol.value.set(...ovCol.map(c => c * 0.55));
   // primary light for the water: sun by day, moon at night
@@ -1492,11 +1565,70 @@ function syncUI() {
   $('sLab').textContent = `${seaName(u)} · ${Math.round(u * 1.944)} kn`;
   tod.style.setProperty('--p', (state.tod / 24 * 100) + '%'); seaIn.style.setProperty('--p', (state.sea * 100) + '%');
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.w === state.weather)));
+  $('wLab').textContent = liveLabel() ? 'Live · Chesapeake' : '';
 }
-tod.addEventListener('input', () => { state.tod = +tod.value; syncUI(); });
-seaIn.addEventListener('input', () => { state.sea = +seaIn.value; syncUI(); });
+// only the player's own input takes a value over from the live clock or weather (code setting .value fires no event)
+tod.addEventListener('input', () => { LIVE.clock = false; state.tod = +tod.value; syncUI(); });
+seaIn.addEventListener('input', () => { LIVE.sea = false; state.sea = +seaIn.value; syncUI(); });
 [tod, seaIn].forEach(el => el.addEventListener('change', () => el.blur()));   // hand the keyboard back to the helm
-document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { state.weather = b.dataset.w; syncUI(); b.blur(); }));
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { LIVE.weather = false; state.weather = b.dataset.w; syncUI(); b.blur(); }));
+
+// The clock follows New York a minute at a time until the player moves the Time slider; the date always follows.
+setInterval(() => {
+  const c = vaClock(new Date());
+  if (c.min === clock.min && c.d === clock.d && c.mo === clock.mo && c.y === clock.y && c.dst === clock.dst) return;
+  clock = c; LIVE.dst = c.dst;
+  if (LIVE.clock) { state.tod = c.min / 60; tod.value = state.tod; }
+  syncUI();
+}, 1000);
+
+// Live Chesapeake weather (#144): one request at fixed coordinates, nothing about the player (no location, no cookies,
+// no referrer). The scene never waits on it: it opens on the defaults (Sunny, 0.4) and switches when the answer comes.
+// Offline, an error or 3 s without an answer leaves the defaults. An answer never overrides a control the player has touched.
+const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=36.77&longitude=-76.29&current=weather_code,cloud_cover,wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&timezone=America%2FNew_York';
+const wmoWeather = (c) => (c >= 95 && c <= 99) ? 'storm' : ((c >= 51 && c <= 67) || (c >= 71 && c <= 77) || (c >= 80 && c <= 86)) ? 'rain' : 'sunny';
+const sliderFromWind = (u) => clamp((-2.5 + Math.sqrt(6.25 + 76 * Math.max(0, u - 1.5))) / 38, 0, 1);   // windFromSlider, inverted
+// the label: while the weather on screen is the live answer and the player hasn't changed Weather or Sea state
+function liveLabel() { const seaTouched = !Q.has('sea') && !LIVE.sea; return LIVE.status === 'ok' && LIVE.weather && !seaTouched; }
+function liveCover() { return LIVE.status === 'ok' && LIVE.weather && state.weather === 'sunny' && LIVE.cover != null ? LIVE.cover : null; }
+const PSI0 = player.psi, WA0 = sea.windAngle;
+function applyLive(c) {
+  const code = +c.weather_code, wind = +c.wind_speed_10m, dir = +c.wind_direction_10m, cloud = +c.cloud_cover;
+  LIVE.answer = { code, weather: wmoWeather(code), wind, dir, cloud };
+  if (LIVE.weather) state.weather = LIVE.answer.weather;
+  if (LIVE.sea && Number.isFinite(wind)) { state.sea = sliderFromWind(wind - WEATHER[state.weather].windAdd); seaIn.value = state.sea; }
+  LIVE.cover = Number.isFinite(cloud) ? 0.1 + 0.7 * clamp(cloud / 100, 0, 1) : null;   // Sunny's 0.42 is about 45 % cloud
+  if (Number.isFinite(dir)) {
+    // Open-Meteo gives where the wind comes from; windAngle is where it blows to, in the (north, east) plane
+    const wa = ((dir + 180) % 360) * RAD, dA = wa - sea.windAngle;
+    sea.windAngle = wa; lastSpecKey = '';
+    boats.forEach(b => { b.psi += dA; });
+    // the opening heading was set against the default wind: keep it on the same reach if the player hasn't steered yet
+    if (!Q.has('heading') && Math.abs(player.psi - PSI0) < 1e-3) player.psi = PSI0 + (wa - WA0);
+  }
+}
+let wxSeq = 0;
+async function requestWeather() {
+  const seq = ++wxSeq, t0 = performance.now();
+  LIVE.status = 'pending'; LIVE.reason = null;
+  const ac = typeof AbortController === 'function' ? new AbortController() : null;
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; if (ac) ac.abort(); else if (seq === wxSeq) { LIVE.status = 'failed'; LIVE.reason = 'timeout'; } }, 3000);
+  try {
+    const res = await fetch(WX_URL, { signal: ac?.signal, credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' });
+    clearTimeout(timer);   // the answer is in: the 3 s was for the network, not for reading a few hundred bytes
+    if (!res.ok) throw new Error('weather ' + res.status);
+    const c = (await res.json())?.current;
+    if (!c || !Number.isFinite(+c.weather_code)) throw new Error('weather: no current conditions');
+    if (seq !== wxSeq || LIVE.status !== 'pending') return;
+    applyLive(c);
+    LIVE.status = 'ok';
+  } catch (e) {
+    // the defaults stay: the scene has been on them all along
+    if (seq === wxSeq) { LIVE.status = 'failed'; LIVE.reason = timedOut ? 'timeout' : String(e?.name || e); }
+  } finally { clearTimeout(timer); if (seq === wxSeq) LIVE.ms = Math.round(performance.now() - t0); syncUI(); }
+}
+// (asked for once the first frame is on screen: see frame())
 const ui = $('ui'), show = $('show');
 const setUI = (on) => { ui.classList.toggle('hidden', !on); show.style.display = on ? 'none' : 'block'; };
 $('hide').onclick = () => setUI(false); show.onclick = () => { setUI(true); show.blur(); };
@@ -2821,8 +2953,8 @@ let simT = FIXED_TIME ?? 0, last = performance.now(), frameNo = 0, acc = 0, pend
 const STEP = 1 / 120;
 let flash = 0, nextStrike = 3, strikeRnd = mulberry32(11), flashDir = new THREE.Vector3(0, 0.3, -1);
 function stepWeather(dt) {
-  const tgt = WEATHER[state.weather], k = 1 - Math.exp(-dt * 0.9);
-  for (const key in W) W[key] = lerp(W[key], tgt[key], k);
+  const tgt = WEATHER[state.weather], k = 1 - Math.exp(-dt * 0.9), lc = liveCover();
+  for (const key in W) W[key] = lerp(W[key], key === 'cover' && lc != null ? lc : tgt[key], k);
 }
 function viewYaw() { _v.set(0, 0, -1).applyQuaternion(camera.quaternion); return Math.atan2(_v.z, _v.x); }
 function gameStep(dt, vy) { sailStep(dt); aiStep(dt, vy); fishing.step(dt); }
@@ -2855,7 +2987,7 @@ function frame() {
   const wind = windFromSlider(state.sea) + W.windAdd;
   sea.wind = wind; sea.swellHs = 0.25 + 1.4 * state.sea + 0.8 * W.storm;
   initSpecMat.uniforms.uFetch.value = W.fetch;
-  const key = wind.toFixed(2) + sea.swellHs.toFixed(2) + Math.round(W.fetch / 5000);
+  const key = wind.toFixed(2) + sea.swellHs.toFixed(2) + Math.round(W.fetch / 5000) + sea.windAngle.toFixed(3);
   if (key !== lastSpecKey) { updateSpectra(); lastSpecKey = key; }
   CASCADES.forEach(c => { c.lambda = 0.75 + 0.35 * clamp((wind - 4) / 14, 0, 1); });
   assembleMat.uniforms.uFoamBias.value = lerp(0.45, 0.85, clamp((wind - 5) / 17, 0, 1));
@@ -2951,12 +3083,22 @@ function frame() {
   adaptResolution(now);
   window.__dpr = DPR;
   frameNo++;
+  if (frameNo === 1 && (LIVE.weather || LIVE.sea)) requestWeather();   // the scene is up on its defaults first; the 3 s starts now
   if (frameNo === WARMUP) { window.__ready = true; console.log('exposure', exposure.toFixed(3), 'sunE', SKYU.uSunE.value.toArray().map(v => v.toFixed(3)).join(','), 'amb', SKYU.uSkyAmb.value.toArray().map(v => v.toFixed(3)).join(',')); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 window.__wf = () => waterFish;
 window.__game = { player, boats, cam, state, W, sea, get fishing() { return fishing; }, camera, probe: probeBuf, polar, get touch() { return touchPad.report(); } };
+// test hook (#144, scripts/ow-live.mjs): the live clock and weather, and the sky the scene uses
+window.__ow = {
+  live: LIVE, get clock() { return clock; }, SKYU, skyAt, moonAt, vaClock, request: requestWeather,
+  cover: () => ({ target: liveCover() ?? WEATHER[state.weather].cover, W: W.cover }),
+  relive() {   // back to how the page opened, for the next stubbed answer: the defaults, every live source on again
+    LIVE.weather = !Q.has('weather'); LIVE.sea = !Q.has('sea'); LIVE.status = 'off'; LIVE.answer = null; LIVE.cover = null;
+    state.weather = Q.get('weather') || 'sunny'; state.sea = qn('sea', 0.4); seaIn.value = state.sea; syncUI();
+  },
+};
 </script>
 </body>
 </html>
