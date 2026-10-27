@@ -18,7 +18,7 @@
 //               a reset keeps it; it survives a reload;
 //             * Q4, repairs: the wires' facts (Facts.pickWire, as a Quick Fix board asks it) hold at most 1 ÷ fact in any 3 in a
 //               row, and a ÷ fact does come while one is waiting; real Quick Fix boards (wave 1 and up) over many robots: ÷ wires
-//               in the right share, every answer on a board distinct, a matched ÷ wire's decoys near its answer (1–9), its
+//               in the right share (at most 1 a board, at most 1 in 3 overall, over boards of 1–4 wires), every answer on a board distinct, a matched ÷ wire's decoys near its answer (1–9), its
 //               text "54 ÷ 6" (never turned round); a ÷ wire answered right fast, right slow and wrong through the board is
 //               recorded with its time, checked against its answer, and moves its stage as × does; colour wiring and Guest
 //               get no ÷ wire;
@@ -356,7 +356,10 @@ async function runLogic(C) {
   await C.open(1280, 800, false);
   await C.ev(String.raw`(() => { ${HELPERS} localStorage.clear(); R.manual(true); R.player('apollo'); for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) setX(a, b, 'known'); R.start(0); R.waveTo(2); return true; })()`);
   let nWires = 0, nDiv = 0, perBoard = [], distinct = true, decoysOk = true, textOk = true, matched = 0, boards = 0, why = null;
-  for (let i = 0; i < 40; i++) {
+  // (waves 0 (wires by how hard the robot was hit: up to 4), 1–2 (1 wire), 3–4 (2) and 5 on (3): boards of every size)
+  for (let i = 0; i < 60; i++) {
+    if (i % 15 === 0) await C.ev(`window.__rb.waveTo(${[0, 2, 3, 5][i / 15]})`);
+    await C.ev('window.__rb.clock(90e3)');   // (a minute and a half of play between robots: a miss comes back after FACT.missBack)
     const q = await C.ev(QUICKFIX);
     if (!q.ok || !q.facts) { why = q; break; }
     boards++;
@@ -386,9 +389,10 @@ async function runLogic(C) {
     }
     await C.ev(`window.__rb.leaveFix()`);
   }
-  res.push({ name: `40 Quick Fix boards opened with math wires (${boards})`, pass: boards === 40, got: why });
-  res.push({ name: `... ÷ wires in the right share: ${nDiv} of ${nWires}, at most 1 in 3 overall and at least 1 in 5`, pass: nDiv * 3 <= nWires + 3 && nDiv * 5 >= nWires, got: perBoard.join(' ') });
-  res.push({ name: '... no board has more ÷ wires than 1 in 3 allows (1 on 1–3 wires, 2 on 4)', pass: perBoard.every((p) => { const [d, n] = p.split('/').map(Number); return d <= (n <= 3 ? 1 : 2); }), got: perBoard.join(' ') });
+  const sizes = new Set(perBoard.map((p) => +p.split('/')[1]));
+  res.push({ name: `60 Quick Fix boards opened with math wires (${boards}), of 1, 2, 3 and 4 wires`, pass: boards === 60 && [1, 2, 3, 4].every((n) => sizes.has(n)), got: why ?? [...sizes] });
+  res.push({ name: `... ÷ wires in the right share: ${nDiv} of ${nWires}, at most 1 in 3 (one wire's slack) and at least 1 in 5`, pass: nDiv * 3 <= nWires + 3 && nDiv * 5 >= nWires, got: perBoard.join(' ') });
+  res.push({ name: '... at most 1 ÷ wire on any board (3 and 4 wires included), and a ÷ wire on boards of 3 and 4', pass: perBoard.every((p) => +p.split('/')[0] <= 1) && perBoard.some((p) => p === '1/3') && perBoard.some((p) => p === '1/4'), got: perBoard.join(' ') });
   res.push({ name: '... every answer on a board distinct (×, ÷ and decoys)', pass: distinct });
   res.push({ name: '... a ÷ wire reads "a ÷ b", never turned round', pass: textOk });
   res.push({ name: `... a matched (New) ÷ wire's decoys are answers 1–9 (${matched} matched)`, pass: decoysOk && matched > 0, got: matched });

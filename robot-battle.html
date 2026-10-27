@@ -3744,13 +3744,14 @@ const Facts = {
     const l = pool.length > 1 ? pool.filter((k) => k !== R.last) : pool, k = l[Math.floor(this.rand() * l.length)];
     return out(k, this.stage(k) === 'new' ? 'new' : 'learning');
   },
-  // a wire's fact in the Quick Fix (math wiring): a ÷ fact at most 1 in any 3 wires in a row (divGap: the wires since the
+  // a wire's fact in the Quick Fix (math wiring): a ÷ fact at most 1 in any 3 wires in a row (and setFacts: 1 a board) (divGap: the wires since the
   // last ÷ one, for whoever is playing; not saved, so it starts again on a reload), and only while one is waiting
   // (nextDiv); otherwise next(opts), the × facts as before. A child with division off, or Guest, gets × only, and
   // nothing about ÷ is read or drawn for them
   divGap: 2,
+  // (opts.noDiv: not a ÷ fact this time: the board has one already)
   pickWire(opts = {}) {
-    const d = this.divOn() && this.divGap >= 2 ? this.nextDiv({ exclude: opts.exclude }) : null;
+    const d = this.divOn() && this.divGap >= 2 && !opts.noDiv ? this.nextDiv({ exclude: opts.exclude }) : null;
     if (d) { this.divGap = 0; return d; }
     if (this.divOn()) this.divGap++;
     return this.next(opts);
@@ -11366,7 +11367,8 @@ function setFacts(r) {
     for (const g of DIV_FACTS) if (taken.has(g.answer)) clash.push(g.key);   // (#142: and the ÷ facts with an answer already on it)
     const opts = { exclude: clash, ops: ['×'] };
     if (band === 'warm' || (band === 'stretch' && i === 0)) opts.band = band;
-    // #142: a ÷ fact at most 1 wire in 3 (Facts.pickWire), the rest as before
+    // #142: a ÷ fact at most 1 wire in 3 (Facts.pickWire) and at most 1 a board (a board has up to 4 wires), the rest as before
+    if (picked.some((g) => g.op === '÷')) opts.noDiv = true;
     let f = Facts.rec ? Facts.pickWire(opts) : null;
     if (!f || taken.has(f.answer)) {                     // nothing left on the child's open steps: any 1–9 fact with a new answer
       const free = []; for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (!taken.has(a * b)) free.push(makeFact('×', a, b));
