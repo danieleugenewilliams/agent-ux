@@ -327,9 +327,12 @@ async function runLogic(C) {
     const oo = R.parentDo('division', 'orion', 'off');
     ok("on Orion's tab while Apollo plays: Orion's saved record goes off, Apollo stays on", oo.ok && JSON.parse(localStorage.getItem('robotbattle.facts.orion')).division === false && R.division().division === true);
     R.parent(false);
-    // a reset keeps it
+    // a reset keeps it, and still keeps the garage and the saved squad as it did before #142
+    const ob = JSON.parse(localStorage.getItem('robotbattle.facts.orion')); ob.garage.__keep = 1; ob.squad = [{ id: 'sq-k', type: 'charger', name: 'Bolt', health: 80, damage: {}, upg: { plating: 1, job: 0 } }]; ob.squadGone = [{ id: 'sq-g', how: 'gone', at: 1 }]; localStorage.setItem('robotbattle.facts.orion', JSON.stringify(ob));
     R.parent(true, 'orion'); R.parentDo('reset', 'orion'); const rc = R.parentDo('confirm', 'orion'); R.parent(false);
-    ok('a reset of Orion keeps division off', rc.ok && JSON.parse(localStorage.getItem('robotbattle.facts.orion')).division === false, rc);
+    const oa = JSON.parse(localStorage.getItem('robotbattle.facts.orion'));
+    ok('a reset of Orion keeps division off', rc.ok && oa.division === false, rc);
+    ok('... and keeps the garage and the saved squad (as before #142)', oa.garage?.__keep === 1 && oa.squad?.[0]?.id === 'sq-k' && oa.squadGone?.[0]?.id === 'sq-g', { garage: oa.garage?.__keep, squad: oa.squad, squadGone: oa.squadGone });
     return out; })()`);
   out.push(...res);
   await C.open(1280, 800, false);

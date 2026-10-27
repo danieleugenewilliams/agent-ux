@@ -3672,7 +3672,8 @@ const Facts = {
   // which the squad in the meadow would write back anyway). Only that child's record is touched; Guest has none.
   reset(c) {
     const C = childOf(c); if (!C || C.guest) return { ok: false, why: C ? 'guest keeps nothing' : 'no such child' };
-    const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.mode = modeOf(was.mode); if (was.division === false) r.division = false;   // (#142: a setting too) r.garage = was.garage; r.squad = was.squad; r.squadGone = was.squadGone;
+    const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.mode = modeOf(was.mode); r.garage = was.garage; r.squad = was.squad; r.squadGone = was.squadGone;
+    if (was.division === false) r.division = false;   // (#142: a setting too)
     if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else if (Profiles.saved(C.id)) store.set('facts.' + C.id, r);
     return { ok: true, child: C.id };
   },
