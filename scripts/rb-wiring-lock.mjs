@@ -14,9 +14,12 @@
 //                    it survives a reload; the parent view shows it (data(c).wiring and the buttons' aria-pressed);
 //                  * Guest: colour wiring, a Quick Fix with no facts, no Guest tab in the parent view, and the hook refuses
 //                    to put Guest on math;
-//                  * backups, both ways (device math / backup colour and device colour / backup math): "Use the backup" takes
-//                    the backup's wiring, "Keep the best" and "Keep this device" keep this device's (as before #134), a
-//                    fresh device takes the backup's, and the file carries rec.wiring;
+//                  * backups, both ways (device math / backup colour and device colour / backup math): every choice keeps
+//                    this device's wiring ("Keep the best" and "Keep this device" as before #134; #152: "Use the backup"
+//                    too, through Backup.keepWiring, which is pure and leaves the record as it is when the two match), a
+//                    fresh device takes the backup's (colour and math), and the file carries rec.wiring; and "Use the
+//                    backup" brings the progress back as before #152: the stored record is the backup's (its × and ÷
+//                    facts, garage, waves, division off) with only this device's wiring and #132 mode in it;
 //                  * the gamepad in the parent view doesn't change it (the view's buttons are touch and keyboard, as before).
 //   sweep-mouse  - (a run per screen: sweep-mouse:who, :pick, :play, :pause, :garage:<tab>) at 1280 x 800, Apollo on math: every visible control on who's playing, the pilot pick, play (the HUD), the
 //   sweep-touch  - at 844 x 390 with touch, Orion on colour (the touch pause menu):
@@ -292,19 +295,54 @@ async function runLogic(C) {
       const B = back(bak); res.files[bak] = B.data?.['facts.apollo']?.wiring ?? null;
       for (const ch of ['backup', 'best', 'device']) { set(dev); R.player('orion'); const x = R.restore(B, ch); R.player('apollo'); res[dev + '/' + bak + '/' + ch] = { ok: x.ok, live: R.wiring().wiring, saved: saved() }; }
     }
+    for (const m of ['colour', 'math']) { const B = back(m); localStorage.clear(); const x = R.restore(B, 'backup'); res['fresh/' + m] = { ok: x.ok, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null')?.wiring ?? null }; }
     const B = back('colour'); localStorage.clear(); const x = R.restore(B, 'best'); res.fresh = { ok: x.ok, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null')?.wiring ?? null };
+    // keepWiring itself: pure, and the record itself back when the wiring already matches (or this device has none)
+    const K = R.Backup.keepWiring.bind(R.Backup), a = { wiring: 'colour', mode: 'hard', facts: { k: { s: 'known' } } }, aw = JSON.stringify(a);
+    const m1 = K(a, { wiring: 'math' }), m2 = K(a, { wiring: 'colour' }), m3 = K(a, { mode: 'easy' }), m4 = K(a, null);
+    res.pure = { changed: m1 !== a && m1.wiring === 'math' && m1.mode === 'hard' && m1.facts.k.s === 'known' && JSON.stringify(a) === aw, same: m2 === a && m3 === a && m4 === a };
     return res; })()`);
   ok('a backup carries each child\'s wiring (facts.apollo.wiring: colour, math)', r.files.colour === 'colour' && r.files.math === 'math', r.files);
   for (const [dev, bak] of [['math', 'colour'], ['colour', 'math']]) {
     const k = (ch) => r[`${dev}/${bak}/${ch}`];
-    ok(`device ${dev}, backup ${bak}: "Use the backup" takes the backup's (${bak})`, k('backup')?.ok && k('backup').live === bak && k('backup').saved === bak, k('backup'));
+    ok(`device ${dev}, backup ${bak}: "Use the backup" keeps this device's (${dev}) (#152)`, k('backup')?.ok && k('backup').live === dev && k('backup').saved === dev, k('backup'));
     ok(`device ${dev}, backup ${bak}: "Keep the best" keeps this device's (${dev})`, k('best')?.ok && k('best').live === dev && k('best').saved === dev, k('best'));
     ok(`device ${dev}, backup ${bak}: "Keep this device" keeps this device's (${dev})`, k('device')?.ok && k('device').live === dev && k('device').saved === dev, k('device'));
   }
-  ok('a fresh device restoring a backup with Apollo on colour: Apollo is on colour', r.fresh.ok && r.fresh.saved === 'colour', r.fresh);
+  ok('a fresh device, "Use the backup" from a backup with Apollo on colour: Apollo is on colour', r['fresh/colour'].ok && r['fresh/colour'].saved === 'colour', r['fresh/colour']);
+  ok('a fresh device, "Use the backup" from a backup with Apollo on math: Apollo is on math', r['fresh/math'].ok && r['fresh/math'].saved === 'math', r['fresh/math']);
+  ok('Backup.keepWiring is pure (a new record with this device\'s wiring, the rest as it was; the record passed in untouched) and gives the record itself back when the wiring matches or this device has none', r.pure.changed && r.pure.same, r.pure);
+  ok('a fresh device restoring a backup with Apollo on colour ("Keep the best"): Apollo is on colour', r.fresh.ok && r.fresh.saved === 'colour', r.fresh);
   await C.open(1280, 800, false);
   r = await C.ev(`(() => window.__rb.player('apollo').wiring)()`);
   ok('... and loads on colour after a reload', r === 'colour', r);
+  // "Use the backup": the progress comes back as before #152 (only the wiring, and #132's mode, are this device's)
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { const R = window.__rb, F = R.Facts;
+    const canon = (v) => (Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v) ?? 'null');
+    const res = {};
+    for (const [dev, bak] of [['math', 'colour'], ['colour', 'math']]) {
+      localStorage.clear(); R.manual(true); R.player('apollo');
+      R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.answer(4, 5, 20, 1500);
+      const rec = F.rec, CA = F.child, x0 = Object.keys(rec.facts)[0];
+      rec.facts['÷54,6'] = { ...rec.facts[x0], s: 'known' };
+      rec.garage.trophies.armour = { n: 3, from: { drone: 3 } }; rec.garage.upgrades.armour = 2;
+      rec.waves = { best: 4 }; rec.mode = 'hard'; rec.division = false; rec.wiring = bak; F.save();
+      const B = JSON.parse(JSON.stringify(R.backup())), want = JSON.parse(localStorage.getItem('robotbattle.facts.apollo'));
+      // this device: Apollo with nothing yet but this device's wiring and an Easy mode
+      R.player('orion'); const h = F.blank(CA);
+      h.wiring = dev; h.mode = 'easy'; localStorage.setItem('robotbattle.facts.apollo', JSON.stringify(h));
+      const x = R.restore(B, 'backup'), got = JSON.parse(localStorage.getItem('robotbattle.facts.apollo'));
+      R.player('apollo');
+      res[dev + '/' + bak] = { ok: x.ok, why: x.why, wiring: got.wiring, live: R.wiring().wiring, mode: got.mode, same: canon({ ...got, wiring: null, mode: null }) === canon({ ...want, wiring: null, mode: null }),
+        div: got.division, fd: got.facts['÷54,6']?.s, waves: got.waves?.best, tro: got.garage?.trophies?.armour?.n, upg: got.garage?.upgrades?.armour, got: canon(got).slice(0, 400), want: canon(want).slice(0, 400) };
+    }
+    return res; })()`);
+  for (const [dev, bak] of [['math', 'colour'], ['colour', 'math']]) {
+    const k = r[`${dev}/${bak}`];
+    ok(`"Use the backup" (device ${dev}, backup ${bak}) with progress: this device's wiring (${dev}) and mode (Easy), saved and live`, k.ok && k.wiring === dev && k.live === dev && k.mode === 'easy', k);
+    ok(`... and every other field is the backup's, exactly (× and ÷ facts, garage trophies and upgrades, waves best 4, division off)`, k.same && k.fd === 'known' && k.div === false && k.waves === 4 && k.tro === 3 && k.upg === 2, k);
+  }
 
   // ---- the gamepad in the parent view doesn't change it (its buttons are touch and keyboard)
   await C.ev(`(() => { const R = window.__rb; R.player('apollo'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.parent(true, 'apollo'); return true; })()`);

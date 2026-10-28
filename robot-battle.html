@@ -4274,6 +4274,12 @@ const Backup = {
     if (!isObj(r) || !isObj(here) || (r.mode == null && here.mode == null) || r.mode === modeOf(here.mode)) return r;
     return { ...clone(r), mode: modeOf(here.mode) };
   },
+  // #152 (Dad's decision): Use the backup's record r, but this device's Quick Fix wiring (math or colour: a setting, not
+  // progress, as keepMode's mode; a parent chose it on purpose). Pure: r itself when they already match
+  keepWiring(r, here) {
+    if (!isObj(r) || !isObj(here) || !['math', 'colour'].includes(here.wiring) || r.wiring === here.wiring) return r;
+    return { ...clone(r), wiring: here.wiring };
+  },
   // what a record holds, for the summary (straight from the record: nothing is loaded or saved)
   count(r) {
     if (!r) return null;
@@ -4314,8 +4320,8 @@ const Backup = {
       const choice = this.choiceFor(choices, C.id);
       if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
       // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone; #115: and its ⭐s: keepMastered;
-      // #129: and its best wave cleared: keepWaves; #132: and its mode: keepMode)
-      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepMode(this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here), here) : this.merge(here, bak);
+      // #129: and its best wave cleared: keepWaves; #132: and its mode: keepMode; #152: and its Quick Fix wiring: keepWiring)
+      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepWiring(this.keepMode(this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here), here), here) : this.merge(here, bak);
       const write = !!bak && canon(res) !== canon(here);
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
