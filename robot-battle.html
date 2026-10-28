@@ -709,6 +709,23 @@
     #grid .legend { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 5px 10px; margin-top: 4px; }
     #grid .legend .lg { font-size: 15px; --cs: 24px; gap: 5px; }
   }
+  /* #142: the ×/÷ toggle (the grid's top row, and over the parent view's grid), and a ÷ fact not open yet: a dim cell with a lock */
+  .gopb { flex: none; height: 46px; min-width: 64px; padding: 0 4px; gap: 2px; border-radius: 14px; border: 3px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation; }
+  .gopb .gsg { width: 26px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; opacity: .45; }
+  .gopb .gsg.on { opacity: 1; font-size: 26px; background: rgba(255,255,255,.2); box-shadow: inset 0 0 0 2px #fff; width: 32px; }
+  .gopb:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  .gopb .ic { margin: 0; }
+  @media (max-height: 460px) and (min-width: 500px) {
+    #grid .top .gt { font-size: 24px; gap: 6px; } #grid .top .kface { width: 34px; height: 34px; font-size: 19px; } #grid .top .x { width: 44px; height: 44px; font-size: 20px; flex: none; }
+    #grid .top { gap: 6px; }
+  }
+  #grid .top { gap: 8px; }
+  #grid .top .gt { flex: 1 1 auto; min-width: 0; }
+  .pgop { display: flex; justify-content: center; margin-bottom: 6px; }
+  .cell.lock { background: rgba(255,255,255,.03); border: 2px dotted #59617a; color: #8a93ad; opacity: .7; }
+  .cell.lock .ic { font-size: .8em; }
+  .ginfo .gdlock { opacity: .85; font-weight: 700; font-size: 15px; }
   .kface { width: 46px; height: 46px; border-radius: 50%; background: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: inset 0 0 0 4px var(--c, #fff); }
   /* the ⭐ badge (HUD, bottom left above the speed bars; a tap or T opens the grid) and its twin on the pause screen */
   #hud .mastery { position: absolute; left: 22px; bottom: 112px; display: none; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 18px; background: rgba(20,24,42,.6);
@@ -1692,7 +1709,7 @@
 <!-- MY FACTS: the child's 9×9 grid, a cell per fact (7 × 8 and 8 × 7 light up together); tap one for its typical time and (#133) its progress: what the next stage takes, the fast days to ⭐ and whether today counted -->
 <div id="grid" class="screen">
   <div class="panel">
-    <div class="top"><span class="gt"><b class="kface" id="gridFace"></b><i data-ic="star"></i> <b id="gridCount"></b></span><button class="x" id="gridX" aria-label="Close"><i data-ic="cross"></i></button></div>
+    <div class="top"><span class="gt"><b class="kface" id="gridFace"></b><i data-ic="star"></i> <b id="gridCount"></b></span><span id="gridOp"></span><button class="x" id="gridX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div class="fgrid" id="gridCells"></div>
     <div class="ginfo" id="gridInfo"></div>
     <div class="legend" id="gridLegend"></div>
@@ -3076,6 +3093,9 @@ const ICONS = {
   // (#82: a number tile, 1 2 over 3 4, drawn as strokes: the white × it was read as close)
   math: ['math wiring', ['🔢'], re(2.6, 2.6, 18.8, 18.8, 4, G('blue')) + `<path d="${digitsD([[1, 8.3, 8.2], [2, 15.7, 8.2], [3, 8.3, 15.9], [4, 15.7, 15.9]])}" fill="none" stroke="#fff" stroke-width="1.7"/>`],
   colours: ['colour wiring', ['🌈'], ln('M3.4 19 A8.6 8.6 0 0 1 20.6 19', '#ff4d5e', 2.2, 'butt') + `<path d="M7.6 19 A4.4 4.4 0 0 1 16.4 19" fill="none" stroke="#4f9dff" stroke-width="2.2"/><path d="M5.5 19 A6.5 6.5 0 0 1 18.5 19" fill="none" stroke="#ffd83d" stroke-width="2.2"/>`],
+  // #142: the grid's ×/÷ toggle and the parent view's division switch: a tile with the sign drawn as strokes
+  times: ['times facts', [], re(2.6, 2.6, 18.8, 18.8, 4, G('orange')) + `<path d="M8 8 L16 16 M16 8 L8 16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`],
+  divide: ['division facts', ['➗'], re(2.6, 2.6, 18.8, 18.8, 4, G('purple')) + `<path d="M6.8 12 L17.2 12" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>` + cn(12, 7.4, 1.8, '#fff') + cn(12, 16.6, 1.8, '#fff')],
   question: ['what?', ['❓', '❔'], ln('M8 8.2 Q8 3.6 12 3.6 Q16 3.6 16 7.6 Q16 10.2 13.4 11.4 Q12 12.2 12 14.6', G('red'), 3) + ci(12, 19.2, 2.2, G('red'))],
   // stage of a fact: ○ new, ◐ learning, ● known, ★ mastered
   new: ['new', ['○'], ln('M12 4 A8 8 0 1 1 11.99 4 Z', '#e8ecf4', 2)],
@@ -3367,17 +3387,32 @@ const LADDERS = {
   ],
 };
 Profiles.load();   // #49: CHILDREN = the saved profiles (seeded once with Orion and Apollo), then Guest
-// The operations (multiplication only), and the spellings answer() / nextFact() accept for them
-const OPS = { '×': { calc: (a, b) => a * b, lo: 1, hi: 9 } };
-const OP_ALIAS = { x: '×', X: '×', '*': '×', '×': '×' };
-// a fact from (op, a, b), or null if it isn't one (factors 1–9)
+// The operations, and the spellings answer() / nextFact() accept for them. #142: '÷', the division partners of the 81
+// ordered pairs: a ÷ b with b (the divisor) 1–9 and the answer a / b 1–9 (54 ÷ 6 = 9). A ÷ fact is ordered (54 ÷ 6 and
+// 54 ÷ 9 are two facts) and keyed '÷' + dividend + ',' + divisor ('÷54,6'), in rec.facts beside the × facts, so × progress
+// is never touched by it (and a record with ÷ facts is still a record main's code reads: every entry the same shape)
+const OPS = { '×': { calc: (a, b) => a * b, lo: 1, hi: 9 }, '÷': { calc: (a, b) => a / b, lo: 1, hi: 9 } };
+const OP_ALIAS = { x: '×', X: '×', '*': '×', '×': '×', '÷': '÷', '/': '÷', ':': '÷' };
+// a fact from (op, a, b), or null if it isn't one (factors 1–9; #142: a ÷ fact's divisor and answer 1–9)
 function makeFact(op, a, b) {
   op = OP_ALIAS[op]; a = Number(a); b = Number(b);
   const O = OPS[op];
-  if (!O || !Number.isInteger(a) || !Number.isInteger(b) || a < O.lo || b < O.lo || a > O.hi || b > O.hi) return null;
+  if (!O || !Number.isInteger(a) || !Number.isInteger(b)) return null;
+  if (op === '÷') {
+    if (b < O.lo || b > O.hi || a % b !== 0 || a / b < O.lo || a / b > O.hi) return null;
+    return { op, a, b, key: op + a + ',' + b, answer: a / b };
+  }
+  if (a < O.lo || b < O.lo || a > O.hi || b > O.hi) return null;
   if (a > b) [a, b] = [b, a];
   return { op, a, b, key: op + a + ',' + b, answer: O.calc(a, b) };
 }
+// #142: the ÷ fact q·d ÷ d = q (divisor d, answer q), and a ÷ fact's × partner (54 ÷ 6: 6 × 9)
+const divFact = (q, d) => makeFact('÷', q * d, d);
+const partnerOf = (f) => (f?.op === '÷' ? makeFact('×', f.answer, f.b) : null);
+// every ÷ fact, divisor 1–9 then answer 1–9 (81)
+const DIV_FACTS = (() => { const out = []; for (let d = 1; d <= 9; d++) for (let q = 1; q <= 9; q++) out.push(divFact(q, d)); return out; })();
+// a fact as a child reads it: 7 × 8 (flip: 8 × 7), 54 ÷ 6 (never flipped)
+const factStr = (f, flip) => (f.op === '÷' ? `${f.a} ÷ ${f.b}` : flip ? `${f.b} × ${f.a}` : `${f.a} × ${f.b}`);
 // a fact from a key ('×7,8'), an object ({ op, a, b }; op defaults to '×') or nothing
 const factOf = (f) => (f == null ? null : typeof f === 'string' ? makeFact(f[0], ...f.slice(1).split(',')) : makeFact(f.op ?? '×', f.a, f.b));
 // every fact in a ladder step, in order, once each
@@ -3503,7 +3538,7 @@ const Facts = {
     if (!C.guest) this.keepStars(r);                                      // #115: stars a cheered table shows were earned
     if (!C.guest) fillWaves(r);                                           // #129: the waves cleared (best 0 before #129)
     r.mode = modeOf(r.mode);                                              // #132: Easy, Normal or Hard (Normal before #132)
-    this.child = C; this.rec = r;
+    this.child = C; this.rec = r; this.divGap = 2;   // (#142: a ÷ wire may come first)
     this.advance(); const got = this.latch(); this.save();   // G4: a record already past a milestone gets its part now (cheered in the garage)
     // #43: and any tier rise this record holds that hasn't been checked: a milestone just latched, or a backup's merge (which
     // takes the higher upgrades and the unlocks of both sides); its toast waits for play. A record already checked: nothing
@@ -3610,8 +3645,9 @@ const Facts = {
   // every fact of table t (t × 1 … t × 9) is Mastered
   tableDone(rec, t) { const O = OPS['×']; for (let n = O.lo; n <= O.hi; n++) if (rec.facts[makeFact('×', t, n).key]?.s !== 'mastered') return false; return true; },
   // the n slowest facts answered so far, slowest first, by typical time (a tie: the less often right first)
-  slowest(rec = this.rec, n = 10) {
-    return Object.entries(rec.facts).filter(([, e]) => e.n > 0).map(([key, e]) => ({ key, a: e.a, b: e.b, s: e.s, ms: this.typical(e), n: e.n, right: e.right }))
+  // (#142: of one op's facts, '×' by default; op '÷' the division facts)
+  slowest(rec = this.rec, n = 10, op = '×') {
+    return Object.entries(rec.facts).filter(([key, e]) => e.n > 0 && key[0] === op).map(([key, e]) => ({ key, op, a: e.a, b: e.b, s: e.s, ms: this.typical(e), n: e.n, right: e.right }))
       .sort((x, y) => y.ms - x.ms || x.right / x.n - y.right / y.n).slice(0, n);
   },
   // #48: a fix's time (ms, board open to reboot) goes in today's list; days older than FIXTIME.days go
@@ -3637,6 +3673,7 @@ const Facts = {
   reset(c) {
     const C = childOf(c); if (!C || C.guest) return { ok: false, why: C ? 'guest keeps nothing' : 'no such child' };
     const was = this.peek(C), r = this.blank(C); r.wiring = was.wiring; r.mode = modeOf(was.mode); r.garage = was.garage; r.squad = was.squad; r.squadGone = was.squadGone;
+    if (was.division === false) r.division = false;   // (#142: a setting too)
     if (C === this.child && this.rec) { this.rec = r; this.advance(); this.save(); } else if (Profiles.saved(C.id)) store.set('facts.' + C.id, r);
     return { ok: true, child: C.id };
   },
@@ -3654,6 +3691,71 @@ const Facts = {
   setWiring(mode) {
     if (!this.rec || this.child?.guest || !['math', 'colour'].includes(mode)) return false;
     this.rec.wiring = mode; this.save(); return true;
+  },
+  // ---- #142: division. A child's ÷ facts are the 81 partners of the × facts (DIV_FACTS), kept in rec.facts under their own
+  // '÷' keys, so a ÷ answer never touches a × entry. The switch is rec.division: on unless it's false (so every record from
+  // before #142, and every new one, is on), and always off for Guest. Only a parent changes it (the parent view, as wiring).
+  // A ÷ fact opens once its × partner is Known (or Mastered); one already answered stays open (its progress is its own).
+  // Its New facts being taught are rec.divPlay (at most FACT.newMax, apart from the × facts' inPlay), added the first time
+  // a ÷ fact is taught. The stage rules are answer()'s, the same as ×.
+  divOn(r = this.rec, C = r === this.rec ? this.child : childOf(r?.child)) { return !!r && !!C && !C.guest && r.division !== false; },
+  setDivision(on) {
+    if (!this.rec || this.child?.guest || typeof on !== 'boolean') return false;
+    if (on) delete this.rec.division; else this.rec.division = false;
+    this.save(); return true;
+  },
+  // a ÷ fact (key) is open on record r: its × partner is Known or Mastered, or it has been answered
+  divOpenKey(k, r = this.rec) {
+    const f = factOf(k); if (!f || f.op !== '÷' || !r) return false;
+    return (r.facts?.[k]?.n || 0) > 0 || ['known', 'mastered'].includes(r.facts?.[partnerOf(f).key]?.s);
+  },
+  // every open ÷ fact on record r, by key (in DIV_FACTS order)
+  divOpen(r = this.rec) { const out = new Map(); for (const f of DIV_FACTS) if (this.divOpenKey(f.key, r)) out.set(f.key, f); return out; },
+  // the ÷ counts for record r: open, and the stages of all 81 (a fact not open is New)
+  divCounts(r = this.rec) {
+    const st = Object.fromEntries(STAGES.map((s) => [s, 0])); let polish = 0;
+    for (const f of DIV_FACTS) { const e = r?.facts?.[f.key]; st[STAGES.includes(e?.s) ? e.s : 'new']++; if (e?.s === 'mastered' && e.polish) polish++; }
+    return { open: this.divOpen(r).size, goal: DIV_FACTS.length, stages: st, mastered: st.mastered, polish };
+  },
+  // The next ÷ fact for a wire (whoever is playing), or null when none is waiting: a ÷ miss coming back first, then a
+  // review that's due (Known / Mastered), then a Learning fact or a New one being taught (rec.divPlay, topped up from the
+  // open New facts not yet seen, then the ones seen). A Known or Mastered ÷ fact with no review due isn't asked: it waits
+  // for its review. opts.exclude as next().
+  nextDiv(opts = {}) {
+    if (!this.divOn()) return null;
+    const now = this.now(), R = this.rec, F = R.facts, open = this.divOpen();
+    const ex = new Set((opts.exclude || []).map((x) => factOf(x)?.key));
+    const keys = [...open.keys()].filter((k) => !ex.has(k));
+    const waiting = (k) => F[k]?.miss && F[k].due > now;
+    const out = (k, why) => { R.last = k; this.save(); const f = open.get(k); return { op: f.op, a: f.a, b: f.b, key: k, answer: f.answer, stage: this.stage(k), why }; };
+    const back = keys.filter((k) => F[k]?.miss && F[k].due <= now).sort((x, y) => F[x].due - F[y].due);
+    if (back.length) return out(back[0], 'miss');
+    const due = keys.filter((k) => ['known', 'mastered'].includes(F[k]?.s) && F[k].due > 0 && F[k].due <= now && !waiting(k)).sort((x, y) => F[x].due - F[y].due);
+    if (due.length) return out(due[0], 'review');
+    // the New ÷ facts in play: kept to open New ones, then topped up
+    const ip = R.divPlay = (Array.isArray(R.divPlay) ? R.divPlay : []).filter((k) => open.has(k) && this.stage(k) === 'new');
+    if (ip.length < FACT.newMax) {
+      const fresh = [...open.keys()].filter((k) => this.stage(k) === 'new' && !ip.includes(k) && !(F[k]?.n > 0));
+      while (ip.length < FACT.newMax && fresh.length) ip.push(fresh.splice(Math.floor(this.rand() * fresh.length), 1)[0]);
+      const seen = [...open.keys()].filter((k) => this.stage(k) === 'new' && !ip.includes(k));
+      while (ip.length < FACT.newMax && seen.length) ip.push(seen.shift());
+    }
+    const pool = [...keys.filter((k) => this.stage(k) === 'learning' && !waiting(k)), ...ip.filter((k) => !ex.has(k) && !waiting(k))];
+    if (!pool.length) return null;
+    const l = pool.length > 1 ? pool.filter((k) => k !== R.last) : pool, k = l[Math.floor(this.rand() * l.length)];
+    return out(k, this.stage(k) === 'new' ? 'new' : 'learning');
+  },
+  // a wire's fact in the Quick Fix (math wiring): a ÷ fact at most 1 in any 3 wires in a row (and setFacts: 1 a board) (divGap: the wires since the
+  // last ÷ one, for whoever is playing; not saved, so it starts again on a reload), and only while one is waiting
+  // (nextDiv); otherwise next(opts), the × facts as before. A child with division off, or Guest, gets × only, and
+  // nothing about ÷ is read or drawn for them
+  divGap: 2,
+  // (opts.noDiv: not a ÷ fact this time: the board has one already)
+  pickWire(opts = {}) {
+    const d = this.divOn() && this.divGap >= 2 && !opts.noDiv ? this.nextDiv({ exclude: opts.exclude }) : null;
+    if (d) { this.divGap = 0; return d; }
+    if (this.divOn()) this.divGap++;
+    return this.next(opts);
   },
   // #132: whoever is playing's mode (MODES), saved in their record (Guest's record is never saved, so theirs lasts until
   // Guest is picked again or the page reloads)
@@ -3710,7 +3812,7 @@ const Facts = {
   // #133: progress() for fact key on record r (whoever is playing's if left out), today on the tracker's clock
   progressOf(key, r = this.rec) { return r ? this.progress(r.facts?.[key], this.day(), { check: this.checkFirst(r, key) }) : null; },
   // #115: the facts on record r that need a polish (Mastered and slipped), by key
-  polished(r = this.rec) { return new Set(ownKeys(r?.facts || {}).filter((k) => r.facts[k]?.s === 'mastered' && r.facts[k].polish)); },
+  polished(r = this.rec, op = null) { return new Set(ownKeys(r?.facts || {}).filter((k) => r.facts[k]?.s === 'mastered' && r.facts[k].polish && (!op || k[0] === op))); },   // (#142: op: one op's only)
   // #115: stars from before #115. A table's cheer plays only once all nine of its facts are Mastered (rec.cheered[t] is
   // when it did), so a fact of a cheered table that is below Mastered now slipped under the old rule: its ⭐ comes back,
   // with a polish mark. Nothing else is guessed. Idempotent (load and peek both run it); returns the keys restored
@@ -3773,7 +3875,8 @@ const Facts = {
     if (polished || (e.polish && e.s !== 'mastered')) delete e.polish;
     // the New facts in play: a fact that moved up leaves; one that dropped to New joins (it's being taught),
     // and if that's one too many the newest that hasn't been missed steps back out
-    const ip = this.rec.inPlay;
+    // (#142: a ÷ fact's in its own list, rec.divPlay, so the × facts being taught are as they were)
+    const ip = f.op === '÷' ? (this.rec.divPlay = Array.isArray(this.rec.divPlay) ? this.rec.divPlay : []) : this.rec.inPlay;
     if (e.s !== 'new') { const i = ip.indexOf(f.key); if (i >= 0) ip.splice(i, 1); }
     else if (!ip.includes(f.key)) {
       ip.push(f.key);
@@ -3782,7 +3885,7 @@ const Facts = {
     // the table cheer (M4): this answer's tables (7 × 8: ×7 and ×8) that are now all Mastered and haven't
     // cheered yet. Recorded in the record, so each table cheers once per child.
     const cheer = [], ch = (this.rec.cheered ||= {});
-    for (const t of new Set([f.a, f.b])) if (!(t in ch) && this.tableDone(this.rec, t)) { ch[t] = now; cheer.push(t); }
+    if (f.op === '×') for (const t of new Set([f.a, f.b])) if (!(t in ch) && this.tableDone(this.rec, t)) { ch[t] = now; cheer.push(t); }   // (#142: × tables only)
     const unlocked = this.latch();   // G4: a milestone reached (Mastered count) unlocks its advanced part, for good
     this.advance(); this.save();
     if (cheer.length) this.onCheer?.(cheer, this.child);
@@ -3880,6 +3983,8 @@ const Facts = {
       open: open.length, stages: cnt, inPlay: [...this.rec.inPlay],
       current: { kind: st.kind ?? null, facts: fs.length, known: fs.filter((f) => ['known', 'mastered'].includes(this.stage(f.key))).length, answered: fs.filter((f) => this.rec.facts[f.key]?.n > 0).length },
       now: this.now(), day: this.day(), today: this.rec.practice[this.date()] || 0,
+      // #142: division: on or off, the ÷ facts open, the stages of all 81, and the New ones being taught
+      div: { on: this.divOn(), ...this.divCounts(), inPlay: [...(Array.isArray(this.rec.divPlay) ? this.rec.divPlay : [])] },
     };
   },
 };
@@ -4004,6 +4109,7 @@ const Backup = {
   //   created   the earlier; v, child, ladder, wiring, last: this device's (wiring is a setting, not progress)
   //   #129 waves  best: the higher (a record without the field counts as 0)
   //   #132 mode  this device's (a record without the field: Normal): it's a setting, not progress, as wiring is
+  //   #142 division  this device's (no field: on), as wiring; the ÷ facts are facts (above); divPlay: this device's
   //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
   //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
   //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
@@ -4056,6 +4162,8 @@ const Backup = {
     if (dev.waves != null || bak.waves != null) out.waves = { ...(isObj(bak.waves) ? clone(bak.waves) : {}), ...(isObj(dev.waves) ? clone(dev.waves) : {}), best: Math.max(waveBest(dev), waveBest(bak)) };
     // #132: the mode: this device's (not the backup's where this device has none: no field there is Normal)
     if (dev.mode != null || bak.mode != null) out.mode = modeOf(dev.mode);
+    // #142: division: this device's setting (a setting, as wiring; no field here is on, so not the backup's off over it)
+    if (dev.division === false) out.division = false; else delete out.division;
     // #58: the saved squad
     if (dev.squad != null || bak.squad != null || dev.squadGone != null || bak.squadGone != null) Object.assign(out, this.mergeSquad(dev, bak));
     // the garage
@@ -11257,9 +11365,12 @@ function setFacts(r) {
     const taken = new Set(picked.map((f) => f.answer));
     const clash = [];
     for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (taken.has(a * b)) clash.push(makeFact('×', a, b).key);
+    for (const g of DIV_FACTS) if (taken.has(g.answer)) clash.push(g.key);   // (#142: and the ÷ facts with an answer already on it)
     const opts = { exclude: clash, ops: ['×'] };
     if (band === 'warm' || (band === 'stretch' && i === 0)) opts.band = band;
-    let f = Facts.next(opts);
+    // #142: a ÷ fact at most 1 wire in 3 (Facts.pickWire) and at most 1 a board (a board has up to 4 wires), the rest as before
+    if (picked.some((g) => g.op === '÷')) opts.noDiv = true;
+    let f = Facts.rec ? Facts.pickWire(opts) : null;
     if (!f || taken.has(f.answer)) {                     // nothing left on the child's open steps: any 1–9 fact with a new answer
       const free = []; for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) if (!taken.has(a * b)) free.push(makeFact('×', a, b));
       const g = free[Math.floor(Math.random() * free.length)]; f = { ...g, stage: Facts.rec ? Facts.stage(g.key) : 'new', why: 'board' };
@@ -11271,8 +11382,8 @@ function setFacts(r) {
   W.facts = []; [...burnt, ...rest].forEach((i, k) => { W.facts[i] = order[k]; });
   W.typed = W.facts.map((f) => f.stage !== 'new');
   W.missed = false;                                      // a miss on these facts (kept across tries: see fastRepair)
-  // which way round a fact is shown (7 × 8 or 8 × 7) is random, so both get practised
-  W.facts.forEach((f) => { f.flip = Math.random() < 0.5; });
+  // which way round a fact is shown (7 × 8 or 8 × 7) is random, so both get practised (#142: a ÷ fact is never turned round)
+  W.facts.forEach((f) => { f.flip = f.op === '÷' ? false : Math.random() < 0.5; });
   if (r.board) setDecoys(W);
 }
 // No free answers (from wave 1): while any plug is matched (a New fact), the board shows at least 3 answers to
@@ -11286,6 +11397,8 @@ function setDecoys(W) {
     const used = new Set(W.facts.map((f) => f.answer));
     const near = matched.map((f) => {
       const out = [];
+      // #142: a ÷ fact's decoys are answers near its own (54 ÷ 6 = 9: 8 and 7), never products that would give it away
+      if (f.op === '÷') { for (const d of [-1, 1, -2, 2, -3, 3, -4, 4]) if (f.answer + d >= 1 && f.answer + d <= 9) out.push(f.answer + d); return out; }
       for (const [a, b] of [[f.a, f.b + 1], [f.a, f.b - 1], [f.a + 1, f.b], [f.a - 1, f.b], [f.a, f.b + 2], [f.a, f.b - 2], [f.a + 2, f.b], [f.a - 2, f.b], [f.a + 1, f.b + 1], [f.a - 1, f.b - 1]])
         if (a >= 1 && a <= 9 && b >= 1 && b <= 9) out.push(a * b);
       return out;
@@ -11309,7 +11422,7 @@ const typedPlug = (W, i) => !!W.facts && W.link[i] < 0 && (W.burnt[i] || !!W.typ
 // (a decoy port shows its decoy answer, and is never hidden)
 const portAnswer = (W, j) => (W.ports[j] >= DECOY ? W.decoys[W.ports[j] - DECOY] : W.facts ? W.facts[W.plugs.indexOf(W.ports[j])].answer : null);
 const portHidden = (W, j) => W.ports[j] < DECOY && typedPlug(W, W.plugs.indexOf(W.ports[j]));
-const factText = (f) => (f.flip ? `${f.b} × ${f.a}` : `${f.a} × ${f.b}`);
+const factText = (f) => factStr(f, f.flip);   // (#142: 54 ÷ 6 too)
 // a new try at the board (the Quick Fix opening): the clock starts, and the answers so far are cleared
 // (a miss isn't: W.missed stays, so leaving after a miss and coming back can't earn a fast repair)
 function startBoard(r) {
@@ -12923,6 +13036,8 @@ const STAGE_LOOK = { new: { ic: 'new', name: 'New' }, learning: { ic: 'learning'
 const PARENT = { hold: 2000, slowest: 10, days: 14, cheer: 5000 };
 // #134: the parent view's wiring switch, a button per Quick Fix setting
 const PWIRE = [{ id: 'math', ic: 'math', name: 'Math' }, { id: 'colour', ic: 'colours', name: 'Colours' }];
+// #142: the parent view's division switch, beside it
+const PDIV = [{ id: 'on', ic: 'divide', name: 'On' }, { id: 'off', ic: 'cross', name: 'Off' }];
 const TABLES = Array.from({ length: OPS['×'].hi - OPS['×'].lo + 1 }, (_, i) => OPS['×'].lo + i);
 const secs = (ms) => (ms == null ? '—' : (ms / 1000).toFixed(1) + ' s');
 const mins = (ms) => { const m = ms / 60000; return m === 0 ? '0' : m < 10 ? m.toFixed(1) : String(Math.round(m)); };
@@ -12940,7 +13055,9 @@ function confetti(box, n = 60) {
 // the grid as cells: a header row and column of factors (a table all Mastered glows gold), then a cell per
 // a × b with its stage's class, glyph and data-s. o.sel = [a, b] picked (b × a is marked as its twin);
 // o.cur = [a, b] the keyboard / gamepad cursor
+// #142: o.op '÷' draws the division grid instead (divGridHTML)
 function gridHTML(rec, o = {}) {
+  if (o.op === '÷') return divGridHTML(rec, o);
   const pol = Facts.polished(rec), rows = Facts.grid(rec), done = new Set(TABLES.filter((t) => Facts.tableDone(rec, t)));
   const is = (p, a, b) => !!p && p[0] === a && p[1] === b;
   let h = '<i class="hd corner">×</i>' + TABLES.map((b) => `<i class="hd${done.has(b) ? ' done' : ''}">${b}</i>`).join('');
@@ -12954,13 +13071,37 @@ function gridHTML(rec, o = {}) {
   });
   return h;
 }
-// the legend: each stage's cell, its name and how many of the goal's facts are at it
-function legendHTML(rec) {
+// #142: the division grid, the same 10 × 10 shape as the × grid: a row per divisor (its header the divisor, the corner ÷),
+// and in it that divisor's 9 facts in order (row 6: 6 ÷ 6, 12 ÷ 6 ... 54 ÷ 6). The column headers are left blank: they
+// would be the answers, and the grid never shows an answer. A fact not open yet (its × partner isn't Known) is locked:
+// a dim cell with a lock. Each cell has data-a / data-b (row, column: divisor, answer place), data-key and data-op.
+function divGridHTML(rec, o = {}) {
+  const pol = Facts.polished(rec, '÷'), is = (p, a, b) => !!p && p[0] === a && p[1] === b;
+  let h = '<i class="hd corner">÷</i>' + TABLES.map(() => '<i class="hd"></i>').join('');
+  for (const d of TABLES) {
+    h += `<i class="hd">${d}</i>` + TABLES.map((q) => {
+      const f = divFact(q, d), s = rec.facts[f.key]?.s ?? 'new', lock = !Facts.divOpenKey(f.key, rec), p = !lock && pol.has(f.key);
+      const cls = (is(o.sel, d, q) ? ' sel' : '') + (is(o.cur, d, q) ? ' cur' : '') + (lock ? ' lock' : '') + (p ? ' pol' : '');
+      return `<button class="cell s-${s}${cls}" data-a="${d}" data-b="${q}" data-op="÷" data-key="${f.key}" data-s="${s}"${lock ? ' data-lock="1"' : ''}${p ? ' data-p="1"' : ''} aria-label="${f.a} ÷ ${f.b}: ${lock ? 'locked' : STAGE_LOOK[s].name}${p ? ', needs a polish' : ''}">${icon(lock ? 'lock' : STAGE_LOOK[s].ic)}${p ? `<span class="polm">${icon('sparkle')}</span>` : ''}</button>`;
+    }).join('');
+  }
+  return h;
+}
+// #142: the ×/÷ toggle over a grid: one button holding both signs, the grid showing lit; a press shows the other one
+// (data-op: the op it switches to). where: 'grid' (the child's) or 'parent'
+const opToggleHTML = (op, where) => `<button class="gopb" data-op="${op === '×' ? '÷' : '×'}" data-where="${where}" data-now="${op}" aria-label="${op === '×' ? 'Show the division facts' : 'Show the times facts'}">`
+  + [['×', 'times'], ['÷', 'divide']].map(([o, ic]) => `<span class="gsg${op === o ? ' on' : ''}">${icon(ic)}</span>`).join('') + '</button>';
+// the legend: each stage's cell, its name and how many of the goal's facts are at it (#142: op '÷': of the 81 ÷ facts,
+// with the locked ones counted apart)
+function legendHTML(rec, op = '×') {
   const cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
-  Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
-  const np = Facts.polished(rec).size;   // #115: and, while any ⭐ needs one, the polish mark and how many
+  if (op === '÷') DIV_FACTS.forEach((f) => cnt[rec.facts[f.key]?.s ?? 'new']++); else Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
+  const lk = op === '÷' ? DIV_FACTS.length - Facts.divOpen(rec).size : 0;
+  if (op === '÷') cnt.new -= lk;   // (a locked fact is counted as locked, not New)
+  const np = Facts.polished(rec, op).size;   // #115: and, while any ⭐ needs one, the polish mark and how many
   return STAGES.map((s) => `<span class="lg" data-s="${s}"><i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i>${STAGE_LOOK[s].name}<b>${cnt[s]}</b></span>`).join('')
-    + (np ? `<span class="lg" data-p="1" aria-label="needs a polish: ${np}"><i class="cell s-mastered pol">${icon('mastered')}<span class="polm">${icon('sparkle')}</span></i>Polish<b>${np}</b></span>` : '');
+    + (np ? `<span class="lg" data-p="1" aria-label="needs a polish: ${np}"><i class="cell s-mastered pol">${icon('mastered')}<span class="polm">${icon('sparkle')}</span></i>Polish<b>${np}</b></span>` : '')
+    + (lk ? `<span class="lg" data-s="locked" aria-label="locked: ${lk}"><i class="cell s-new lock">${icon('lock')}</i>Locked<b>${lk}</b></span>` : '');
 }
 // #133: a fact's progress (Facts.progress) in words: the fast days still to come to ⭐
 const toStarText = (p) => (p.toMastered === 0 ? `next right answer to ${icon('star')}` : p.toMastered === 3 ? `3 fast days to ${icon('star')}`
@@ -12997,12 +13138,15 @@ function parentProgHTML(p) {
 const Progress = {
   // (#50: rm = the profile 🗑️ Remove is asking about, null when it isn't; kept apart from Reset's confirm, so one
   // button's ✔ can never do the other's)
-  mode: null, from: null, sel: null, cur: null, tab: null, psel: null, confirm: false, rm: null, holdT: null, cheering: null, cheerT: null, badgeKey: null,
+  // (#142: op = the child's grid's facts, '×' or '÷'; pop = the parent view's. Each opens on ×)
+  mode: null, from: null, sel: null, cur: null, tab: null, psel: null, confirm: false, rm: null, holdT: null, cheering: null, cheerT: null, badgeKey: null, op: '×', pop: '×',
   init() {
     $('masteryB').addEventListener('click', (e) => { e.stopPropagation(); this.openGrid('hud'); });
     $('gridB').addEventListener('click', (e) => { e.stopPropagation(); this.openGrid('pause'); });
     $('gridX').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
-    $('gridCells').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) { e.stopPropagation(); this.tapCell(+c.dataset.a, +c.dataset.b); } });
+    $('gridCells').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) { e.stopPropagation(); this.pick(+c.dataset.a, +c.dataset.b); } });
+    // #142: the ×/÷ toggle (the child's grid and the parent view)
+    for (const id of ['gridOp', 'pBody']) $(id).addEventListener('click', (e) => { const b = e.target.closest('.gopb'); if (b) { e.stopPropagation(); this.setOp(b.dataset.op, b.dataset.where, true); } });
     // the backdrop: a click outside a panel does nothing (it never reaches the pause screen underneath)
     for (const id of ['grid', 'parent']) $(id).addEventListener('click', (e) => e.stopPropagation());
     // the parent button: held for PARENT.hold it opens the view; letting go, sliding off or a cancel stops it
@@ -13018,6 +13162,7 @@ const Progress = {
     $('parentX').addEventListener('click', (e) => { e.stopPropagation(); this.close(); });
     $('pTabs').addEventListener('click', (e) => { const b = e.target.closest('.ptab'); if (b) this.act('tab', b.dataset.k); });
     $('pBody').addEventListener('click', (e) => {
+      if (e.target.closest('.gopb')) return;   // (#142: the toggle, above)
       const c = e.target.closest('.cell'); if (c && c.dataset.a) { this.psel = [+c.dataset.a, +c.dataset.b]; this.drawParent(); return; }
       // #69: back up / restore (in the tap itself: Safari keeps a download, and opens a file picker, only from a tap)
       const k = e.target.closest('[data-bk]'); if (k) { BackupUI.act(k.dataset.bk); return; }
@@ -13033,18 +13178,37 @@ const Progress = {
     if (this.mode || Garage.on || !this.canGrid()) return false;
     if (from === 'hud') { if (FixUI.mode || Title.on) return false; setPause(true); }
     else if (!Title.on || !Game.pilot) return false;
-    this.mode = 'grid'; this.from = from; this.sel = null; this.cur = null;
+    this.mode = 'grid'; this.from = from; this.sel = null; this.cur = null; this.op = '×';
     $('grid').classList.add('on'); this.drawGrid();
     if (!Game.manual) Sfx.click();
     return true;
   },
+  // #142: switch the grid (where 'grid', the child's) or the parent view's grid ('parent') to op '×' or '÷' (left out: the other
+  // one). The child's grid has ÷ only while division is on for them. The fact picked is let go. focus: a tap or key on
+  // the toggle did it (the keyboard's focus goes back to the button pressed)
+  canDiv() { return Facts.divOn(); },
+  setOp(op, where = this.mode, focus = false) {
+    if (!this.mode || where !== this.mode) return { ok: false, why: 'not open' };
+    const cur = where === 'grid' ? this.op : this.pop, o = op ?? (cur === '×' ? '÷' : '×');
+    if (!['×', '÷'].includes(o)) return { ok: false, why: 'times or division' };
+    if (where === 'grid' && o === '÷' && !this.canDiv()) return { ok: false, why: 'division is off' };
+    if (where === 'grid') { this.op = o; this.sel = this.cur = null; this.drawGrid(); } else { this.pop = o; this.psel = null; this.drawParent(); }
+    if (focus) (where === 'grid' ? $('gridOp') : $('pBody')).querySelector('.gopb')?.focus({ preventScroll: true });
+    if (!Game.manual) Sfx.click();
+    return { ok: true, op: o };
+  },
   drawGrid() {
     if (this.mode !== 'grid') return;
-    const rec = Facts.rec, C = Game.child, ms = Facts.mastery();
+    if (this.op === '÷' && !this.canDiv()) this.op = '×';
+    const rec = Facts.rec, C = Game.child, ms = Facts.mastery(), div = this.op === '÷';
     const face = $('gridFace'); face.innerHTML = icon(C.ic); face.style.setProperty('--c', C.hex);
-    $('gridCount').textContent = `${ms.mastered}/${ms.goal}`;
-    $('gridCells').innerHTML = gridHTML(rec, { sel: this.sel, cur: this.cur });
-    $('gridLegend').innerHTML = legendHTML(rec);
+    // (#142: the ÷ grid counts its own ⭐s, out of 81)
+    $('gridCount').textContent = div ? `${Facts.divCounts(rec).mastered}/${DIV_FACTS.length}` : `${ms.mastered}/${ms.goal}`;
+    $('gridOp').innerHTML = this.canDiv() ? opToggleHTML(this.op, 'grid') : '';
+    $('grid').classList.toggle('div', div);
+    $('gridCells').innerHTML = gridHTML(rec, { sel: this.sel, cur: this.cur, op: this.op });
+    $('gridLegend').innerHTML = legendHTML(rec, this.op);
+    if (div) { $('gridInfo').innerHTML = this.divInfo(rec, this.sel); return; }
     // the fact picked and its typical time. No answer: the grid can be opened mid-repair, and it mustn't be a
     // times table to copy a typed plug's answer from (the parent view shows answers)
     const p = this.sel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? Facts.stage(f.key) : null, pol = s === 'mastered' && !!e?.polish;
@@ -13053,12 +13217,35 @@ const Progress = {
       : `<i class="cell s-${s}${pol ? ' pol' : ''}">${icon(STAGE_LOOK[s].ic)}${pol ? `<span class="polm">${icon('sparkle')}</span>` : ''}</i><span>${p[0]} × ${p[1]}</span><span>${icon('timer')} ${secs(Facts.typical(e))}</span>`
         + gridProgHTML(Facts.progressOf(f.key, rec));
   },
-  // tap a cell (as a click on it does): pick that fact
+  // #142: the ÷ grid's tap info for the cell at [d, q] (row: the divisor; place in the row): the fact, its cell and typical
+  // time and its progress, as the × grid's; a locked one says what opens it, without naming its × partner (that would give
+  // the answer away). Never the answer
+  divInfo(rec, p) {
+    if (!p) return `<span class="dim">${icon('tap')} ${icon('timer')}</span>`;
+    const f = divFact(p[1], p[0]), e = rec.facts[f.key], s = e?.s ?? 'new', pol = s === 'mastered' && !!e?.polish;
+    if (!Facts.divOpenKey(f.key, rec)) return `<i class="cell s-new lock">${icon('lock')}</i><span>${f.a} ÷ ${f.b}</span><span class="gprog"><span class="gl gdlock">opens when its ${icon("times")} is ${icon("known")}</span></span>`;
+    return `<i class="cell s-${s}${pol ? ' pol' : ''}">${icon(STAGE_LOOK[s].ic)}${pol ? `<span class="polm">${icon('sparkle')}</span>` : ''}</i><span>${f.a} ÷ ${f.b}</span><span>${icon('timer')} ${secs(Facts.typical(e))}</span>`
+      + gridProgHTML(Facts.progressOf(f.key, rec));
+  },
+  // pick the cell at row a, column b of the grid showing (a click on it): on the ÷ grid, row a is the divisor
+  pick(a, b) {
+    if (this.mode !== 'grid' || !TABLES.includes(a) || !TABLES.includes(b)) return null;
+    if (this.op === '÷') { const f = divFact(b, a); return this.tapCell(f.a, f.b); }
+    return this.tapCell(a, b);
+  },
+  // tap a cell (as a click on it does): pick that fact. (#142: on the ÷ grid, a ÷ b: 54, 6 for 54 ÷ 6)
   tapCell(a, b) {
+    if (this.mode === 'grid' && this.op === '÷') {
+      const f = makeFact('÷', a, b); if (!f) return null;
+      this.sel = [f.b, f.answer]; this.drawGrid(); if (!Game.manual) Sfx.click();
+      const e = Facts.rec.facts[f.key];
+      return { op: '÷', fact: `${f.a} ÷ ${f.b}`, key: f.key, open: Facts.divOpenKey(f.key), stage: Facts.stage(f.key), polish: Facts.polished().has(f.key), typical: Facts.typical(e), info: icRead($('gridInfo')),
+        progress: Facts.progressOf(f.key) };
+    }
     const f = makeFact('×', a, b);
     if (this.mode !== 'grid' || !f) return null;
     this.sel = [a, b]; this.drawGrid(); if (!Game.manual) Sfx.click();
-    return { fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), polish: Facts.polished().has(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: icRead($('gridInfo')),
+    return { op: '×', fact: `${a} × ${b}`, key: f.key, stage: Facts.stage(f.key), polish: Facts.polished().has(f.key), typical: Facts.typical(Facts.rec.facts[f.key]), info: icRead($('gridInfo')),
       progress: Facts.progressOf(f.key) };   // (#133: what the info's progress lines show)
   },
   // the keyboard's arrows / the d-pad move a cursor over the cells, picking each fact as it lands
@@ -13071,7 +13258,7 @@ const Progress = {
   close() {
     const m = this.mode, from = this.from; if (!m) return false;
     this.holdStop();
-    this.mode = this.from = null; this.confirm = false; this.rm = null; this.psel = null; BackupUI.reset();
+    this.mode = this.from = null; this.confirm = false; this.rm = null; this.psel = null; this.op = this.pop = '×'; BackupUI.reset();
     $('grid').classList.remove('on'); $('parent').classList.remove('on'); $('pConfirm').classList.remove('on'); $('parentPanel').classList.remove('locked');
     if (m === 'grid' && from === 'hud') startPlay(); else Title.draw();
     if (!Game.manual) Sfx.click();
@@ -13081,9 +13268,11 @@ const Progress = {
   // drive). Returns 'native' for the keys the browser should still handle: Tab, and Enter / Space on a
   // focused parent-view button (so it clicks)
   key(e) {
-    if (e.code === 'Tab' || (this.mode === 'parent' && e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
+    if (e.code === 'Tab' || ((this.mode === 'parent' || e.target?.closest?.('.gopb')) && e.target instanceof HTMLButtonElement && (e.code === 'Enter' || e.code === 'Space'))) return 'native';
     if (this.mode === 'parent' && BackupUI.open) { BackupUI.key(e); return 'used'; }   // #69: the restore summary has the keys
     if (e.code === 'Escape') { if (this.confirm || this.rm) this.act('cancel', this.tab); else this.close(); return 'used'; }
+    // #142: X (or /) flips the grid showing between × and ÷ (the child's: while division is on for them)
+    if ((e.code === 'KeyX' || e.code === 'Slash') && !e.repeat && !this.confirm && !this.rm) { this.setOp(null, this.mode); return 'used'; }
     // #50: ◀ ▶ (and A D) move along the profile chips, wrapping
     if (this.mode === 'parent' && ['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) { this.stepTab(e.code === 'ArrowRight' || e.code === 'KeyD' ? 1 : -1, true); return 'used'; }
     if (this.mode === 'grid') {
@@ -13101,6 +13290,7 @@ const Progress = {
     if (this.mode === 'grid' && (pad.upP || pad.downP || pad.leftP || pad.rightP)) this.move((pad.rightP ? 1 : 0) - (pad.leftP ? 1 : 0), (pad.downP ? 1 : 0) - (pad.upP ? 1 : 0));
     // #50: the d-pad's ◀ ▶ (or LB / RB) move along the profile chips
     if (this.mode === 'parent' && (pad.leftP || pad.rightP || pad.lbP || pad.rbP)) this.stepTab(pad.rightP || pad.rbP ? 1 : -1);
+    if (pad.xP && !this.confirm && !this.rm) this.setOp(null, this.mode);   // #142: X flips the grid between × and ÷
     if (pad.bP || pad.startP || (this.mode === 'grid' && pad.yP)) { if (this.confirm || this.rm) this.act('cancel', this.tab); else this.close(); }
   },
   // the ⭐ badge on the HUD and its twin on the pause screen: mastered out of the goal (nothing for Guest)
@@ -13162,7 +13352,7 @@ const Progress = {
     if (this.mode) return false;
     if (!Title.on) setPause(true);
     const C = childOf(c), K = C && !C.guest ? C : Game.child && !Game.child.guest ? Game.child : this.kids()[0];
-    this.mode = 'parent'; this.tab = K?.id ?? null; this.psel = null; this.confirm = false; this.rm = null;
+    this.mode = 'parent'; this.tab = K?.id ?? null; this.psel = null; this.confirm = false; this.rm = null; this.pop = '×';
     $('parent').classList.add('on'); $('parentPanel').scrollTop = 0; this.drawParent();
     if (!Game.manual) Sfx.click();
     return true;
@@ -13180,6 +13370,11 @@ const Progress = {
       fixMs: (() => { const f = Facts.fixDays(rec, PARENT.days); return { today: f[f.length - 1].median, days: f }; })(),   // #48: median fix times
       grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number), polish: [...Facts.polished(rec)],   // #115: the ⭐ facts that need a polish
       wiring: rec.wiring,   // #134: their Quick Fix setting ('math' or 'colour'), the parent's switch
+      // #142: division: on or off (the parent's switch); div = the ÷ facts: counts (open, stages of the 81, mastered,
+      // polish), grid (rows[d-1][q-1] = q·d ÷ d's stage, or 'locked' while it isn't open) and the 10 slowest
+      division: Facts.divOn(rec, C),
+      div: { ...Facts.divCounts(rec), grid: TABLES.map((d) => TABLES.map((q) => { const k = divFact(q, d).key; return Facts.divOpenKey(k, rec) ? rec.facts[k]?.s ?? 'new' : 'locked'; })),
+        slowest: Facts.slowest(rec, PARENT.slowest, '÷').map((q) => ({ fact: `${q.a} ÷ ${q.b}`, key: q.key, stage: q.s, ms: q.ms, n: q.n, right: q.right, progress: Facts.progressOf(q.key, rec) })) },
     };
   },
   // minutes a day for the last two weeks as a small bar chart (hand-drawn SVG); today's bar is blue, marked with a dot (I4: a
@@ -13207,24 +13402,34 @@ const Progress = {
       $('pBody').innerHTML = `<div class="pnone" id="pNone"><span class="big">${icon('smile')}</span><b>No players yet</b><span class="hint">Tap ${icon('plus', { label: 'new player' })} on the title to make one.</span></div>` + BackupUI.html();
       BackupUI.draw(); return;
     }
-    const D = this.data(this.tab), rec = Facts.peek(this.tab);
-    const p = this.psel, f = p && makeFact('×', p[0], p[1]), e = f && rec.facts[f.key], s = f ? rec.facts[f.key]?.s ?? 'new' : null;
+    const D = this.data(this.tab), rec = Facts.peek(this.tab), div = this.pop === '÷';
+    // (#142: on the ÷ grid, psel is [divisor, answer place]; the fact is written without its answer)
+    const p = this.psel, f = p && (div ? divFact(p[1], p[0]) : makeFact('×', p[0], p[1])), e = f && rec.facts[f.key], s = f ? rec.facts[f.key]?.s ?? 'new' : null;
     const info = !p ? '<span class="dim">Tap a fact for its time</span>'
-      : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${p[0]} × ${p[1]} = ${f.answer}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`
+      : div && !Facts.divOpenKey(f.key, rec) ? `<i class="cell s-new lock">${icon('lock')}</i><span>${f.a} ÷ ${f.b}</span><small>Locked · opens once its ${icon('times')} partner is Known</small>`
+      : `<i class="cell s-${s}">${icon(STAGE_LOOK[s].ic)}</i><span>${div ? `${f.a} ÷ ${f.b}` : `${p[0]} × ${p[1]} = ${f.answer}`}</span><small>${STAGE_LOOK[s].name} · typical ${secs(Facts.typical(e))} · ${e ? `${e.right}/${e.n} right` : 'not asked yet'}</small>`
         + parentProgHTML(Facts.progressOf(f.key, rec));   // #133: what it takes next, and today
     // #133: the rules in a line, so a parent can explain a fact's progress (Facts.answer; these don't change)
     const key = `<p class="pkey">${icon('new')}${icon('arrow')}${icon('learning')} 2 right in a row · ${icon('learning')}${icon('arrow')}${icon('known')} right under 3 s on 2 days · ${icon('known')}${icon('arrow')}${icon('star')} on 3 days.`
-      + ` A day counts once. A miss stops that day counting and drops a stage (a ${icon('star')} keeps its star and needs a polish: 1 answer under 3 s).</p>`;
-    const slow = D.slowest.length ? D.slowest.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${icon(STAGE_LOOK[q.stage].ic)}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
-    $('pBody').innerHTML = `<div class="psum"><span>${icon('star')} Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span><span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span>`
+      + ` A day counts once. A miss stops that day counting and drops a stage (a ${icon('star')} keeps its star and needs a polish: 1 answer under 3 s).`
+      + (div ? ` ${icon('divide')} facts follow the same rules; each opens once its ${icon('times')} partner is Known, and at most 1 Quick Fix wire in 3 is a ${icon('divide')} fact.` : '') + '</p>';   // (#142)
+    const SL = div ? D.div.slowest : D.slowest;
+    const slow = SL.length ? SL.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${icon(STAGE_LOOK[q.stage].ic)}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
+    $('pBody').innerHTML = `<div class="psum"><span>${icon('star')} Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span>`
+      + `<span class="pdiv">${icon('divide')} ${icon('star')} <b>${D.div.mastered}/${D.div.goal}</b> · ${D.div.open} open${D.division ? '' : ' · off'}</span>`   // #142
+      + `<span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span>`
       + `<span class="pfix" title="Today's median fix time (board open to reboot), ${D.fixMs.days[D.fixMs.days.length - 1].n} fixes">${icon('wrench')}${icon('timer')} <b>${secs(D.fixMs.today)}</b> median fix</span></div>`
-      + `<div class="pcols"><div class="pgrid"><div class="fgrid">${gridHTML(rec, { sel: p })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec)}</div>${key}</div>`
-      + `<div class="pstats"><div><h3>10 slowest facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
+      + `<div class="pcols"><div class="pgrid"><div class="pgop">${opToggleHTML(this.pop, 'parent')}</div><div class="fgrid">${gridHTML(rec, { sel: p, op: this.pop })}</div><div class="ginfo">${info}</div><div class="legend">${legendHTML(rec, this.pop)}</div>${key}</div>`
+      + `<div class="pstats"><div><h3>10 slowest ${div ? `${icon('divide')} ` : ''}facts (typical time)</h3><ol class="pslow">${slow}</ol></div>`
       + `<div class="pchart"><h3>Minutes a day, last ${PARENT.days} days · today ${mins(D.todayMs)}</h3>${this.chartSVG(Facts.days(rec, PARENT.days))}</div>`
       // #134: the child's Quick Fix wiring, math or colours: only here (a child can't turn the math off)
       + `<div class="psets"><div class="pset" role="group" aria-label="Quick Fix wiring for ${esc(D.name)}"><h3>Quick Fix wiring</h3><div class="pseg">`
       + PWIRE.map((W) => `<button class="pbtn pw${D.wiring === W.id ? ' on' : ''}" data-act="wiring" data-w="${W.id}" aria-pressed="${D.wiring === W.id}">${icon(W.ic)}<span>${W.name}</span></button>`).join('')
-      + `</div><p>${D.wiring === 'math' ? 'Each wire is a times fact.' : 'Colours only: no facts are practised.'}</p></div></div>`
+      + `</div><p>${D.wiring === 'math' ? 'Each wire is a times fact.' : 'Colours only: no facts are practised.'}</p></div>`
+      // #142: division, beside it: on or off for this child
+      + `<div class="pset" role="group" aria-label="Division for ${esc(D.name)}"><h3>Division</h3><div class="pseg">`
+      + PDIV.map((W) => `<button class="pbtn pw${(D.division ? 'on' : 'off') === W.id ? ' on' : ''}" data-act="division" data-w="${W.id}" aria-pressed="${(D.division ? 'on' : 'off') === W.id}">${icon(W.ic)}<span>${W.name}</span></button>`).join('')
+      + `</div><p>${D.division ? 'Each ÷ fact opens once its × fact is Known.' : 'Times facts only.'}</p></div></div>`
       + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}</div>`
       // (#50: 🗑️ Reset and 🗑️ Remove side by side, on a row of their own)
       + `<div class="pact pdanger"><button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${esc(D.name)}</button><button class="pbtn remove" data-act="remove">${icon('bin')} Remove ${esc(D.name)}</button></div></div></div>`
@@ -13255,7 +13460,13 @@ const Progress = {
     else if (what === 'wiring') {
       const m = v ?? (Facts.peek(C).wiring === 'math' ? 'colour' : 'math');
       res = Facts.as(C, () => Facts.setWiring(m)) ? { ok: true, wiring: m } : { ok: false, why: 'math or colour' };
-      if (res.ok) refocus = m;
+      if (res.ok) refocus = ['wiring', m];
+    }
+    // #142: 'division' (v = 'on' | 'off', or true | false; left out: the other one), saved in their record as wiring is
+    else if (what === 'division') {
+      const on = v == null ? !Facts.divOn(Facts.peek(C), C) : v === true || v === 'on' ? true : v === false || v === 'off' ? false : null;
+      res = on != null && Facts.as(C, () => Facts.setDivision(on)) ? { ok: true, division: on } : { ok: false, why: 'on or off' };
+      if (res.ok) refocus = ['division', on ? 'on' : 'off'];
     }
     else if (what === 'confirm') { if (!this.confirm || this.rm || C.id !== this.tab) return { ok: false, why: 'not asked' }; res = Facts.reset(C); this.confirm = false; this.psel = null; }
     else if (what === 'confirmRemove') {
@@ -13271,7 +13482,7 @@ const Progress = {
     else return { ok: false, why: 'no such button' };
     if (!Game.manual) Sfx.click();
     this.drawParent(); this.drawBadge(); Title.draw();
-    if (refocus) $('pBody').querySelector(`[data-act="wiring"][data-w="${refocus}"]`)?.focus({ preventScroll: true });
+    if (refocus) $('pBody').querySelector(`[data-act="${refocus[0]}"][data-w="${refocus[1]}"]`)?.focus({ preventScroll: true });
     return res;
   },
 };
@@ -15344,7 +15555,7 @@ function robotState(r) {
       math: !!r.wires.facts,
       // typed[i]: plug i is answered by typing (🔢: a Learning / Known / Mastered fact, or burnt) and isn't in yet
       typed: r.wires.plugs.map((_, i) => typedPlug(r.wires, i)),
-      facts: r.wires.facts ? r.wires.facts.map((f) => ({ a: f.a, b: f.b, key: f.key, answer: f.answer, stage: f.stage, text: factText(f) })) : null,
+      facts: r.wires.facts ? r.wires.facts.map((f) => ({ op: f.op, a: f.a, b: f.b, key: f.key, answer: f.answer, stage: f.stage, text: factText(f) })) : null,   // (#142: op '×' | '÷')
       answers: r.wires.facts ? r.wires.ports.map((_, j) => (portHidden(r.wires, j) ? null : portAnswer(r.wires, j))) : null,
       show: r.wires.show && r.wires.show.until > performance.now() ? r.wires.show.plug : -1,
       log: (r.wires.log || []).map((e) => ({ ...e })), fast: fastRepair(r.wires) },
@@ -15416,6 +15627,7 @@ window.__rb = {
   BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
   CAM_FAR,   // (#103)
+  makeFact, factOf, divFact, partnerOf, DIV_FACTS,   // (#142)
   NINJA, WAVE,   // (#120)
   COPIER, Copier, Waves, Bullets,   // (#121)
   CENTIPEDE, hitBalls, bossPlan,   // (#141)
@@ -15606,15 +15818,31 @@ window.__rb = {
   // child's 9×9 grid (whoever is playing if left out): rows[a-1][b-1] = a × b's stage, the counts over the 45,
   // mastery, tables all Mastered and the ones that have cheered; dom = the stages the open grid's cells show
   // for that child (the child's grid, or the parent view on that child's tab), read back from data-s
-  grid(child) {
+  // #142: op '÷': the division grid instead: rows[d-1][q-1] = q·d ÷ d's stage ('locked' while it isn't open), counts
+  // (Facts.divCounts), polish (the ÷ keys), division (on / off), and dom: what the open ÷ grid's cells show ('locked' for a
+  // locked one), with labels (each cell's aria-label) and heads (the header texts: the divisors only, never an answer)
+  grid(child, op = '×') {
     const C = child == null ? Game.child : childOf(child); if (!C) return null;
+    if (op === '÷') {
+      const rec = Facts.peek(C), shows = (Progress.mode === 'grid' && C === Game.child && Progress.op === '÷') || (Progress.mode === 'parent' && Progress.tab === C.id && Progress.pop === '÷');
+      const box = shows ? (Progress.mode === 'grid' ? $('gridCells') : $('pBody').querySelector('.fgrid')) : null;
+      let dom = null, labels = null, heads = null;
+      if (box) {
+        dom = TABLES.map(() => []); labels = [];
+        box.querySelectorAll('.cell').forEach((el) => { dom[+el.dataset.a - 1][+el.dataset.b - 1] = el.dataset.lock ? 'locked' : el.dataset.s; labels.push(el.getAttribute('aria-label')); });
+        heads = [...box.querySelectorAll('.hd')].map((el) => el.textContent);
+      }
+      const rows = TABLES.map((d) => TABLES.map((q) => { const k = divFact(q, d).key; return Facts.divOpenKey(k, rec) ? rec.facts[k]?.s ?? 'new' : 'locked'; }));
+      return { child: C.id, op: '÷', division: Facts.divOn(rec, C), rows, counts: Facts.divCounts(rec), polish: [...Facts.polished(rec, '÷')], ui: Progress.mode, dom, labels, heads };
+    }
     const rec = Facts.peek(C), cnt = Object.fromEntries(STAGES.map((s) => [s, 0]));
     Facts.goal(rec).forEach((k) => cnt[rec.facts[k]?.s ?? 'new']++);
-    const box = Progress.mode === 'grid' && C === Game.child ? $('gridCells') : Progress.mode === 'parent' && Progress.tab === C.id ? $('pBody').querySelector('.fgrid') : null;
+    // (#142: only while the × grid is the one showing)
+    const box = Progress.mode === 'grid' && C === Game.child && Progress.op === '×' ? $('gridCells') : Progress.mode === 'parent' && Progress.tab === C.id && Progress.pop === '×' ? $('pBody').querySelector('.fgrid') : null;
     let dom = null, domPolish = null;
     if (box) { dom = TABLES.map(() => []); domPolish = []; box.querySelectorAll('.cell').forEach((el) => { dom[+el.dataset.a - 1][+el.dataset.b - 1] = el.dataset.s; if (el.dataset.p && el.querySelector('.polm')) domPolish.push(`${el.dataset.a}x${el.dataset.b}`); }); }
     // #115: polish = the keys of the ⭐ facts that need a polish; domPolish = the cells showing the mark ('axb', both twins)
-    return { child: C.id, rows: Facts.grid(rec), counts: cnt, polish: [...Facts.polished(rec)], domPolish, mastery: Facts.mastery(C), tables: TABLES.filter((t) => Facts.tableDone(rec, t)), cheered: Object.keys(rec.cheered || {}).map(Number), ui: Progress.mode, dom };
+    return { child: C.id, rows: Facts.grid(rec), counts: cnt, polish: [...Facts.polished(rec, '×')], domPolish, mastery: Facts.mastery(C), tables: TABLES.filter((t) => Facts.tableDone(rec, t)), cheered: Object.keys(rec.cheered || {}).map(Number), ui: Progress.mode, dom };
   },
   // open (true) or close (false) the child's grid, as the ⭐ badge (playing) or the pause screen's ⭐ does
   showGrid(on = true) { const ok = on ? Progress.openGrid() : Progress.close(); return { ok, ui: Progress.mode, from: Progress.from, paused: Game.paused, title: this.state().title }; },
@@ -15622,10 +15850,22 @@ window.__rb = {
   tapCell(a, b) { return Progress.tapCell(a, b); },
   // #133: fact a × b's progress for child (whoever is playing if left out; another child's saved record is only read):
   // Facts.progress, what the grid's tap info and the parent view show. null for no such fact or child
-  progress(a, b, child) {
-    const f = makeFact('×', a, b), C = child == null ? Game.child : childOf(child), r = C && Facts.peek(C);
-    return f && r ? { fact: `${f.a} × ${f.b}`, key: f.key, ...Facts.progressOf(f.key, r) } : null;
+  // (#142: op '÷': fact a ÷ b, e.g. progress(54, 6, 'apollo', '÷'); open = it's open: its × partner is Known, or it's been answered)
+  progress(a, b, child, op = '×') {
+    const f = makeFact(op, a, b), C = child == null ? Game.child : childOf(child), r = C && Facts.peek(C);
+    return f && r ? { op: f.op, fact: factStr(f), key: f.key, ...(f.op === '÷' ? { open: Facts.divOpenKey(f.key, r) } : {}), ...Facts.progressOf(f.key, r) } : null;
   },
+  // #142: division for whoever is playing: division() reads it; division(true | false) sets it (a test's way, as wiring();
+  // refused for Guest, who never has it). { ok, division, open (÷ facts open), counts }
+  division(on) {
+    const ok = on == null ? !!Facts.rec : Facts.setDivision(on);
+    return { ok, division: Facts.divOn(), open: Facts.rec ? Facts.divOpen().size : 0, counts: Facts.rec ? Facts.divCounts() : null };
+  },
+  // #142: the grid showing (the child's, or the parent view's) to '×' or '÷' (left out: the other one), as its toggle does
+  gridOp(op) { return { ...Progress.setOp(op, Progress.mode), op: Progress.mode === 'parent' ? Progress.pop : Progress.op, ui: Progress.mode }; },
+  // #142: the next Quick Fix wire's fact, as a board picks it (Facts.pickWire: a ÷ fact at most 1 wire in 3); gap = the
+  // wires since the last ÷ one. opts as nextFact's; reset: true starts the count again (as picking a child does)
+  nextWire(opts = {}) { if (opts.reset) Facts.divGap = 2; const f = Facts.pickWire({ ops: ['×'], ...opts }); return f && { ...f, gap: Facts.divGap }; },
   // mastered facts out of the goal for a child (whoever is playing if left out): { child, mastered, goal, polish (#115: how
   // many of the mastered need a polish) }.
   // The garage (#31) reads Facts.mastery, the same accessor.
@@ -15886,6 +16126,8 @@ window.__rb = {
     return { ...res, player: this.state().players[i], bag: { ...Game.bag }, parts: Game.parts };
   },
   // open or close the 🔧 mend panel (as its button does); returns whether it's open
+  // #142 (checks): back out of player 0's open Quick Fix or parts pick, as pad B does (the robot stays down, its clock runs on)
+  leaveFix() { const h = Game.humans[0]; const was = !!h?.repair; if (h?.repair) cancelRepair(h); if (FixUI.mode) FixUI.close(); return { ok: true, was }; },
   mend() { return FixUI.toggleMend(); },
   // setup only: hurt a robot without a weapon hit (doesn't count as a hit)
   // #59 setup only: hurt squadmate id the way an enemy's hit does (how: a HIT_AREAS key: 'hit', 'ram', 'snipe', 'zap', 'stomp')
@@ -16143,7 +16385,7 @@ window.__rb = {
       // M4: the open overlay (null | 'grid' | 'parent'), where the grid was opened from ('hud' | 'pause'), the ⭐ badge's
       // text (null when it's hidden: Guest), the parent view's tab and confirm, the parent button being held, the cheer up now
       progress: { ui: Progress.mode, from: Progress.from, badge: $('masteryB').classList.contains('on') ? $('masteryN').textContent : null,
-        tab: Progress.mode === 'parent' ? Progress.tab : null, confirm: Progress.confirm, holding: !!Progress.holdT, cheer: Progress.cheering ? [...Progress.cheering.tables] : null },
+        tab: Progress.mode === 'parent' ? Progress.tab : null, confirm: Progress.confirm, op: Progress.mode === 'grid' ? Progress.op : Progress.mode === 'parent' ? Progress.pop : null, holding: !!Progress.holdT, cheer: Progress.cheering ? [...Progress.cheering.tables] : null },
       pilots: PILOTS.map((P) => P.name),
       // hidden parts in the meadow: found = in the bag now (gone from the meadow); spotted = a squadmate drone marked it (by = its id)
       hidden: Hidden.list.map((q) => ({ id: q.id, part: q.part, x: r3(q.x), z: r3(q.z), found: q.found, spotted: q.spotted, by: q.by })),
