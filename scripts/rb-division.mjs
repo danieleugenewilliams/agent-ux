@@ -23,8 +23,9 @@
 //               recorded with its time, checked against its answer, and moves its stage as × does; colour wiring and Guest
 //               get no ÷ wire;
 //             * saves: a record from before #142 loads with no ÷ progress; a backup from this build restores here (every
-//               choice), and into main (origin/main's robot-battle.html, fetched by git into a temporary copy): main accepts it
-//               for every choice and keeps the ÷ facts, then reloads with no page errors; a backup made by main restores here.
+//               choice), and into a pre-#142 build (robot-battle.html at 9904818, the main #142 was built on, fetched by git into a temporary
+//               copy): it accepts it for every choice and keeps the ÷ facts, then reloads with no page errors; a backup made by
+//               the pre-#142 build restores here.
 //   size    - at each size, Apollo's grid with ÷ facts at every stage, a locked one and a polish: the ×/÷ toggle by touch (a
 //             click at desktop), the keyboard (X, and Tab then Enter on the toggle) and the gamepad (X), each switching the grid;
 //             on the ÷ grid a cell picked by touch, the arrows and the d-pad, its info showing its progress; every part of the
@@ -39,7 +40,7 @@
 //   node scripts/rb-division.mjs                      # ./robot-battle.html: logic, then every size
 //   node scripts/rb-division.mjs --run logic          # one run (repeatable): logic or a size
 //   node scripts/rb-division.mjs --shots DIR          # also save screenshots of the ÷ grid and the parent view per size
-//   node scripts/rb-division.mjs --main FILE          # main's robot-battle.html (default: git show origin/main:robot-battle.html)
+//   node scripts/rb-division.mjs --older FILE         # the pre-#142 robot-battle.html (default: git show 9904818:robot-battle.html); --main is an alias
 //   node scripts/rb-division.mjs path/or/url.html --json
 // Sizes by default: 390x844, 568x320, 667x375, 740x360, 844x390, 768x1024, 820x1180 and 1280x800 (desktop).
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
@@ -52,12 +53,12 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const SIZES = ['390x844', '568x320', '667x375', '740x360', '844x390', '768x1024', '820x1180', '1280x800'];
 const args = process.argv.slice(2);
-let json = false, target = null, shots = null, mainFile = null; const picked = [];
+let json = false, target = null, shots = null, olderFile = null; const picked = [];
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--json') json = true;
   else if (args[i] === '--run' || args[i] === '--size') picked.push(args[++i]);
   else if (args[i] === '--shots') shots = path.resolve(args[++i]);
-  else if (args[i] === '--main') mainFile = path.resolve(args[++i]);
+  else if (args[i] === '--older' || args[i] === '--main') olderFile = path.resolve(args[++i]);
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
@@ -66,18 +67,20 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 target ??= path.join(repo, 'robot-battle.html');
 const url = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve(target)).href;
 if (shots) fs.mkdirSync(shots, { recursive: true });
-// main's game, for the backup check: a temporary copy (deleted on the way out) unless --main names one
-let mainTmp = null;
-function mainUrl() {
-  if (mainFile) return pathToFileURL(mainFile).href;
-  if (!mainTmp) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rb-division-main-'));
-    fs.writeFileSync(path.join(dir, 'robot-battle.html'), execFileSync('git', ['-C', repo, 'show', 'origin/main:robot-battle.html'], { maxBuffer: 64e6 }));
-    mainTmp = dir;
+// the pre-#142 game (no DIV_FACTS), for the backup check: a temporary copy (deleted on the way out) unless --older names one.
+// Pinned to 9904818 (the main #142 was built on), not origin/main, which has division since #142 merged (#155).
+const OLDER = '9904818';
+let olderTmp = null;
+function olderUrl() {
+  if (olderFile) return pathToFileURL(olderFile).href;
+  if (!olderTmp) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rb-division-older-'));
+    fs.writeFileSync(path.join(dir, 'robot-battle.html'), execFileSync('git', ['-C', repo, 'show', `${OLDER}:robot-battle.html`], { maxBuffer: 64e6 }));
+    olderTmp = dir;
   }
-  return pathToFileURL(path.join(mainTmp, 'robot-battle.html')).href;
+  return pathToFileURL(path.join(olderTmp, 'robot-battle.html')).href;
 }
-process.on('exit', () => { if (mainTmp) try { fs.rmSync(mainTmp, { recursive: true, force: true }); } catch {} });
+process.on('exit', () => { if (olderTmp) try { fs.rmSync(olderTmp, { recursive: true, force: true }); } catch {} });
 
 function findChrome() {
   if (process.env.CHROME) return process.env.CHROME;
@@ -299,7 +302,7 @@ async function runLogic(C) {
   await C.open(1280, 800, false);
   res = await C.ev(String.raw`(() => { ${HELPERS}
     R.manual(true); localStorage.clear();
-    // records as main wrote them (no division field) for Orion and Apollo
+    // records as the pre-#142 build wrote them (no division field) for Orion and Apollo
     for (const id of ['orion', 'apollo']) { R.player(id); delete F.rec.division; F.save(); }
     ok('Orion and Apollo (records with no division field, as before #142): on', R.player('orion') && R.division().division === true && R.player('apollo') && R.division().division === true);
     const z = R.addProfile('Divvy'); R.player(z.id);
@@ -416,7 +419,7 @@ async function runLogic(C) {
     R.manual(true); localStorage.clear(); R.player('apollo');
     ans('×', 2, 3, 'fast'); ans('×', 2, 3, 'fast'); setX(6, 9, 'known'); delete F.rec.division; F.save();
     const raw = localStorage.getItem('robotbattle.facts.apollo');
-    ok('(setup) a record as main writes it: no ÷ keys, no division, no divPlay', !/÷|division|divPlay/.test(raw));
+    ok('(setup) a record as the pre-#142 build writes it: no ÷ keys, no division, no divPlay', !/÷|division|divPlay/.test(raw));
     return out; })()`);
   out.push(...res);
   await C.open(1280, 800, false);
@@ -435,31 +438,31 @@ async function runLogic(C) {
       return out; })()`);
     out.push(...res);
   }
-  // into main
-  const MU = mainUrl();
+  // into the pre-#142 build
+  const MU = olderUrl();
   for (const ch of ['backup', 'best', 'device']) {
     await C.open(1280, 800, false, MU);
-    const isMain = await C.ev(`!window.__rb.DIV_FACTS`);
+    const isOlder = await C.ev(`!window.__rb.DIV_FACTS`);
     res = await C.ev(String.raw`(() => { const R = window.__rb, out = []; const B = ${JSON.stringify(B)}; localStorage.clear(); R.manual(true);
       R.player('apollo'); R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.player(null);   // (a device with progress, so 'best' and 'device' merge)
       const x = R.restore(B, '${ch}'); const a = JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null');
-      out.push({ name: 'main (${ch}): it accepts a backup from this build', pass: !!x.ok, got: x.why });
+      out.push({ name: 'pre-#142 build (${ch}): it accepts a backup from this build', pass: !!x.ok, got: x.why });
       const want = '${ch}' === 'device' ? true : a?.facts?.['÷54,6']?.s === 'known';
-      out.push({ name: "main (${ch}): Apollo's ÷ facts kept in the stored record" + ('${ch}' === 'device' ? ' (Keep this device: this device\'s record, as main always does)' : ''), pass: !!a && want, got: a ? Object.keys(a.facts) : null });
+      out.push({ name: "pre-#142 build (${ch}): Apollo's ÷ facts kept in the stored record" + ('${ch}' === 'device' ? ' (Keep this device: this device\'s record, as that build always does)' : ''), pass: !!a && want, got: a ? Object.keys(a.facts) : null });
       return out; })()`);
-    out.push({ name: `(the page is main's: no DIV_FACTS)`, pass: isMain });
+    out.push({ name: `(the page is the pre-#142 build: no DIV_FACTS)`, pass: isOlder });
     out.push(...res);
     await C.open(1280, 800, false, MU);
     res = await C.ev(String.raw`(() => { const R = window.__rb; R.manual(true); R.player('apollo'); R.start(0); R.parent(true, 'apollo'); R.parent(false); R.showGrid(true); R.showGrid(false);
-      return [{ name: 'main (${ch}): reloads, plays and opens the parent view and grid with it', pass: !!R.Facts.rec && R.Facts.rec.child === 'apollo' }]; })()`);
+      return [{ name: 'pre-#142 build (${ch}): reloads, plays and opens the parent view and grid with it', pass: !!R.Facts.rec && R.Facts.rec.child === 'apollo' }]; })()`);
     out.push(...res);
   }
-  // a backup made by main restores here
+  // a backup made by the pre-#142 build restores here
   await C.open(1280, 800, false, MU);
   const BM = await C.ev(String.raw`(() => { const R = window.__rb; localStorage.clear(); R.manual(true); R.player('apollo'); R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.player('orion'); R.answer(4, 5, 20, 1500); return JSON.parse(JSON.stringify(R.backup())); })()`);
   await C.open(1280, 800, false);
   res = await C.ev(String.raw`(() => { ${HELPERS} const B = ${JSON.stringify(BM)}; localStorage.clear(); R.player(null); const x = R.restore(B, 'best'); R.player('apollo');
-    ok('a backup made by main restores here: Apollo\'s 2 × 3 Learning, no ÷ progress, division on', x.ok && ent('×', 2, 3)?.s === 'learning' && F.divCounts().mastered === 0 && R.division().division === true, { ok: x.ok, why: x.why });
+    ok('a backup made by the pre-#142 build restores here: Apollo\'s 2 × 3 Learning, no ÷ progress, division on', x.ok && ent('×', 2, 3)?.s === 'learning' && F.divCounts().mastered === 0 && R.division().division === true, { ok: x.ok, why: x.why });
     return out; })()`);
   out.push(...res);
   return out;
