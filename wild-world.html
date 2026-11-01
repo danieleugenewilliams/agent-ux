@@ -30,7 +30,8 @@
     transition: opacity .25s, transform .25s; display: flex; align-items: center; gap: 10px; background: #fff; color: var(--ink); border-radius: 18px; padding: 6px 16px 6px 6px;
     font-weight: 800; font-size: 18px; box-shadow: 0 4px 0 rgba(0,0,0,.2); max-width: calc(100vw - 32px); }
   #toast.on { opacity: 1; transform: translate(-50%, 0); }
-  #toast img { width: 44px; height: 44px; border-radius: 12px; background: #dff3ff; }
+  #toast img { width: 44px; height: 44px; border-radius: 12px; background: #dff3ff; flex: none; }
+  #toast small { display: block; font-size: 13px; font-weight: 600; line-height: 1.25; max-width: 420px; }
   #hint { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 10; display: none; background: var(--panel); border-radius: 12px; padding: 4px 12px;
     font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
   #hint.on { display: block; }
@@ -80,6 +81,106 @@
   .card.locked { background: #ffffff40; }
   .card.locked img { filter: brightness(0); opacity: .4; }
   .card.cur { box-shadow: 0 0 0 4px var(--sun); }
+
+  /* ---------- W2 (#158): who's playing, spelling, the profile maker, the parent view ---------- */
+  /* the player tiles wrap onto rows when there's height; on a short screen they're one row that scrolls sideways (auto margins
+     centre it without pushing the first tiles out of reach) */
+  #title .who { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: min(100%, 560px); padding: 4px; }
+  @media (max-height: 430px) { #title .who { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; max-width: 100%; scrollbar-width: none; } #title .who > .ptile:first-child { margin-left: auto; } #title .who > .ptile:last-child { margin-right: auto; } }
+  .ptile { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 74px; padding: 0; border: 0; background: none; color: var(--ink); font-weight: 800; font-size: 13px; line-height: 1.15; touch-action: manipulation; }
+  .ptile .face { width: 58px; height: 58px; border-radius: 50%; background: var(--c, #fff); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 3px #fff, 0 3px 0 rgba(0,0,0,.25); }
+  .ptile .face svg { width: 32px; height: 32px; }
+  .ptile.add .face { background: #ffffffa0; }
+  .ptile.cur .face { box-shadow: inset 0 0 0 3px #fff, 0 0 0 4px var(--sun), 0 3px 0 rgba(0,0,0,.25); }
+  .ptile .nm { max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ptile:focus-visible .face, .pv-tab:focus-visible, .sp-key:focus-visible, .sp-tile:focus-visible, .sp-round:focus-visible, .mk-ic:focus-visible, .mk-col:focus-visible, .mk-lv:focus-visible, .pv-lv:focus-visible { outline: 4px solid var(--sun); outline-offset: 2px; }
+  #parentB { position: absolute; left: max(14px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); width: 52px; height: 52px; padding: 0; border: 0; border-radius: 50%; background: var(--panel); color: #fff;
+    display: flex; align-items: center; justify-content: center; touch-action: none; -webkit-touch-callout: none; }
+  #parentB .pic svg { width: 26px; height: 26px; }
+  #parentB .ring { position: absolute; inset: -6px; width: calc(100% + 12px); height: calc(100% + 12px); transform: rotate(-90deg); pointer-events: none; }
+  #parentB circle { fill: none; stroke: var(--sun); stroke-width: 6; stroke-dasharray: 220; stroke-dashoffset: 220; stroke-linecap: round; }
+  #parentB.holding circle { stroke-dashoffset: 0; transition: stroke-dashoffset 2s linear; }
+  @media (max-height: 430px) { #title { gap: 8px; } #title h1 br { display: none; } #title h1 { font-size: 40px; } #title p { font-size: 15px; } .ptile .face { width: 50px; height: 50px; } }
+  @media (max-height: 430px) { #pause .menu { display: grid; grid-template-columns: 1fr 1fr; min-width: 0; width: min(560px, calc(100vw - 24px)); } #pause h2, #pause .keys { grid-column: 1 / -1; } }
+
+  .sp-panel, .mk-panel, .pv-panel { position: relative; width: min(760px, calc(100vw - 16px)); max-height: calc(100% - 12px); background: #fffdf5; color: var(--ink); border-radius: 22px; padding: 10px;
+    display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
+  .sp-top, .mk-head, .pv-head { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+  .sp-top img { width: 52px; height: 52px; border-radius: 14px; background: #dff3ff; flex: none; }
+  .sp-clue { flex: 1; min-width: 0; font-weight: 800; font-size: 18px; line-height: 1.2; }
+  .sp-clue .hint { display: inline-block; letter-spacing: 2px; color: #1f6fb8; white-space: nowrap; }
+  .sp-round { width: 48px; height: 48px; border-radius: 50%; border: 0; padding: 0; background: var(--sky); color: #fff; flex: none; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 0 rgba(0,0,0,.25); touch-action: manipulation; }
+  .sp-round svg { width: 26px; height: 26px; }
+  .sp-round.plain { background: #e6ecf4; color: var(--ink); }
+  .sp-round[hidden] { display: none; }
+  .sp-slots { display: flex; justify-content: center; gap: 5px; }
+  .sp-slot { width: var(--sw, 44px); height: var(--sh, 48px); border-radius: 10px; background: #fff; border: 3px solid #b9c8dc; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: calc(var(--sh, 48px) * .6); line-height: 1; }
+  .sp-slot.next { border-color: var(--sky); box-shadow: 0 0 0 3px #5cc8ff55; }
+  .sp-slot.ok { background: #d8f7e2; border-color: var(--leaf); }
+  .sp-slot.fix { background: #fff1c2; border-color: #f0a500; }
+  .sp-slot.ghost { color: #9fb2c8; }
+  .sp-pad, .mk-grid { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: var(--kg, 6px); }
+  .sp-key, .sp-tile { width: var(--kw, 48px); height: var(--kh, 48px); border: 0; border-radius: 12px; padding: 0; background: #fff; color: var(--ink); font-weight: 800; font-size: calc(var(--kh, 48px) * .5); line-height: 1;
+    box-shadow: 0 3px 0 #9fb2c8, inset 0 0 0 2px #c9d6e6; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+  .sp-tile { background: var(--sun); box-shadow: 0 4px 0 #c79a00; font-size: calc(var(--kh, 48px) * .55); }
+  .sp-tile.used { visibility: hidden; }
+  .sp-key.act { background: #e6ecf4; }
+  .sp-key.go { background: var(--leaf); color: #fff; box-shadow: 0 3px 0 #1f8f48; }
+  .sp-key svg, .sp-tile svg { width: 60%; height: 60%; }
+  .sp-key[disabled] { opacity: .4; }
+  .sp-after { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+  .sp-after .tried { font-weight: 800; font-size: 18px; color: #c0392b; text-decoration: line-through; min-height: 22px; }
+  .sp-after .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .sp-panel.right .sp-slot { background: #d8f7e2; border-color: var(--leaf); }
+
+  .mk-head .face, .pv-tab .face { flex: none; width: 48px; height: 48px; border-radius: 50%; background: var(--c, #fff); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 3px #fff; }
+  .mk-head .face svg { width: 28px; height: 28px; }
+  .mk-name { flex: 1; min-width: 0; height: 48px; border-radius: 14px; background: #fff; border: 3px solid var(--c, #b9c8dc); font-size: 24px; font-weight: 800; display: flex; align-items: center; padding: 0 12px; overflow: hidden; white-space: nowrap; }
+  .mk-name.empty { color: #9fb2c8; font-size: 18px; }
+  .mk-why { color: #c0392b; font-weight: 800; font-size: 14px; text-align: center; min-height: 18px; }
+  .mk-sec { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; }
+  .mk-ic, .mk-col { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 0; padding: 0; background: #e6ecf4; color: var(--ink); display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+  .mk-ic svg { width: 30px; height: 30px; }
+  .mk-col { background: var(--c); width: 48px; height: 48px; }
+  .mk-ic.on, .mk-col.on { box-shadow: 0 0 0 4px var(--ink); }
+  .mk-lvs { display: flex; gap: 10px; }
+  .mk-lv { flex: 1; min-height: 88px; border: 0; border-radius: 18px; background: #e6ecf4; color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 800; font-size: 15px; padding: 6px; touch-action: manipulation; }
+  .mk-lv b { font-size: 28px; line-height: 1; }
+  .mk-lv svg { width: 34px; height: 34px; }
+  .mk-lv.on { background: var(--sun); box-shadow: 0 0 0 4px var(--ink); }
+  .mk-copy { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 16px; background: #eef6ff; font-weight: 800; font-size: 15px; }
+  .mk-cbook { flex: none; display: flex; align-items: center; gap: 4px; font-size: 22px; }
+  .mk-cbook svg { width: 30px; height: 30px; }
+  .mk-ctext { flex: 1; min-width: 0; }
+  .mk-yn { flex: none; width: 52px; height: 52px; border: 0; border-radius: 50%; padding: 0; background: #e6ecf4; color: var(--ink); display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+  .mk-yn svg { width: 28px; height: 28px; }
+  .mk-yn.on { background: var(--leaf); color: #fff; box-shadow: 0 0 0 4px var(--ink); }
+  .mk-yn.no.on { background: #ff8a8a; }
+  @media (max-height: 430px) { .mk-lv { min-height: 64px; flex-direction: row; gap: 8px; } .mk-lv b { font-size: 24px; } }
+  .mk-foot { display: flex; justify-content: space-between; gap: 10px; }
+  .mk-foot .big { min-width: 120px; }
+  .big[disabled] { opacity: .45; }
+
+  .pv-head h2 { flex: 1; margin: 0; font-size: 24px; display: flex; align-items: center; gap: 8px; }
+  .pv-head h2 svg { width: 28px; height: 28px; }
+  .pv-tabs { display: flex; gap: 6px; flex: none; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .pv-tab { flex: none; }
+  .pv-tab { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 2px 12px 2px 2px; border: 0; border-radius: 999px; background: #e6ecf4; color: var(--ink); font-weight: 800; font-size: 15px; touch-action: manipulation; }
+  .pv-tab .face { width: 40px; height: 40px; }
+  .pv-tab .face svg { width: 24px; height: 24px; }
+  .pv-tab.on { background: var(--sun); }
+  .pv-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 700; font-size: 15px; }
+  .pv-lv { min-width: 96px; min-height: 44px; border: 0; border-radius: 12px; background: #e6ecf4; color: var(--ink); font-weight: 800; font-size: 15px; touch-action: manipulation; }
+  .pv-lv.on { background: var(--leaf); color: #fff; }
+  .pv-list { flex: 1; min-height: 60px; overflow-y: auto; font-size: 14px; border-top: 2px solid #e3e9f2; -webkit-overflow-scrolling: touch; }
+  .pv-an { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 5px 2px; border-bottom: 1px solid #e3e9f2; }
+  .pv-an > b { width: 72px; flex: none; }
+  .pv-w { padding: 1px 8px; border-radius: 999px; font-weight: 700; border: 2px solid transparent; }
+  .pv-w.s-new { background: #f1f4f8; color: #5b6b80; border-color: #d5dde8; border-style: dashed; }
+  .pv-w.s-learning { background: #ffe9b3; }
+  .pv-w.s-mastered { background: #ffd23f; border-color: #b88a00; }
+  .pv-note { font-size: 13px; color: #5b6b80; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -100,9 +201,11 @@
 <div id="hint">WASD move - drag to look - Space jump / fly - Shift power - Q change - V view - B book - Esc pause</div>
 
 <div id="title" class="ov on">
-  <h1>WILD<br>WORLD</h1>
+  <h1>WILD <br>WORLD</h1>
   <p>Walk anywhere. Meet animals. Become them!</p>
+  <div class="who" id="who"></div>
   <div class="row"><button class="big go" id="playBtn"></button></div>
+  <button id="parentB" aria-label="Parents: hold to open"><svg class="ring" viewBox="0 0 78 78"><circle cx="39" cy="39" r="35"/></svg><span class="pic" id="parentIc"></span></button>
 </div>
 
 <div id="pause" class="ov"><div class="menu">
@@ -111,12 +214,132 @@
   <button class="big" id="pBookBtn"></button>
   <button class="big" id="pHumanBtn"></button>
   <button class="big" id="pSoundBtn"></button>
+  <button class="big" id="pWhoBtn"></button>
   <div class="keys">Esc: pause - Q: change - B: book - V: view - H: human</div>
 </div></div>
 
 <div id="wheel" class="ov"><div class="ring" id="ring"></div><div id="wname"></div><button class="x" id="wheelX" aria-label="Close"></button></div>
 
 <div id="book" class="ov"><div class="head" id="bookHead"></div><div class="grid" id="grid"></div><button class="x" id="bookX" aria-label="Close"></button></div>
+
+<!-- spelling (#158): a modal over the game; its tiles and keys are its own controls -->
+<div id="spell" class="ov" role="dialog" aria-label="Spell the word"><div class="sp-panel" id="spPanel">
+  <div class="sp-top"><img id="spImg" alt=""><div class="sp-clue" id="spClue"></div><button class="sp-round" id="spSay" aria-label="Say it again"></button><button class="sp-round" id="spX" aria-label="Close"></button></div>
+  <div class="sp-slots" id="spSlots"></div>
+  <div class="sp-pad" id="spPad"></div>
+</div></div>
+
+<!-- the profile maker: a name (on its own keyboard), an icon and a color, and the level -->
+<div id="maker" class="ov" role="dialog" aria-label="New profile"><div class="mk-panel" id="mkPanel"></div></div>
+
+<!-- the parent view: behind the hold-to-open button on the title screen -->
+<div id="parent" class="ov" role="dialog" aria-label="Parents"><div class="pv-panel" id="pvPanel"></div></div>
+
+<!-- ===========================================================================
+WORDS (#158): what you spell to change into each animal. Edit freely.
+  - The first change into an animal always spells its name; after that it asks a word from that animal's lists.
+  - level1 is for newer spellers (short, regular words: tap the letter tiles into order).
+  - level2 is for stronger spellers (longer words: hear it, then type it).
+  - Each line is "word: clue". The word is letters only (no spaces), US spelling; a capital letter is kept (Africa).
+    The clue is the sentence shown with it; "..." marks where the word goes.
+  - fact: one sentence shown when you first meet the animal.
+  - Keep 5 to 8 words in each list (the test script checks).
+  - Progress is kept per word, so a word in two lists (calf, fish) is one word to learn.
+=========================================================================== -->
+<script>
+const WORDS = {
+  horse: {
+    fact: "A baby horse is a foal, and horses eat grass and hay.",
+    level1: ["foal: A baby horse is a ...", "hay: In winter horses eat dried grass called ...", "farm: Many horses live on a ...", "mane: The long hair on a horse's neck is its ...", "hoof: A horse's hard foot is a ...", "tail: A horse swishes its ... at flies.", "grass: Horses munch on ... in the field."],
+    level2: ["stallion: A grown-up boy horse is a ...", "herbivore: An animal that eats only plants is a ...", "gallop: The fastest way a horse runs is a ...", "pasture: A grassy field where horses eat is a ...", "stable: A horse's house on a farm is a ...", "saddle: A rider sits on a ..."],
+  },
+  cow: {
+    fact: "A baby cow is a calf, and cows eat grass and give us milk.",
+    level1: ["calf: A baby cow is a ...", "milk: Cows give us ... to drink.", "grass: Cows eat ... all day.", "farm: Many cows live on a ...", "moo: What sound does a cow make?", "barn: Cows sleep in a ... on the farm."],
+    level2: ["herbivore: An animal that eats only plants is a ...", "pasture: A grassy field where cows eat is a ...", "udder: A cow makes milk in its ...", "cattle: A group of cows is called ...", "dairy: A farm that makes milk is a ... farm.", "stomach: A cow's ... has four parts."],
+  },
+  pig: {
+    fact: "Pigs roll in mud to stay cool, and a baby pig is a piglet.",
+    level1: ["mud: Pigs roll in ... to stay cool.", "farm: Many pigs live on a ...", "pen: A pig lives in a fenced ...", "snout: A pig's nose is a ...", "oink: What sound does a pig make?", "piglet: A baby pig is a ..."],
+    level2: ["omnivore: Pigs eat plants and meat, so a pig is an ...", "sow: A mother pig is a ...", "litter: A group of piglets born together is a ...", "trough: Pigs eat from a long box called a ...", "wallow: Pigs love to roll, or ..., in mud.", "bristles: A pig's stiff hairs are called ..."],
+  },
+  chicken: {
+    fact: "A mother chicken is a hen; she lays eggs in a nest, and her baby is a chick.",
+    level1: ["hen: A mother chicken is a ...", "egg: A hen lays an ...", "chick: A baby chicken is a ...", "farm: Many chickens live on a ...", "seeds: Chickens peck at ... on the ground.", "beak: A chicken pecks with its ...", "nest: A hen lays her eggs in a ..."],
+    level2: ["rooster: A grown-up boy chicken is a ...", "feathers: A chicken is covered in ...", "omnivore: Chickens eat seeds and bugs, so a chicken is an ...", "coop: A chicken's little house is a ...", "comb: The red crest on top of a chicken's head is its ...", "wattle: The red skin under a chicken's beak is its ...", "hatch: A chick breaks out of its egg. It will ..."],
+  },
+  dog: {
+    fact: "A baby dog is a pup, and dogs smell the world with their wet noses.",
+    level1: ["pup: A baby dog is a ...", "bark: What sound does a dog make?", "bone: A dog likes to chew a ...", "tail: A happy dog wags its ...", "paw: A dog's foot is a ...", "fur: A dog's coat of hair is its ..."],
+    level2: ["puppy: Another word for a baby dog is a ...", "kennel: A dog's little house is a ...", "muzzle: A dog's nose and mouth together are its ...", "whiskers: The long stiff hairs on a dog's face are ...", "litter: A group of puppies born together is a ...", "tongue: A dog pants with its ... out to cool down."],
+  },
+  cat: {
+    fact: "A happy cat purrs, and a baby cat is a kitten.",
+    level1: ["purr: What sound does a happy cat make?", "fur: A cat's soft coat is its ...", "paw: A cat's foot is a ...", "claw: A cat scratches with a sharp ...", "tail: A cat holds its ... up high when it is happy.", "mouse: A cat likes to chase a ..."],
+    level2: ["kitten: A baby cat is a ...", "whiskers: A cat feels its way with the long hairs on its face, its ...", "carnivore: Cats need to eat meat, so a cat is a ...", "pounce: A cat crouches, then jumps on a toy. It likes to ...", "litter: A group of kittens born together is a ...", "pupils: In the dark a cat's ... get big and round."],
+  },
+  wolf: {
+    fact: "Wolves live and hunt in a pack, and a baby wolf is a pup.",
+    level1: ["pack: A group of wolves is a ...", "pup: A baby wolf is a ...", "howl: Wolves call to each other with a long ...", "den: A wolf mother has her pups in a ...", "meat: Wolves hunt and eat ...", "fur: A wolf's thick coat is its ..."],
+    level2: ["carnivore: An animal that eats mostly meat is a ...", "predator: An animal that hunts other animals is a ...", "forest: Many wolves live in the ...", "Europe: Gray wolves live in North America, Asia and ...", "canine: A wolf is a wild dog, a kind of ...", "tundra: Some wolves live on the cold, flat, treeless ..."],
+  },
+  deer: {
+    fact: "A baby deer is a fawn with white spots, and a buck grows antlers.",
+    level1: ["fawn: A baby deer is a ...", "buck: A boy deer is a ...", "doe: A girl deer is a ...", "hoof: A deer's hard foot is a ...", "woods: Deer live in the ...", "spots: A fawn has white ... on its back."],
+    level2: ["antlers: Each year a buck grows new ... on its head.", "herbivore: An animal that eats only plants is a ...", "forest: Deer hide among the trees of the ...", "acorns: Deer eat the nuts of oak trees, called ...", "meadow: Deer graze in a grassy ..."],
+  },
+  bear: {
+    fact: "A baby bear is a cub, and many bears sleep all winter in a den.",
+    level1: ["cub: A baby bear is a ...", "den: Many bears sleep all winter in a ...", "fish: Some bears catch ... in rivers.", "claw: A bear digs with each long ...", "fur: A bear's thick coat is its ...", "honey: Bears love sweet ... from bees."],
+    level2: ["omnivore: Bears eat plants and meat, so a bear is an ...", "hibernate: To sleep through the whole winter is to ...", "berries: In summer bears eat lots of ...", "salmon: Bears catch a big river fish called ...", "forest: Black bears live in the ...", "grizzly: A big brown bear from North America is a ..."],
+  },
+  fox: {
+    fact: "A baby fox is a kit, and foxes dig dens under the ground.",
+    level1: ["kit: A baby fox is a ...", "den: A fox family lives in a ...", "tail: A fox wraps its bushy ... around itself to keep warm.", "mouse: A fox pounces on a ...", "ears: A fox hears tiny sounds with its big ...", "dig: A fox can ... a hole in the ground."],
+    level2: ["omnivore: Foxes eat mice, bugs and berries, so a fox is an ...", "burrow: A fox's hole under the ground is a ...", "nocturnal: Foxes hunt mostly at night. They are ...", "vixen: A girl fox is a ...", "whiskers: A fox feels its way in the dark with its ...", "forest: Many red foxes live at the edge of the ..."],
+  },
+  rabbit: {
+    fact: "A baby rabbit is a kit, and rabbits live in burrows and eat grass.",
+    level1: ["kit: A baby rabbit is a ...", "hop: A rabbit moves with a ...", "ears: A rabbit has long ...", "grass: Wild rabbits eat mostly ...", "fur: A rabbit's soft coat is its ...", "hay: Pet rabbits eat lots of ..."],
+    level2: ["burrow: A rabbit's hole under the ground is a ...", "warren: A group of rabbit burrows is a ...", "herbivore: An animal that eats only plants is a ...", "whiskers: A rabbit's long face hairs are ...", "clover: Rabbits nibble grass and ...", "meadow: Rabbits feed in a grassy ..."],
+  },
+  lion: {
+    fact: "Lions live in a pride on the savanna in Africa, and a baby lion is a cub.",
+    level1: ["cub: A baby lion is a ...", "mane: The big fluffy hair around a boy lion's head is its ...", "meat: Lions hunt and eat ...", "pride: A group of lions is a ...", "roar: A lion's loudest sound is a ...", "paw: A lion's big foot is a ..."],
+    level2: ["savanna: Where do lions live?", "Africa: Most lions live in ...", "carnivore: An animal that eats meat is a ...", "predator: An animal that hunts other animals is a ...", "lioness: A girl lion is a ...", "zebra: Lions hunt striped animals like the ..."],
+  },
+  elephant: {
+    fact: "Elephants live in Africa and Asia, and they use their trunk like a hand.",
+    level1: ["calf: A baby elephant is a ...", "trunk: An elephant's long nose is its ...", "tusk: An elephant's long tooth is a ...", "ears: Elephants flap their big ... to cool down.", "grass: Elephants eat lots of ...", "herd: A group of elephants is a ..."],
+    level2: ["Africa: Some elephants live in Asia. Others live in ...", "Asia: Some elephants live in Africa. Others live in ...", "savanna: African elephants walk across the grassy ...", "herbivore: An animal that eats only plants is a ...", "ivory: Elephant tusks are made of ...", "trumpet: The loud call an elephant makes is a ..."],
+  },
+  giraffe: {
+    fact: "The giraffe is the tallest animal, and it eats leaves from acacia trees in Africa.",
+    level1: ["calf: A baby giraffe is a ...", "neck: A giraffe has a very long ...", "spots: A giraffe's coat is covered in ...", "tree: A giraffe eats leaves from the top of a ...", "legs: A giraffe has four long ...", "hoof: A giraffe's hard foot is a ..."],
+    level2: ["Africa: Giraffes live in ...", "savanna: Giraffes roam the grassy ...", "herbivore: An animal that eats only plants is a ...", "acacia: Giraffes eat leaves from thorny ... trees.", "tongue: A giraffe pulls leaves off with its long dark ...", "tallest: The giraffe is the ... animal in the world."],
+  },
+  cheetah: {
+    fact: "The cheetah is the fastest land animal, and it hunts on the savanna in Africa.",
+    level1: ["cub: A baby cheetah is a ...", "fast: A cheetah can run very ...", "spots: A cheetah's coat is covered in black ...", "run: Cheetahs catch their food with a fast ...", "tail: A cheetah steers with its long ...", "meat: Cheetahs hunt and eat ..."],
+    level2: ["Africa: Most cheetahs live in ...", "savanna: Cheetahs hunt on the grassy ...", "carnivore: An animal that eats meat is a ...", "predator: An animal that hunts other animals is a ...", "sprint: A very fast, short run is a ...", "fastest: The cheetah is the ... land animal.", "gazelle: Cheetahs chase a fast, light animal called a ..."],
+  },
+  eagle: {
+    fact: "Eagles build big nests up high and catch fish with their sharp talons.",
+    level1: ["nest: Eagles build a big ... high up.", "wing: An eagle flies with each wide ...", "beak: An eagle tears its food with its hooked ...", "fish: Many eagles catch ... from lakes.", "sky: An eagle soars high in the ...", "egg: A baby eagle hatches from an ..."],
+    level2: ["eaglet: A baby eagle is an ...", "talons: An eagle grabs with sharp claws called ...", "feathers: An eagle is covered in ...", "predator: An animal that hunts other animals is a ...", "carnivore: An animal that eats meat is a ...", "wingspan: How far an eagle's wings reach from tip to tip is its ..."],
+  },
+  fish: {
+    fact: "Fish breathe under water with their gills, and a baby fish is a fry.",
+    level1: ["fin: A fish steers with each ...", "gills: A fish breathes with its ...", "swim: Fish ... all day.", "eggs: Most fish lay ...", "pond: Some fish live in a ...", "tail: A fish pushes through the water with its ...", "fry: A baby fish is a ..."],
+    level2: ["scales: A fish's body is covered in ...", "ocean: Many fish live in the salty ...", "school: A group of fish swimming together is a ...", "river: Some fish swim up a ...", "plankton: Many small fish eat tiny floating ...", "oxygen: Gills take ... out of the water."],
+  },
+  dolphin: {
+    fact: "Dolphins breathe air through a blowhole, and they swim together in a pod.",
+    level1: ["calf: A baby dolphin is a ...", "pod: A group of dolphins is a ...", "fish: Dolphins hunt and eat ...", "fin: A dolphin has a tall ... on its back.", "sea: Most dolphins live in the ...", "squid: Dolphins eat fish and ..."],
+    level2: ["mammal: A dolphin breathes air and feeds its baby milk. It is a ...", "blowhole: A dolphin breathes through the ... on top of its head.", "ocean: Most dolphins live in the ...", "flippers: A dolphin steers with its two ...", "whistle: Dolphins talk with clicks and a ...", "carnivore: An animal that eats meat is a ..."],
+  },
+};
+</script>
 
 <!-- ===========================================================================
 TouchPad: on-screen controller for phones and tablets (issue #92).
@@ -907,13 +1130,188 @@ const Sfx = {
   jump() { this.tone(300, 0.14, 'sine', 0.14, 620); },
   power() { this.tone(220, 0.3, 'square', 0.07, 440); this.tone(440, 0.25, 'triangle', 0.1, 880, 0.05); },
   click() { this.tone(660, 0.06, 'triangle', 0.12, 990); },
+  right() { [659, 784, 988, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.15, null, i * 0.07)); },
+  miss() { this.tone(392, 0.22, 'sine', 0.12, 330); },
+  letter() { this.tone(880, 0.07, 'triangle', 0.09); },
 };
 addEventListener('pointerdown', () => Sfx.unlock());
 
 // ===========================================================================
 // The player
 // ===========================================================================
-const save0 = (() => { const s = store.get('save', null); return s && s.v === 1 && Array.isArray(s.met) ? s : { v: 1, met: [], form: 'human', fp: false, sound: true }; })();
+// ===========================================================================
+// Who's playing (W2, #158). No built-in profiles: Guest, plus any a family makes on this device (a name, an icon, a color and
+// a level), saved as wildworld.profiles. Every player has a book, wildworld.book.<id> = { v: 2, met, form, fp, sound, changed }
+// (changed: the animals they have changed into at least once), and each profile its word progress, wildworld.words.<id>.
+// Guest's book is saved (it was W1's book); Guest's word progress lasts only until the page closes.
+// W1's save (wildworld.save, v:1, one book per device) is Guest's book until Guest's own book is first written. It is only ever
+// read: never moved, rewritten or deleted, so a W1 tab still open on a tablet writes only to its own key and nothing is lost.
+// ===========================================================================
+const SAVE_V = 2;
+const PROFILE = {
+  max: 6, nameMax: 10,
+  icons: ['paw', 'star', 'sun', 'moon', 'leaf', 'heart', 'rocket', 'flower'],
+  colors: ['#5cc8ff', '#ff8a3d', '#ff5d8f', '#ffd23f', '#3ecf6e', '#b98cff', '#2fd4c4', '#f0f0f0'],
+};
+const GUEST = { id: 'guest', name: 'Guest', icon: 'person', color: '#c9d2e3', level: 1, guest: true };
+const Profiles = {
+  list: [],
+  tidy(n) { return String(n ?? '').replace(/\s+/g, ' ').trim(); },
+  okName(n) { return new RegExp(`^[A-Za-z][A-Za-z ]{0,${PROFILE.nameMax - 1}}$`).test(n); },
+  clean(p) {
+    if (!p || typeof p !== 'object' || typeof p.id !== 'string' || !/^p_[a-z0-9]{2,12}$/.test(p.id)) return null;
+    const name = this.tidy(p.name); if (!this.okName(name) || name.toLowerCase() === GUEST.name.toLowerCase()) return null;
+    return { id: p.id, name, icon: PROFILE.icons.includes(p.icon) ? p.icon : PROFILE.icons[0], color: PROFILE.colors.includes(p.color) ? p.color : PROFILE.colors[0],
+      level: p.level === 2 ? 2 : 1, created: Number.isFinite(p.created) ? p.created : 0 };
+  },
+  load() {
+    const out = [];
+    for (const p of [].concat(store.get('profiles', []) || [])) { const q = this.clean(p); if (q && out.length < PROFILE.max && !out.some((o) => o.id === q.id || o.name.toLowerCase() === q.name.toLowerCase())) out.push(q); }
+    this.list = out; GUEST.level = store.get('guestLevel', 1) === 2 ? 2 : 1;
+    return out;
+  },
+  save() { store.set('profiles', this.list); },
+  all() { return [...this.list, GUEST]; },
+  get(id) { return id === GUEST.id ? GUEST : this.list.find((p) => p.id === id) || null; },
+  full() { return this.list.length >= PROFILE.max; },
+  // why a name can't be a new profile's (null: it can)
+  nameWhy(n) {
+    n = this.tidy(n);
+    if (!n) return 'Type a name';
+    if (n.toLowerCase() === GUEST.name.toLowerCase()) return 'Guest is taken';
+    if (!this.okName(n)) return 'Letters only';
+    if (this.list.some((p) => p.name.toLowerCase() === n.toLowerCase())) return 'That name is taken';
+    return null;
+  },
+  // the first icon and color nobody has yet
+  suggest() { const free = (arr, k) => arr.find((v) => !this.list.some((p) => p[k] === v)) || arr[0]; return { icon: free(PROFILE.icons, 'icon'), color: free(PROFILE.colors, 'color') }; },
+  add(name, icon, color, level) {
+    this.load();
+    if (this.full()) return { ok: false, why: 'full' };
+    const why = this.nameWhy(name); if (why) return { ok: false, why };
+    const s = this.suggest(); icon = icon ?? s.icon; color = color ?? s.color;
+    if (!PROFILE.icons.includes(icon)) return { ok: false, why: 'no such icon' };
+    if (!PROFILE.colors.includes(color)) return { ok: false, why: 'no such color' };
+    if (level !== 1 && level !== 2) return { ok: false, why: 'pick a level' };
+    let id; do id = 'p_' + Math.random().toString(36).slice(2, 8); while (id.length < 4 || this.get(id));
+    const p = { id, name: this.tidy(name), icon, color, level, created: Date.now() };
+    this.list.push(p); this.save();
+    return { ok: true, ...p };
+  },
+  // the parent view's level switch
+  setLevel(id, n) {
+    const p = this.get(id); if (!p || (n !== 1 && n !== 2)) return false;
+    p.level = n;
+    if (p.guest) store.set('guestLevel', n); else this.save();
+    return true;
+  },
+};
+Profiles.load();
+const Book = {
+  blank() { return { v: SAVE_V, met: [], form: 'human', fp: false, sound: true, changed: [] }; },
+  read(id) {
+    const b = store.get('book.' + id, null);
+    if (b && b.v === SAVE_V && Array.isArray(b.met)) return { ...this.blank(), ...b, changed: Array.isArray(b.changed) ? b.changed : [] };
+    if (id === GUEST.id) {   // W1's book, read as it stands (not written back)
+      const s = store.get('save', null);
+      if (s && s.v === 1 && Array.isArray(s.met)) return { ...this.blank(), met: s.met.slice(), form: s.form, fp: !!s.fp, sound: s.sound !== false, from: 'w1' };
+    }
+    return this.blank();
+  },
+};
+
+// ---------- the word lists (WORDS, near the top of the file), parsed: LISTS[animal] = { fact, 1: [{ word, clue }], 2: [...] }
+const LISTS = {};
+for (const [id, w] of Object.entries(typeof WORDS === 'object' ? WORDS : {})) {
+  const parse = (arr) => (Array.isArray(arr) ? arr : []).map((s) => { const i = String(s).indexOf(':'); return { word: String(s).slice(0, i).trim(), clue: String(s).slice(i + 1).trim() }; }).filter((q) => /^[A-Za-z]+$/.test(q.word));
+  LISTS[id] = { fact: String(w.fact || ''), 1: parse(w.level1), 2: parse(w.level2) };
+}
+
+// ===========================================================================
+// Word progress (Robot Battle's fact tracker, for spelling). Progress is per word (lowercase), so a word in two lists is one word.
+//   new: never answered. learning: answered at least once. mastered: right on the first try on SPELL.days different days
+//   (local calendar days on the game's clock, which the tests can move: Spell.offset).
+//   A prompt gets one answer. A miss: today stops counting for that word (missDay), a mastered word slips back to learning
+//   keeping two of its days, and the word comes back as the SPELL.back-th prompt after (never the very next one: you try
+//   another word), on whatever animal you change into next, with its own clue and picture.
+//   Picking: the first change into an animal spells its name. Otherwise a missed word that is due; otherwise a weighted pick
+//   from that animal's list at the player's level, never the word just asked: new 3, learning 4, mastered 1 (0.25 if it was
+//   already right today), so known words come up less often. No timer anywhere.
+// ===========================================================================
+const SPELL = { days: 3, back: 2, weight: { new: 3, learning: 4, mastered: 1, masteredToday: 0.25 }, keepMisses: 300 };
+const DAY_MS = 864e5;
+const Spell = {
+  on: true, offset: 0, rand: Math.random, rec: null, owner: null, guestRec: null,
+  now() { return Date.now() + this.offset; },
+  day(t = this.now()) { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); },
+  blank() { return { v: SAVE_V, n: 0, last: null, words: {}, misses: [] }; },
+  load(p) {
+    const r = p.guest ? null : store.get('words.' + p.id, null);
+    this.rec = p.guest ? (this.guestRec ||= this.blank()) : r && r.v === SAVE_V && r.words && typeof r.words === 'object' ? { ...this.blank(), ...r } : this.blank();
+    if (!Array.isArray(this.rec.misses)) this.rec.misses = [];
+    this.owner = p; return this.rec;
+  },
+  save() { if (this.owner && !this.owner.guest) store.set('words.' + this.owner.id, this.rec); },
+  entry(w) { const k = w.toLowerCase(); return (this.rec.words[k] ||= { s: 'new', days: [], missDay: null, back: null, n: 0, right: 0, missed: 0, lastDay: null }); },
+  stage(w, rec = this.rec) { return rec.words[w.toLowerCase()]?.s || 'new'; },
+  next(animal, level, changed, force) {
+    const R = this.rec, today = this.day(), last = R.last;
+    let p = null;
+    if (force) p = { kind: 'word', word: force.word, clue: force.clue, of: animal };
+    else if (!changed.has(animal)) p = { kind: 'name', word: A[animal].name.toLowerCase(), clue: 'What animal is this?', of: animal };
+    if (!p) {
+      const due = Object.entries(R.words).filter(([k, e]) => e.back != null && e.back <= R.n && k !== last && e.word).sort((a, b) => a[1].back - b[1].back)[0];
+      if (due) p = { kind: due[1].kind || 'word', word: due[1].word, clue: due[1].clue, of: A[due[1].of] ? due[1].of : animal, back: true };
+    }
+    if (!p) {
+      const list = LISTS[animal]?.[level] || [], pool = list.length > 1 ? list.filter((q) => q.word.toLowerCase() !== last) : list;
+      const W = SPELL.weight, wt = (q) => { const e = R.words[q.word.toLowerCase()]; return !e || e.s === 'new' ? W.new : e.s === 'learning' ? W.learning : e.lastDay === today ? W.masteredToday : W.mastered; };
+      let sum = pool.reduce((s, q) => s + wt(q), 0), x = this.rand() * sum, q = pool[pool.length - 1];
+      for (const c of pool) { x -= wt(c); if (x < 0) { q = c; break; } }
+      p = q ? { kind: 'word', word: q.word, clue: q.clue, of: animal } : { kind: 'name', word: A[animal].name.toLowerCase(), clue: 'What animal is this?', of: animal };
+    }
+    R.n++; R.last = p.word.toLowerCase(); this.save();
+    return { ...p, animal, level, n: R.n, tried: false };
+  },
+  // one answer to prompt p: true if right. Updates the word's progress and saves.
+  answer(p, text) {
+    if (p.tried) return null;
+    p.tried = true;
+    const right = String(text ?? '').trim().toLowerCase() === p.word.toLowerCase(), e = this.entry(p.word), today = this.day();
+    e.n++; e.word = p.word; e.clue = p.clue; e.of = p.of; e.kind = p.kind;
+    if (right) {
+      e.right++; e.back = null; e.lastDay = today;
+      if (e.missDay !== today && !e.days.includes(today)) e.days = [...e.days, today].slice(-6);
+      e.s = e.days.length >= SPELL.days ? 'mastered' : 'learning';
+    } else {
+      e.missed++; e.missDay = today; e.days = e.days.filter((d) => d < today);
+      if (e.s === 'mastered') e.days = e.days.slice(-(SPELL.days - 1));
+      e.s = 'learning'; e.back = this.rec.n + SPELL.back - 1;
+      this.rec.misses.push({ w: p.word.toLowerCase(), t: this.now() }); if (this.rec.misses.length > SPELL.keepMisses) this.rec.misses.splice(0, this.rec.misses.length - SPELL.keepMisses);
+    }
+    this.save();
+    return right;
+  },
+  missesWeek(rec = this.rec) { const t0 = this.now() - 7 * DAY_MS; return rec.misses.filter((m) => m.t >= t0 && m.t <= this.now()).length; },
+};
+
+// ---------- speech: the word, in en-US. Never waited on; with no speech (or Sound off) the clue is all written out and play goes on.
+const Say = {
+  count: 0, last: null,
+  ok() { try { return Sfx.on && !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function'; } catch (e) { return false; } },
+  voice() { try { const vs = window.speechSynthesis.getVoices() || []; return vs.find((v) => /^en[-_]US$/i.test(v.lang) && v.localService) || vs.find((v) => /^en[-_]US$/i.test(v.lang)) || null; } catch (e) { return null; } },
+  word(w) {
+    if (!this.ok()) return false;
+    try { const s = window.speechSynthesis; s.cancel(); const u = new SpeechSynthesisUtterance(w); u.lang = 'en-US'; u.rate = 0.8; const v = this.voice(); if (v) u.voice = v; s.speak(u); this.count++; this.last = w; return true; }
+    catch (e) { return false; }
+  },
+  stop() { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {} },
+};
+
+let who = Profiles.get(store.get('who', GUEST.id)) || GUEST;
+const save0 = Book.read(who.id);
+const Player = { changed: new Set((save0.changed || []).filter((id) => A[id])) };
+Spell.load(who);
 function findSpawn() {
   for (let r = 0; r < 3000; r += 8) for (let k = 0, n = Math.max(1, Math.floor(r / 6)); k < n; k++) {
     const a = k / n * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r, bi = biomeRaw(x, z);
@@ -931,7 +1329,7 @@ const P = {
 P.y = groundAt(P.x, P.z);
 const cam = { yaw: 0, pitch: 0.32 };
 let day = 1, dayTarget = 1, ticks = 0, time = 0;
-const Change = { gate: null, count: 0 };   // W2 (#158) sets Change.gate = (id, go) => { ...spell..., then go() }
+const Change = { gate: null, count: 0 };   // W2 (#158) sets Change.gate: a word to spell first (Ask, below); human never needs one
 
 function setModel(id) {
   if (P.model) scene.remove(P.model);
@@ -1161,10 +1559,10 @@ function checkMeets() {
 function meet(id) {
   if (!A[id] || P.met.has(id)) return false;
   P.met.add(id); save(); Sfx.meet();
-  toast(id, 'You met ' + (/^[AEIOU]/.test(A[id].name) ? 'an ' : 'a ') + A[id].name + '!');
+  toast(id, 'You met ' + (/^[AEIOU]/.test(A[id].name) ? 'an ' : 'a ') + A[id].name + '!', 4.5, LISTS[id]?.fact);   // W2: and its fact
   hud(); return true;
 }
-function save() { store.set('save', { v: 1, met: [...P.met], form: P.form, fp: P.fp, sound: Sfx.on }); }
+function save() { store.set('book.' + who.id, { v: SAVE_V, met: [...P.met], form: P.form, fp: P.fp, sound: Sfx.on, changed: [...Player.changed] }); }
 
 // ===========================================================================
 // Changing. Every change goes through requestChange(id) -> doChange(id); W2 (#158) gates it with Change.gate.
@@ -1215,6 +1613,24 @@ const ICON = {
   far: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7" cy="15" r="4.5"/><circle cx="17" cy="15" r="4.5"/><rect x="5" y="5" width="4" height="7" rx="1.5"/><rect x="15" y="5" width="4" height="7" rx="1.5"/><circle cx="7" cy="15" r="2" fill="#183153"/><circle cx="17" cy="15" r="2" fill="#183153"/></svg>',
   wing: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 14c5-1 8-4 10-9 2 5 5 8 10 9-4 0-7 2-10 6-3-4-6-6-10-6z"/></svg>',
   down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6c3-2 5 2 8 0s5 2 8 0 3 0 4 0"/><path d="M12 9v12M6 15l6 6 6-6"/></svg>',
+  // W2 (#158)
+  say: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9h4l5-4v14l-5-4H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 5l-7 7 7 7"/></svg>',
+  next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 5l7 7-7 7"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>',
+  del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 5h12v14H8l-6-7z"/><path d="M12 9l5 6M17 9l-5 6"/></svg>',
+  again: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3v5h-5"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  leaf: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 3C9 3 4 8 4 15c0 2 .5 3.5 1 4.5C7 12 12 9 16 8c-4 2-8 6-9.5 12.5C8 21 9.5 21 11 21c7 0 10-7 9-18z"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 3.2C20.5 15.7 12 21 12 21z"/></svg>',
+  rocket: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c3.5 2.5 5 6.5 4.5 11l2.5 3-1 4-3-2h-6l-3 2-1-4 2.5-3C7 8.5 8.5 4.5 12 2z"/><circle cx="12" cy="9.5" r="2" fill="#fff"/></svg>',
+  flower: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="3.6"/><circle cx="17.7" cy="10.2" r="3.6"/><circle cx="15.5" cy="17" r="3.6"/><circle cx="8.5" cy="17" r="3.6"/><circle cx="6.3" cy="10.2" r="3.6"/><circle cx="12" cy="12" r="3" fill="#fff"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4.5" y="10.5" width="15" height="11" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.6"/></svg>',
+  family: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7.5" cy="5.5" r="2.8"/><circle cx="16.5" cy="5.5" r="2.8"/><circle cx="12" cy="12.5" r="2.2"/><path d="M3 21v-7c0-2.2 2-4.5 4.5-4.5S12 11.8 12 14v7zM12 21v-7c0-2.2 2-4.5 4.5-4.5S21 11.8 21 14v7z"/></svg>',
+  tiles: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="6" height="10" rx="1.5"/><rect x="9" y="5" width="6" height="10" rx="1.5"/><rect x="16" y="8" width="6" height="10" rx="1.5"/></svg>',
+  ear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 10a5.5 5.5 0 0 1 11 0c0 3-2.5 4-3.5 6s-1 4-3.5 4-3-2-3-2"/><path d="M10 10a2.5 2.5 0 0 1 5 0c0 1.5-1.5 2-1.5 3"/></svg>',
 };
 const THUMB = {};
 function renderThumbs() {
@@ -1240,7 +1656,11 @@ function renderThumbs() {
 // HUD, toast, flash
 // ===========================================================================
 let toastT = 0;
-function toast(id, text, sec = 2.4) { $('toastImg').src = THUMB[id] || THUMB.human || ''; $('toastText').textContent = text; $('toast').classList.add('on'); toastT = sec; }
+function toast(id, text, sec = 2.4, sub = '') {
+  $('toastImg').src = THUMB[id] || THUMB.human || ''; $('toastText').textContent = text;
+  if (sub) { const sm = document.createElement('small'); sm.textContent = sub; $('toastText').appendChild(sm); }
+  $('toast').classList.add('on'); toastT = sec;
+}
 function flash() { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = '0.95'; void f.offsetWidth; f.style.transition = 'opacity .5s ease-out'; f.style.opacity = '0'; }
 function hud() {
   const F = FORMS[P.form];
@@ -1265,6 +1685,9 @@ addEventListener('keydown', (e) => {
   if (overlay === 'wheel') { wheelKey(e); return; }
   if (overlay === 'book') { if (e.code === 'Escape' || e.code === 'KeyB') { e.preventDefault(); closeOverlay(); } return; }
   if (overlay === 'pause') { if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); closeOverlay(); } return; }
+  if (overlay === 'spell') { Ask.key(e); return; }
+  if (overlay === 'maker') { Maker.key(e); return; }
+  if (overlay === 'parent') { if (e.code === 'Escape') { e.preventDefault(); closeOverlay(); } return; }
   if (screen !== 'play') { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); startPlay(); } return; }
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (e.code === 'Escape' || e.code === 'KeyP') { openPause(); return; }
@@ -1311,7 +1734,6 @@ function readPad(dt) {
   const pr = (k) => cur[k] && !was[k], dir = pr('up') ? 'up' : pr('down') ? 'down' : pr('left') ? 'left' : pr('right') ? 'right' : stick;
   const any = lx || ly || dz(p.axes[2] || 0) || dz(p.axes[3] || 0) || Object.values(cur).some(Boolean);
   if (any) { touch.padUsed(); GP.used++; }
-  if (screen !== 'play') { GP.x = GP.y = 0; if (pr('a') || pr('start')) startPlay(); return; }
   if (overlay === 'wheel') {
     const n = WHEEL_ORDER.length;
     if (dir) { wheelSel = (wheelSel + (dir === 'right' ? 1 : dir === 'left' ? n - 1 : dir === 'up' ? 6 : n - 6)) % n; buildWheel(); }
@@ -1323,6 +1745,15 @@ function readPad(dt) {
     if (dir && btns.length) btns[(i < 0 ? 0 : i + (dir === 'down' || dir === 'right' ? 1 : btns.length - 1)) % btns.length].focus();
     if (pr('a') && document.activeElement && document.activeElement._tap) document.activeElement._tap();
     else if (pr('b') || (overlay === 'pause' && pr('start'))) closeOverlay();
+    return;
+  }
+  if (screen !== 'play') {
+    // the title: the d-pad moves over the player tiles and PLAY, A picks (nothing picked: A or Start plays)
+    GP.x = GP.y = 0;
+    const btns = [...document.querySelectorAll('#title button')].filter((e) => e.offsetParent !== null && e.id !== 'parentB'), i = btns.indexOf(document.activeElement);
+    if (dir && btns.length) btns[(i < 0 ? 0 : i + (dir === 'down' || dir === 'right' ? 1 : btns.length - 1)) % btns.length].focus();
+    else if (pr('a') && i >= 0 && btns[i]._tap) btns[i]._tap();
+    else if (pr('a') || pr('start')) startPlay();
     return;
   }
   GP.x = lx + (cur.right ? 1 : 0) - (cur.left ? 1 : 0); GP.y = ly + (cur.down ? 1 : 0) - (cur.up ? 1 : 0);
@@ -1423,7 +1854,12 @@ function onTap(el, fn) {
   el.addEventListener('click', (e) => { if (e.detail === 0 && !e.pointerType) return; Sfx.click(); fn(e); });
 }
 function startPlay() { if (screen === 'play') return; try { document.activeElement?.blur(); } catch (e) {} screen = 'play'; $('title').classList.remove('on'); $('hud').classList.add('on'); $('hint').classList.add('on'); hud(); padLabels(); }
-function showOv(id) { for (const o of ['pause', 'wheel', 'book']) $(o).classList.toggle('on', o === id); overlay = id; document.documentElement.classList.toggle('ov-open', !!id); keys.clear(); VIN.jump = VIN.power = false; }
+function showOv(id) {
+  const was = overlay;
+  for (const o of ['pause', 'wheel', 'book', 'spell', 'maker', 'parent']) $(o).classList.toggle('on', o === id);
+  overlay = id; document.documentElement.classList.toggle('ov-open', !!id); keys.clear(); VIN.jump = VIN.power = false;
+  if (was === 'spell' && id !== 'spell') Ask.leave();
+}
 function closeOverlay() { showOv(null); try { document.activeElement?.blur(); } catch (e) {} }
 let pauses = 0, wheels = 0, books = 0;
 function openPause() { if (screen !== 'play') return; pauses++; showOv('pause'); pauseLabels(); $('resumeBtn').focus({ preventScroll: true }); }
@@ -1432,6 +1868,7 @@ function pauseLabels() {
   $('pBookBtn').innerHTML = ICON.book + '<span>ANIMAL BOOK</span>';
   $('pHumanBtn').innerHTML = ICON.person + '<span>BE HUMAN</span>'; $('pHumanBtn').style.display = P.form === 'human' ? 'none' : '';
   $('pSoundBtn').innerHTML = (Sfx.on ? ICON.soundOn : ICON.soundOff) + `<span>SOUND ${Sfx.on ? 'ON' : 'OFF'}</span>`;
+  $('pWhoBtn').innerHTML = (ICON[who.icon] || ICON.person) + '<span>PLAYER</span>';
 }
 // the wheel: the guy in the middle, the 6 farm animals on the inner ring, the other 12 outside
 const WHEEL_ORDER = ['human', ...ANIMALS.map((a) => a.id)];
@@ -1492,7 +1929,345 @@ function buildBook() {
     grid.appendChild(c);
   }
 }
-addEventListener('resize', () => { if (overlay === 'wheel') buildWheel(); if (overlay === 'book') buildBook(); });
+addEventListener('resize', () => { if (overlay === 'wheel') buildWheel(); if (overlay === 'book') buildBook(); if (overlay === 'spell') Ask.drawPad(); if (overlay === 'maker') Maker.draw(); if (overlay === 'parent') Parent.draw(); });
+
+// ===========================================================================
+// W2 (#158): who's playing (the title), spelling to change (Ask), the profile maker (Maker) and the parent view (Parent)
+// ===========================================================================
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const faceHtml = (p) => `<span class="face" style="--c:${p.color}">${ICON[p.icon] || ICON.person}</span>`;
+const noFocus = (el) => { el.addEventListener('mousedown', (e) => e.preventDefault()); return el; };   // a tap on a key doesn't take the keyboard's focus
+function mkBtn(cls, html, label, fn, attrs = {}) {
+  const b = document.createElement('button'); b.className = cls; b.innerHTML = html; if (label) b.setAttribute('aria-label', label);
+  for (const [k, v] of Object.entries(attrs)) b.setAttribute(k, v);
+  onTap(b, fn); return b;
+}
+// a grid of n keys sized to the room: the column count that gives the biggest keys (44 px or more both ways when there's room)
+function fitKeys(box, n, availW, availH, max = 60, gap = 6) {
+  let best = null;
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols), w = Math.floor((availW - gap * (cols - 1)) / cols), h = Math.floor((availH - gap * (rows - 1)) / rows);
+    const kw = Math.min(w, Math.round(max * 1.25)), kh = Math.min(h, max, Math.round(kw * 1.15)), s = Math.min(kw, kh);
+    if (!best || s > best.s + 0.5 || (Math.abs(s - best.s) <= 0.5 && rows < best.rows)) best = { cols, rows, kw, kh, s };
+  }
+  box.style.setProperty('--kw', best.kw + 'px'); box.style.setProperty('--kh', best.kh + 'px'); box.style.setProperty('--kg', gap + 'px');
+  box.style.width = (best.cols * best.kw + (best.cols - 1) * gap) + 'px'; box.style.margin = '0 auto';
+  return best;
+}
+const shuffle = (arr, r = Spell.rand) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+// ---------- who's playing: a tile each on the title (the profiles, Guest, then New); a tap plays as them
+function usePlayer(p) {
+  who = p; const b = Book.read(p.id);
+  P.met = new Set(b.met.filter((id) => A[id])); Player.changed = new Set((b.changed || []).filter((id) => A[id]));
+  P.fp = !!b.fp; Sfx.on = b.sound !== false;
+  Spell.load(p);
+  const f = FORMS[b.form] && (b.form === 'human' || P.met.has(b.form)) ? b.form : 'human';
+  if (f !== P.form) {
+    P.form = f; P.gallop = P.burst = P.roll = P.flutter = P.swoop = P.quiet = P.sniff = P.dig = 0; P.cd = 0; P.hop = P.leap = P.canDouble = false;
+    if (P.far) { P.far = false; loadR = LOAD_R; }
+    setModel(f); P.pop = 1;
+  }
+  hud(); padLabels(); drawWho();
+  return p;
+}
+function choosePlayer(id) { const p = Profiles.get(id) || GUEST; store.set('who', p.id); if (p !== who) usePlayer(p); else drawWho(); return p; }
+function drawWho() {
+  const box = $('who'); box.innerHTML = '';
+  for (const p of Profiles.all()) {
+    const b = mkBtn('ptile' + (p.id === who.id ? ' cur' : ''), faceHtml(p) + `<span class="nm">${esc(p.name)}</span>`, p.name, () => { choosePlayer(p.id); startPlay(); });
+    b.dataset.id = p.id; box.appendChild(b);
+  }
+  if (!Profiles.full()) { const b = mkBtn('ptile add', `<span class="face">${ICON.plus}</span><span class="nm">New</span>`, 'New profile', () => Maker.open()); b.dataset.id = 'new'; box.appendChild(b); }
+}
+function openTitle() {
+  closeOverlay(); screen = 'title'; keys.clear(); toastT = 0; $('toast').classList.remove('on');
+  $('title').classList.add('on'); $('hud').classList.remove('on'); $('hint').classList.remove('on'); drawWho();
+}
+
+// ---------- the parent check: hold the lock button 2 s (the ring fills), as Robot Battle's (#134), so a child doesn't wander in
+const Hold = {
+  ms: 2000, t: 0,
+  start() { if (this.t) return; $('parentB').classList.add('holding'); this.t = setTimeout(() => { this.t = 0; $('parentB').classList.remove('holding'); Parent.open(); }, this.ms); },
+  stop() { clearTimeout(this.t); this.t = 0; $('parentB').classList.remove('holding'); },
+};
+{
+  const pb = $('parentB');
+  pb.addEventListener('pointerdown', (e) => { e.preventDefault(); try { pb.setPointerCapture(e.pointerId); } catch (err) {} Hold.start(); });
+  for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) pb.addEventListener(t, () => Hold.stop());
+  pb.addEventListener('keydown', (e) => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); e.stopPropagation(); if (!e.repeat) Hold.start(); } });
+  pb.addEventListener('keyup', (e) => { if (e.code === 'Enter' || e.code === 'Space') Hold.stop(); });
+  pb.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+// ---------- Ask: the spelling panel. Change.gate sends every change into an animal here; a right answer changes you.
+const Ask = {
+  p: null, go: null, animal: null, typed: '', tiles: null, used: [], done: null, tried: '', reveal: 0, timer: 0, closeT: 0, opens: 0, closed: 0,
+  open(animal, go, force) {
+    this.stop();
+    this.animal = animal; this.go = go;
+    this.p = Spell.next(animal, who.level, Player.changed, force);
+    this.typed = ''; this.used = []; this.done = null; this.tried = ''; this.reveal = 0;
+    const L = [...this.p.word];
+    if (this.p.level === 1) { let t, k = 0; do t = shuffle(L); while (L.length > 1 && t.join('') === L.join('') && ++k < 30); this.tiles = t; } else this.tiles = null;
+    this.opens++;
+    if (overlay !== 'spell') showOv('spell');
+    this.drawPad(); this.say();
+    return this.status();
+  },
+  say() { return Say.word(this.p.word); },
+  // the clue as shown: "..." becomes the blanks (level 2: the first letter, then a blank a letter); a question gets them after it
+  clueHtml() {
+    const p = this.p, w = p.word, lv = p.level;
+    const blanks = `<span class="hint">${lv === 2 ? esc(w[0].toUpperCase()) + ' ' + Array(w.length - 1).fill('_').join(' ') : '___'}</span>`;
+    let c = esc(p.clue);
+    if (c.includes('...')) c = c.replace('...', blanks); else if (lv === 2) c += ' ' + blanks;
+    return c;
+  },
+  tapTile(i) {
+    if (this.done || !this.tiles || this.used.includes(i)) return;
+    this.used.push(i); this.typed += this.tiles[i]; Sfx.click(); this.drawSlots();
+    if (this.typed.length === this.p.word.length) this.submit(this.typed);
+  },
+  type(ch) {
+    if (this.done) return;
+    if (this.p.level === 1) { const i = this.tiles.findIndex((c, k) => !this.used.includes(k) && c.toLowerCase() === ch.toLowerCase()); if (i >= 0) this.tapTile(i); return; }
+    if (this.typed.length >= this.p.word.length) return;
+    this.typed += ch.toLowerCase(); Sfx.click(); this.drawSlots();
+  },
+  undo() { if (this.done || !this.typed) return; this.typed = this.typed.slice(0, -1); if (this.p.level === 1) this.used.pop(); this.drawSlots(); },
+  submit(text = this.typed, instant = false) {
+    if (!this.p || this.done) return null;
+    const right = Spell.answer(this.p, text);
+    this.tried = String(text);
+    if (right) {
+      this.done = 'right'; Sfx.right(); this.drawSlots();
+      if (instant || manual) closeOverlay(); else this.closeT = setTimeout(() => { this.closeT = 0; if (overlay === 'spell') closeOverlay(); }, 650);
+    } else {
+      // the right spelling, letter by letter (and said again)
+      this.done = 'wrong'; Sfx.miss(); this.reveal = 0; this.drawPad(); Say.word(this.p.word);
+      const step = () => { this.reveal++; Sfx.letter(); this.drawSlots(); this.timer = this.reveal < this.p.word.length ? setTimeout(step, 330) : 0; };
+      if (instant || manual) { this.reveal = this.p.word.length; this.drawSlots(); } else this.timer = setTimeout(step, 450);
+    }
+    return right;
+  },
+  again() { if (this.done === 'wrong') this.open(this.animal, this.go); },
+  stop() { clearTimeout(this.timer); clearTimeout(this.closeT); this.timer = this.closeT = 0; Say.stop(); },
+  // the panel closed: a right answer changes you now (a miss, or a close before answering, leaves you as you were)
+  // Dad's pick (#162 hand-back 1): closing before answering (the X, Esc, B on a pad, any way out) counts as a miss for that word,
+  // only recorded (no spelling shown), so it comes back soon and can't be skipped by closing and opening again
+  leave() {
+    this.stop();
+    if (this.p && !this.done && !this.p.tried) { Spell.answer(this.p, ''); this.done = 'closed'; this.closed++; }
+    if (this.done === 'right' && this.go) { const g = this.go; this.go = null; g(); }
+  },
+  key(e) {
+    const c = e.code;
+    if (c === 'Escape') { e.preventDefault(); closeOverlay(); return; }
+    if (this.done === 'wrong') { if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); this.again(); } return; }
+    if (c === 'Backspace') { e.preventDefault(); this.undo(); return; }
+    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (this.p.level === 2 && this.typed.length === this.p.word.length) this.submit(); return; }
+    if (/^Key[A-Z]$/.test(c) && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); if (!e.repeat) this.type(c.slice(3)); }
+  },
+  drawSlots() {
+    const p = this.p, n = p.word.length, panel = $('spPanel');
+    panel.classList.toggle('right', this.done === 'right');
+    const slots = $('spSlots').children;
+    for (let i = 0; i < n; i++) {
+      const s = slots[i]; if (!s) break;
+      const wrong = this.done === 'wrong';
+      s.textContent = wrong ? (i < this.reveal ? p.word[i] : '') : this.typed[i] || '';
+      s.className = 'sp-slot' + (wrong && i < this.reveal ? ' fix' : '') + (this.done === 'right' ? ' ok' : '') + (!this.done && i === this.typed.length ? ' next' : '');
+    }
+    if (this.tiles) $('spPad').querySelectorAll('.sp-tile').forEach((t) => t.classList.toggle('used', this.used.includes(+t.dataset.i)));
+    const ok = $('spPad').querySelector('.sp-key.go'); if (ok) ok.disabled = !!this.done || this.typed.length !== n;
+  },
+  drawPad() {
+    const p = this.p; if (!p) return;
+    const n = p.word.length, W = innerWidth, H = innerHeight, inner = Math.min(760, W - 16) - 20;
+    $('spPanel').dataset.mode = p.level === 1 ? 'tiles' : 'type';
+    $('spImg').src = THUMB[p.of] || ''; $('spClue').innerHTML = this.clueHtml(); $('spSay').hidden = !Say.ok();
+    const sw = Math.max(18, Math.min(44, Math.floor((inner - 5 * (n - 1)) / n))), sh = Math.min(H < 430 ? 40 : 50, sw + 6);
+    const sl = $('spSlots'); sl.style.setProperty('--sw', sw + 'px'); sl.style.setProperty('--sh', sh + 'px');
+    sl.innerHTML = Array.from({ length: n }, () => '<div class="sp-slot"></div>').join('');
+    const pad = $('spPad'); pad.innerHTML = ''; pad.style.width = ''; pad.removeAttribute('style');
+    if (this.done === 'wrong') {
+      const after = document.createElement('div'); after.className = 'sp-after';
+      after.innerHTML = `<div class="tried">${esc(this.tried)}</div>`;
+      const row = document.createElement('div'); row.className = 'row';
+      row.append(mkBtn('big go', ICON.again + '<span>NEW WORD</span>', 'Try a new word', () => this.again(), { id: 'spAgain' }), mkBtn('big', ICON.check + '<span>OK</span>', 'OK', () => closeOverlay(), { id: 'spOk' }));
+      after.appendChild(row); pad.appendChild(after);
+    } else if (p.level === 1) {
+      this.tiles.forEach((ch, i) => { const t = noFocus(mkBtn('sp-tile', esc(ch), ch, () => this.tapTile(i))); t.dataset.i = i; pad.appendChild(t); });
+      pad.appendChild(noFocus(mkBtn('sp-key act', ICON.del, 'Undo', () => this.undo(), { 'data-k': 'del' })));
+    } else {
+      for (const ch of 'abcdefghijklmnopqrstuvwxyz') { const k = noFocus(mkBtn('sp-key', ch, ch, () => this.type(ch))); k.dataset.k = ch; pad.appendChild(k); }
+      pad.appendChild(noFocus(mkBtn('sp-key act', ICON.del, 'Delete', () => this.undo(), { 'data-k': 'del' })));
+      pad.appendChild(noFocus(mkBtn('sp-key go', ICON.check, 'Check', () => this.submit(), { 'data-k': 'ok' })));
+    }
+    this.drawSlots();
+    if (this.done !== 'wrong') {
+      const avail = Math.min(H - 12, 2000) - 20 - $('spPanel').querySelector('.sp-top').offsetHeight - sl.offsetHeight - 16;
+      fitKeys(pad, pad.children.length, inner, avail, p.level === 1 ? 72 : 58, p.level === 1 ? 8 : 6);
+    }
+  },
+  status() {
+    const p = this.p, open = overlay === 'spell' && !!p;
+    if (!p) return { open: false };
+    return { open, animal: this.animal, word: p.word, kind: p.kind, level: p.level, mode: p.level === 1 ? 'tiles' : 'type', clue: $('spClue').textContent, back: !!p.back, of: p.of, n: p.n,
+      tiles: this.tiles ? this.tiles.slice() : null, used: this.used.slice(), typed: this.typed, done: this.done, reveal: this.reveal,
+      shown: [...$('spSlots').children].map((s) => s.textContent || '_').join(''), speech: Say.ok(), spoken: Say.count, sayShown: !$('spSay').hidden };
+  },
+};
+Change.gate = (id, go) => {
+  if (id === 'human' || !Spell.on) { go(); return; }   // human never needs a word
+  Ask.open(id, () => { Player.changed.add(id); go(); });
+};
+
+// ---------- the profile maker: a name (on its own keyboard: no system keyboard pops up), an icon and a color, then the level
+const Maker = {
+  page: 'name', name: '', icon: null, color: null, level: null, why: null, copy: null,
+  // Dad's pick (#162 hand-back 1): every new profile is offered Guest's animals once, on the last page (W1's book while Guest has
+  // none of its own). Only when Guest has at least one; yes copies the animals met into the new book (it still spells each
+  // name the first time), no starts empty. Guest keeps its book; wildworld.save is only ever read.
+  guestBook() { const b = Book.read(GUEST.id); return { met: b.met.filter((id) => A[id]), fp: !!b.fp, sound: b.sound !== false }; },
+  offer() { return this.guestBook().met.length; },
+  open() {
+    if (Profiles.full()) return { ok: false, why: 'full' };
+    const s = Profiles.suggest(); Object.assign(this, { page: 'name', name: '', icon: s.icon, color: s.color, level: null, why: null, copy: null });
+    showOv('maker'); this.draw(); return { ok: true };
+  },
+  type(ch) { if (this.page !== 'name' || this.name.length >= PROFILE.nameMax) return this.name; this.name += this.name === '' ? ch.toUpperCase() : ch.toLowerCase(); this.why = null; this.drawName(); return this.name; },
+  del() { this.name = this.name.slice(0, -1); this.why = null; this.drawName(); return this.name; },
+  next() {
+    if (this.page === 'name') { this.why = Profiles.nameWhy(this.name); if (this.why) { this.drawName(); return false; } this.page = 'look'; }
+    else if (this.page === 'look') this.page = 'level';
+    this.draw(); return true;
+  },
+  back() { if (this.page === 'level') this.page = 'look'; else if (this.page === 'look') this.page = 'name'; else { closeOverlay(); return; } this.draw(); },
+  save() {
+    if (this.level !== 1 && this.level !== 2) return { ok: false, why: 'pick a level' };
+    const n = this.offer();
+    if (n && this.copy !== true && this.copy !== false) return { ok: false, why: 'pick yes or no' };
+    const r = Profiles.add(this.name, this.icon, this.color, this.level);
+    if (!r.ok) { this.why = r.why; this.page = 'name'; this.draw(); return r; }
+    if (n && this.copy) { const g = this.guestBook(); store.set('book.' + r.id, { v: SAVE_V, met: g.met, form: 'human', fp: g.fp, sound: g.sound, changed: [] }); r.copied = g.met.length; }
+    closeOverlay(); choosePlayer(r.id); return r;
+  },
+  key(e) {
+    const c = e.code;
+    if (c === 'Escape') { e.preventDefault(); this.back(); return; }
+    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (this.page === 'level') this.save(); else this.next(); return; }
+    if (this.page !== 'name') return;
+    if (c === 'Backspace') { e.preventDefault(); this.del(); return; }
+    if (/^Key[A-Z]$/.test(c) && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); this.type(c.slice(3)); }
+  },
+  drawName() {
+    const el = $('mkName'); if (!el) return;
+    el.textContent = this.name || 'Name'; el.classList.toggle('empty', !this.name);
+    const w = $('mkWhy'); if (w) w.textContent = this.why || '';
+    const nx = $('mkNext'); if (nx && this.page === 'name') nx.disabled = !this.name;
+  },
+  draw() {
+    const P0 = $('mkPanel'), W = innerWidth, H = innerHeight, inner = Math.min(760, W - 16) - 20, me = { icon: this.icon, color: this.color };
+    P0.innerHTML = ''; P0.dataset.page = this.page;
+    const head = document.createElement('div'); head.className = 'mk-head';
+    head.append(this.page === 'name' ? mkBtn('sp-round plain', ICON.close, 'Close', () => closeOverlay(), { id: 'mkX' }) : mkBtn('sp-round plain', ICON.back, 'Back', () => this.back(), { id: 'mkBack' }));
+    const face = document.createElement('span'); face.innerHTML = faceHtml(me); head.appendChild(face.firstChild);
+    const nm = document.createElement('div'); nm.className = 'mk-name'; nm.id = 'mkName'; nm.style.setProperty('--c', this.color); head.appendChild(nm);
+    P0.appendChild(head);
+    const foot = document.createElement('div'); foot.className = 'mk-foot';
+    const why = document.createElement('div'); why.className = 'mk-why'; why.id = 'mkWhy'; why.style.alignSelf = 'center';
+    let body;
+    if (this.page === 'name') {
+      body = document.createElement('div'); body.className = 'sp-pad'; body.id = 'mkKeys';
+      for (const ch of 'abcdefghijklmnopqrstuvwxyz') { const k = noFocus(mkBtn('sp-key', ch, ch, () => this.type(ch))); k.dataset.k = ch; body.appendChild(k); }
+      body.appendChild(noFocus(mkBtn('sp-key act', ICON.del, 'Delete', () => this.del(), { 'data-k': 'del' })));
+      foot.append(why, mkBtn('big go', '<span>NEXT</span>' + ICON.next, 'Next', () => this.next(), { id: 'mkNext' }));
+    } else if (this.page === 'look') {
+      body = document.createElement('div'); body.style.cssText = 'display:flex;flex-direction:column;gap:10px';
+      const icons = document.createElement('div'); icons.className = 'mk-grid'; icons.id = 'mkIcons';
+      for (const ic of PROFILE.icons) { const b = mkBtn('mk-ic' + (ic === this.icon ? ' on' : ''), ICON[ic], ic, () => { this.icon = ic; this.draw(); }); b.dataset.icon = ic; icons.appendChild(b); }
+      const cols = document.createElement('div'); cols.className = 'mk-grid'; cols.id = 'mkColors';
+      for (const c of PROFILE.colors) { const b = mkBtn('mk-col' + (c === this.color ? ' on' : ''), '', 'color ' + c, () => { this.color = c; this.draw(); }); b.dataset.color = c; b.style.setProperty('--c', c); cols.appendChild(b); }
+      body.append(icons, cols);
+      foot.append(why, mkBtn('big go', '<span>NEXT</span>' + ICON.next, 'Next', () => this.next(), { id: 'mkNext' }));
+    } else {
+      body = document.createElement('div'); body.className = 'mk-lvs';
+      body.append(mkBtn('mk-lv' + (this.level === 1 ? ' on' : ''), `<b>1</b>${ICON.tiles}<span>Letter tiles</span>`, 'Level 1: letter tiles', () => { this.level = 1; this.draw(); }, { 'data-level': '1' }),
+        mkBtn('mk-lv' + (this.level === 2 ? ' on' : ''), `<b>2</b>${ICON.ear}<span>Hear and type</span>`, 'Level 2: hear and type', () => { this.level = 2; this.draw(); }, { 'data-level': '2' }));
+      const n = this.offer();
+      if (n) {
+        // "start with Guest's animals?": the book, how many, yes or no
+        const cp = document.createElement('div'); cp.className = 'mk-copy'; cp.id = 'mkCopy';
+        cp.innerHTML = `<span class="mk-cbook">${ICON.book}<b>${n}</b></span><span class="mk-ctext">Start with Guest's animals?</span>`;
+        cp.append(mkBtn('mk-yn' + (this.copy === true ? ' on' : ''), ICON.check, `Yes: start with Guest's ${n} animals`, () => { this.copy = true; this.draw(); }, { 'data-copy': 'yes' }),
+          mkBtn('mk-yn no' + (this.copy === false ? ' on' : ''), ICON.close, 'No: start with an empty book', () => { this.copy = false; this.draw(); }, { 'data-copy': 'no' }));
+        const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+        wrap.append(body, cp); body = wrap;
+      }
+      const sv = mkBtn('big go', ICON.check + '<span>SAVE</span>', 'Save', () => this.save(), { id: 'mkSave' }); sv.disabled = !this.level || (n > 0 && this.copy == null);
+      foot.append(why, sv);
+    }
+    P0.append(body, foot);
+    this.drawName();
+    if (this.page === 'name') {
+      const avail = H - 12 - 20 - head.offsetHeight - foot.offsetHeight - 16;
+      fitKeys(body, body.children.length, inner, avail, 54, 6);
+    }
+  },
+  status() { return overlay === 'maker' ? { page: this.page, name: this.name, icon: this.icon, color: this.color, level: this.level, why: this.why, copy: this.copy, offer: this.offer() } : null; },
+};
+
+// ---------- the parent view: per player, the level (a parent's to change), the misses this week and every word's status
+const Parent = {
+  tab: GUEST.id,
+  open() { this.tab = who.id; showOv('parent'); this.draw(); return true; },
+  recOf(p) {
+    if (p === who) return Spell.rec;
+    if (p.guest) return Spell.guestRec || Spell.blank();
+    const r = store.get('words.' + p.id, null); return r && r.v === SAVE_V && r.words ? { ...Spell.blank(), ...r, misses: Array.isArray(r.misses) ? r.misses : [] } : Spell.blank();
+  },
+  setLevel(n) { Profiles.setLevel(this.tab, n); this.draw(); return (Profiles.get(this.tab) || GUEST).level; },
+  draw() {
+    const P0 = $('pvPanel'), p = Profiles.get(this.tab) || GUEST, rec = this.recOf(p);
+    P0.innerHTML = '';
+    const head = document.createElement('div'); head.className = 'pv-head';
+    head.innerHTML = `<h2>${ICON.family}<span>Parents</span></h2>`; head.appendChild(mkBtn('sp-round plain', ICON.close, 'Close', () => closeOverlay(), { id: 'pvX' }));
+    const tabs = document.createElement('div'); tabs.className = 'pv-tabs';
+    for (const q of Profiles.all()) { const b = mkBtn('pv-tab' + (q === p ? ' on' : ''), faceHtml(q) + `<span>${esc(q.name)}</span>`, q.name, () => { this.tab = q.id; this.draw(); }); b.dataset.id = q.id; tabs.appendChild(b); }
+    const counts = { new: 0, learning: 0, mastered: 0 };
+    const words = new Map();   // word -> stage, every word this player can be asked at their level (and any with progress)
+    for (const a of ANIMALS) { words.set(a.name.toLowerCase(), null); for (const q of LISTS[a.id]?.[p.level] || []) words.set(q.word.toLowerCase(), null); }
+    for (const k of Object.keys(rec.words)) words.set(k, null);
+    for (const k of words.keys()) { const s = Spell.stage(k, rec); words.set(k, s); counts[s]++; }
+    const row = document.createElement('div'); row.className = 'pv-row';
+    row.append(Object.assign(document.createElement('span'), { textContent: 'Level' }),
+      mkBtn('pv-lv' + (p.level === 1 ? ' on' : ''), '1: Letter tiles', 'Level 1: letter tiles', () => this.setLevel(1), { 'data-level': '1' }),
+      mkBtn('pv-lv' + (p.level === 2 ? ' on' : ''), '2: Hear and type', 'Level 2: hear and type', () => this.setLevel(2), { 'data-level': '2' }));
+    const sum = document.createElement('div'); sum.className = 'pv-row'; sum.id = 'pvSum';
+    sum.textContent = `Misses this week: ${Spell.missesWeek(rec)}  -  New ${counts.new}, Learning ${counts.learning}, Mastered ${counts.mastered}`;
+    const list = document.createElement('div'); list.className = 'pv-list'; list.id = 'pvList';
+    const shown = new Map(); for (const a of ANIMALS) for (const q of [...(LISTS[a.id]?.[1] || []), ...(LISTS[a.id]?.[2] || [])]) shown.set(q.word.toLowerCase(), q.word);   // (Africa, as written)
+    const pill = (w) => `<span class="pv-w s-${words.get(w) || 'new'}" data-w="${esc(w)}" title="${words.get(w) || 'new'}">${esc(shown.get(w) || w)}</span>`;
+    let html = p.guest ? '<div class="pv-note">Guest\'s words are kept only until the page is closed.</div>' : '';
+    html += '<div class="pv-note">Dashed: new. Light: learning. Gold: mastered (right the first time on 3 different days).</div>';
+    for (const a of ANIMALS) {
+      const own = [a.name.toLowerCase(), ...(LISTS[a.id]?.[p.level] || []).map((q) => q.word.toLowerCase())];
+      html += `<div class="pv-an"><b>${esc(a.name)}</b>${own.map((w) => pill(w)).join('')}</div>`;
+    }
+    const extra = [...words.keys()].filter((k) => !ANIMALS.some((a) => a.name.toLowerCase() === k || (LISTS[a.id]?.[p.level] || []).some((q) => q.word.toLowerCase() === k)));
+    if (extra.length) html += `<div class="pv-an"><b>Other level</b>${extra.map((w) => pill(w)).join('')}</div>`;
+    list.innerHTML = html;
+    P0.append(head, tabs, row, sum, list);
+  },
+  status() {
+    if (overlay !== 'parent') return null;
+    const p = Profiles.get(this.tab) || GUEST, rec = this.recOf(p), words = {};
+    $('pvList').querySelectorAll('.pv-w').forEach((el) => { words[el.dataset.w] = el.title; });
+    return { tab: p.id, level: p.level, missesWeek: Spell.missesWeek(rec), summary: $('pvSum').textContent, words };
+  },
+};
 
 // ===========================================================================
 // Start up
@@ -1508,6 +2283,11 @@ onTap($('pHumanBtn'), () => { closeOverlay(); requestChange('human'); });
 onTap($('pSoundBtn'), () => { Sfx.on = !Sfx.on; save(); pauseLabels(); });
 onTap($('wheelX'), closeOverlay);
 onTap($('bookX'), closeOverlay);
+onTap($('pWhoBtn'), openTitle);
+onTap($('spSay'), () => Ask.say()); onTap($('spX'), closeOverlay);
+$('spSay').innerHTML = ICON.say; $('spX').innerHTML = ICON.close; $('parentIc').innerHTML = ICON.lock;
+noFocus($('spSay'));
+drawWho();
 P.form = FORMS[save0.form] && (save0.form === 'human' || P.met.has(save0.form)) ? save0.form : 'human';
 setModel(P.form); P.pop = 1;
 wantChunks(); do updateChunks(99); while (pending.length); refreshLive();
@@ -1552,7 +2332,7 @@ window.__ww = {
       fp: P.fp, camYaw: cam.yaw, camPitch: cam.pitch, day: +day.toFixed(3), dayTarget, fogFar: scene.fog.far, loadR, far: P.far, quiet: P.quiet, sniff: P.sniff,
       sniffTarget: P.sniffTarget, arrowYaw: arrow.rotation.y, arrowOn: arrow.scale.x > 0, gallop: P.gallop, burst: P.burst, roll: P.roll, flutter: P.flutter, dig: P.dig, leap: P.leap,
       cd: P.cd, lastSmash: P.lastSmash, changes: Change.count, jumps: P.jumps, views: P.views, powers: P.powers, pauses, wheels, books,
-      screen, overlay, manual, ticks, meetMult: P.quiet > 0 ? 2 : 1,
+      screen, overlay, manual, ticks, meetMult: P.quiet > 0 ? 2 : 1, who: who.id, level: who.level, spelling: Spell.on,
       camera: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, camH: F.camH, eye: F.eye, model: P.model ? { visible: P.model.visible } : null,
       gamepadUsed: GP.used, focus: document.activeElement?.id || document.activeElement?.dataset?.id || null, touch: touch.state, biome: biomeAt(P.x, P.z), puff: +puffLife.toFixed(2), flash: +getComputedStyle($("flash")).opacity,
     };
@@ -1576,7 +2356,7 @@ window.__ww = {
   power() { VIN.powerP = true; this.step(1); return P.lastSmash; },
   meet(id) { return meet(id); },
   become(id) { if (id !== 'human' && !P.met.has(id)) meet(id); return requestChange(id); },
-  reset() { store.del('save'); P.met.clear(); return true; },
+  reset() { store.del('save'); store.del('book.' + who.id); P.met.clear(); Player.changed.clear(); return true; },
   biomeAt, heightAt: groundAt, heightRaw,
   animalsNear(r = 1e9) { return [...live.values()].filter((a) => Math.hypot(a.x - P.x, a.z - P.z) < r).map((a) => ({ key: a.key, type: a.type, x: +a.x.toFixed(2), y: +a.y.toFixed(2), z: +a.z.toFixed(2), biome: biomeAt(a.x, a.z), home: biomeAt(a.hx, a.hz), d: +Math.hypot(a.x - P.x, a.z - P.z).toFixed(2), scare: a.scare, call: a.call, mode: a.mode })); },
   liveAnimal(key) { return live.get(key) || null; },
@@ -1601,6 +2381,34 @@ window.__ww = {
       programs: renderer.info.programs?.length ?? null, frames };
   },
   openWheel, openBook, openPause, closeOverlay, toggleView, thumbs: THUMB, makeModel,
+  // ---- W2 (#158): who's playing and spelling
+  WORDS: typeof WORDS === 'object' ? WORDS : null, LISTS, SPELL, PROFILE,
+  // pick who's playing ('guest' or a profile's id; as a tap on their title tile does, without starting play); no id: who it is
+  profile(id) { if (id !== undefined) { if (id !== GUEST.id && !Profiles.get(id)) return null; choosePlayer(id); } return { ...who, changed: [...Player.changed] }; },
+  profiles() { return Profiles.all().map((p) => ({ ...p })); },
+  addProfile(name, icon, color, level) { const r = Profiles.add(name, icon, color, level); if (r.ok && screen !== 'play') drawWho(); return r; },
+  // the current player's level (as the parent view sets it); no n: what it is
+  level(n) { if (n !== undefined) Profiles.setLevel(who.id, n); return who.level; },
+  // the spelling panel now: { open, animal, word, kind (name | word), level, mode (tiles | type), clue, tiles, typed, done, reveal, shown, speech, ... }
+  prompt() { return Ask.status(); },
+  // answer the open prompt (as typed or tapped): { right, word, form } (the change, or the spelling shown, happens at once)
+  answer(text) { if (overlay !== 'spell' || !Ask.p) return null; const word = Ask.p.word, right = Ask.submit(text, true); return { right, word, form: P.form, prompt: Ask.status() }; },
+  again() { Ask.again(); return Ask.status(); },
+  // open the panel for animal with a given word from its lists (the tests' way to aim at one word); go: change if right
+  ask(animal, word) { const q = [...(LISTS[animal]?.[1] || []), ...(LISTS[animal]?.[2] || [])].find((x) => x.word.toLowerCase() === String(word).toLowerCase()); if (!q || !P.met.has(animal)) return null; return Ask.open(animal, () => { Player.changed.add(animal); doChange(animal); }, q); },
+  // an animal's words with the current player's stage for each
+  words(animal) { const L = LISTS[animal]; if (!L) return null; const st = (q) => ({ word: q.word, clue: q.clue, stage: Spell.stage(q.word) }); return { name: A[animal].name.toLowerCase(), nameStage: Spell.stage(A[animal].name), fact: L.fact, level1: L[1].map(st), level2: L[2].map(st) }; },
+  // the current player's word progress
+  progress() { const R = Spell.rec; return { who: who.id, level: who.level, n: R.n, last: R.last, today: Spell.day(), missesWeek: Spell.missesWeek(), words: JSON.parse(JSON.stringify(R.words)), saved: !who.guest && store.get('words.' + who.id, null) != null }; },
+  // the clock for "different days": days from now (fractions are fine); returns the day number
+  clock(days = 0) { Spell.offset = days * DAY_MS; return Spell.day(); },
+  // the spelling gate on or off for this page (not saved): ww-world.mjs turns it off so its form checks change at once
+  spelling(on = true) { Spell.on = !!on; return Spell.on; },
+  seed(n) { Spell.rand = rng(n >>> 0); return true; },
+  say: Say,
+  openMaker() { return Maker.open(); }, maker() { return Maker.status(); }, Maker,
+  openParent() { return Parent.open(); }, parent() { return Parent.status(); }, Parent, Hold,
+  openTitle() { openTitle(); return screen; },
   // the player's tails as the play camera sees them: shown = how much of the tail's length faces the camera
   // (1 side-on, 0 end-on: |dir x ray to its middle|), and on-screen widths (px, across the tail's screen line) of each tail and its tip
   tailView() {
