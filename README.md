@@ -8,7 +8,7 @@ Single-file browser games and scenes. Each one is a self-contained HTML page: op
 | `cowboy-duel.html` | **Quick Draw**, a pixel-art cowboy duel. |
 | `ocean.html` | **Open Water**, a sailing and fishing game on a realistic 3D ocean. |
 | `ocean-scene-v1.html` | The earlier ocean scenery, with no gameplay. |
-| `neon-dash.html` | **Neon Dash**, a 2.5D rhythm runner built from Orion and Apollo's Geometry Dash clone. 1 player, or a 2-player split-screen race. |
+| `neon-dash.html` | **Neon Dash**, a 2.5D rhythm runner built from the boys' own Geometry Dash clone. 1 player, or a 2-player split-screen race. |
 | `wild-world.html` | **Wild World**, an endless 3D world full of animals. Meet an animal, then turn into it and use its power. |
 
 ## Running
@@ -89,7 +89,7 @@ L opens the catch log, M toggles sound and H hides the conditions panel. Sound i
 
 ## Neon Dash (neon-dash.html)
 
-Orion and Apollo designed this game in their "Coding with Dad" class, starting from their own Canvas2D Geometry Dash clone. Neon Dash keeps all of their ideas and rebuilds them with glowing 3D graphics and music that drives the level.
+The boys designed this game in their "Coding with Dad" class, starting from their own Canvas2D Geometry Dash clone. Neon Dash keeps all of their ideas and rebuilds them with glowing 3D graphics and music that drives the level.
 
 **The four modes, each with its own world and music**
 
