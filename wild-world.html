@@ -403,6 +403,11 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, fal
 
 // one material for the terrain, the props and every animal: flat-shaded vertex colours (the low-poly look)
 const MAT = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+// fog by distance from the camera, not by depth along the view: three.js fogs by depth, so at the sides of a wide screen
+// ground 128 m away (the nearest unloaded chunk) sat at only ~78 m depth and showed through the fog. Radial fog keeps the
+// whole loaded edge past fog far in every direction (the water uses it too, so it fogs the same as the ground beside it).
+const radialFog = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <fog_vertex>', '#ifdef USE_FOG\n\tvFogDepth = length( mvPosition.xyz );\n#endif'); };
+MAT.onBeforeCompile = radialFog;
 
 // ---------- Parts: build a vertex-coloured, merged geometry from boxes, cones and balls ----------
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _c = new THREE.Color();
@@ -847,6 +852,7 @@ function* propsNear(x, z, r) {
 const WATER_SIZE = (FOG_FAR.far + 60) * 2;
 const water = new THREE.Mesh(new THREE.PlaneGeometry(WATER_SIZE, WATER_SIZE, 1, 1).rotateX(-Math.PI / 2),
   new THREE.MeshLambertMaterial({ color: 0x3fb3f0, transparent: true, opacity: 0.72, side: THREE.DoubleSide, depthWrite: false }));
+water.material.onBeforeCompile = radialFog;
 water.position.y = SEA; water.renderOrder = 2; scene.add(water);
 
 const PUFF_N = 48, puffPos = new Float32Array(PUFF_N * 3), puffVel = new Float32Array(PUFF_N * 3);
@@ -969,7 +975,7 @@ function usePower() {
       P.dig = 0.5; P.digTo = { x: tx, z: tz }; P.cd = 2; doPuff(P.x, P.y - 0.4, P.z, 0x8a5a2b); break;
     }
     case 'rabbit': if (!P.grounded) return false; P.vy = 12.5; P.vx = fx * 11; P.vz = fz * 11; P.hop = true; P.grounded = false; P.cd = 0.6; break;
-    case 'giraffe': P.far = !P.far; loadR = P.far ? FAR_R : LOAD_R; P.cd = 0.5; break;
+    case 'giraffe': P.far = !P.far; loadR = P.far ? FAR_R : LOAD_R; P.cd = 0.5; if (P.far) { wantChunks(); do updateChunks(99); while (pending.length); } break;   // the far ring loads at once: the fog pulls back this frame
     case 'eagle': if (P.grounded) return false; P.swoop = 1.3; P.cd = 2; break;
     case 'fish': return false;   // fish dives while power is held (see tickPlayer)
     case 'dolphin': if (!P.swimming || P.y < SEA - 2.2) return false; P.leap = true; P.vy = 14; P.vx = fx * 10; P.vz = fz * 10; P.cd = 1.2; break;
