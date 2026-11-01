@@ -412,18 +412,31 @@ MAT.onBeforeCompile = radialFog;
 // ---------- Parts: build a vertex-coloured, merged geometry from boxes, cones and balls ----------
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _c = new THREE.Color();
 class Parts {
-  constructor() { this.items = []; }
+  // Parts can carry a role (body, head, neck, tail, tip) so the tests can check the anatomy: a neck meets its head,
+  // a tail starts at the body and ends behind it, a tip sits on the end of its tail.
+  constructor() { this.items = []; this.cur = null; }
+  tag(role) { this.cur = role; return this; }
   add(geo, color, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
-    this.items.push({ geo, color, m: new THREE.Matrix4().compose(new V3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new V3(sx, sy, sz)) }); return this;
+    this.items.push({ geo, color, role: this.cur, m: new THREE.Matrix4().compose(new V3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new V3(sx, sy, sz)) }); return this;
   }
-  box(w, h, d, c, x, y, z, rx, ry, rz) { return this.add(new THREE.BoxGeometry(w, h, d), c, x, y, z, rx, ry, rz); }
+  box(w, h, d, c, x, y, z, rx, ry, rz) { this.add(new THREE.BoxGeometry(w, h, d), c, x, y, z, rx, ry, rz); this.items[this.items.length - 1].dims = [w, h, d]; return this; }
   cyl(rt, rb, h, c, x, y, z, rx, ry, rz, seg = 7) { return this.add(new THREE.CylinderGeometry(rt, rb, h, seg), c, x, y, z, rx, ry, rz); }
   cone(r, h, c, x, y, z, rx, ry, rz, seg = 7) { return this.add(new THREE.ConeGeometry(r, h, seg), c, x, y, z, rx, ry, rz); }
-  ball(r, c, x, y, z, sx = 1, sy = 1, sz = 1) { return this.add(new THREE.IcosahedronGeometry(r, 0), c, x, y, z, 0, 0, 0, sx, sy, sz); }
+  ball(r, c, x, y, z, sx = 1, sy = 1, sz = 1) { this.add(new THREE.IcosahedronGeometry(r, 0), c, x, y, z, 0, 0, 0, sx, sy, sz); this.items[this.items.length - 1].r = r; return this; }
+  // A neck or a tail: boxes laid along a line that starts at the body joint (bx, by, bz). Each item is
+  // [w, h, d, colour, lx, ly, lz, role?] in the line's own frame, where +ly runs out along the line. The line is the local
+  // +y turned by rx about x (a positive rx tips it forward, toward +z), so a neck leaning forward by a uses rx = a, and a tail
+  // leaving the back end at `lift` above level uses rx = lift - PI/2. Tips are just items further out: they can't come loose.
+  along(bx, by, bz, rx, items, role) {
+    const cr = Math.cos(rx), sr = Math.sin(rx), prev = this.cur;
+    for (const [w, h, d, c, lx, ly, lz, sub] of items) { this.cur = sub === undefined ? role : sub; this.box(w, h, d, c, bx + lx, by + ly * cr - lz * sr, bz + ly * sr + lz * cr, rx); }
+    this.cur = prev; return this;
+  }
   build() {
-    const pos = [], nor = [], col = [];
+    const pos = [], nor = [], col = [], anat = [];
     for (const it of this.items) {
       const g = it.geo.index ? it.geo.toNonIndexed() : it.geo; g.applyMatrix4(it.m);
+      if (it.role) { g.computeBoundingBox(); anat.push({ role: it.role, m: it.m.elements.slice(), dims: it.dims || null, r: it.r || null, min: g.boundingBox.min.toArray(), max: g.boundingBox.max.toArray() }); }
       const p = g.attributes.position.array, n = g.attributes.normal.array; _c.set(it.color);
       for (let i = 0; i < p.length; i++) { pos.push(p[i]); nor.push(n[i]); }
       for (let i = 0; i < p.length / 3; i++) col.push(_c.r, _c.g, _c.b);
@@ -433,7 +446,7 @@ class Parts {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    geo.computeBoundingSphere();
+    geo.computeBoundingSphere(); geo.userData.anat = anat;
     return geo;
   }
 }
@@ -453,8 +466,8 @@ const eyesSide = (P, x, y, z, s = 0.06) => P.box(0.03, s * 1.2, s, BLACK, x, y, 
 const MODELS = {
   human() {
     const P = new Parts();
-    P.box(0.56, 0.62, 0.32, 0xff5d5d, 0, 1.21, 0).box(0.58, 0.1, 0.34, 0x8a5a2b, 0, 0.93, 0);          // red shirt, belt
-    P.box(0.4, 0.4, 0.38, 0xf2c29b, 0, 1.75, 0).box(0.44, 0.12, 0.44, 0x2fb36b, 0, 2.0, 0).box(0.42, 0.05, 0.22, 0x2fb36b, 0, 1.95, 0.3); // head, green cap
+    P.tag('body').box(0.56, 0.62, 0.32, 0xff5d5d, 0, 1.21, 0).tag(null).box(0.58, 0.1, 0.34, 0x8a5a2b, 0, 0.93, 0);          // red shirt, belt
+    P.tag('head').box(0.4, 0.4, 0.38, 0xf2c29b, 0, 1.75, 0).tag(null).box(0.44, 0.12, 0.44, 0x2fb36b, 0, 2.0, 0).box(0.42, 0.05, 0.22, 0x2fb36b, 0, 1.95, 0.3); // head, green cap
     P.box(0.44, 0.22, 0.08, 0x6b3e1e, 0, 1.84, -0.19); eyes(P, 0.09, 1.78, 0.2, 0.07); P.box(0.14, 0.04, 0.03, 0xb5543c, 0, 1.66, 0.2);
     const leg = new Parts().box(0.22, 0.86, 0.24, 0x3b5bdb, 0, -0.43, 0).box(0.25, 0.13, 0.36, 0x333344, 0, -0.85, 0.05).build();
     const arm = new Parts().box(0.17, 0.32, 0.19, 0xff5d5d, 0, -0.14, 0).box(0.15, 0.32, 0.16, 0xf2c29b, 0, -0.44, 0).build();
@@ -463,60 +476,62 @@ const MODELS = {
   },
   horse() {
     const c = 0x9a5b2e, d = 0x3b2414, P = new Parts();
-    P.box(0.7, 0.8, 1.9, c, 0, 1.35, 0).box(0.36, 0.95, 0.46, c, 0, 1.95, 0.92, -0.5).box(0.34, 0.38, 0.78, c, 0, 2.38, 1.32, 0.3);
-    P.box(0.12, 0.95, 0.26, d, 0, 2.08, 0.8, -0.5).box(0.16, 0.9, 0.16, d, 0, 1.25, -1.05, 0.35).box(0.1, 0.24, 0.02, WHITE, 0, 2.38, 1.72, 0.3);
+    P.tag('body').box(0.7, 0.8, 1.9, c, 0, 1.35, 0).tag(null).tag('head').box(0.34, 0.38, 0.78, c, 0, 2.38, 1.32, 0.3).tag(null);
+    P.along(0, 1.6, 0.72, 0.6, [[0.36, 1.0, 0.46, c, 0, 0.5, 0], [0.12, 1.0, 0.26, d, 0, 0.55, -0.2, null]], 'neck').along(0, 1.62, -0.93, 0.55 - Math.PI / 2, [[0.16, 0.85, 0.16, d, 0, 0.425, 0]], 'tail');
+    P.box(0.1, 0.24, 0.02, WHITE, 0, 2.38, 1.72, 0.3);
     P.box(0.08, 0.2, 0.08, c, 0.1, 2.66, 1.06).box(0.08, 0.2, 0.08, c, -0.1, 2.66, 1.06); eyesSide(P, 0.175, 2.46, 1.36);
     return { P, limbs: legs4(c, d, 0.2, 0.95, 0.24, 0.75) };
   },
   cow() {
     const P = new Parts();
-    P.box(0.9, 0.85, 1.7, WHITE, 0, 1.17, 0).box(0.92, 0.42, 0.55, BLACK, 0, 1.3, 0.25).box(0.5, 0.45, 0.45, BLACK, 0.21, 1.06, -0.45).box(0.4, 0.3, 0.3, BLACK, -0.26, 1.3, -0.4);
-    P.box(0.5, 0.46, 0.52, WHITE, 0, 1.45, 1.05).box(0.52, 0.26, 0.2, 0xf7a8b8, 0, 1.31, 1.33).box(0.08, 0.22, 0.08, 0xf3e6c4, 0.2, 1.76, 1.0).box(0.08, 0.22, 0.08, 0xf3e6c4, -0.2, 1.76, 1.0);
-    P.box(0.22, 0.1, 0.08, BLACK, 0.34, 1.55, 1.0).box(0.22, 0.1, 0.08, BLACK, -0.34, 1.55, 1.0).box(0.3, 0.16, 0.3, 0xf7a8b8, 0, 0.7, -0.3).box(0.06, 0.6, 0.06, WHITE, 0, 1.1, -0.88, 0.2);
+    P.tag('body').box(0.9, 0.85, 1.7, WHITE, 0, 1.17, 0).tag(null).box(0.92, 0.42, 0.55, BLACK, 0, 1.3, 0.25).box(0.5, 0.45, 0.45, BLACK, 0.21, 1.06, -0.45).box(0.4, 0.3, 0.3, BLACK, -0.26, 1.3, -0.4);
+    P.tag('head').box(0.5, 0.46, 0.52, WHITE, 0, 1.45, 1.05).tag(null).box(0.52, 0.26, 0.2, 0xf7a8b8, 0, 1.31, 1.33).box(0.08, 0.22, 0.08, 0xf3e6c4, 0.2, 1.76, 1.0).box(0.08, 0.22, 0.08, 0xf3e6c4, -0.2, 1.76, 1.0);
+    P.box(0.22, 0.1, 0.08, BLACK, 0.34, 1.55, 1.0).box(0.22, 0.1, 0.08, BLACK, -0.34, 1.55, 1.0).box(0.3, 0.16, 0.3, 0xf7a8b8, 0, 0.7, -0.3).along(0, 1.45, -0.83, 0.75 - Math.PI / 2, [[0.07, 0.6, 0.07, WHITE, 0, 0.3, 0], [0.13, 0.16, 0.13, BLACK, 0, 0.66, 0, 'tip']], 'tail');
     eyes(P, 0.13, 1.55, 1.32);
     return { P, limbs: legs4(WHITE, 0x3a3a3a, 0.18, 0.75, 0.3, 0.65) };
   },
   pig() {
     const c = 0xffa3b8, P = new Parts();
-    P.box(0.7, 0.6, 1.0, c, 0, 0.6, 0).box(0.5, 0.46, 0.4, c, 0, 0.72, 0.62).box(0.26, 0.2, 0.12, 0xff7f9f, 0, 0.66, 0.87);
+    P.tag('body').box(0.7, 0.6, 1.0, c, 0, 0.6, 0).tag(null).tag('head').box(0.5, 0.46, 0.4, c, 0, 0.72, 0.62).tag(null).box(0.26, 0.2, 0.12, 0xff7f9f, 0, 0.66, 0.87);
     P.box(0.05, 0.06, 0.02, 0x8a3a50, 0.06, 0.66, 0.935).box(0.05, 0.06, 0.02, 0x8a3a50, -0.06, 0.66, 0.935);
-    P.box(0.15, 0.15, 0.05, 0xff7f9f, 0.16, 0.98, 0.6, 0, 0, -0.4).box(0.15, 0.15, 0.05, 0xff7f9f, -0.16, 0.98, 0.6, 0, 0, 0.4).box(0.08, 0.08, 0.16, c, 0, 0.78, -0.56, -0.8);
+    P.box(0.15, 0.15, 0.05, 0xff7f9f, 0.16, 0.98, 0.6, 0, 0, -0.4).box(0.15, 0.15, 0.05, 0xff7f9f, -0.16, 0.98, 0.6, 0, 0, 0.4).along(0, 0.75, -0.48, 0.9 - Math.PI / 2, [[0.08, 0.2, 0.08, c, 0, 0.1, 0], [0.08, 0.1, 0.08, c, 0, 0.19, 0.05, null]], 'tail');
     eyes(P, 0.13, 0.82, 0.825, 0.055);
     return { P, limbs: legs4(c, 0xc76b82, 0.15, 0.3, 0.22, 0.35) };
   },
   chicken() {
     const P = new Parts();
-    P.box(0.4, 0.4, 0.5, WHITE, 0, 0.47, 0).box(0.22, 0.26, 0.22, WHITE, 0, 0.8, 0.22).box(0.06, 0.13, 0.2, 0xff3b3b, 0, 0.98, 0.22).box(0.09, 0.07, 0.13, 0xffb81f, 0, 0.79, 0.38);
-    P.box(0.05, 0.09, 0.05, 0xff3b3b, 0, 0.71, 0.35).box(0.22, 0.26, 0.1, WHITE, 0, 0.66, -0.28, -0.4).box(0.06, 0.26, 0.32, 0xf1efe8, 0.22, 0.49, 0).box(0.06, 0.26, 0.32, 0xf1efe8, -0.22, 0.49, 0);
+    P.tag('body').box(0.4, 0.4, 0.5, WHITE, 0, 0.47, 0).tag(null).tag('head').box(0.22, 0.26, 0.22, WHITE, 0, 0.8, 0.22).tag(null).box(0.06, 0.13, 0.2, 0xff3b3b, 0, 0.98, 0.22).box(0.09, 0.07, 0.13, 0xffb81f, 0, 0.79, 0.38);
+    P.box(0.05, 0.09, 0.05, 0xff3b3b, 0, 0.71, 0.35).along(0, 0.6, -0.22, 0.9 - Math.PI / 2, [[0.22, 0.3, 0.08, WHITE, 0, 0.15, 0]], 'tail').box(0.06, 0.26, 0.32, 0xf1efe8, 0.22, 0.49, 0).box(0.06, 0.26, 0.32, 0xf1efe8, -0.22, 0.49, 0);
     eyesSide(P, 0.115, 0.84, 0.27, 0.05);
     const leg = new Parts().box(0.05, 0.27, 0.05, 0xffb81f, 0, -0.135, 0).box(0.13, 0.03, 0.15, 0xffb81f, 0, -0.26, 0.03).build();
     return { P, limbs: [{ geo: leg, at: [0.1, 0.28, 0], kind: 'leg', ph: 0 }, { geo: leg, at: [-0.1, 0.28, 0], kind: 'leg', ph: Math.PI }] };
   },
   dog() {
     const c = 0xd9a441, P = new Parts();
-    P.box(0.45, 0.45, 0.95, c, 0, 0.62, 0).box(0.38, 0.36, 0.4, c, 0, 0.92, 0.55).box(0.22, 0.18, 0.24, 0xf1d08a, 0, 0.85, 0.82).box(0.09, 0.08, 0.05, BLACK, 0, 0.9, 0.95);
+    P.tag('body').box(0.45, 0.45, 0.95, c, 0, 0.62, 0).tag(null).tag('head').box(0.38, 0.36, 0.4, c, 0, 0.92, 0.55).tag(null).box(0.22, 0.18, 0.24, 0xf1d08a, 0, 0.85, 0.82).box(0.09, 0.08, 0.05, BLACK, 0, 0.9, 0.95);
     P.box(0.08, 0.26, 0.16, 0x8a5a24, 0.22, 0.87, 0.5).box(0.08, 0.26, 0.16, 0x8a5a24, -0.22, 0.87, 0.5).box(0.4, 0.08, 0.12, 0xff3b6b, 0, 0.77, 0.42);
-    P.box(0.08, 0.08, 0.42, c, 0, 0.86, -0.6, -0.8); eyes(P, 0.1, 0.98, 0.755, 0.055);
+    P.along(0, 0.78, -0.45, 1.15 - Math.PI / 2, [[0.08, 0.42, 0.08, c, 0, 0.21, 0]], 'tail'); eyes(P, 0.1, 0.98, 0.755, 0.055);
     return { P, limbs: legs4(c, 0xb07f2c, 0.12, 0.4, 0.15, 0.36) };
   },
   cat() {
     const c = 0xf29a3a, s = 0xc8701c, P = new Parts();
-    P.box(0.3, 0.3, 0.7, c, 0, 0.43, 0); for (const z of [-0.22, -0.02, 0.18]) P.box(0.31, 0.06, 0.08, s, 0, 0.56, z);
-    P.box(0.32, 0.28, 0.28, c, 0, 0.68, 0.42).box(0.15, 0.1, 0.06, WHITE, 0, 0.62, 0.57).cone(0.075, 0.15, c, 0.1, 0.88, 0.42, 0, 0, 0, 4).cone(0.075, 0.15, c, -0.1, 0.88, 0.42, 0, 0, 0, 4);
-    P.box(0.06, 0.06, 0.6, c, 0, 0.78, -0.55, -1.0); eyes(P, 0.08, 0.72, 0.565, 0.05, 0x2fbf5a);
+    P.tag('body').box(0.3, 0.3, 0.7, c, 0, 0.43, 0).tag(null); for (const z of [-0.22, -0.02, 0.18]) P.box(0.31, 0.06, 0.08, s, 0, 0.56, z);
+    P.tag('head').box(0.32, 0.28, 0.28, c, 0, 0.68, 0.42).tag(null).box(0.15, 0.1, 0.06, WHITE, 0, 0.62, 0.57).cone(0.075, 0.15, c, 0.1, 0.88, 0.42, 0, 0, 0, 4).cone(0.075, 0.15, c, -0.1, 0.88, 0.42, 0, 0, 0, 4);
+    P.along(0, 0.52, -0.33, 1.0 - Math.PI / 2, [[0.06, 0.55, 0.06, c, 0, 0.275, 0]], 'tail'); eyes(P, 0.08, 0.72, 0.565, 0.05, 0x2fbf5a);
     return { P, limbs: legs4(c, WHITE, 0.08, 0.28, 0.1, 0.26) };
   },
   wolf() {
     const c = 0x8a8f99, l = 0xc9ccd2, P = new Parts();
-    P.box(0.45, 0.5, 1.05, c, 0, 0.75, 0).box(0.4, 0.3, 0.6, l, 0, 0.58, 0.1).box(0.36, 0.34, 0.38, c, 0, 1.05, 0.65).box(0.2, 0.16, 0.28, l, 0, 0.97, 0.92).box(0.08, 0.07, 0.05, BLACK, 0, 1.02, 1.07);
-    P.cone(0.08, 0.2, c, 0.11, 1.3, 0.6, 0, 0, 0, 4).cone(0.08, 0.2, c, -0.11, 1.3, 0.6, 0, 0, 0, 4).box(0.17, 0.17, 0.62, c, 0, 0.72, -0.76, 0.5);
+    P.tag('body').box(0.45, 0.5, 1.05, c, 0, 0.75, 0).tag(null).box(0.4, 0.3, 0.6, l, 0, 0.58, 0.1).tag('head').box(0.36, 0.34, 0.38, c, 0, 1.05, 0.65).tag(null).box(0.2, 0.16, 0.28, l, 0, 0.97, 0.92).box(0.08, 0.07, 0.05, BLACK, 0, 1.02, 1.07);
+    P.cone(0.08, 0.2, c, 0.11, 1.3, 0.6, 0, 0, 0, 4).cone(0.08, 0.2, c, -0.11, 1.3, 0.6, 0, 0, 0, 4).along(0, 0.86, -0.5, 0.55 - Math.PI / 2, [[0.17, 0.62, 0.17, c, 0, 0.31, 0]], 'tail');
     eyes(P, 0.09, 1.1, 0.845, 0.055, 0xffd23f);
     return { P, limbs: legs4(c, 0x5a5f69, 0.12, 0.5, 0.15, 0.4) };
   },
   deer() {
     const c = 0xc0814a, a = 0xf3e6c4, P = new Parts();
-    P.box(0.45, 0.5, 1.1, c, 0, 1.1, 0).box(0.2, 0.58, 0.25, c, 0, 1.5, 0.55, -0.35).box(0.26, 0.26, 0.42, c, 0, 1.8, 0.75).box(0.08, 0.07, 0.05, BLACK, 0, 1.78, 0.97);
-    P.box(0.14, 0.18, 0.08, WHITE, 0, 1.25, -0.58).box(0.08, 0.18, 0.05, c, 0.16, 1.95, 0.66, 0, 0, -0.7).box(0.08, 0.18, 0.05, c, -0.16, 1.95, 0.66, 0, 0, 0.7);
+    P.tag('body').box(0.45, 0.5, 1.1, c, 0, 1.1, 0).tag(null).tag('head').box(0.26, 0.26, 0.42, c, 0, 1.8, 0.75).tag(null).box(0.08, 0.07, 0.05, BLACK, 0, 1.78, 0.97);
+    P.along(0, 1.25, 0.43, 0.42, [[0.2, 0.64, 0.25, c, 0, 0.32, 0]], 'neck').along(0, 1.25, -0.53, 0.7 - Math.PI / 2, [[0.14, 0.2, 0.08, WHITE, 0, 0.1, 0]], 'tail');
+    P.box(0.08, 0.18, 0.05, c, 0.16, 1.95, 0.66, 0, 0, -0.7).box(0.08, 0.18, 0.05, c, -0.16, 1.95, 0.66, 0, 0, 0.7);
     for (const s of [1, -1]) P.box(0.05, 0.36, 0.05, a, 0.1 * s, 2.08, 0.72, 0, 0, -0.4 * s).box(0.05, 0.22, 0.05, a, 0.24 * s, 2.24, 0.72, 0, 0, 0.35 * s).box(0.05, 0.18, 0.05, a, 0.17 * s, 2.3, 0.78, 0.3, 0, -0.2 * s);
     for (const [x, z] of [[0.12, 0.2], [-0.1, -0.1], [0.05, -0.3], [-0.14, 0.3]]) P.box(0.08, 0.02, 0.08, WHITE, x, 1.36, z);
     eyesSide(P, 0.135, 1.86, 0.82);
@@ -524,52 +539,53 @@ const MODELS = {
   },
   bear() {
     const c = 0x6b4423, P = new Parts();
-    P.box(0.9, 0.85, 1.5, c, 0, 0.98, 0).box(0.7, 0.3, 0.5, c, 0, 1.45, 0.25).box(0.55, 0.5, 0.5, c, 0, 1.25, 0.95).box(0.28, 0.22, 0.22, 0xa77b52, 0, 1.15, 1.26);
+    P.tag('body').box(0.9, 0.85, 1.5, c, 0, 0.98, 0).tag(null).box(0.7, 0.3, 0.5, c, 0, 1.45, 0.25).tag('head').box(0.55, 0.5, 0.5, c, 0, 1.25, 0.95).tag(null).box(0.28, 0.22, 0.22, 0xa77b52, 0, 1.15, 1.26);
     P.box(0.12, 0.1, 0.06, BLACK, 0, 1.22, 1.38).box(0.15, 0.15, 0.08, c, 0.2, 1.56, 0.9).box(0.15, 0.15, 0.08, c, -0.2, 1.56, 0.9); eyes(P, 0.13, 1.34, 1.205, 0.06);
     return { P, limbs: legs4(c, 0x3b2414, 0.26, 0.55, 0.28, 0.5) };
   },
   fox() {
     const c = 0xf07a26, P = new Parts();
-    P.box(0.3, 0.3, 0.7, c, 0, 0.45, 0).box(0.2, 0.2, 0.2, WHITE, 0, 0.42, 0.3).box(0.3, 0.28, 0.28, c, 0, 0.62, 0.45).box(0.14, 0.12, 0.22, WHITE, 0, 0.56, 0.66).box(0.06, 0.06, 0.04, BLACK, 0, 0.6, 0.78);
-    P.cone(0.07, 0.18, c, 0.09, 0.84, 0.42, 0, 0, 0, 4).cone(0.07, 0.18, c, -0.09, 0.84, 0.42, 0, 0, 0, 4).box(0.2, 0.2, 0.52, c, 0, 0.5, -0.55, 0.4).box(0.21, 0.21, 0.16, WHITE, 0, 0.39, -0.81, 0.4);
+    P.tag('body').box(0.3, 0.3, 0.7, c, 0, 0.45, 0).tag(null).box(0.2, 0.2, 0.2, WHITE, 0, 0.42, 0.3).tag('head').box(0.3, 0.28, 0.28, c, 0, 0.62, 0.45).tag(null).box(0.14, 0.12, 0.22, WHITE, 0, 0.56, 0.66).box(0.06, 0.06, 0.04, BLACK, 0, 0.6, 0.78);
+    P.cone(0.07, 0.18, c, 0.09, 0.84, 0.42, 0, 0, 0, 4).cone(0.07, 0.18, c, -0.09, 0.84, 0.42, 0, 0, 0, 4).along(0, 0.52, -0.33, 0.45 - Math.PI / 2, [[0.2, 0.5, 0.2, c, 0, 0.25, 0], [0.21, 0.16, 0.21, WHITE, 0, 0.58, 0, 'tip']], 'tail');
     eyes(P, 0.08, 0.67, 0.595, 0.045);
     return { P, limbs: legs4(0x2a1d16, BLACK, 0.07, 0.3, 0.1, 0.25) };
   },
   rabbit() {
     const c = 0xe9e4dc, P = new Parts();
-    P.box(0.35, 0.34, 0.45, c, 0, 0.32, 0).box(0.26, 0.26, 0.26, c, 0, 0.55, 0.22).box(0.07, 0.36, 0.04, c, 0.06, 0.86, 0.18).box(0.07, 0.36, 0.04, c, -0.06, 0.86, 0.18);
-    P.box(0.04, 0.26, 0.01, 0xffb3c1, 0.06, 0.86, 0.205).box(0.04, 0.26, 0.01, 0xffb3c1, -0.06, 0.86, 0.205).ball(0.09, WHITE, 0, 0.38, -0.25).box(0.05, 0.04, 0.03, 0xff8fa8, 0, 0.53, 0.36);
+    P.tag('body').box(0.35, 0.34, 0.45, c, 0, 0.32, 0).tag(null).tag('head').box(0.26, 0.26, 0.26, c, 0, 0.55, 0.22).tag(null).box(0.07, 0.36, 0.04, c, 0.06, 0.86, 0.18).box(0.07, 0.36, 0.04, c, -0.06, 0.86, 0.18);
+    P.box(0.04, 0.26, 0.01, 0xffb3c1, 0.06, 0.86, 0.205).box(0.04, 0.26, 0.01, 0xffb3c1, -0.06, 0.86, 0.205).tag('tail').ball(0.09, WHITE, 0, 0.38, -0.25).tag(null).box(0.05, 0.04, 0.03, 0xff8fa8, 0, 0.53, 0.36);
     eyes(P, 0.075, 0.6, 0.355, 0.05);
     return { P, limbs: legs4(c, 0xd8d0c4, 0.08, 0.15, 0.1, 0.14) };
   },
   lion() {
     const c = 0xe0a63c, m = 0x9a4f1a, P = new Parts();
-    P.box(0.6, 0.65, 1.3, c, 0, 0.92, 0).box(0.78, 0.78, 0.42, m, 0, 1.2, 0.62).box(0.44, 0.42, 0.4, c, 0, 1.18, 0.86).box(0.24, 0.18, 0.18, 0xf3d48a, 0, 1.08, 1.1);
-    P.box(0.1, 0.08, 0.05, 0x5a2f14, 0, 1.15, 1.2).box(0.07, 0.07, 0.8, c, 0, 0.98, -0.95, 0.6).box(0.13, 0.13, 0.15, m, 0, 0.7, -1.28); eyes(P, 0.11, 1.26, 1.065, 0.06);
+    P.tag('body').box(0.6, 0.65, 1.3, c, 0, 0.92, 0).tag(null).box(0.78, 0.78, 0.42, m, 0, 1.2, 0.62).tag('head').box(0.44, 0.42, 0.4, c, 0, 1.18, 0.86).tag(null).box(0.24, 0.18, 0.18, 0xf3d48a, 0, 1.08, 1.1);
+    P.box(0.1, 0.08, 0.05, 0x5a2f14, 0, 1.15, 1.2).along(0, 1.1, -0.63, 0.75 - Math.PI / 2, [[0.07, 0.8, 0.07, c, 0, 0.4, 0], [0.14, 0.16, 0.14, m, 0, 0.86, 0, 'tip']], 'tail'); eyes(P, 0.11, 1.26, 1.065, 0.06);
     return { P, limbs: legs4(c, 0xb07f2c, 0.16, 0.6, 0.2, 0.5) };
   },
   elephant() {
     const c = 0x9aa1ab, P = new Parts();
-    P.box(1.5, 1.4, 2.2, c, 0, 1.8, 0).box(1.0, 1.0, 0.8, c, 0, 2.3, 1.35).box(0.1, 1.1, 0.9, 0xb9a9b4, 0.62, 2.3, 1.15, 0, 0.3, -0.15).box(0.1, 1.1, 0.9, 0xb9a9b4, -0.62, 2.3, 1.15, 0, -0.3, 0.15);
+    P.tag('body').box(1.5, 1.4, 2.2, c, 0, 1.8, 0).tag(null).tag('head').box(1.0, 1.0, 0.8, c, 0, 2.3, 1.35).tag(null).box(0.1, 1.1, 0.9, 0xb9a9b4, 0.62, 2.3, 1.15, 0, 0.3, -0.15).box(0.1, 1.1, 0.9, 0xb9a9b4, -0.62, 2.3, 1.15, 0, -0.3, 0.15);
     P.box(0.32, 0.6, 0.32, c, 0, 1.85, 1.78).box(0.26, 0.6, 0.26, c, 0, 1.36, 1.86, 0.2).box(0.22, 0.4, 0.22, c, 0, 1.02, 2.0, 0.6);
-    P.box(0.1, 0.1, 0.55, 0xfffbea, 0.26, 1.8, 1.9, 0.45).box(0.1, 0.1, 0.55, 0xfffbea, -0.26, 1.8, 1.9, 0.45).box(0.06, 0.7, 0.06, c, 0, 1.6, -1.15, 0.25); eyes(P, 0.3, 2.5, 1.755, 0.08);
+    P.box(0.1, 0.1, 0.55, 0xfffbea, 0.26, 1.8, 1.9, 0.45).box(0.1, 0.1, 0.55, 0xfffbea, -0.26, 1.8, 1.9, 0.45).along(0, 2.2, -1.08, 0.6 - Math.PI / 2, [[0.07, 0.7, 0.07, c, 0, 0.35, 0], [0.12, 0.14, 0.12, 0x4a4f57, 0, 0.75, 0, 'tip']], 'tail'); eyes(P, 0.3, 2.5, 1.755, 0.08);
     return { P, limbs: legs4(c, 0xe8e1d0, 0.42, 1.1, 0.48, 0.75) };
   },
   giraffe() {
     const c = 0xf2c14e, s = 0x9c5a2c, P = new Parts();
-    P.box(0.7, 0.8, 1.4, c, 0, 1.9, 0).box(0.28, 2.1, 0.32, c, 0, 3.15, 0.72, -0.32).box(0.3, 0.3, 0.55, c, 0, 4.18, 1.08).box(0.06, 1.9, 0.08, s, 0, 3.2, 0.52, -0.32);
-    P.box(0.06, 0.22, 0.06, s, 0.08, 4.42, 0.95).box(0.06, 0.22, 0.06, s, -0.08, 4.42, 0.95).box(0.1, 0.08, 0.05, s, 0, 4.12, 1.36).box(0.05, 0.6, 0.05, c, 0, 1.8, -0.75, 0.3);
+    P.tag('body').box(0.7, 0.8, 1.4, c, 0, 1.9, 0).tag(null).tag('head').box(0.3, 0.3, 0.55, c, 0, 4.18, 1.08).tag(null);
+    P.along(0, 2.15, 0.5, 0.32, [[0.28, 2.1, 0.32, c, 0, 1.05, 0], [0.06, 1.9, 0.08, s, 0, 1.1, -0.17, null],
+      ...[0.55, 1.05, 1.55].flatMap((t) => [[0.02, 0.2, 0.18, s, 0.145, t, 0, null], [0.02, 0.2, 0.18, s, -0.145, t, 0, null]])], 'neck');
+    P.box(0.06, 0.22, 0.06, s, 0.08, 4.42, 0.95).box(0.06, 0.22, 0.06, s, -0.08, 4.42, 0.95).box(0.1, 0.08, 0.05, s, 0, 4.12, 1.36).along(0, 2.05, -0.68, 0.6 - Math.PI / 2, [[0.05, 0.6, 0.05, c, 0, 0.3, 0], [0.1, 0.16, 0.1, s, 0, 0.66, 0, 'tip']], 'tail');
     const spots = [[0.36, 2.0, 0.3], [0.36, 1.8, -0.3], [0.36, 2.1, -0.05], [-0.36, 2.0, 0.25], [-0.36, 1.75, -0.35], [-0.36, 2.1, -0.1]];
     for (const [x, y, z] of spots) P.box(0.02, 0.22, 0.26, s, x, y, z);
-    for (const [y, z] of [[2.7, 0.57], [3.2, 0.73], [3.7, 0.89]]) { P.box(0.02, 0.2, 0.18, s, 0.145, y, z, -0.32).box(0.02, 0.2, 0.18, s, -0.145, y, z, -0.32); }
     eyesSide(P, 0.155, 4.25, 1.15, 0.07);
     return { P, limbs: legs4(c, 0x5a3a1a, 0.14, 1.5, 0.22, 0.5) };
   },
   cheetah() {
     const c = 0xf0c050, P = new Parts();
-    P.box(0.38, 0.4, 1.15, c, 0, 0.75, 0).box(0.3, 0.28, 0.32, c, 0, 0.95, 0.7).box(0.16, 0.12, 0.14, 0xfbe6b0, 0, 0.88, 0.89).box(0.07, 0.06, 0.04, BLACK, 0, 0.92, 0.96);
+    P.tag('body').box(0.38, 0.4, 1.15, c, 0, 0.75, 0).tag(null).tag('head').box(0.3, 0.28, 0.32, c, 0, 0.95, 0.7).tag(null).box(0.16, 0.12, 0.14, 0xfbe6b0, 0, 0.88, 0.89).box(0.07, 0.06, 0.04, BLACK, 0, 0.92, 0.96);
     P.box(0.03, 0.14, 0.02, BLACK, 0.07, 0.88, 0.87).box(0.03, 0.14, 0.02, BLACK, -0.07, 0.88, 0.87).box(0.09, 0.09, 0.04, c, 0.1, 1.12, 0.62).box(0.09, 0.09, 0.04, c, -0.1, 1.12, 0.62);
-    P.box(0.06, 0.06, 0.9, c, 0, 0.78, -0.95, 0.3).box(0.07, 0.07, 0.12, BLACK, 0, 0.62, -1.38, 0.3);
+    P.along(0, 0.85, -0.55, 0.6 - Math.PI / 2, [[0.06, 0.9, 0.06, c, 0, 0.45, 0], [0.075, 0.14, 0.075, BLACK, 0, 0.96, 0, 'tip']], 'tail');
     for (const [x, y, z] of [[0.195, 0.8, 0.3], [0.195, 0.7, -0.1], [0.195, 0.85, -0.35], [-0.195, 0.78, 0.25], [-0.195, 0.72, -0.15], [-0.195, 0.84, -0.4], [0.1, 0.955, 0.1], [-0.08, 0.955, -0.25]])
       P.box(x === 0.195 || x === -0.195 ? 0.01 : 0.08, x === 0.195 || x === -0.195 ? 0.08 : 0.01, 0.08, BLACK, x, y, z);
     eyes(P, 0.08, 1.0, 0.865, 0.05);
@@ -577,21 +593,21 @@ const MODELS = {
   },
   eagle() {
     const c = 0x6b4a2b, P = new Parts();
-    P.box(0.36, 0.32, 0.7, c, 0, 0.45, 0).box(0.28, 0.28, 0.3, WHITE, 0, 0.7, 0.4).box(0.1, 0.1, 0.17, 0xffc21f, 0, 0.65, 0.6, 0.3).box(0.3, 0.06, 0.32, WHITE, 0, 0.45, -0.46);
+    P.tag('body').box(0.36, 0.32, 0.7, c, 0, 0.45, 0).tag(null).tag('head').box(0.28, 0.28, 0.3, WHITE, 0, 0.7, 0.4).tag(null).box(0.1, 0.1, 0.17, 0xffc21f, 0, 0.65, 0.6, 0.3).along(0, 0.45, -0.33, 0.1 - Math.PI / 2, [[0.3, 0.34, 0.06, WHITE, 0, 0.17, 0]], 'tail');
     P.box(0.05, 0.22, 0.05, 0xffc21f, 0.1, 0.2, 0).box(0.05, 0.22, 0.05, 0xffc21f, -0.1, 0.2, 0); eyes(P, 0.08, 0.76, 0.555, 0.05);
     const wing = (s) => new Parts().box(1.05, 0.06, 0.46, c, 0.52 * s, 0, 0).box(0.35, 0.05, 0.4, 0x4a3018, 0.95 * s, 0, -0.05).build();
     return { P, limbs: [{ geo: wing(1), at: [0.17, 0.55, 0], kind: 'wingL', ph: 0 }, { geo: wing(-1), at: [-0.17, 0.55, 0], kind: 'wingR', ph: 0 }] };
   },
   fish() {
     const c = 0xff8c1a, P = new Parts();
-    P.box(0.22, 0.38, 0.58, c, 0, 0.3, 0).box(0.23, 0.39, 0.08, WHITE, 0, 0.3, 0.1).box(0.23, 0.33, 0.07, WHITE, 0, 0.3, -0.15).box(0.04, 0.14, 0.24, 0xe0661a, 0, 0.53, -0.02);
+    P.tag('body').box(0.22, 0.38, 0.58, c, 0, 0.3, 0).tag(null).box(0.23, 0.39, 0.08, WHITE, 0, 0.3, 0.1).box(0.23, 0.33, 0.07, WHITE, 0, 0.3, -0.15).box(0.04, 0.14, 0.24, 0xe0661a, 0, 0.53, -0.02);
     P.box(0.14, 0.04, 0.14, 0xe0661a, 0.14, 0.2, 0.08, 0, 0, -0.5).box(0.14, 0.04, 0.14, 0xe0661a, -0.14, 0.2, 0.08, 0, 0, 0.5); eyesSide(P, 0.115, 0.37, 0.18, 0.07);
     const tail = new Parts().box(0.04, 0.32, 0.22, 0xe0661a, 0, 0, -0.11).build();
     return { P, limbs: [{ geo: tail, at: [0, 0.3, -0.29], kind: 'tail', ph: 0 }] };
   },
   dolphin() {
     const c = 0x6f9fc8, P = new Parts();
-    P.box(0.55, 0.55, 1.8, c, 0, 0.4, 0).box(0.5, 0.22, 1.5, 0xdfe9f2, 0, 0.2, 0.05).box(0.26, 0.2, 0.46, c, 0, 0.34, 1.1).box(0.06, 0.42, 0.36, c, 0, 0.8, -0.1, -0.45);
+    P.tag('body').box(0.55, 0.55, 1.8, c, 0, 0.4, 0).tag(null).box(0.5, 0.22, 1.5, 0xdfe9f2, 0, 0.2, 0.05).tag('head').box(0.26, 0.2, 0.46, c, 0, 0.34, 1.1).tag(null).box(0.06, 0.42, 0.36, c, 0, 0.8, -0.1, -0.45);
     P.box(0.5, 0.05, 0.25, c, 0.36, 0.25, 0.35, 0, 0, -0.4).box(0.5, 0.05, 0.25, c, -0.36, 0.25, 0.35, 0, 0, 0.4); eyesSide(P, 0.28, 0.48, 0.7, 0.07);
     const tail = new Parts().box(0.22, 0.16, 0.55, c, 0, 0, -0.27).box(0.9, 0.06, 0.32, c, 0, 0, -0.6).build();
     return { P, limbs: [{ geo: tail, at: [0, 0.4, -0.9], kind: 'fluke', ph: 0 }] };
@@ -1585,6 +1601,24 @@ window.__ww = {
       programs: renderer.info.programs?.length ?? null, frames };
   },
   openWheel, openBook, openPause, closeOverlay, toggleView, thumbs: THUMB, makeModel,
+  // a model's tagged parts in world space (built at `at`, facing +z): each part's box and the two ends of its long axis;
+  // swinging tails (fish, dolphin) give their pivot and their far end
+  anatomy(id, at = [12, 3, -7]) {
+    const g = makeModel(id); g.position.set(...at); g.updateMatrixWorld(true);
+    const body = g.children[0], W = body.matrixWorld, v = (a) => new V3(...a);
+    const parts = body.geometry.userData.anat.map((q) => {
+      const m = new THREE.Matrix4().fromArray(q.m), box = new THREE.Box3(v(q.min), v(q.max)).applyMatrix4(W);
+      let e1, e2;
+      if (q.dims) { const k = q.dims.indexOf(Math.max(...q.dims)), u = [0, 0, 0]; u[k] = q.dims[k] / 2; e1 = v(u).applyMatrix4(m).applyMatrix4(W); e2 = v(u.map((x) => -x)).applyMatrix4(m).applyMatrix4(W); }
+      else { const c = new V3().setFromMatrixPosition(m).applyMatrix4(W); e1 = c.clone().add(new V3(0, 0, q.r)); e2 = c.clone().add(new V3(0, 0, -q.r)); }
+      const size = q.dims ? Math.max(...q.dims) : q.r * 2;
+      return { role: q.role, min: box.min.toArray(), max: box.max.toArray(), ends: [e1.toArray(), e2.toArray()], size };
+    });
+    const swing = g.userData.limbs.filter((l) => l.userData.kind === 'tail' || l.userData.kind === 'fluke').map((l) => {
+      l.geometry.computeBoundingBox(); return { role: 'tail', ends: [l.getWorldPosition(new V3()).toArray(), new V3(0, 0, l.geometry.boundingBox.min.z).applyMatrix4(l.matrixWorld).toArray()], swing: true };
+    });
+    return { id, at, parts: [...parts, ...swing] };
+  },
 };
 </script>
 </body>
