@@ -1601,8 +1601,6 @@ window.__ww = {
       programs: renderer.info.programs?.length ?? null, frames };
   },
   openWheel, openBook, openPause, closeOverlay, toggleView, thumbs: THUMB, makeModel,
-  // a model's tagged parts in world space (built at `at`, facing +z): each part's box and the two ends of its long axis;
-  // swinging tails (fish, dolphin) give their pivot and their far end
   // the player's tails as the play camera sees them: shown = how much of the tail's length faces the camera
   // (1 side-on, 0 end-on: |dir x ray to its middle|), and on-screen widths (px, across the tail's screen line) of each tail and its tip
   tailView() {
@@ -1626,6 +1624,8 @@ window.__ww = {
     }
     return { form: P.form, tails: out.map(({ across, ...t }) => t), camD: camera.position.distanceTo(P.model.position) };
   },
+  // a model's tagged parts in world space (built at `at`, facing +z): each part's box and the two ends of its long axis;
+  // swinging tails (fish, dolphin) give their pivot and their far end
   anatomy(id, at = [12, 3, -7]) {
     const g = makeModel(id); g.position.set(...at); g.updateMatrixWorld(true);
     const body = g.children[0], W = body.matrixWorld, v = (a) => new V3(...a);
