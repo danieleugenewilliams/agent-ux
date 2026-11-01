@@ -10,7 +10,7 @@
 //   /pre49.html         the build before profiles (#49) existed (robot-battle.html at 796c87c): records, no list
 // The older builds are fetched with git into memory; their seeded players are always picked by index, never by name.
 //
-//   names   - no name in the source: robot-battle.html and every file in scripts/ are searched for the two seeded names
+//   names   - no name in the source: robot-battle.html, wild-world.html and every file in scripts/ are searched for the two seeded names
 //             (as a hash of every 5- and 6-letter run, so this file doesn't hold the names either).
 //   fresh   - a fresh device (empty storage): the title shows Guest and ➕ only, no profile, and nothing is written by loading.
 //   current - a device with the list made before #161 (base.html seeded it; a third profile added; both seeded children
@@ -23,8 +23,9 @@
 //             "list can't be read" fallback makes the same profiles from the records and writes nothing.
 //   backups - restores: a backup made by pre49.html (no list) onto a fresh device; one made by base.html (the list with the
 //             old ladder ids); one made by this build (new ladder ids); each with every choice, the profiles, records,
-//             ladders, garages and settings coming back value for value. With --backup FILE (repeatable): each real
-//             backup restores onto a fresh device completely; only counts are printed, never a name or a value.
+//             ladders, garages and settings coming back value for value.
+//   real    - with --backup FILE (repeatable): each real backup restores onto a fresh device completely, and each child
+//             loads from it on their ladder; only counts are printed, never a name or a value (skipped with no --backup).
 //   ladder  - a new profile can pick either ladder (the hook, and the maker's buttons by touch, keys and pad), and the
 //             parent view switches a profile's ladder both ways, keeping every fact; the same ladder writes nothing.
 //   WxH     - the profile maker at that size: every control on screen, none overlapping another, the maker not scrolling;
@@ -33,7 +34,7 @@
 // Usage:
 //   node scripts/rb-no-names.mjs                           # every run (the real-backup check skipped)
 //   node scripts/rb-no-names.mjs --backup ~/path/backup.json   # and restore that backup (repeatable)
-//   node scripts/rb-no-names.mjs --run current             # one run (repeatable): names | fresh | current | pre49 | backups | ladder | WxH
+//   node scripts/rb-no-names.mjs --run current             # one run (repeatable): names | fresh | current | pre49 | backups | real | ladder | WxH
 //   node scripts/rb-no-names.mjs --shots DIR               # also save screenshots of the maker and the parent view
 //   node scripts/rb-no-names.mjs path/to/robot-battle.html --json
 // Sizes: 360x740, 568x320, 740x360, 844x390, 667x375, 768x1024 and 820x1180.
@@ -59,7 +60,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['names', 'fresh', 'current', 'pre49', 'backups', 'ladder', ...SIZES];
+const runs = picked.length ? picked : ['names', 'fresh', 'current', 'pre49', 'backups', 'real', 'ladder', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const page = path.resolve(target ?? path.join(repo, 'robot-battle.html'));
 if (shots) fs.mkdirSync(shots, { recursive: true });
@@ -127,7 +128,7 @@ async function kill(S) {
 }
 process.on('exit', () => { killSync(shared); closeServer(); });
 for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129]]) process.on(sig, () => { kill(shared).finally(() => { closeServer(); process.exit(code); }); });
-const HARD_TIMEOUT_MS = 30 * 60 * 1000;
+const HARD_TIMEOUT_MS = 60 * 60 * 1000;
 setTimeout(() => { console.error(`hard timeout: over ${HARD_TIMEOUT_MS / 60000} min; closing Chrome`); kill(shared).finally(() => { closeServer(); process.exit(124); }); }, HARD_TIMEOUT_MS).unref();
 
 const KEYS = {};   // code -> [key, windowsVirtualKeyCode]
@@ -220,7 +221,7 @@ async function runNames() {
   // (the hash list itself: the game's LADDER_OLD holds the same two)
   const src = fs.readFileSync(page, 'utf8');
   ok("the game's LADDER_OLD keys are these two hashes", [...NAME_HASHES].every((h) => src.includes(`'${h}'`)));
-  const files = [page, ...fs.readdirSync(path.join(repo, 'scripts')).map((f) => path.join(repo, 'scripts', f)).filter((f) => fs.statSync(f).isFile())];
+  const files = [page, path.join(repo, 'wild-world.html'), ...fs.readdirSync(path.join(repo, 'scripts')).map((f) => path.join(repo, 'scripts', f)).filter((f) => fs.statSync(f).isFile())];
   for (const f of files) {
     const text = fs.readFileSync(f, 'utf8').toLowerCase(); let hits = 0;
     for (let i = 0; i < text.length; i++) for (const n of [5, 6]) if (i + n <= text.length && NAME_HASHES.has(fnv(text.slice(i, i + n)))) hits++;
@@ -436,7 +437,12 @@ async function runBackups(C) {
     ok("(known limit) base.html, from before #161, refuses a profile made since: it doesn't know the ladder ids start and check", !x.ok, x);
   }
 
-  // the real backups (counts only)
+  return out;
+}
+
+// ---- real: each backup given with --backup restores onto a fresh device completely (counts only, never a name or value)
+async function runReal(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name: 'real: ' + name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   for (const [i, f] of backups.entries()) {
     const label = `real backup ${i + 1} of ${backups.length}`;
     let bk = null; try { bk = JSON.parse(fs.readFileSync(f, 'utf8')); } catch { bk = null; }
@@ -615,7 +621,7 @@ async function main() {
         if (run === 'names') return runNames();
         const C = await connect(S);
         const res = run === 'fresh' ? await runFresh(C) : run === 'current' ? await runCurrent(C) : run === 'pre49' ? await runPre49(C) : run === 'backups' ? await runBackups(C)
-          : run === 'ladder' ? await runLadder(C) : /^\d+x\d+$/.test(run) ? await runSize(C, run) : (() => { throw new Error('no such run'); })();
+          : run === 'ladder' ? await runLadder(C) : run === 'real' ? await runReal(C) : /^\d+x\d+$/.test(run) ? await runSize(C, run) : (() => { throw new Error('no such run'); })();
         res.push({ name: run + ': no page errors', pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
         return res;
       })();
