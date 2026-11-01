@@ -1239,7 +1239,7 @@ const GAME_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowR
 addEventListener('keydown', (e) => {
   Sfx.unlock();
   const a = document.activeElement;
-  if ((e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') && a && a._tap) { e.preventDefault(); if (!e.repeat) a._tap(e); return; }
+  if ((e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') && a && a._tap && a.closest('.ov.on')) { e.preventDefault(); if (!e.repeat) a._tap(e); return; }
   if (overlay === 'wheel') { wheelKey(e); return; }
   if (overlay === 'book') { if (e.code === 'Escape' || e.code === 'KeyB') { e.preventDefault(); closeOverlay(); } return; }
   if (overlay === 'pause') { if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); closeOverlay(); } return; }
@@ -1272,19 +1272,57 @@ function padLabels() {
   const jb = el('jump'); if (jb) jb.innerHTML = (f === 'eagle' ? ICON.wing : ICON.jump) + `<span>${f === 'eagle' ? 'FLY' : isSwimmer(f) ? 'UP' : 'JUMP'}</span>`;
 }
 
+// ---------- gamepad (read every frame): left stick moves, right stick looks, A jump / fly, X or B power, Y the wheel,
+// RB or LB the view, Back the book, Start pause. In the wheel, book and menus: the d-pad (or stick) moves, A picks, B goes back.
+const GP = { x: 0, y: 0, rx: 0, ry: 0, jump: false, power: false, jumpP: false, powerP: false, prev: {}, rep: 0, used: 0 };
+function readPad(dt) {
+  const list = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [], p = list[0];
+  if (!p) { GP.x = GP.y = GP.rx = GP.ry = 0; GP.jump = GP.power = false; return; }
+  const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v), b = (n) => !!(p.buttons[n] && p.buttons[n].pressed);
+  const cur = { a: b(0), b: b(1), x: b(2), y: b(3), lb: b(4), rb: b(5), back: b(8), start: b(9), up: b(12), down: b(13), left: b(14), right: b(15) };
+  const lx = dz(p.axes[0] || 0), ly = dz(p.axes[1] || 0);
+  // the stick as a d-pad in menus (with a repeat while held)
+  GP.rep -= dt; const sdir = Math.abs(lx) > 0.6 || Math.abs(ly) > 0.6;
+  const stick = sdir && GP.rep <= 0 ? (Math.abs(lx) > Math.abs(ly) ? (lx > 0 ? 'right' : 'left') : (ly > 0 ? 'down' : 'up')) : null;
+  if (stick) GP.rep = 0.28; if (!sdir) GP.rep = 0;
+  const was = GP.prev; GP.prev = cur;
+  const pr = (k) => cur[k] && !was[k], dir = pr('up') ? 'up' : pr('down') ? 'down' : pr('left') ? 'left' : pr('right') ? 'right' : stick;
+  const any = lx || ly || dz(p.axes[2] || 0) || dz(p.axes[3] || 0) || Object.values(cur).some(Boolean);
+  if (any) { touch.padUsed(); GP.used++; }
+  if (screen !== 'play') { GP.x = GP.y = 0; if (pr('a') || pr('start')) startPlay(); return; }
+  if (overlay === 'wheel') {
+    const n = WHEEL_ORDER.length;
+    if (dir) { wheelSel = (wheelSel + (dir === 'right' ? 1 : dir === 'left' ? n - 1 : dir === 'up' ? 6 : n - 6)) % n; buildWheel(); }
+    if (pr('a')) pickWheel(WHEEL_ORDER[wheelSel]); else if (pr('b') || pr('y')) closeOverlay();
+    return;
+  }
+  if (overlay) {
+    const btns = [...document.querySelectorAll(`#${overlay} button`)].filter((e) => e.offsetParent !== null), i = btns.indexOf(document.activeElement);
+    if (dir && btns.length) btns[(i < 0 ? 0 : i + (dir === 'down' || dir === 'right' ? 1 : btns.length - 1)) % btns.length].focus();
+    if (pr('a') && document.activeElement && document.activeElement._tap) document.activeElement._tap();
+    else if (pr('b') || (overlay === 'pause' && pr('start'))) closeOverlay();
+    return;
+  }
+  GP.x = lx + (cur.right ? 1 : 0) - (cur.left ? 1 : 0); GP.y = ly + (cur.down ? 1 : 0) - (cur.up ? 1 : 0);
+  GP.rx = dz(p.axes[2] || 0); GP.ry = dz(p.axes[3] || 0);
+  GP.jump = cur.a; GP.power = cur.x || cur.b;
+  if (pr('a')) GP.jumpP = true; if (pr('x') || pr('b')) GP.powerP = true;
+  if (pr('start')) openPause(); else if (pr('y')) openWheel(); else if (pr('back')) openBook(); else if (pr('rb') || pr('lb')) toggleView();
+}
+
 function gatherInput() {
   const t = touch.poll();
-  let x = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + t.x + VIN.x;
-  let y = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + t.y + VIN.y;
+  let x = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + t.x + VIN.x + GP.x;
+  let y = (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + t.y + VIN.y + GP.y;
   const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
   const inp = {
     x, y,
-    jump: keys.has('Space') || !!t.held.jump || VIN.jump, jumpP: kp.has('Space') || !!t.pressed.jump || VIN.jumpP,
-    power: keys.has('ShiftLeft') || keys.has('ShiftRight') || !!t.held.power || VIN.power, powerP: kp.has('ShiftLeft') || kp.has('ShiftRight') || !!t.pressed.power || VIN.powerP,
+    jump: keys.has('Space') || !!t.held.jump || VIN.jump || GP.jump, jumpP: kp.has('Space') || !!t.pressed.jump || VIN.jumpP || GP.jumpP,
+    power: keys.has('ShiftLeft') || keys.has('ShiftRight') || !!t.held.power || VIN.power || GP.power, powerP: kp.has('ShiftLeft') || kp.has('ShiftRight') || !!t.pressed.power || VIN.powerP || GP.powerP,
     change: !!t.pressed.change, cam: !!t.pressed.cam, pause: !!t.pressed.pause,
   };
-  kp.clear(); VIN.jumpP = VIN.powerP = false;
-  look.dx += t.lookDx; look.dy += t.lookDy;
+  kp.clear(); VIN.jumpP = VIN.powerP = false; GP.jumpP = GP.powerP = false;
+  look.dx += t.lookDx + GP.rx * 6; look.dy += t.lookDy + GP.ry * 4;
   return inp;
 }
 function applyLook() {
@@ -1362,11 +1400,11 @@ function onTap(el, fn) {
   // touch-tap rule: a click is the keyboard's only when e.detail === 0 && !e.pointerType (the keys run el._tap themselves)
   el.addEventListener('click', (e) => { if (e.detail === 0 && !e.pointerType) return; Sfx.click(); fn(e); });
 }
-function startPlay() { if (screen === 'play') return; screen = 'play'; $('title').classList.remove('on'); $('hud').classList.add('on'); $('hint').classList.add('on'); hud(); padLabels(); }
+function startPlay() { if (screen === 'play') return; try { document.activeElement?.blur(); } catch (e) {} screen = 'play'; $('title').classList.remove('on'); $('hud').classList.add('on'); $('hint').classList.add('on'); hud(); padLabels(); }
 function showOv(id) { for (const o of ['pause', 'wheel', 'book']) $(o).classList.toggle('on', o === id); overlay = id; document.documentElement.classList.toggle('ov-open', !!id); keys.clear(); VIN.jump = VIN.power = false; }
 function closeOverlay() { showOv(null); try { document.activeElement?.blur(); } catch (e) {} }
 let pauses = 0, wheels = 0, books = 0;
-function openPause() { if (screen !== 'play') return; pauses++; showOv('pause'); pauseLabels(); }
+function openPause() { if (screen !== 'play') return; pauses++; showOv('pause'); pauseLabels(); $('resumeBtn').focus({ preventScroll: true }); }
 function pauseLabels() {
   $('resumeBtn').innerHTML = ICON.play + '<span>PLAY</span>';
   $('pBookBtn').innerHTML = ICON.book + '<span>ANIMAL BOOK</span>';
@@ -1414,7 +1452,8 @@ function wheelKey(e) {
   else return;
   e.preventDefault(); buildWheel();
 }
-function openBook() { if (screen !== 'play') return; books++; showOv('book'); buildBook(); }
+function openBook() { if (screen !== 'play') return; books++; showOv('book'); buildBook(); focusBook(); }
+function focusBook() { const c = document.querySelector('#grid .card:not(.locked)') || $('bookX'); c.focus({ preventScroll: true }); }
 function buildBook() {
   $('bookHead').innerHTML = ICON.book + `<span>ANIMAL BOOK ${P.met.size}/18</span>`;
   const grid = $('grid'); grid.innerHTML = '';
@@ -1442,7 +1481,7 @@ $('playBtn').innerHTML = ICON.play + '<span>PLAY</span>';
 $('wheelX').innerHTML = ICON.close; $('bookX').innerHTML = ICON.close;
 onTap($('playBtn'), startPlay);
 onTap($('resumeBtn'), closeOverlay);
-onTap($('pBookBtn'), () => { showOv('book'); books++; buildBook(); });
+onTap($('pBookBtn'), () => { showOv('book'); books++; buildBook(); focusBook(); });
 onTap($('pHumanBtn'), () => { closeOverlay(); requestChange('human'); });
 onTap($('pSoundBtn'), () => { Sfx.on = !Sfx.on; save(); pauseLabels(); });
 onTap($('wheelX'), closeOverlay);
@@ -1456,6 +1495,7 @@ let last = performance.now(), acc = 0, frames = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  readPad(dt);
   document.documentElement.classList.toggle('touchy', touch.state.touchMode);
   if (!manual && screen === 'play' && !overlay) {
     acc += dt; let n = 0;
@@ -1492,7 +1532,7 @@ window.__ww = {
       cd: P.cd, lastSmash: P.lastSmash, changes: Change.count, jumps: P.jumps, views: P.views, powers: P.powers, pauses, wheels, books,
       screen, overlay, manual, ticks, meetMult: P.quiet > 0 ? 2 : 1,
       camera: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, camH: F.camH, eye: F.eye, model: P.model ? { visible: P.model.visible } : null,
-      touch: touch.state, biome: biomeAt(P.x, P.z), puff: +puffLife.toFixed(2), flash: +getComputedStyle($("flash")).opacity,
+      gamepadUsed: GP.used, focus: document.activeElement?.id || document.activeElement?.dataset?.id || null, touch: touch.state, biome: biomeAt(P.x, P.z), puff: +puffLife.toFixed(2), flash: +getComputedStyle($("flash")).opacity,
     };
   },
   manual(on = true) { manual = !!on; return manual; },

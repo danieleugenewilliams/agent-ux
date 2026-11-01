@@ -20,14 +20,18 @@
 //              jump, power, change (pick an animal in the wheel) and view buttons each act exactly once per tap, the pause menu
 //              opens the book and resumes; 4 or fewer right-hand buttons.
 //   WxH      - at that size in touch mode: every control (stick, buttons, pause, HUD chips) on screen with no overlap and no page
-//              scroll; the wheel's slots and the book's 18 cards fit with no overlap. Screenshots in docs/screenshots/wild-world.
+//              scroll; the wheel's slots, the book's 18 cards and the pause menu fit with no overlap.
+//   keys     - keyboard only at 1280x800 in real time (CDP key events; PLAY clicked with a real mouse first, then Space must jump):
+//              move, jump, power, Q wheel + arrows + Enter, B book + Enter on a card, V view, H human, Esc pause + Tab + Enter.
+//   gamepad  - gamepad only, a stand-in navigator.getGamepads driven by the script: A starts, the sticks move and look, A jumps,
+//              Y wheel + d-pad + A, X power, RB view, Back book + A, Start pause + d-pad + A, B back.
 // Every run also checks there were no page errors; the logic run checks the page has no emoji (non-ASCII only in the copied
 // TouchPad header).
 //
 // Usage:
 //   node scripts/ww-world.mjs                  # every run
-//   node scripts/ww-world.mjs --run forms      # one run (repeatable): walk | frames | biomes | forms | touch | WxH
-//   node scripts/ww-world.mjs --shots DIR      # screenshots somewhere else (default docs/screenshots/wild-world)
+//   node scripts/ww-world.mjs --run forms      # one run (repeatable): forms | biomes | walk | frames | touch | keys | gamepad | WxH
+//   node scripts/ww-world.mjs --shots DIR      # also save screenshots (the PR's set: --shots docs/screenshots/wild-world)
 //   node scripts/ww-world.mjs path.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
@@ -51,11 +55,10 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['forms', 'biomes', 'walk', 'frames', 'touch', ...SIZES];
+const runs = picked.length ? picked : ['forms', 'biomes', 'walk', 'frames', 'touch', 'keys', 'gamepad', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const page = path.resolve(target ?? path.join(repo, 'wild-world.html'));
-shots ??= path.join(repo, 'docs/screenshots/wild-world');
-fs.mkdirSync(shots, { recursive: true });
+if (shots) fs.mkdirSync(shots, { recursive: true });
 
 // ---- the server: the page at /wild-world.html, everything else from the repo
 let server = null, base = null;
@@ -157,7 +160,7 @@ async function connect(S) {
     for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__ww').catch(() => false)) return; }
     throw new Error('page did not reload window.__ww');
   };
-  C.shot = async (name) => { const sh = await send('Page.captureScreenshot', { format: 'png' }); if (sh.result?.data) fs.writeFileSync(path.join(shots, name + '.png'), Buffer.from(sh.result.data, 'base64')); };
+  C.shot = async (name) => { if (!shots) return; const sh = await send('Page.captureScreenshot', { format: 'png' }); if (sh.result?.data) fs.writeFileSync(path.join(shots, name + '.png'), Buffer.from(sh.result.data, 'base64')); };
   // real touches (CDP): a tap, a drag, a held stick
   C.touch = async (type, pts) => send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y, id]) => ({ x, y, id: id ?? 1, radiusX: 4, radiusY: 4, force: 1 })) });
   C.tap = async (x, y, holdMs = 60) => { await C.touch('touchStart', [[x, y]]); await sleep(holdMs); await C.touch('touchEnd', []); await sleep(150); };
@@ -359,9 +362,10 @@ async function runWalk(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   await C.open(1280, 800, false);
   const ev = (body) => C.ev(String.raw`(() => { ${H} ${WALK} W.manual(true); W.start(); ${body} })()`);
-  const snap = String.raw`const snap = () => { W.renderAround(); const i = W.info(); return { ...i, ...W.render(), x: S().x, z: S().z }; };`;
-  let r = await ev(String.raw`${snap} W.settle(); W.step(30); const c = S().chunk; return { c, at: snap(), chunk: W.chunk(c[0], c[1]), x0: S().x, z0: S().z };`);
-  const c0 = r.c, first = r.chunk, x0 = r.x0, spawn0 = r.at;
+  const snap = String.raw`const snap = () => { W.renderAround(); const i = W.info(); return { ...i, ...W.render(), x: S().x, z: S().z }; };
+    const all25 = () => { const c = S().chunk, o = {}; for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) o[(c[0] + dx) + ',' + (c[1] + dz)] = W.chunk(c[0] + dx, c[1] + dz); return o; };`;
+  let r = await ev(String.raw`${snap} W.settle(); W.step(30); const c = S().chunk; return { c, at: snap(), chunks: all25(), x0: S().x, z0: S().z };`);
+  const c0 = r.c, first = r.chunks, x0 = r.x0, z0 = r.z0, spawn0 = r.at;
   const marks = {}; let nudges = 0, ticks = 0;
   for (let m = 250; m <= 5000; m += 250) {
     r = await ev(String.raw`${snap} const w = walkTo(${x0 + m}); return { w, at: snap() };`);
@@ -377,17 +381,22 @@ async function runWalk(C) {
     k1.chunks === 25 && k5.chunks === 25 && fixed(k1) === fixed(k5) && k5.animals <= 20 && k1.animals <= 20, { k1, k5 });
   ok(`instance buffers flat (fixed capacity, ${Object.values(capOf(k5)).reduce((a, b) => a + b, 0)} in all) and drawn = live props (km 1 ${k1.liveInstances}, km 5 ${k5.liveInstances})`,
     JSON.stringify(capOf(k1)) === JSON.stringify(capOf(k5)) && Object.values(k5.instances).every((v) => v.count === v.live && v.live <= v.capacity), { k1: k1.instances, k5: k5.instances });
-  // and back to the spawn chunk: it was unloaded and rebuilt, and is the same number for number
+  // and back to spawn: every one of the 25 chunks loaded there was unloaded and rebuilt, and is the same number for number
   for (let m = 4750; m >= 0; m -= 250) { r = await ev(String.raw`const w = walkTo(${x0 + m}); return { w };`); nudges += r.w.nudges; }
-  r = await ev(String.raw`${snap} W.settle(); W.step(30); return { at: snap(), chunk: W.chunk(${c0[0]}, ${c0[1]}), c: S().chunk };`);
-  const again = r.chunk, back = r.at;
-  const hd = Math.max(...first.heights.map((h, i) => Math.abs(h - again.heights[i])));
-  let pd = 0; const sameKinds = first.props.length === again.props.length && first.props.every((p, i) => p[0] === again.props[i][0]);
-  if (sameKinds) for (let i = 0; i < first.props.length; i++) for (let k = 1; k < 5; k++) pd = Math.max(pd, Math.abs(first.props[i][k] - again.props[i][k]));
-  ok(`back at spawn the chunk ${c0} was rebuilt (generation ${first.gen} -> ${again.gen}, a new geometry)`, again.gen !== first.gen && again.uuid !== first.uuid, { first: first.gen, again: again.gen });
-  ok(`the same terrain: ${first.heights.length} heights, largest difference ${hd} m`, first.heights.length === again.heights.length && hd === 0, { hd });
-  const trees = first.props.filter((p) => /pine|oak|acacia/.test(p[0])).length, rocks = first.props.filter((p) => p[0] === 'rock').length;
-  ok(`the same props: ${first.props.length} placements (${trees} trees, ${rocks} rocks), largest difference ${pd} (position and scale)`, sameKinds && pd === 0, { n1: first.props.length, n2: again.props.length, pd });
+  r = await ev(String.raw`${snap} W.teleport(W.SPAWN.x, W.SPAWN.z); W.settle(); W.step(30); return { at: snap(), chunks: all25() };`);
+  const again = r.chunks, back = r.at, keys = Object.keys(first);
+  let hd = 0, pd = 0, nH = 0, nP = 0, trees = 0, rocks = 0; const rebuilt = [], kinds = [];
+  for (const k of keys) {
+    const a = first[k], b = again[k]; if (!a || !b) { kinds.push(k + ' missing'); continue; }
+    if (b.gen !== a.gen && b.uuid !== a.uuid) rebuilt.push(k);
+    nH += a.heights.length; for (let i = 0; i < a.heights.length; i++) hd = Math.max(hd, Math.abs(a.heights[i] - b.heights[i]));
+    if (a.props.length !== b.props.length || a.props.some((p, i) => p[0] !== b.props[i][0])) { kinds.push(k); continue; }
+    nP += a.props.length; trees += a.props.filter((p) => /pine|oak|acacia/.test(p[0])).length; rocks += a.props.filter((p) => p[0] === 'rock').length;
+    for (let i = 0; i < a.props.length; i++) for (let j = 1; j < 5; j++) pd = Math.max(pd, Math.abs(a.props[i][j] - b.props[i][j]));
+  }
+  ok(`back at spawn all ${keys.length} chunks there were rebuilt (${rebuilt.length} with a new generation and a new geometry; spawn chunk ${c0}: generation ${first[c0.join()].gen} -> ${again[c0.join()]?.gen})`, rebuilt.length === keys.length && keys.length === 25, { rebuilt: rebuilt.length });
+  ok(`the same terrain: ${nH} heights over the 25 chunks, largest difference ${hd} m`, nH === 25 * 289 && hd === 0 && !kinds.length, { hd, kinds });
+  ok(`the same props: ${nP} placements (${trees} trees, ${rocks} rocks), largest difference ${pd} (position and scale)`, !kinds.length && nP > 500 && trees > 50 && rocks > 20 && pd === 0, { nP, trees, rocks, pd, kinds });
   ok(`back at spawn the counts match the start: geometries ${spawn0.geometries} -> ${back.geometries}, textures ${spawn0.textures} -> ${back.textures}, chunks ${back.chunks}`, back.geometries === spawn0.geometries && back.textures === spawn0.textures && back.chunks === 25, { spawn0, back });
   out.walk = { k1, k5, spawn0, back, nudges };
   console.log('  walk ' + JSON.stringify({ spawn: { g: spawn0.geometries, m: spawn0.meshes, calls: spawn0.calls, tris: spawn0.tris }, km1: { g: k1.geometries, m: k1.meshes, a: k1.animals, calls: k1.calls, tris: k1.tris, inst: k1.liveInstances }, km5: { g: k5.geometries, m: k5.meshes, a: k5.animals, calls: k5.calls, tris: k5.tris, inst: k5.liveInstances }, back: { g: back.geometries, m: back.meshes } }));
@@ -535,6 +544,84 @@ async function runTouch(C) {
   return out;
 }
 
+// ---- keyboard only (real time, CDP key events), after PLAY is clicked with a real mouse
+const KEYS = { Space: [' ', 32], Enter: ['Enter', 13], Tab: ['Tab', 9], Escape: ['Escape', 27], ArrowRight: ['ArrowRight', 39], ShiftLeft: ['Shift', 16], KeyW: ['w', 87], KeyQ: ['q', 81], KeyV: ['v', 86], KeyB: ['b', 66], KeyH: ['h', 72] };
+async function runKeys(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(1280, 800, false);
+  const st = () => C.ev('window.__ww.state()');
+  const key = async (code, hold = 50) => { const [k, vk] = KEYS[code], base = { code, key: k, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, location: code === 'ShiftLeft' ? 1 : 0 };
+    await C.send('Input.dispatchKeyEvent', { type: 'keyDown', ...base, ...(k.length === 1 || k === 'Enter' ? { text: k === 'Enter' ? '\r' : k } : {}) }); await sleep(hold);
+    await C.send('Input.dispatchKeyEvent', { type: 'keyUp', ...base }); await sleep(180); };
+  const r = await C.ev(`(() => { const r = document.getElementById('playBtn').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await C.send('Input.dispatchMouseEvent', { type, x: r.x, y: r.y, button: 'left', clickCount: 1 });
+  await sleep(400);
+  let s = await st();
+  ok(`a mouse click on PLAY starts (${s.screen}; focus left on: ${s.focus})`, s.screen === 'play', s);
+  await key('Space'); await sleep(700); s = await st();
+  ok(`then Space jumps (once: ${s.jumps}), not swallowed by the PLAY button`, s.jumps === 1, s);
+  const a0 = { x: s.x, z: s.z }; await key('KeyW', 1000); s = await st();
+  ok(`W walks (${Math.hypot(s.x - a0.x, s.z - a0.z).toFixed(1)} m)`, Math.hypot(s.x - a0.x, s.z - a0.z) > 3, s);
+  await C.ev(`window.__ww.meet('rabbit'), window.__ww.meet('fox')`);
+  await key('KeyQ'); s = await st();
+  ok(`Q opens the wheel once (${s.overlay}, ${s.wheels})`, s.overlay === 'wheel' && s.wheels === 1, s);
+  const c0 = s.changes; for (let i = 0; i < 11; i++) await key('ArrowRight', 20);
+  const sel = await C.ev(`document.querySelector('.wslot.sel')?.dataset.id`);
+  await key('Enter'); s = await st();
+  ok(`arrows pick the rabbit in the wheel (${sel}) and Enter changes once (${s.changes - c0}): ${s.form}`, sel === 'rabbit' && s.form === 'rabbit' && s.changes - c0 === 1 && !s.overlay, s);
+  await key('ShiftLeft'); await sleep(900); s = await st();
+  ok(`Shift uses the power once (${s.powers})`, s.powers === 1, s);
+  await key('KeyV'); const fp = (await st()).fp; await key('KeyV'); s = await st();
+  ok(`V toggles the view (${fp} then ${s.fp}, ${s.views} presses)`, fp === true && s.fp === false && s.views === 2, s);
+  await key('KeyB'); s = await st(); const f0 = s.focus;
+  await key('Enter'); s = await st();
+  ok(`B opens the book with the first met card focused (${f0}); Enter on it changes (${s.form})`, f0 === 'fox' && s.form === 'fox' && !s.overlay && s.books === 1, s);
+  await key('KeyH'); s = await st();
+  ok(`H changes back to human (${s.form})`, s.form === 'human', s);
+  await key('Escape'); s = await st(); const p1 = s.overlay, foc = s.focus;
+  await key('Tab'); const foc2 = (await st()).focus; await key('Enter'); s = await st();
+  ok(`Esc pauses (${p1}, focus ${foc}); Tab moves to ${foc2}; Enter opens the book (${s.overlay})`, p1 === 'pause' && foc === 'resumeBtn' && foc2 === 'pBookBtn' && s.overlay === 'book' && s.books === 2, s);
+  await key('Escape'); const o1 = (await st()).overlay; await key('Escape'); const o2 = (await st()).overlay; await key('Enter'); s = await st();
+  ok(`Esc closes the book (${o1}), Esc pauses again (${o2}), Enter on PLAY resumes (${s.overlay}; paused ${s.pauses} times)`, o1 === null && o2 === 'pause' && s.overlay === null && s.pauses === 2, s);
+  return out;
+}
+
+// ---- gamepad only (real time): a stand-in navigator.getGamepads the script presses buttons on
+async function runGamepad(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const pad = { id: 'test pad', index: 0, connected: true, mapping: 'standard', timestamp: 0, axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })) };
+    window.__pad = pad; Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] }); })();` });
+  await C.open(1280, 800, false);
+  const st = () => C.ev('window.__ww.state()');
+  const press = async (n, hold = 120) => { await C.ev(`window.__pad.buttons[${n}].pressed = true`); await sleep(hold); await C.ev(`window.__pad.buttons[${n}].pressed = false`); await sleep(200); };
+  const axis = (i, v) => C.ev(`window.__pad.axes[${i}] = ${v}`);
+  const A = 0, B = 1, X = 2, Y = 3, RB = 5, BACK = 8, START = 9, DOWN = 13, RIGHT = 15;
+  await press(A); let s = await st();
+  ok(`A on the title starts (${s.screen})`, s.screen === 'play', s);
+  const a0 = { x: s.x, z: s.z }; await axis(1, -1); await sleep(1000); await axis(1, 0); await sleep(150); s = await st();
+  const y0 = s.camYaw; await axis(2, 1); await sleep(500); await axis(2, 0); await sleep(150); const s2 = await st();
+  ok(`the left stick walks (${Math.hypot(s.x - a0.x, s.z - a0.z).toFixed(1)} m), the right stick looks (yaw ${y0.toFixed(2)} -> ${s2.camYaw.toFixed(2)})`, Math.hypot(s.x - a0.x, s.z - a0.z) > 3 && s2.camYaw < y0 - 0.3, { s, s2 });
+  await press(A); await sleep(700); s = await st();
+  ok(`A jumps once (${s.jumps})`, s.jumps === 1, s);
+  await C.ev(`window.__ww.meet('rabbit'), window.__ww.meet('fox')`);
+  await press(Y); s = await st();
+  ok(`Y opens the wheel once (${s.overlay}, ${s.wheels})`, s.overlay === 'wheel' && s.wheels === 1, s);
+  const c0 = s.changes; for (let i = 0; i < 11; i++) await press(RIGHT, 60);
+  const sel = await C.ev(`document.querySelector('.wslot.sel')?.dataset.id`); await press(A); s = await st();
+  ok(`the d-pad picks the rabbit (${sel}) and A changes once (${s.changes - c0}): ${s.form}`, sel === 'rabbit' && s.form === 'rabbit' && s.changes - c0 === 1 && !s.overlay, s);
+  await press(X); await sleep(900); s = await st();
+  ok(`X uses the power once (${s.powers})`, s.powers === 1, s);
+  await press(RB); const fp = (await st()).fp; await press(RB); s = await st();
+  ok(`RB toggles the view (${fp} then ${s.fp})`, fp === true && s.fp === false && s.views === 2, s);
+  await press(BACK); s = await st(); const f0 = s.focus; await press(A); s = await st();
+  ok(`Back opens the book (first met card focused: ${f0}); A changes (${s.form})`, f0 === 'fox' && s.form === 'fox' && !s.overlay && s.books === 1, s);
+  await press(START); s = await st(); const p1 = s.overlay; await press(DOWN); const foc = (await st()).focus; await press(A); const o1 = (await st()).overlay; await press(B); const o2 = (await st()).overlay;
+  ok(`Start pauses (${p1}); the d-pad moves to ${foc}; A opens the book (${o1}); B goes back to play (${o2})`, p1 === 'pause' && foc === 'pBookBtn' && o1 === 'book' && o2 === null, { p1, foc, o1, o2 });
+  await press(START); await press(A); s = await st();
+  ok(`Start then A on PLAY resumes (${s.overlay}; paused ${s.pauses} times); the touch controller stays hidden (${s.touch.showing})`, s.overlay === null && s.pauses === 2 && !s.touch.showing && s.gamepadUsed > 0, s);
+  return out;
+}
+
 // ---- device lenses: controls, wheel and book at each size (touch mode)
 const LAYOUT = String.raw`(() => { const W = innerWidth, H = innerHeight;
   const vis = (e) => { if (!e || !e.getClientRects().length) return false; const s = getComputedStyle(e); return s.display !== 'none' && s.visibility !== 'hidden' && +s.opacity > 0; };
@@ -596,7 +683,7 @@ async function main() {
     const S = launch(); const t0 = Date.now(); let timer;
     try {
       const C = await connect(S);
-      const job = run === 'smoke' ? runSmoke(C) : run === 'walk' ? runWalk(C) : run === 'frames' ? runFrames(C) : run === 'biomes' ? runBiomes(C) : run === 'forms' ? runForms(C) : run === 'touch' ? runTouch(C) : runSize(C, run);
+      const job = run === 'smoke' ? runSmoke(C) : run === 'walk' ? runWalk(C) : run === 'frames' ? runFrames(C) : run === 'biomes' ? runBiomes(C) : run === 'forms' ? runForms(C) : run === 'touch' ? runTouch(C) : run === 'keys' ? runKeys(C) : run === 'gamepad' ? runGamepad(C) : runSize(C, run);
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       res.push({ name: run + ': no page errors', pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);
