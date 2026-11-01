@@ -11,7 +11,7 @@
 //             * Hard: a Charger (waves 1 and 2) and the Knight (wave 5) at 1.25 x Normal's health (+-1 for rounding), and the
 //               copier's clone; BOSS_WAVE still applies in Normal and Hard (extras off: wave 5 is the base four + the boss),
 //               and Easy's wave 5 is the boss alone either way;
-//             * the choice: saved per child (Apollo Hard, Orion Easy) across a reload; a new child starts on Normal; a record
+//             * the choice: saved per child (Max Hard, Sam Easy) across a reload; a new child starts on Normal; a record
 //               saved before #132 (no mode field) loads as Normal; Guest can pick but nothing is saved (no stored record, Normal
 //               after a reload); it can't change mid-run (the setter refuses, the run's mode stays, a hook-swapped child too);
 //               the wave picker's best is one value across modes;
@@ -64,6 +64,20 @@ if (shots) fs.mkdirSync(shots, { recursive: true });
 
 // main's page (before #132), for "a backup from this build restores into main": a temp copy from git, removed at exit
 let mainTmp = null;
+// #161: nothing is seeded any more, so these checks make their own made-up profiles the first time a page of this build opens
+// on empty storage (no list, no record): Sam (the quick-check ladder) and Max (the ladder that starts at ×1 and ×2). CLEAR empties storage as a
+// fresh device and puts the two back, as the game's old seed did
+const KIDS = [{ id: 'sam', name: 'Sam', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'max', name: 'Max', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
+const KIDS_SET = `localStorage.setItem('robotbattle.profiles', ${JSON.stringify(JSON.stringify(KIDS))})`;
+const KIDS_JS = `(() => { const R = window.__rb; if (localStorage.getItem('robotbattle.profiles') == null && !Object.keys(localStorage).some((k) => k.startsWith('robotbattle.facts.')) && R.Profiles) { ${KIDS_SET}; R.Profiles.load(); R.Title.home(); R.Title.drawKids(); R.Title.draw(); } return true; })()`;
+const CLEAR = `(localStorage.clear(), ${KIDS_SET})`;
+// #161: a profile made since #161 is on a ladder id ('start' or 'check') that a build from before it doesn't know, so its
+// records would be refused there as damaged. For the checks that restore this build's backup into an older build, TO_OLD
+// (run in the older page) puts the backup's ladders in that build's own ids first, found by their steps, as the same
+// profile made on that build would have them. Everything else in the backup is as this build wrote it.
+const TO_OLD = String.raw`((bk) => { const L = window.__rb.LADDERS, ids = Object.keys(L), id = { start: ids.find((k) => L[k][0].kind !== 'check'), check: ids.find((k) => L[k][0].kind === 'check') };
+  const b = JSON.parse(JSON.stringify(bk)); for (const [k, v] of Object.entries(b.data || {})) { if (k.startsWith('facts.') && v && id[v.ladder]) v.ladder = id[v.ladder]; if (k === 'profiles' && Array.isArray(v)) for (const p of v) if (p && id[p.ladder]) p.ladder = id[p.ladder]; }
+  return b; })`;
 function mainUrl() {
   if (mainPage) return pathToFileURL(mainPage).href;
   mainTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rb-modes-main-'));
@@ -212,7 +226,7 @@ async function connect(S) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
     await send('Page.navigate', { url: u });
-    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) { if (u === url) await ev(KIDS_JS); return; } }
     throw new Error('page did not load window.__rb: ' + u);
   };
   const tap = async (x, y) => {
@@ -285,35 +299,35 @@ async function runLogic(C) {
 
   // ---- the choice, saved per child; a new child on Normal; Guest's not saved
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; R.player('apollo'); const a0 = R.mode().pick, a = R.mode('hard'); R.player('orion'); const o = R.mode('easy');
+  r = await C.ev(`(() => { const R = window.__rb; R.player('max'); const a0 = R.mode().pick, a = R.mode('hard'); R.player('sam'); const o = R.mode('easy');
     const z = R.addProfile('Zed'); R.player(z.id); const zp = R.mode().pick; R.player('guest'); const g = R.mode('easy'), gp = R.mode().pick;
-    return { a0, a, o, z: z.id, zp, g, gp, sa: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).mode, so: JSON.parse(localStorage.getItem('robotbattle.facts.orion')).mode, guestKey: localStorage.getItem('robotbattle.facts.guest') }; })()`);
-  ok('a child starts on Normal; Apollo picks Hard and Orion Easy, each saved in their own record (rec.mode)', r.a0 === 'normal' && r.a.ok && r.o.ok && r.sa === 'hard' && r.so === 'easy', r);
+    return { a0, a, o, z: z.id, zp, g, gp, sa: JSON.parse(localStorage.getItem('robotbattle.facts.max')).mode, so: JSON.parse(localStorage.getItem('robotbattle.facts.sam')).mode, guestKey: localStorage.getItem('robotbattle.facts.guest') }; })()`);
+  ok('a child starts on Normal; Max picks Hard and Sam Easy, each saved in their own record (rec.mode)', r.a0 === 'normal' && r.a.ok && r.o.ok && r.sa === 'hard' && r.so === 'easy', r);
   ok('a new child (Zed) starts on Normal', r.zp === 'normal', r);
   ok('Guest can pick (Easy), and nothing is stored for Guest', r.g.ok && r.gp === 'easy' && r.guestKey == null, r);
   const zid = r.z;
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; const out = {}; for (const c of ['apollo', 'orion', '${zid}', 'guest']) { R.player(c); out[c] = R.mode().pick; } out.chip = document.querySelector('#modeB')?.dataset.m; out.guestKey = localStorage.getItem('robotbattle.facts.guest'); return out; })()`);
-  ok('after a reload: Apollo Hard, Orion Easy, Zed Normal, Guest back on Normal (not saved)', r.apollo === 'hard' && r.orion === 'easy' && r[zid] === 'normal' && r.guest === 'normal' && r.guestKey == null, r);
+  r = await C.ev(`(() => { const R = window.__rb; const out = {}; for (const c of ['max', 'sam', '${zid}', 'guest']) { R.player(c); out[c] = R.mode().pick; } out.chip = document.querySelector('#modeB')?.dataset.m; out.guestKey = localStorage.getItem('robotbattle.facts.guest'); return out; })()`);
+  ok('after a reload: Max Hard, Sam Easy, Zed Normal, Guest back on Normal (not saved)', r.max === 'hard' && r.sam === 'easy' && r[zid] === 'normal' && r.guest === 'normal' && r.guestKey == null, r);
   // a record saved before #132 (no mode field) loads as Normal
   // (the live record too, so the game's own save as the page goes doesn't write the field back)
-  r = await C.ev(`(() => { const R = window.__rb; R.player('orion'); delete R.Facts.rec.mode; const k = 'robotbattle.facts.orion', v = JSON.parse(localStorage.getItem(k)); delete v.mode; localStorage.setItem(k, JSON.stringify(v));
+  r = await C.ev(`(() => { const R = window.__rb; R.player('sam'); delete R.Facts.rec.mode; const k = 'robotbattle.facts.sam', v = JSON.parse(localStorage.getItem(k)); delete v.mode; localStorage.setItem(k, JSON.stringify(v));
     for (const t of ['pagehide', 'visibilitychange']) addEventListener(t, () => { const w = JSON.parse(localStorage.getItem(k)); delete w.mode; localStorage.setItem(k, JSON.stringify(w)); });
     return JSON.parse(localStorage.getItem(k)).mode ?? null; })()`);
-  ok('(setup) Orion\'s stored record has no mode field', r === null, r);
+  ok('(setup) Sam\'s stored record has no mode field', r === null, r);
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; R.player('orion'); return R.mode(); })()`);
+  r = await C.ev(`(() => { const R = window.__rb; R.player('sam'); return R.mode(); })()`);
   ok('a record saved before #132 (no mode field) loads as Normal', r.pick === 'normal', r);
   // a parent reset keeps the mode (a setting, as the wiring is)
-  r = await C.ev(`(() => { const R = window.__rb; R.player('apollo'); const x = R.Facts.reset('apollo'); R.player('orion'); R.player('apollo'); return { x, pick: R.mode().pick, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).mode }; })()`);
-  ok('a parent reset of Apollo keeps Hard', r.x.ok && r.pick === 'hard' && r.saved === 'hard', r);
+  r = await C.ev(`(() => { const R = window.__rb; R.player('max'); const x = R.Facts.reset('max'); R.player('sam'); R.player('max'); return { x, pick: R.mode().pick, saved: JSON.parse(localStorage.getItem('robotbattle.facts.max')).mode }; })()`);
+  ok('a parent reset of Max keeps Hard', r.x.ok && r.pick === 'hard' && r.saved === 'hard', r);
   // it can't change mid-run: the setter refuses, the run's mode stays (and a child swapped in by a hook doesn't change it)
-  r = await C.ev(String.raw`(() => { ${HELPERS} ${HELP2} R.manual(true); R.player('apollo'); R.start(0); const run0 = R.mode().run, x = R.mode('easy'); R.player('orion');
-    const run1 = R.mode().run, w = wave(1); return { run0, x, run1, w, orion: R.mode().pick }; })()`);
-  ok('mid-run: the mode can\'t be changed (refused), and the run stays Hard even with Orion (Easy) swapped in by a hook', r.run0 === 'hard' && !r.x.ok && r.run1 === 'hard' && r.w.types === fmt(NORMAL[1], D) && r.w.charger[0] === Math.round(base.charger * 1.25), r);
+  r = await C.ev(String.raw`(() => { ${HELPERS} ${HELP2} R.manual(true); R.player('max'); R.start(0); const run0 = R.mode().run, x = R.mode('easy'); R.player('sam');
+    const run1 = R.mode().run, w = wave(1); return { run0, x, run1, w, sam: R.mode().pick }; })()`);
+  ok('mid-run: the mode can\'t be changed (refused), and the run stays Hard even with Sam (Easy) swapped in by a hook', r.run0 === 'hard' && !r.x.ok && r.run1 === 'hard' && r.w.types === fmt(NORMAL[1], D) && r.w.charger[0] === Math.round(base.charger * 1.25), r);
 
   // ---- ?wave=6 uses the child's mode (a real start)
-  for (const [c, m] of [['orion', 'easy'], ['apollo', 'hard']]) {
+  for (const [c, m] of [['sam', 'easy'], ['max', 'hard']]) {
     await C.open(1280, 800, false);
     await C.ev(`(() => { const R = window.__rb; R.player('${c}'); R.mode('${m}'); return true; })()`);
     await C.open(1280, 800, false, withQ(url, 'wave=6'));
@@ -325,27 +339,27 @@ async function runLogic(C) {
 
   // ---- the wave picker's best is one value across modes
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('orion'); R.Facts.rec.waves = { best: 0 }; R.Facts.save(); R.manual(true); R.start(0); const steps = [];
+  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('sam'); R.Facts.rec.waves = { best: 0 }; R.Facts.save(); R.manual(true); R.start(0); const steps = [];
     for (let w = 1; w <= 2; w++) { R.nextWave(); clearWave(); steps.push(R.waves().best); } return { steps, run: R.mode().run }; })()`);
-  ok('the wave picker\'s best is one value: Orion (Easy) clears waves 1-2 and best is 2', r.run === 'easy' && r.steps.join() === '1,2', r);
+  ok('the wave picker\'s best is one value: Sam (Easy) clears waves 1-2 and best is 2', r.run === 'easy' && r.steps.join() === '1,2', r);
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; R.player('orion'); R.mode('hard'); return { best: R.waves().best, offer: R.waves().offer, pick: R.mode().pick }; })()`);
+  r = await C.ev(`(() => { const R = window.__rb; R.player('sam'); R.mode('hard'); return { best: R.waves().best, offer: R.waves().offer, pick: R.mode().pick }; })()`);
   ok('... and in Hard her best is still 2 (offer 1-3): not kept per mode', r.best === 2 && r.offer.join() === '1,2,3' && r.pick === 'hard', r);
 
   // ---- saves: backups. Use the backup and Keep the best both keep this device's mode (a preference, not progress)
   await C.open(1280, 800, false);
   r = await C.ev(String.raw`(() => { const R = window.__rb;
-    const set = (m) => { R.player('apollo'); if (m == null) delete R.Facts.rec.mode; else R.Facts.rec.mode = m; R.Facts.save(); if (m == null) { const k = 'robotbattle.facts.apollo', v = JSON.parse(localStorage.getItem(k)); delete v.mode; localStorage.setItem(k, JSON.stringify(v)); } };
+    const set = (m) => { R.player('max'); if (m == null) delete R.Facts.rec.mode; else R.Facts.rec.mode = m; R.Facts.save(); if (m == null) { const k = 'robotbattle.facts.max', v = JSON.parse(localStorage.getItem(k)); delete v.mode; localStorage.setItem(k, JSON.stringify(v)); } };
     const bak = (m) => { set(m); return JSON.parse(JSON.stringify(R.backup())); };
     const res = {};
-    const old = bak('normal'); delete old.data['facts.apollo'].mode;
-    set('easy'); R.player('orion'); res.oldBackup = R.restore(old, 'backup'); R.player('apollo'); res.oldPick = R.mode().pick;
-    set('hard'); R.player('orion'); res.oldBest = R.restore(old, 'best'); R.player('apollo'); res.oldBestPick = R.mode().pick;
+    const old = bak('normal'); delete old.data['facts.max'].mode;
+    set('easy'); R.player('sam'); res.oldBackup = R.restore(old, 'backup'); R.player('max'); res.oldPick = R.mode().pick;
+    set('hard'); R.player('sam'); res.oldBest = R.restore(old, 'best'); R.player('max'); res.oldBestPick = R.mode().pick;
     const bE = bak('easy');
     for (const [dev, nm] of [['hard', 'dHard'], [null, 'dNone']]) for (const ch of ['backup', 'best']) {
-      set(dev); R.player('orion');
-      const x = R.restore(bE, ch); R.player('apollo');
-      res[nm + ch] = { ok: x.ok, pick: R.mode().pick, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).mode ?? null };
+      set(dev); R.player('sam');
+      const x = R.restore(bE, ch); R.player('max');
+      res[nm + ch] = { ok: x.ok, pick: R.mode().pick, saved: JSON.parse(localStorage.getItem('robotbattle.facts.max')).mode ?? null };
     }
     res.backupHard = bak('hard');
     return res; })()`);
@@ -356,12 +370,12 @@ async function runLogic(C) {
   }
   // into main (before #132): this build's backup restores there, with both choices, and the child loads
   const bk = r.backupHard, mu = mainUrl();
-  ok('this build\'s backup carries the mode (facts.apollo.mode = hard)', bk?.data?.['facts.apollo']?.mode === 'hard', bk?.data?.['facts.apollo']?.mode);
+  ok('this build\'s backup carries the mode (facts.max.mode = hard)', bk?.data?.['facts.max']?.mode === 'hard', bk?.data?.['facts.max']?.mode);
   for (const ch of ['backup', 'best']) {
     await C.open(1280, 800, false, mu);
-    const m = await C.ev(`(() => { const R = window.__rb; localStorage.clear(); const x = R.restore(${JSON.stringify(bk)}, '${ch}'); const p = R.player('apollo');
-      return { ok: x.ok, why: x.why ?? null, player: p.ok, mode: JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null')?.mode ?? null, hasHook: typeof R.mode === 'function' }; })()`);
-    ok(`a backup from this build restores into main (${MAIN_SHA}) with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}", and the child loads (main ${m.mode ? 'keeps' : 'ignores'} the field)`, m.ok && m.player && !m.hasHook, m);
+    const m = await C.ev(`(() => { const R = window.__rb; localStorage.clear(); const x = R.restore(${TO_OLD}(${JSON.stringify(bk)}), '${ch}'); const p = R.player('max');
+      return { ok: x.ok, why: x.why ?? null, player: p.ok, mode: JSON.parse(localStorage.getItem('robotbattle.facts.max') || 'null')?.mode ?? null, hasHook: typeof R.mode === 'function' }; })()`);
+    ok(`a backup from this build (its ladders in main's ids: TO_OLD) restores into main (${MAIN_SHA}) with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}", and the child loads (main ${m.mode ? 'keeps' : 'ignores'} the field)`, m.ok && m.player && !m.hasHook, m);
   }
   return out;
 }

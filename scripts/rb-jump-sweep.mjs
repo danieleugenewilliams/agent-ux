@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Robot Battle clean-jump sweep ("t7", from #46 / PR #54; issue #87).
 //
-// Runs Orion's mech at fence 126 in headless Chrome and jumps it from every launch point in a grid:
+// Runs Sam's mech at fence 126 in headless Chrome and jumps it from every launch point in a grid:
 //   levels 1-2 x angles 0 / 0.4 / 0.7 / 1.0 rad x offsets -0.85 / -0.5 / 0 / 0.5 / 0.85 m
 //   x launches 3.0-7.0 m before the fence line every 0.25 m  =  2 x 4 x 5 x 17 = 680 cases.
 // Each case: a 40 m run-up holding W, jump at the launch point, run on 90 ticks past landing, all on
@@ -70,7 +70,7 @@ function findChrome() {
 
 // The sweep itself, evaluated in the page. Returns every case's outcome.
 const SWEEP = String.raw`(() => {
-  const R = window.__rb; R.manual(true); R.player('orion'); R.start(0); R.step(1);
+  const R = window.__rb; R.manual(true); R.player('sam'); R.start(0); R.step(1);
   const M = R.Game.humans[0].mech, FID = 126;
   const fence = () => R.Props.list.find((p) => p.id === FID);
   function restore(f) {
@@ -169,6 +169,13 @@ ws.onmessage = (e) => {
 const send = (method, params = {}) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 await send('Runtime.enable'); await send('Page.enable');
 
+// #161: nothing is seeded any more, so these checks make their own made-up profiles the first time a page of this build opens
+// on empty storage (no list, no record): Sam (the quick-check ladder) and Max (the ladder that starts at ×1 and ×2). CLEAR empties storage as a
+// fresh device and puts the two back, as the game's old seed did
+const KIDS = [{ id: 'sam', name: 'Sam', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'max', name: 'Max', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
+const KIDS_SET = `localStorage.setItem('robotbattle.profiles', ${JSON.stringify(JSON.stringify(KIDS))})`;
+const KIDS_JS = `(() => { const R = window.__rb; if (localStorage.getItem('robotbattle.profiles') == null && !Object.keys(localStorage).some((k) => k.startsWith('robotbattle.facts.')) && R.Profiles) { ${KIDS_SET}; R.Profiles.load(); R.Title.home(); R.Title.drawKids(); R.Title.draw(); } return true; })()`;
+const CLEAR = `(localStorage.clear(), ${KIDS_SET})`;
 const hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, '0'); };
 const results = [];
 for (let r = 0; r < runs; r++) {
@@ -177,6 +184,7 @@ for (let r = 0; r < runs; r++) {
   let ready = false;
   for (let i = 0; i < 150 && !ready; i++) { await sleep(200); const v = await send('Runtime.evaluate', { expression: 'document.readyState === "complete" && !!window.__rb', returnByValue: true }); ready = !!v.result?.result?.value; }
   if (!ready) { console.error('page did not load window.__rb: ' + url); return 2; }
+  await send('Runtime.evaluate', { expression: KIDS_JS, returnByValue: true });
   const t0 = Date.now();
   const v = await send('Runtime.evaluate', { expression: SWEEP, returnByValue: true });
   if (v.result?.exceptionDetails) { console.error('sweep threw: ' + (v.result.exceptionDetails.exception?.description || v.result.exceptionDetails.text)); return 2; }

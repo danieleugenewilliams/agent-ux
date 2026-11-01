@@ -21,8 +21,8 @@
 //                    backup" brings the progress back as before #152: the stored record is the backup's (its × and ÷
 //                    facts, garage, waves, division off) with only this device's wiring and #132 mode in it;
 //                  * the gamepad in the parent view doesn't change it (the view's buttons are touch and keyboard, as before).
-//   sweep-mouse  - (a run per screen: sweep-mouse:who, :pick, :play, :pause, :garage:<tab>) at 1280 x 800, Apollo on math: every visible control on who's playing, the pilot pick, play (the HUD), the
-//   sweep-touch  - at 844 x 390 with touch, Orion on colour (the touch pause menu):
+//   sweep-mouse  - (a run per screen: sweep-mouse:who, :pick, :play, :pause, :garage:<tab>) at 1280 x 800, Max on math: every visible control on who's playing, the pilot pick, play (the HUD), the
+//   sweep-touch  - at 844 x 390 with touch, Sam on colour (the touch pause menu):
 //                  pause screen and each garage tab is clicked (a tap with touch) after a reload into that screen, and then
 //                  every control that click brought up, in turn; then Tab to each focusable control and Enter, and again
 //                  with Space; then every game key; then every gamepad button (a stubbed navigator.getGamepads read by the
@@ -151,7 +151,7 @@ async function connect(S) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
     await send('Page.navigate', { url: u });
-    for (let i = 0; i < 150; i++) { await sleep(150); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(150); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) { if (u === url) await ev(KIDS_JS); return; } }
     throw new Error('page did not load window.__rb: ' + u);
   };
   const tap = async (x, y, holdMs = 40) => {
@@ -178,6 +178,13 @@ async function connect(S) {
   return { send, ev, open, tap, click, key, padOn, padBtn, errs };
 }
 
+// #161: nothing is seeded any more, so these checks make their own made-up profiles the first time a page of this build opens
+// on empty storage (no list, no record): Sam (the quick-check ladder) and Max (the ladder that starts at ×1 and ×2). CLEAR empties storage as a
+// fresh device and puts the two back, as the game's old seed did
+const KIDS = [{ id: 'sam', name: 'Sam', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'max', name: 'Max', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
+const KIDS_SET = `localStorage.setItem('robotbattle.profiles', ${JSON.stringify(JSON.stringify(KIDS))})`;
+const KIDS_JS = `(() => { const R = window.__rb; if (localStorage.getItem('robotbattle.profiles') == null && !Object.keys(localStorage).some((k) => k.startsWith('robotbattle.facts.')) && R.Profiles) { ${KIDS_SET}; R.Profiles.load(); R.Title.home(); R.Title.drawKids(); R.Title.draw(); } return true; })()`;
+const CLEAR = `(localStorage.clear(), ${KIDS_SET})`;
 // ---- in the page ----
 // what wiring each child has: the playing child's live record (live) and every seeded child's stored record (saved)
 const READ = (ids) => `(() => { const R = window.__rb, out = { playing: R.Game.child?.id ?? null, live: R.Facts.rec ? R.Facts.rec.wiring : null, saved: {} };
@@ -217,58 +224,58 @@ const QUICKFIX = String.raw`(() => { const R = window.__rb, G = R.Game;
 async function runLogic(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   await C.open(1280, 800, false);
-  const hasSwitch = await C.ev(`(() => { const R = window.__rb; R.player('apollo'); R.parent(true, 'apollo'); const b = document.querySelectorAll('#pBody [data-act="wiring"][data-w]').length; R.parent(false); return b; })()`);
+  const hasSwitch = await C.ev(`(() => { const R = window.__rb; R.player('max'); R.parent(true, 'max'); const b = document.querySelectorAll('#pBody [data-act="wiring"][data-w]').length; R.parent(false); return b; })()`);
   ok('the parent view has a wiring switch (#pBody [data-act=wiring][data-w], a button per mode)', hasSwitch === 2, hasSwitch);
 
   // ---- existing records keep their mode (nothing migrated); a new profile starts on math
-  let r = await C.ev(`(() => { const R = window.__rb; R.player('apollo'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.player('orion'); R.Facts.rec.wiring = 'colour'; R.Facts.save(); R.player(null);
-    return { a: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).wiring, o: JSON.parse(localStorage.getItem('robotbattle.facts.orion')).wiring }; })()`);
-  ok('(setup) Apollo\'s stored record on math, Orion\'s on colour, written straight to the record', r.a === 'math' && r.o === 'colour', r);
+  let r = await C.ev(`(() => { const R = window.__rb; R.player('max'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.player('sam'); R.Facts.rec.wiring = 'colour'; R.Facts.save(); R.player(null);
+    return { a: JSON.parse(localStorage.getItem('robotbattle.facts.max')).wiring, o: JSON.parse(localStorage.getItem('robotbattle.facts.sam')).wiring }; })()`);
+  ok('(setup) Max\'s stored record on math, Sam\'s on colour, written straight to the record', r.a === 'math' && r.o === 'colour', r);
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; const a = R.player('apollo').wiring, o = R.player('orion').wiring; const z = R.addProfile('Newbie'); const n = R.player(z.id).wiring; R.player('apollo');
-    return { a, o, n, z: z.id, sa: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).wiring, so: JSON.parse(localStorage.getItem('robotbattle.facts.orion')).wiring }; })()`);
+  r = await C.ev(`(() => { const R = window.__rb; const a = R.player('max').wiring, o = R.player('sam').wiring; const z = R.addProfile('Newbie'); const n = R.player(z.id).wiring; R.player('max');
+    return { a, o, n, z: z.id, sa: JSON.parse(localStorage.getItem('robotbattle.facts.max')).wiring, so: JSON.parse(localStorage.getItem('robotbattle.facts.sam')).wiring }; })()`);
   ok('after a reload, a record on math stays math and one on colour stays colour (stored and loaded: nothing migrated)', r.a === 'math' && r.o === 'colour' && r.sa === 'math' && r.so === 'colour', r);
   ok('a new profile starts on math wiring', r.n === 'math', r);
   const zid = r.z;
 
-  // ---- the parent switch on whoever is playing (Apollo), both directions; the next Quick Fix uses it
+  // ---- the parent switch on whoever is playing (Max), both directions; the next Quick Fix uses it
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { const R = window.__rb; R.manual(true); R.player('apollo'); R.parent(true, 'apollo');
-    const v0 = R.parent().children.find((c) => c.id === 'apollo').wiring;
+  r = await C.ev(String.raw`(() => { const R = window.__rb; R.manual(true); R.player('max'); R.parent(true, 'max');
+    const v0 = R.parent().children.find((c) => c.id === 'max').wiring;
     const press = () => [...document.querySelectorAll('#pBody [data-act="wiring"][data-w]')].map((b) => b.dataset.w + ':' + b.getAttribute('aria-pressed')).join(' ');
-    const p0 = press(), x = R.parentDo('wiring', 'apollo', 'colour'), p1 = press(), live = R.wiring().wiring, saved = JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).wiring, v1 = x.view?.children?.find((c) => c.id === 'apollo')?.wiring;
+    const p0 = press(), x = R.parentDo('wiring', 'max', 'colour'), p1 = press(), live = R.wiring().wiring, saved = JSON.parse(localStorage.getItem('robotbattle.facts.max')).wiring, v1 = x.view?.children?.find((c) => c.id === 'max')?.wiring;
     R.parent(false); return { v0, p0, x: { ok: x.ok, why: x.why, wiring: x.wiring }, p1, live, saved, v1 }; })()`);
-  ok('the parent view shows Apollo on math (data().wiring, the math button pressed)', r.v0 === 'math' && r.p0 === 'math:true colour:false', r);
-  ok('parent: Apollo math -> colour, live and saved, and the view shows it', r.x.ok && r.live === 'colour' && r.saved === 'colour' && r.v1 === 'colour' && r.p1 === 'math:false colour:true', r);
+  ok('the parent view shows Max on math (data().wiring, the math button pressed)', r.v0 === 'math' && r.p0 === 'math:true colour:false', r);
+  ok('parent: Max math -> colour, live and saved, and the view shows it', r.x.ok && r.live === 'colour' && r.saved === 'colour' && r.v1 === 'colour' && r.p1 === 'math:false colour:true', r);
   r = await C.ev(`(() => { const R = window.__rb; R.start(0); return true; })()`);
   r = await C.ev(QUICKFIX);
   ok('... and the next Quick Fix is colour wiring (no facts on the board)', r.ok && r.wiring === 'colour' && r.facts === 0 && r.plugs > 0, r);
   // mid-run: pause, the parent view, back to math, play on
-  r = await C.ev(String.raw`(() => { const R = window.__rb; R.parent(true, 'apollo'); const paused = R.Game.paused; const x = R.parentDo('wiring', 'apollo', 'math'); R.parent(false);
-    document.querySelector('#go')?.click(); return { paused, ok: x.ok, live: R.wiring().wiring, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).wiring, playing: !R.Game.paused && R.Game.state === 'play' }; })()`);
-  ok('mid-run, paused: parent: Apollo colour -> math, live and saved, then back to play', r.paused && r.ok && r.live === 'math' && r.saved === 'math', r);
+  r = await C.ev(String.raw`(() => { const R = window.__rb; R.parent(true, 'max'); const paused = R.Game.paused; const x = R.parentDo('wiring', 'max', 'math'); R.parent(false);
+    document.querySelector('#go')?.click(); return { paused, ok: x.ok, live: R.wiring().wiring, saved: JSON.parse(localStorage.getItem('robotbattle.facts.max')).wiring, playing: !R.Game.paused && R.Game.state === 'play' }; })()`);
+  ok('mid-run, paused: parent: Max colour -> math, live and saved, then back to play', r.paused && r.ok && r.live === 'math' && r.saved === 'math', r);
   r = await C.ev(QUICKFIX);
   ok('... and the next Quick Fix is math wiring (a fact per plug)', r.ok && r.wiring === 'math' && r.facts > 0 && r.facts === r.plugs, r);
-  r = await C.ev(String.raw`(() => { const R = window.__rb; R.parent(true, 'apollo'); const x = R.parentDo('wiring', 'apollo', 'colour'); R.parent(false); return { ok: x.ok, live: R.wiring().wiring }; })()`);
+  r = await C.ev(String.raw`(() => { const R = window.__rb; R.parent(true, 'max'); const x = R.parentDo('wiring', 'max', 'colour'); R.parent(false); return { ok: x.ok, live: R.wiring().wiring }; })()`);
   const r2 = await C.ev(QUICKFIX);
   ok('mid-run again: math -> colour, and the Quick Fix after that is colour', r.ok && r.live === 'colour' && r2.ok && r2.facts === 0, { r, r2 });
   // with no mode given the switch flips (the act alone)
-  r = await C.ev(`(() => { const R = window.__rb; R.parent(true, 'apollo'); const a = R.parentDo('wiring', 'apollo').wiring, b = R.parentDo('wiring', 'apollo').wiring; const bad = R.parentDo('wiring', 'apollo', 'rainbow'); R.parent(false); return { a, b, bad: bad.ok, now: R.wiring().wiring }; })()`);
+  r = await C.ev(`(() => { const R = window.__rb; R.parent(true, 'max'); const a = R.parentDo('wiring', 'max').wiring, b = R.parentDo('wiring', 'max').wiring; const bad = R.parentDo('wiring', 'max', 'rainbow'); R.parent(false); return { a, b, bad: bad.ok, now: R.wiring().wiring }; })()`);
   ok('the act with no mode flips it (colour -> math -> colour); a mode that isn\'t math or colour is refused', r.a === 'math' && r.b === 'colour' && !r.bad && r.now === 'colour', r);
   // it survives a reload
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; return R.player('apollo').wiring; })()`);
-  ok('after a reload Apollo is still on colour', r === 'colour', r);
+  r = await C.ev(`(() => { const R = window.__rb; return R.player('max').wiring; })()`);
+  ok('after a reload Max is still on colour', r === 'colour', r);
   // another child's tab: only that child's stored record changes
-  r = await C.ev(String.raw`(() => { const R = window.__rb; R.manual(true); R.player('apollo'); R.parent(true, 'orion'); const x = R.parentDo('wiring', 'orion', 'math'); R.parent(false);
-    return { ok: x.ok, playing: R.Game.child.id, apollo: R.wiring().wiring, sa: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).wiring, so: JSON.parse(localStorage.getItem('robotbattle.facts.orion')).wiring }; })()`);
-  ok('on Orion\'s tab while Apollo plays: Orion\'s stored record goes to math; Apollo stays colour', r.ok && r.playing === 'apollo' && r.apollo === 'colour' && r.sa === 'colour' && r.so === 'math', r);
-  r = await C.ev(`(() => { const R = window.__rb; R.player('orion'); R.start(0); return true; })()`);
+  r = await C.ev(String.raw`(() => { const R = window.__rb; R.manual(true); R.player('max'); R.parent(true, 'sam'); const x = R.parentDo('wiring', 'sam', 'math'); R.parent(false);
+    return { ok: x.ok, playing: R.Game.child.id, max: R.wiring().wiring, sa: JSON.parse(localStorage.getItem('robotbattle.facts.max')).wiring, so: JSON.parse(localStorage.getItem('robotbattle.facts.sam')).wiring }; })()`);
+  ok('on Sam\'s tab while Max plays: Sam\'s stored record goes to math; Max stays colour', r.ok && r.playing === 'max' && r.max === 'colour' && r.sa === 'colour' && r.so === 'math', r);
+  r = await C.ev(`(() => { const R = window.__rb; R.player('sam'); R.start(0); return true; })()`);
   r = await C.ev(QUICKFIX);
-  ok('... and Orion\'s next Quick Fix is math wiring', r.ok && r.wiring === 'math' && r.facts > 0, r);
+  ok('... and Sam\'s next Quick Fix is math wiring', r.ok && r.wiring === 'math' && r.facts > 0, r);
   // a child with no record yet (a new profile never played): the switch makes their record, on colour
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { const R = window.__rb; const z = R.addProfile('Fresh'); const before = localStorage.getItem('robotbattle.facts.' + z.id); R.player('apollo'); R.parent(true, z.id);
+  r = await C.ev(String.raw`(() => { const R = window.__rb; const z = R.addProfile('Fresh'); const before = localStorage.getItem('robotbattle.facts.' + z.id); R.player('max'); R.parent(true, z.id);
     const x = R.parentDo('wiring', z.id, 'colour'); R.parent(false); const s = localStorage.getItem('robotbattle.facts.' + z.id); return { id: z.id, before, ok: x.ok, saved: s ? JSON.parse(s).wiring : null, loads: R.player(z.id).wiring }; })()`);
   ok('a child with no record yet: the parent switch saves colour for them, and they load on colour', r.before == null && r.ok && r.saved === 'colour' && r.loads === 'colour', r);
 
@@ -287,34 +294,34 @@ async function runLogic(C) {
   // ---- backups, both ways
   await C.open(1280, 800, false);
   r = await C.ev(String.raw`(() => { const R = window.__rb;
-    const set = (m) => { R.player('apollo'); R.Facts.rec.wiring = m; R.Facts.save(); };
+    const set = (m) => { R.player('max'); R.Facts.rec.wiring = m; R.Facts.save(); };
     const back = (m) => { set(m); return JSON.parse(JSON.stringify(R.backup())); };
-    const saved = () => JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).wiring;
+    const saved = () => JSON.parse(localStorage.getItem('robotbattle.facts.max')).wiring;
     const res = { files: {} };
     for (const [dev, bak] of [['math', 'colour'], ['colour', 'math']]) {
-      const B = back(bak); res.files[bak] = B.data?.['facts.apollo']?.wiring ?? null;
-      for (const ch of ['backup', 'best', 'device']) { set(dev); R.player('orion'); const x = R.restore(B, ch); R.player('apollo'); res[dev + '/' + bak + '/' + ch] = { ok: x.ok, live: R.wiring().wiring, saved: saved() }; }
+      const B = back(bak); res.files[bak] = B.data?.['facts.max']?.wiring ?? null;
+      for (const ch of ['backup', 'best', 'device']) { set(dev); R.player('sam'); const x = R.restore(B, ch); R.player('max'); res[dev + '/' + bak + '/' + ch] = { ok: x.ok, live: R.wiring().wiring, saved: saved() }; }
     }
-    for (const m of ['colour', 'math']) { const B = back(m); localStorage.clear(); const x = R.restore(B, 'backup'); res['fresh/' + m] = { ok: x.ok, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null')?.wiring ?? null }; }
-    const B = back('colour'); localStorage.clear(); const x = R.restore(B, 'best'); res.fresh = { ok: x.ok, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null')?.wiring ?? null };
+    for (const m of ['colour', 'math']) { const B = back(m); ${CLEAR}; const x = R.restore(B, 'backup'); res['fresh/' + m] = { ok: x.ok, saved: JSON.parse(localStorage.getItem('robotbattle.facts.max') || 'null')?.wiring ?? null }; }
+    const B = back('colour'); ${CLEAR}; const x = R.restore(B, 'best'); res.fresh = { ok: x.ok, saved: JSON.parse(localStorage.getItem('robotbattle.facts.max') || 'null')?.wiring ?? null };
     // keepWiring itself: pure, and the record itself back when the wiring already matches (or this device has none)
     const K = R.Backup.keepWiring.bind(R.Backup), a = { wiring: 'colour', mode: 'hard', facts: { k: { s: 'known' } } }, aw = JSON.stringify(a);
     const m1 = K(a, { wiring: 'math' }), m2 = K(a, { wiring: 'colour' }), m3 = K(a, { mode: 'easy' }), m4 = K(a, null);
     res.pure = { changed: m1 !== a && m1.wiring === 'math' && m1.mode === 'hard' && m1.facts.k.s === 'known' && JSON.stringify(a) === aw, same: m2 === a && m3 === a && m4 === a };
     return res; })()`);
-  ok('a backup carries each child\'s wiring (facts.apollo.wiring: colour, math)', r.files.colour === 'colour' && r.files.math === 'math', r.files);
+  ok('a backup carries each child\'s wiring (facts.max.wiring: colour, math)', r.files.colour === 'colour' && r.files.math === 'math', r.files);
   for (const [dev, bak] of [['math', 'colour'], ['colour', 'math']]) {
     const k = (ch) => r[`${dev}/${bak}/${ch}`];
     ok(`device ${dev}, backup ${bak}: "Use the backup" keeps this device's (${dev}) (#152)`, k('backup')?.ok && k('backup').live === dev && k('backup').saved === dev, k('backup'));
     ok(`device ${dev}, backup ${bak}: "Keep the best" keeps this device's (${dev})`, k('best')?.ok && k('best').live === dev && k('best').saved === dev, k('best'));
     ok(`device ${dev}, backup ${bak}: "Keep this device" keeps this device's (${dev})`, k('device')?.ok && k('device').live === dev && k('device').saved === dev, k('device'));
   }
-  ok('a fresh device, "Use the backup" from a backup with Apollo on colour: Apollo is on colour', r['fresh/colour'].ok && r['fresh/colour'].saved === 'colour', r['fresh/colour']);
-  ok('a fresh device, "Use the backup" from a backup with Apollo on math: Apollo is on math', r['fresh/math'].ok && r['fresh/math'].saved === 'math', r['fresh/math']);
+  ok('a fresh device, "Use the backup" from a backup with Max on colour: Max is on colour', r['fresh/colour'].ok && r['fresh/colour'].saved === 'colour', r['fresh/colour']);
+  ok('a fresh device, "Use the backup" from a backup with Max on math: Max is on math', r['fresh/math'].ok && r['fresh/math'].saved === 'math', r['fresh/math']);
   ok('Backup.keepWiring is pure (a new record with this device\'s wiring, the rest as it was; the record passed in untouched) and gives the record itself back when the wiring matches or this device has none', r.pure.changed && r.pure.same, r.pure);
-  ok('a fresh device restoring a backup with Apollo on colour ("Keep the best"): Apollo is on colour', r.fresh.ok && r.fresh.saved === 'colour', r.fresh);
+  ok('a fresh device restoring a backup with Max on colour ("Keep the best"): Max is on colour', r.fresh.ok && r.fresh.saved === 'colour', r.fresh);
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => window.__rb.player('apollo').wiring)()`);
+  r = await C.ev(`(() => window.__rb.player('max').wiring)()`);
   ok('... and loads on colour after a reload', r === 'colour', r);
   // "Use the backup": the progress comes back as before #152 (only the wiring, and #132's mode, are this device's)
   await C.open(1280, 800, false);
@@ -322,18 +329,18 @@ async function runLogic(C) {
     const canon = (v) => (Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v) ?? 'null');
     const res = {};
     for (const [dev, bak] of [['math', 'colour'], ['colour', 'math']]) {
-      localStorage.clear(); R.manual(true); R.player('apollo');
+      ${CLEAR}; R.manual(true); R.player('max');
       R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.answer(4, 5, 20, 1500);
       const rec = F.rec, CA = F.child, x0 = Object.keys(rec.facts)[0];
       rec.facts['÷54,6'] = { ...rec.facts[x0], s: 'known' };
       rec.garage.trophies.armour = { n: 3, from: { drone: 3 } }; rec.garage.upgrades.armour = 2;
       rec.waves = { best: 4 }; rec.mode = 'hard'; rec.division = false; rec.wiring = bak; F.save();
-      const B = JSON.parse(JSON.stringify(R.backup())), want = JSON.parse(localStorage.getItem('robotbattle.facts.apollo'));
-      // this device: Apollo with nothing yet but this device's wiring and an Easy mode
-      R.player('orion'); const h = F.blank(CA);
-      h.wiring = dev; h.mode = 'easy'; localStorage.setItem('robotbattle.facts.apollo', JSON.stringify(h));
-      const x = R.restore(B, 'backup'), got = JSON.parse(localStorage.getItem('robotbattle.facts.apollo'));
-      R.player('apollo');
+      const B = JSON.parse(JSON.stringify(R.backup())), want = JSON.parse(localStorage.getItem('robotbattle.facts.max'));
+      // this device: Max with nothing yet but this device's wiring and an Easy mode
+      R.player('sam'); const h = F.blank(CA);
+      h.wiring = dev; h.mode = 'easy'; localStorage.setItem('robotbattle.facts.max', JSON.stringify(h));
+      const x = R.restore(B, 'backup'), got = JSON.parse(localStorage.getItem('robotbattle.facts.max'));
+      R.player('max');
       res[dev + '/' + bak] = { ok: x.ok, why: x.why, wiring: got.wiring, live: R.wiring().wiring, mode: got.mode, same: canon({ ...got, wiring: null, mode: null }) === canon({ ...want, wiring: null, mode: null }),
         div: got.division, fd: got.facts['÷54,6']?.s, waves: got.waves?.best, tro: got.garage?.trophies?.armour?.n, upg: got.garage?.upgrades?.armour, got: canon(got).slice(0, 400), want: canon(want).slice(0, 400) };
     }
@@ -345,23 +352,23 @@ async function runLogic(C) {
   }
 
   // ---- the gamepad in the parent view doesn't change it (its buttons are touch and keyboard)
-  await C.ev(`(() => { const R = window.__rb; R.player('apollo'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.parent(true, 'apollo'); return true; })()`);
+  await C.ev(`(() => { const R = window.__rb; R.player('max'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.parent(true, 'max'); return true; })()`);
   await C.padOn(); await sleep(150);
   const seen = [];
   for (const b of [0, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]) { await C.padBtn(b); seen.push(await C.ev(`window.__rb.wiring().wiring + (window.__rb.state().progress.ui === 'parent' ? '' : ':closed')`)); }
-  ok('pad buttons in the parent view (all but B and Start, which close it) leave Apollo on math', seen.every((s) => s === 'math'), seen);
+  ok('pad buttons in the parent view (all but B and Start, which close it) leave Max on math', seen.every((s) => s === 'math'), seen);
   return out;
 }
 
 // ---- the sweep: every control a child reaches, then every key and pad button, on each screen
 async function runSweep(C, touch, only) {
-  const [w, h] = touch ? [844, 390] : [1280, 800], who = touch ? 'orion' : 'apollo', mode = touch ? 'colour' : 'math', ids = ['apollo', 'orion'];
+  const [w, h] = touch ? [844, 390] : [1280, 800], who = touch ? 'sam' : 'max', mode = touch ? 'colour' : 'math', ids = ['max', 'sam'];
   const out = [], ok = (name, pass, got) => { out.push({ name: `sweep-${touch ? 'touch' : 'mouse'}:${only}: ${name}`, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   await C.open(w, h, touch);
-  // seed: Apollo on math, Orion on colour; whoever is swept has a wave cleared (so the wave chip shows) and parts in the bag
-  await C.ev(`(() => { const R = window.__rb; R.player('apollo'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.player('orion'); R.Facts.rec.wiring = 'colour'; R.Facts.save(); return true; })()`);
+  // seed: Max on math, Sam on colour; whoever is swept has a wave cleared (so the wave chip shows) and parts in the bag
+  await C.ev(`(() => { const R = window.__rb; R.player('max'); R.Facts.rec.wiring = 'math'; R.Facts.save(); R.player('sam'); R.Facts.rec.wiring = 'colour'; R.Facts.save(); return true; })()`);
   await C.ev(SEED_WAVES(who, 3));
-  const want = { apollo: 'math', orion: 'colour' };
+  const want = { max: 'math', sam: 'colour' };
   const GTABS = await C.ev(`window.__rb.garage().tabs.map((t) => t.id)`);
   if (only === 'who') ok(`the garage's tabs are the ones swept (${GTABS.join(', ')})`, SCREENS.filter((q) => q.startsWith('garage:')).map((q) => q.slice(7)).join() === GTABS.join(), GTABS);
   const screens = [only];
@@ -382,7 +389,7 @@ async function runSweep(C, touch, only) {
   };
   const check = async (what) => {
     const r = await C.ev(READ(ids));
-    const bad = r.saved.apollo !== want.apollo || r.saved.orion !== want.orion || (r.playing && r.playing in want && r.live !== want[r.playing]);
+    const bad = r.saved.max !== want.max || r.saved.sam !== want.sam || (r.playing && r.playing in want && r.live !== want[r.playing]);
     if (bad) { fails.push({ what, ...r }); await C.ev(`(() => { const R = window.__rb; for (const [id, m] of Object.entries(${JSON.stringify(want)})) { const k = 'robotbattle.facts.' + id, v = JSON.parse(localStorage.getItem(k)); v.wiring = m; localStorage.setItem(k, JSON.stringify(v)); }
       if (R.Facts.rec && R.Game.child && ${JSON.stringify(want)}[R.Game.child.id]) R.Facts.rec.wiring = ${JSON.stringify(want)}[R.Game.child.id]; return true; })()`); }
   };
