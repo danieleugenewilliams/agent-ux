@@ -296,7 +296,18 @@ async function runRelay() {
   a.close(); b2.close(); await sleep(1700);
   const d = await nodeClient(R); d.put({ t: 'join', code: room.code }); const rd = await d.next();
   ok(`a room left empty is forgotten after the TTL (${JSON.stringify(rd)})`, rd && rd.t === 'err' && rd.why === 'nocode', rd);
-  for (const w of [c, d]) try { w.close(); } catch {}
+  // one socket tapping HOST over and over holds one room, not 64 (it can't make the server busy for everyone)
+  const h = await nodeClient(R); for (let i = 0; i < 70; i++) h.put({ t: 'host' }); await sleep(300);
+  const v = await nodeClient(R); v.put({ t: 'host' }); const rv = await v.next();
+  ok(`one socket hosting 70 times doesn't fill the server: another player still gets a room (${rv?.t})`, rv?.t === 'room', rv);
+  // a client that just closes its TCP side (FIN, no close frame): its friend hears at once and its slot is freed
+  const fa = await nodeClient(R); fa.put({ t: 'host' }); const fr = await fa.next('room');
+  if (!fr) { ok('a second host gets a room for the connection-end check', false, fr); for (const w of [c, d, h, v, fa]) try { w.close(); } catch {} await killRelayWait(R); return out; }
+  const fin = await new Promise((res) => { const s = net.connect(R.port, '127.0.0.1'); s.on('error', () => {}); s.on('connect', () => s.write(`GET /ww HTTP/1.1\r\nHost: 127.0.0.1:${R.port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`)); s.once('data', () => res(s)); });
+  const msk = Buffer.from(JSON.stringify({ t: 'join', code: fr.code })), mf = Buffer.concat([Buffer.from([0x81, 0x80 | msk.length, 0, 0, 0, 0]), msk]);
+  fin.write(mf); await fa.next('peer-join'); const tf = Date.now(); fin.end(); const fl = await fa.next('peer-left', 3000);
+  ok(`a friend whose connection just ends (no close frame) is gone at once (${fl ? Date.now() - tf + ' ms' : 'not heard'})`, fl && Date.now() - tf < 1000, fl);
+  for (const w of [c, d, h, v, fa]) try { w.close(); } catch {}
   await killRelayWait(R);
   return out;
 }

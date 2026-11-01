@@ -1623,7 +1623,7 @@ function checkMeets() {
 }
 // fromPeer (#160): the other player met it; it goes into this player's own book too (and isn't sent back)
 function meet(id, fromPeer) {
-  if (!A[id] || P.met.has(id)) return false;
+  if (!Object.hasOwn(A, id) || P.met.has(id)) return false;   // own keys only: a friend's 'constructor' isn't an animal
   P.met.add(id); save(); Sfx.meet();
   const an = (/^[AEIOU]/.test(A[id].name) ? 'an ' : 'a ') + A[id].name;
   toast(id, (fromPeer ? 'Your friend met ' : 'You met ') + an + '!', 4.5, LISTS[id]?.fact);   // W2: and its fact
@@ -2536,7 +2536,7 @@ const Two = {
   },
   sendMeet(id) { if (Net.state === 'together') Net.send({ t: 'meet', id }); },
   addSnap(m) {
-    const p = this.peer; if (!p || ![m.x, m.y, m.z].every(Number.isFinite) || !FORMS[m.f]) return;
+    const p = this.peer; if (!p || ![m.x, m.y, m.z].every(Number.isFinite) || typeof m.f !== 'string' || !Object.hasOwn(FORMS, m.f)) return;
     const s = { at: performance.now(), wall: Date.now(), x: m.x, y: m.y, z: m.z, yaw: Number.isFinite(m.yaw) ? m.yaw : 0, f: m.f, s: +m.s || 0, g: m.g !== 0, rd: !!m.rd };
     if (!p.last || p.last.f !== s.f) p.formAt = s.wall;   // when their new form arrived (the tests time it)
     p.snaps.push(s); if (p.snaps.length > 30) p.snaps.shift(); p.last = s;
@@ -2785,7 +2785,7 @@ Net.on('err', (m) => {
 });
 Net.on('hi', (m) => Two.onHi(m));
 Net.on('st', (m) => Two.addSnap(m));
-Net.on('meet', (m) => { if (typeof m.id === 'string' && A[m.id]) meet(m.id, true); });
+Net.on('meet', (m) => { if (typeof m.id === 'string' && Object.hasOwn(A, m.id)) meet(m.id, true); });
 Net.on('mount', () => { if (RIDE[P.form]) Two.carrying = true; else Net.send({ t: 'drop' }); });
 Net.on('dismount', () => { Two.carrying = false; });
 Net.on('drop', () => Two.dismount('form'));
@@ -2829,8 +2829,8 @@ const Backup = {
       const b = data.books && data.books[from];
       if (b && Array.isArray(b.met)) {
         const cur = Book.read(to), met = new Set(cur.met), ch = new Set(cur.changed || []);
-        for (const id of b.met) if (A[id] && !met.has(id)) { met.add(id); animals++; }
-        for (const id of Array.isArray(b.changed) ? b.changed : []) if (A[id]) ch.add(id);
+        for (const id of b.met) if (typeof id === 'string' && Object.hasOwn(A, id) && !met.has(id)) { met.add(id); animals++; }
+        for (const id of Array.isArray(b.changed) ? b.changed : []) if (typeof id === 'string' && Object.hasOwn(A, id)) ch.add(id);
         store.set('book.' + to, { v: SAVE_V, met: [...met], form: cur.form, fp: !!cur.fp, sound: cur.sound !== false, changed: [...ch] });
       }
       const w = data.words && data.words[from];

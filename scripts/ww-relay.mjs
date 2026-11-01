@@ -104,6 +104,7 @@ class Peer {
     sock.setNoDelay(true);   // Nagle plus delayed ACKs can hold a small frame back for 40-200 ms
     sock.on('data', (d) => this.data(d));
     sock.on('close', () => this.gone());
+    sock.on('end', () => this.gone());   // the http server allows half-open sockets, so a client's FIN alone never fires 'close'
     sock.on('error', () => this.gone());
   }
   send(obj) { if (this.open) try { this.sock.write(frame(0x1, Buffer.from(typeof obj === 'string' ? obj : JSON.stringify(obj), 'utf8'))); } catch {} }
@@ -168,7 +169,9 @@ const Rooms = {
   map: new Map(),   // "a-b-c-d" -> { code, peers: [], emptyAt }
   key: (code) => (Array.isArray(code) && code.length === CODE_LEN && code.every((c) => Number.isInteger(c) && c >= 0 && c < CODE_ICONS) ? code.join('-') : null),
   host(p) {
+    const old = p.room;
     this.leave(p);
+    if (old && !old.peers.length) this.map.delete(old.code.join('-'));   // a player hosting again drops the room only they held, so one socket can't fill MAX_ROOMS
     this.sweep();
     if (this.map.size >= MAX_ROOMS) { p.send({ t: 'err', why: 'busy' }); return; }
     let code, k, tries = 0;
