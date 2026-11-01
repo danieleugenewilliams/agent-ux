@@ -149,6 +149,15 @@
   .mk-lv b { font-size: 28px; line-height: 1; }
   .mk-lv svg { width: 34px; height: 34px; }
   .mk-lv.on { background: var(--sun); box-shadow: 0 0 0 4px var(--ink); }
+  .mk-copy { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 16px; background: #eef6ff; font-weight: 800; font-size: 15px; }
+  .mk-cbook { flex: none; display: flex; align-items: center; gap: 4px; font-size: 22px; }
+  .mk-cbook svg { width: 30px; height: 30px; }
+  .mk-ctext { flex: 1; min-width: 0; }
+  .mk-yn { flex: none; width: 52px; height: 52px; border: 0; border-radius: 50%; padding: 0; background: #e6ecf4; color: var(--ink); display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+  .mk-yn svg { width: 28px; height: 28px; }
+  .mk-yn.on { background: var(--leaf); color: #fff; box-shadow: 0 0 0 4px var(--ink); }
+  .mk-yn.no.on { background: #ff8a8a; }
+  @media (max-height: 430px) { .mk-lv { min-height: 64px; flex-direction: row; gap: 8px; } .mk-lv b { font-size: 24px; } }
   .mk-foot { display: flex; justify-content: space-between; gap: 10px; }
   .mk-foot .big { min-width: 120px; }
   .big[disabled] { opacity: .45; }
@@ -1993,7 +2002,7 @@ const Hold = {
 
 // ---------- Ask: the spelling panel. Change.gate sends every change into an animal here; a right answer changes you.
 const Ask = {
-  p: null, go: null, animal: null, typed: '', tiles: null, used: [], done: null, tried: '', reveal: 0, timer: 0, closeT: 0, opens: 0,
+  p: null, go: null, animal: null, typed: '', tiles: null, used: [], done: null, tried: '', reveal: 0, timer: 0, closeT: 0, opens: 0, closed: 0,
   open(animal, go, force) {
     this.stop();
     this.animal = animal; this.go = go;
@@ -2045,7 +2054,13 @@ const Ask = {
   again() { if (this.done === 'wrong') this.open(this.animal, this.go); },
   stop() { clearTimeout(this.timer); clearTimeout(this.closeT); this.timer = this.closeT = 0; Say.stop(); },
   // the panel closed: a right answer changes you now (a miss, or a close before answering, leaves you as you were)
-  leave() { this.stop(); if (this.done === 'right' && this.go) { const g = this.go; this.go = null; g(); } },
+  // Dad's pick (#162 hand-back 1): closing before answering (the X, Esc, B on a pad, any way out) counts as a miss for that word,
+  // only recorded (no spelling shown), so it comes back soon and can't be skipped by closing and opening again
+  leave() {
+    this.stop();
+    if (this.p && !this.done && !this.p.tried) { Spell.answer(this.p, ''); this.done = 'closed'; this.closed++; }
+    if (this.done === 'right' && this.go) { const g = this.go; this.go = null; g(); }
+  },
   key(e) {
     const c = e.code;
     if (c === 'Escape') { e.preventDefault(); closeOverlay(); return; }
@@ -2111,10 +2126,15 @@ Change.gate = (id, go) => {
 
 // ---------- the profile maker: a name (on its own keyboard: no system keyboard pops up), an icon and a color, then the level
 const Maker = {
-  page: 'name', name: '', icon: null, color: null, level: null, why: null,
+  page: 'name', name: '', icon: null, color: null, level: null, why: null, copy: null,
+  // Dad's pick (#162 hand-back 1): every new profile is offered Guest's animals once, on the last page (W1's book while Guest has
+  // none of its own). Only when Guest has at least one; yes copies the animals met into the new book (it still spells each
+  // name the first time), no starts empty. Guest keeps its book; wildworld.save is only ever read.
+  guestBook() { const b = Book.read(GUEST.id); return { met: b.met.filter((id) => A[id]), fp: !!b.fp, sound: b.sound !== false }; },
+  offer() { return this.guestBook().met.length; },
   open() {
     if (Profiles.full()) return { ok: false, why: 'full' };
-    const s = Profiles.suggest(); Object.assign(this, { page: 'name', name: '', icon: s.icon, color: s.color, level: null, why: null });
+    const s = Profiles.suggest(); Object.assign(this, { page: 'name', name: '', icon: s.icon, color: s.color, level: null, why: null, copy: null });
     showOv('maker'); this.draw(); return { ok: true };
   },
   type(ch) { if (this.page !== 'name' || this.name.length >= PROFILE.nameMax) return this.name; this.name += this.name === '' ? ch.toUpperCase() : ch.toLowerCase(); this.why = null; this.drawName(); return this.name; },
@@ -2127,8 +2147,11 @@ const Maker = {
   back() { if (this.page === 'level') this.page = 'look'; else if (this.page === 'look') this.page = 'name'; else { closeOverlay(); return; } this.draw(); },
   save() {
     if (this.level !== 1 && this.level !== 2) return { ok: false, why: 'pick a level' };
+    const n = this.offer();
+    if (n && this.copy !== true && this.copy !== false) return { ok: false, why: 'pick yes or no' };
     const r = Profiles.add(this.name, this.icon, this.color, this.level);
     if (!r.ok) { this.why = r.why; this.page = 'name'; this.draw(); return r; }
+    if (n && this.copy) { const g = this.guestBook(); store.set('book.' + r.id, { v: SAVE_V, met: g.met, form: 'human', fp: g.fp, sound: g.sound, changed: [] }); r.copied = g.met.length; }
     closeOverlay(); choosePlayer(r.id); return r;
   },
   key(e) {
@@ -2173,7 +2196,17 @@ const Maker = {
       body = document.createElement('div'); body.className = 'mk-lvs';
       body.append(mkBtn('mk-lv' + (this.level === 1 ? ' on' : ''), `<b>1</b>${ICON.tiles}<span>Letter tiles</span>`, 'Level 1: letter tiles', () => { this.level = 1; this.draw(); }, { 'data-level': '1' }),
         mkBtn('mk-lv' + (this.level === 2 ? ' on' : ''), `<b>2</b>${ICON.ear}<span>Hear and type</span>`, 'Level 2: hear and type', () => { this.level = 2; this.draw(); }, { 'data-level': '2' }));
-      const sv = mkBtn('big go', ICON.check + '<span>SAVE</span>', 'Save', () => this.save(), { id: 'mkSave' }); sv.disabled = !this.level;
+      const n = this.offer();
+      if (n) {
+        // "start with Guest's animals?": the book, how many, yes or no
+        const cp = document.createElement('div'); cp.className = 'mk-copy'; cp.id = 'mkCopy';
+        cp.innerHTML = `<span class="mk-cbook">${ICON.book}<b>${n}</b></span><span class="mk-ctext">Start with Guest's animals?</span>`;
+        cp.append(mkBtn('mk-yn' + (this.copy === true ? ' on' : ''), ICON.check, `Yes: start with Guest's ${n} animals`, () => { this.copy = true; this.draw(); }, { 'data-copy': 'yes' }),
+          mkBtn('mk-yn no' + (this.copy === false ? ' on' : ''), ICON.close, 'No: start with an empty book', () => { this.copy = false; this.draw(); }, { 'data-copy': 'no' }));
+        const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+        wrap.append(body, cp); body = wrap;
+      }
+      const sv = mkBtn('big go', ICON.check + '<span>SAVE</span>', 'Save', () => this.save(), { id: 'mkSave' }); sv.disabled = !this.level || (n > 0 && this.copy == null);
       foot.append(why, sv);
     }
     P0.append(body, foot);
@@ -2183,7 +2216,7 @@ const Maker = {
       fitKeys(body, body.children.length, inner, avail, 54, 6);
     }
   },
-  status() { return overlay === 'maker' ? { page: this.page, name: this.name, icon: this.icon, color: this.color, level: this.level, why: this.why } : null; },
+  status() { return overlay === 'maker' ? { page: this.page, name: this.name, icon: this.icon, color: this.color, level: this.level, why: this.why, copy: this.copy, offer: this.offer() } : null; },
 };
 
 // ---------- the parent view: per player, the level (a parent's to change), the misses this week and every word's status

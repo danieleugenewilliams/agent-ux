@@ -13,7 +13,9 @@
 //              level 2 types on its own keyboard (no input element, so no system keyboard).
 //   learning - a missed word comes back as the 2nd prompt after the miss (the next one is a different word), on another animal
 //              too; three right first tries on three different days (the clock override) marks a word mastered, two days
-//              doesn't, three right on the same day doesn't, and a miss stops today counting; mastered words come up less often.
+//              doesn't, three right on the same day doesn't, and a miss stops today counting; mastered words come up less often;
+//              closing the panel before answering counts as a miss (no spelling shown) and the word comes back as the 2nd prompt
+//              after, however many times it's closed.
 //   profiles - Guest plus profiles made with the maker (tapped through: name on the game's keyboard, icon, color, level): each
 //              keeps its own book and word progress, under wildworld.*; a reload keeps them; the parent view (behind a 2 s hold:
 //              a short tap doesn't open it) shows each word's status, the misses this week and the level, and changes the level.
@@ -21,8 +23,11 @@
 //              changes you); with it there, the word is spoken.
 //   migrate  - a real W1 save: main's W1 page (pinned at 1c0204e) meets animals through its own __ww and saves wildworld.save v:1;
 //              this page then loads it as Guest's book with every met animal, writes nothing on load, and on the first change
-//              writes Guest's book to wildworld.book.guest (v:2) while wildworld.save stays byte for byte as W1 left it.
-//   touch    - a tap-only round with CDP Input.dispatchTouchEvent at 568x320: make a level 2 profile in the maker, play as it,
+//              writes Guest's book to wildworld.book.guest (v:2) while wildworld.save stays byte for byte as W1 left it. Then the
+//              maker's last page offers Guest's animals to every new profile: yes copies every one (a second profile can too), no
+//              starts empty, and wildworld.save is still unchanged.
+//   touch    - a tap-only round with CDP Input.dispatchTouchEvent at 568x320: make a level 2 profile in the maker (yes to Guest's
+//              animals), play as it,
 //              open the wheel with the CHANGE button, pick an animal, spell its name on the on-screen keyboard, then miss a word
 //              (the spelling shows), tap NEW WORD and get the next one right.
 //   WxH      - at that size in touch mode: the title (player tiles, PLAY, the parent button), the spelling panel at level 1 (tiles)
@@ -298,6 +303,17 @@ async function runLearning(C) {
     return { missed, next1, next2, seq };`);
   ok(`after a miss ("${r.missed}") the very next prompt is another word ("${r.next1}"): you try another word`, r.next1 !== r.missed, r);
   ok(`the missed word comes back as the 2nd prompt after the miss, even changing into another animal (the pig asked "${r.next2.word}" with its own clue: "${r.next2.clue}")`, r.next2.word === r.missed && r.next2.back && r.next2.of === 'cow', r);
+  // closing the panel before answering counts as a miss (Dad's pick): recorded, no spelling shown, and it comes back
+  const c = await ev(String.raw`W.requestChange('cow'); const w = Q().word, e0 = W.progress().words[w.toLowerCase()]?.missed || 0; W.closeOverlay();
+    const e1 = W.progress().words[w.toLowerCase()], form = S().form, seq = [];
+    for (let i = 0; i < 4; i++) { W.requestChange(i % 2 ? 'pig' : 'cow'); const q = Q(); seq.push(q.word); W.answer(right()); W.requestChange('human'); }
+    // closing again and again can't skip it: close it each time it comes back (3 times), it keeps coming back
+    const dodge = []; W.requestChange('horse'); const w2 = Q().word; W.closeOverlay();
+    for (let i = 0; i < 7; i++) { W.requestChange('horse'); const q = Q(); dodge.push(q.word); if (q.word === w2 && dodge.filter((x) => x === w2).length < 3) W.closeOverlay(); else { W.answer(right()); W.requestChange('human'); } }
+    return { w, e0, e1, form, seq, w2, dodge };`);
+  ok(`closing the panel before answering ("${c.w}") counts as a miss (missed ${c.e0} -> ${c.e1.missed}, no spelling shown, still ${c.form})`, c.e1.missed === c.e0 + 1 && c.e1.missDay != null && c.form === 'human', c);
+  ok(`and the closed word comes back as the 2nd prompt after (${c.seq.join(', ')})`, c.seq[0] !== c.w && c.seq[1] === c.w, c);
+  ok(`closing it again each time can't skip it: it comes back every 2nd prompt (${c.dodge.join(', ')})`, c.dodge.filter((x) => x === c.w2).length >= 3 && c.dodge[1] === c.w2 && c.dodge[3] === c.w2 && c.dodge[5] === c.w2, c);
   r = await ev(String.raw`const p = W.progress(); return p.words[${JSON.stringify(r.missed)}.toLowerCase()];`);
   ok(`answered right on its return, it's learning, with today not counted toward mastery (days ${JSON.stringify(r.days)})`, r.s === 'learning' && r.days.length === 0 && r.missDay != null && r.back == null, r);
   // mastery: three right first tries on three different days (W.ask aims a prompt at one word)
@@ -344,8 +360,8 @@ async function runProfiles(C) {
   r = await C.ev('window.__ww.maker()');
   ok(`the maker opens on its own keyboard; tapping m, a, x spells "${r?.name}"`, r?.page === 'name' && r.name === 'Max', r);
   await click('#mkNext'); await click('#mkIcons .mk-ic[data-icon="star"]'); await click('#mkColors .mk-col:nth-child(5)'); await click('#mkNext');
-  r = await C.ev(`(() => ({ m: window.__ww.maker(), save: document.getElementById('mkSave').disabled }))()`);
-  ok(`then an icon and a color (${r.m.icon}, ${r.m.color}); on the level page SAVE waits for a level`, r.m.page === 'level' && r.m.icon === 'star' && r.save === true, r);
+  r = await C.ev(`(() => ({ m: window.__ww.maker(), save: document.getElementById('mkSave').disabled, copy: !!document.getElementById('mkCopy') }))()`);
+  ok(`then an icon and a color (${r.m.icon}, ${r.m.color}); on the level page SAVE waits for a level; Guest has no animals, so no offer of them`, r.m.page === 'level' && r.m.icon === 'star' && r.save === true && !r.copy && r.m.offer === 0, r);
   await click('.mk-lv[data-level="1"]'); await click('#mkSave');
   r = await C.ev(String.raw`(() => { const W = window.__ww; return { profiles: W.profiles(), who: W.state().who, tiles: [...document.querySelectorAll('#who .ptile')].map((t) => t.dataset.id), overlay: W.state().overlay, keys: Object.keys(localStorage).filter((k) => k.startsWith('wildworld.')).sort() }; })()`);
   const max = r.profiles.find((p) => p.name === 'Max');
@@ -430,9 +446,27 @@ async function runMigrate(C) {
   await C.reload();
   r = await C.ev(`(() => ({ s: window.__ww.state() }))()`);
   ok(`a reload keeps Guest's book (${r.s.met.length} animals, the ${r.s.form})`, r.s.met.length === 7 && r.s.form === 'lion', r);
-  // a profile made later starts with an empty book; Guest's stays
-  r = await C.ev(String.raw`(() => { const W = window.__ww, p = W.addProfile('Max', 'paw', '#5cc8ff', 1); W.profile(p.id); const a = W.state().met.length; W.profile('guest'); return { a, b: W.state().met.length }; })()`);
-  ok(`a new profile starts with its own empty book (${r.a}); Guest keeps the ${r.b}`, r.a === 0 && r.b === 7, r);
+  // Dad's pick: the maker offers Guest's animals to every new profile, on its last page
+  const make = (name, copy) => C.ev(String.raw`(() => { const W = window.__ww, M = W.Maker; W.openTitle(); M.open(); for (const ch of '${name}'.toLowerCase()) M.type(ch); M.next(); M.next();
+    document.querySelector('.mk-lv[data-level="1"]')._tap(); const offer = { shown: !!document.getElementById('mkCopy'), text: document.getElementById('mkCopy')?.textContent, save: document.getElementById('mkSave').disabled };
+    ${copy == null ? '' : `document.querySelector('.mk-yn[data-copy="${copy ? 'yes' : 'no'}"]')._tap();`} const saveAfter = document.getElementById('mkSave').disabled; const r = M.save();
+    return { offer, saveAfter, r, s: W.state(), book: JSON.parse(localStorage.getItem('wildworld.book.' + r.id) || 'null'), raw: localStorage.getItem('wildworld.save') }; })()`);
+  // first with only W1's book (Guest has none of its own yet): drop Guest's v:2 book, reload
+  await C.ev(`(() => { localStorage.removeItem('wildworld.book.guest'); return true; })()`); await C.reload();
+  r = await make('Max', true);
+  ok(`with only the W1 save, the maker's last page offers Guest's ${W1MET.length} animals ("${r.offer.text}"), SAVE waiting for yes or no (${r.offer.save})`, r.offer.shown && r.offer.text.startsWith('6') && r.offer.save === true && r.saveAfter === false, r);
+  ok(`yes: the new profile has every animal from the W1 book (${r.s.met.join(', ')}), saved in its own book`, r.r.ok && r.s.who === r.r.id && W1MET.every((a) => r.s.met.includes(a)) && r.s.met.length === 6 && r.book?.met.length === 6 && r.s.form === 'human', r);
+  ok(`wildworld.save is byte for byte as W1 left it`, r.raw === raw0, { raw: r.raw, raw0 });
+  r = await make('Sam', true);
+  ok(`a second profile is offered it too and gets every animal (${r.s.met.length})`, r.offer.shown && r.r.ok && W1MET.every((a) => r.s.met.includes(a)) && r.s.met.length === 6, r);
+  r = await make('Bo', false);
+  ok(`no: the profile starts with an empty book (${r.s.met.length})`, r.offer.shown && r.r.ok && r.s.met.length === 0 && r.book === null, r);
+  r = await C.ev(`(() => { const W = window.__ww; W.profile('guest'); return { met: W.state().met, raw: localStorage.getItem('wildworld.save') }; })()`);
+  ok(`Guest still has its ${r.met.length} animals; wildworld.save is still unchanged after three profiles`, r.met.length === 6 && r.raw === raw0, r);
+  // once Guest has its own book, that's what's offered (the 7 after a meet as Guest)
+  r = await C.ev(`(() => { const W = window.__ww; W.manual(true); W.start(); W.meet('pig'); return W.state().met.length; })()`);
+  const r2 = await make('Cy', true);
+  ok(`once Guest has a book of its own, that's the one offered and copied (${r2.s.met.length} with the pig)`, r === 7 && r2.s.met.length === 7 && r2.s.met.includes('pig') && r2.raw === raw0, r2);
   return out;
 }
 
@@ -441,11 +475,12 @@ async function runTouch(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   await C.open(568, 320, true);
   const st = () => C.ev('window.__ww.state()');
+  await C.ev(`(() => { const W = window.__ww; W.meet('cow'); W.meet('pig'); W.openTitle(); return true; })()`);
   await C.tapEl('#who .ptile[data-id="new"]');
   for (const ch of 'sam') await C.tapEl(`#mkKeys .sp-key[data-k="${ch}"]`);
-  await C.tapEl('#mkNext'); await C.tapEl('#mkIcons .mk-ic[data-icon="rocket"]'); await C.tapEl('#mkNext'); await C.tapEl('.mk-lv[data-level="2"]'); await C.tapEl('#mkSave');
+  await C.tapEl('#mkNext'); await C.tapEl('#mkIcons .mk-ic[data-icon="rocket"]'); await C.tapEl('#mkNext'); await C.tapEl('.mk-lv[data-level="2"]'); await C.tapEl('.mk-yn[data-copy="yes"]'); await C.tapEl('#mkSave');
   let s = await st(), prof = await C.ev('window.__ww.profile()');
-  ok(`taps make a level 2 profile in the maker (${prof.name}, ${prof.icon}, level ${prof.level})`, prof.name === 'Sam' && prof.level === 2 && prof.icon === 'rocket' && s.overlay === null, { prof, s });
+  ok(`taps make a level 2 profile in the maker (${prof.name}, ${prof.icon}, level ${prof.level}), taking Guest's animals with a tap on yes (${s.met.join(', ')})`, prof.name === 'Sam' && prof.level === 2 && prof.icon === 'rocket' && s.overlay === null && s.met.sort().join() === 'cow,pig', { prof, s });
   await C.tapEl(`#who .ptile[data-id="${prof.id}"]`); await sleep(300);
   s = await st();
   ok(`a tap on its tile plays as it (${s.screen})`, s.screen === 'play' && s.who === prof.id, s);
@@ -521,15 +556,15 @@ async function runSize(C, size) {
     await C.ev('window.__ww.closeOverlay(); window.__ww.openTitle()');
   }
   // the maker's three pages
-  await C.ev(`window.__ww.profile('guest'); window.__ww.openMaker()`);
+  await C.ev(`window.__ww.profile('guest'); window.__ww.openTitle(); window.__ww.openMaker()`);
   r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; window.__ww.Maker.type('m'); window.__ww.Maker.type('o'); return L.check('#maker button', ['#mkName']); })()`);
   ok(`the maker's name page: its keyboard and ${r.n} buttons on screen, none overlapping, each at least 44 px (smallest ${r.min})`, r.n === 29 && good(r), r);
   await C.shot(`ww2-${size}-maker-name`);
   r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; window.__ww.Maker.type('e'); window.__ww.Maker.next(); return L.check('#maker button', ['#mkName']); })()`);
   ok(`the maker's icon and color page: ${r.n} buttons on screen, none overlapping, each at least 44 px (smallest ${r.min})`, r.n === 18 && good(r), r);
   await C.shot(`ww2-${size}-maker-look`);
-  r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; window.__ww.Maker.next(); return L.check('#maker button', ['#mkName']); })()`);
-  ok(`the maker's level page: ${r.n} buttons on screen, none overlapping, each at least 44 px (smallest ${r.min})`, r.n === 4 && good(r), r);
+  r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; window.__ww.Maker.next(); return { ...L.check('#maker button', ['#mkName', '#mkCopy .mk-cbook', '#mkCopy .mk-ctext']), offer: !!document.getElementById('mkCopy') }; })()`);
+  ok(`the maker's level page with the offer of Guest's animals: ${r.n} buttons on screen, none overlapping each other or the offer, each at least 44 px (smallest ${r.min})`, r.offer && r.n === 6 && good(r), r);
   await C.shot(`ww2-${size}-maker-level`);
   await C.ev('window.__ww.closeOverlay()');
   // the parent view
