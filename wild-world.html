@@ -1499,6 +1499,8 @@ window.__ww = {
   start() { startPlay(); return screen; },
   step(n = 1) { for (let i = 0; i < n; i++) { if (overlay) break; tick(); } updateView(); return ticks; },
   render() { updateView(); renderer.render(scene, camera); return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles }; },
+  // a render looking four ways round, so everything loaded has been on the GPU (info.memory only counts what has been drawn)
+  renderAround() { const y0 = cam.yaw; for (let k = 0; k < 4; k++) { cam.yaw = y0 + k * Math.PI / 2; updateView(); renderer.render(scene, camera); } cam.yaw = y0; return this.render(); },
   teleport(x, z, y) {
     P.x = x; P.z = z; const g = groundAt(x, z);
     P.y = y != null ? y : (isSwimmer(P.form) && g < SEA - 0.9 ? (P.form === 'fish' ? SEA - 2.2 : SEA - 1.3) : Math.max(g, g < SEA - 1.25 ? SEA - Math.min(1.3, FORMS[P.form].eye * 0.75) : g));
@@ -1533,10 +1535,10 @@ window.__ww = {
   info() {
     const inst = {}; let liveInst = 0;
     for (const k of PROP_KINDS) { let n = 0; for (const c of chunks.values()) for (const p of c.props) if (p.t === k) n++; inst[k] = { capacity: PROPS[k].userData.capacity, count: PROPS[k].count, live: n }; liveInst += n; }
-    return { geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, meshes: sceneMeshes(), chunks: chunks.size, animals: live.size, instances: inst, liveInstances: liveInst,
+    return { geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, meshes: sceneMeshes(), animalMeshes: [...live.values()].reduce((n, a) => n + a.model.children.length, 0), chunks: chunks.size, animals: live.size, instances: inst, liveInstances: liveInst,
       programs: renderer.info.programs?.length ?? null, frames };
   },
-  openWheel, openBook, openPause, closeOverlay, toggleView, thumbs: THUMB,
+  openWheel, openBook, openPause, closeOverlay, toggleView, thumbs: THUMB, makeModel,
 };
 </script>
 </body>

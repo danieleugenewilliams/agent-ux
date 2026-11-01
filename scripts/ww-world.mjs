@@ -348,6 +348,220 @@ async function runForms(C) {
   return out;
 }
 
+// on foot along x (look +x or -x, stick forward) until x passes `to`; if the guy is stuck (a tree, a barn) for 10 s he is nudged
+// 4 m on and the nudge is counted. Returns { ticks, nudges }.
+const WALK = String.raw`
+  const walkTo = (to) => { const dir = Math.sign(to - S().x); W.look(dir > 0 ? Math.PI / 2 : -Math.PI / 2, 0.3); W.input({ y: -1 }); let t = 0, nudges = 0, lastX = S().x;
+    while ((to - S().x) * dir > 0) { W.step(60); t += 60; if (t % 600 === 0) { const x = S().x; if (Math.abs(x - lastX) < 5) { W.teleport(x + 4 * dir, S().z); nudges++; } lastX = x; } }
+    W.input({}); return { ticks: t, nudges }; };
+`;
+async function runWalk(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(1280, 800, false);
+  const ev = (body) => C.ev(String.raw`(() => { ${H} ${WALK} W.manual(true); W.start(); ${body} })()`);
+  const snap = String.raw`const snap = () => { W.renderAround(); const i = W.info(); return { ...i, ...W.render(), x: S().x, z: S().z }; };`;
+  let r = await ev(String.raw`${snap} W.settle(); W.step(30); const c = S().chunk; return { c, at: snap(), chunk: W.chunk(c[0], c[1]), x0: S().x, z0: S().z };`);
+  const c0 = r.c, first = r.chunk, x0 = r.x0, spawn0 = r.at;
+  const marks = {}; let nudges = 0, ticks = 0;
+  for (let m = 250; m <= 5000; m += 250) {
+    r = await ev(String.raw`${snap} const w = walkTo(${x0 + m}); return { w, at: snap() };`);
+    nudges += r.w.nudges; ticks += r.w.ticks;
+    if (m === 1000 || m === 5000) marks[m] = r.at;
+  }
+  const k1 = marks[1000], k5 = marks[5000];
+  const capOf = (i) => Object.fromEntries(Object.entries(i.instances).map(([k, v]) => [k, v.capacity]));
+  const fixed = (i) => i.meshes - i.animalMeshes;
+  ok(`walked 5 km east on foot (${(ticks / 60).toFixed(0)} s of game time, ${nudges} nudges past a tree): now x ${k5.x.toFixed(0)}`, k5.x - x0 >= 5000, { k5, nudges });
+  ok(`geometries flat: km 1 ${k1.geometries}, km 5 ${k5.geometries} (spawn ${spawn0.geometries}); textures ${k1.textures} / ${k5.textures}`, k1.geometries === k5.geometries && k5.geometries === spawn0.geometries && k1.textures === k5.textures, { k1, k5 });
+  ok(`chunks flat: ${k1.chunks} / ${k5.chunks}; scene meshes less the animals' ${fixed(k1)} / ${fixed(k5)} (all meshes ${k1.meshes} / ${k5.meshes}, animals ${k1.animals} / ${k5.animals} of at most ${20})`,
+    k1.chunks === 25 && k5.chunks === 25 && fixed(k1) === fixed(k5) && k5.animals <= 20 && k1.animals <= 20, { k1, k5 });
+  ok(`instance buffers flat (fixed capacity, ${Object.values(capOf(k5)).reduce((a, b) => a + b, 0)} in all) and drawn = live props (km 1 ${k1.liveInstances}, km 5 ${k5.liveInstances})`,
+    JSON.stringify(capOf(k1)) === JSON.stringify(capOf(k5)) && Object.values(k5.instances).every((v) => v.count === v.live && v.live <= v.capacity), { k1: k1.instances, k5: k5.instances });
+  // and back to the spawn chunk: it was unloaded and rebuilt, and is the same number for number
+  for (let m = 4750; m >= 0; m -= 250) { r = await ev(String.raw`const w = walkTo(${x0 + m}); return { w };`); nudges += r.w.nudges; }
+  r = await ev(String.raw`${snap} W.settle(); W.step(30); return { at: snap(), chunk: W.chunk(${c0[0]}, ${c0[1]}), c: S().chunk };`);
+  const again = r.chunk, back = r.at;
+  const hd = Math.max(...first.heights.map((h, i) => Math.abs(h - again.heights[i])));
+  let pd = 0; const sameKinds = first.props.length === again.props.length && first.props.every((p, i) => p[0] === again.props[i][0]);
+  if (sameKinds) for (let i = 0; i < first.props.length; i++) for (let k = 1; k < 5; k++) pd = Math.max(pd, Math.abs(first.props[i][k] - again.props[i][k]));
+  ok(`back at spawn the chunk ${c0} was rebuilt (generation ${first.gen} -> ${again.gen}, a new geometry)`, again.gen !== first.gen && again.uuid !== first.uuid, { first: first.gen, again: again.gen });
+  ok(`the same terrain: ${first.heights.length} heights, largest difference ${hd} m`, first.heights.length === again.heights.length && hd === 0, { hd });
+  const trees = first.props.filter((p) => /pine|oak|acacia/.test(p[0])).length, rocks = first.props.filter((p) => p[0] === 'rock').length;
+  ok(`the same props: ${first.props.length} placements (${trees} trees, ${rocks} rocks), largest difference ${pd} (position and scale)`, sameKinds && pd === 0, { n1: first.props.length, n2: again.props.length, pd });
+  ok(`back at spawn the counts match the start: geometries ${spawn0.geometries} -> ${back.geometries}, textures ${spawn0.textures} -> ${back.textures}, chunks ${back.chunks}`, back.geometries === spawn0.geometries && back.textures === spawn0.textures && back.chunks === 25, { spawn0, back });
+  out.walk = { k1, k5, spawn0, back, nudges };
+  console.log('  walk ' + JSON.stringify({ spawn: { g: spawn0.geometries, m: spawn0.meshes, calls: spawn0.calls, tris: spawn0.tris }, km1: { g: k1.geometries, m: k1.meshes, a: k1.animals, calls: k1.calls, tris: k1.tris, inst: k1.liveInstances }, km5: { g: k5.geometries, m: k5.meshes, a: k5.animals, calls: k5.calls, tris: k5.tris, inst: k5.liveInstances }, back: { g: back.geometries, m: back.meshes } }));
+  return out;
+}
+
+// the frames as drawn in play (real time): the median ms between frames over ms, after a warm-up, and one render's calls/tris
+const FRAMES = (ms) => String.raw`new Promise((done) => { const W = window.__ww, t = []; let last = 0, t0 = 0; W.manual(false);
+  const f = (now) => { if (!t0) t0 = now; else t.push(now - last); last = now; if (now - t0 < ${ms}) requestAnimationFrame(f); else {
+    t.sort((a, b) => a - b); W.manual(true); const r = W.render(); done({ med: t[t.length >> 1], frames: t.length, calls: r.calls, tris: r.tris }); } };
+  setTimeout(() => requestAnimationFrame(f), 1500); })`;
+async function runFrames(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const got = { spawn: [], km5: [], back: [] };
+  for (let round = 0; round < 3; round++) {
+    await C.open(1280, 800, false);
+    const x0 = await C.ev(String.raw`(() => { ${H} W.manual(true); W.start(); W.settle(); return S().x; })()`);
+    got.spawn.push(await C.ev(FRAMES(4000)));
+    await C.ev(String.raw`(() => { ${H} ${WALK} W.manual(true); walkTo(${x0} + 5000); W.settle(); return true; })()`);
+    got.km5.push(await C.ev(FRAMES(4000)));
+    await C.ev(String.raw`(() => { ${H} ${WALK} W.manual(true); walkTo(${x0}); W.settle(); return true; })()`);
+    got.back.push(await C.ev(FRAMES(4000)));
+    if (!json) console.log(`  frames round ${round + 1}: spawn ${got.spawn[round].med.toFixed(1)} ms, km 5 ${got.km5[round].med.toFixed(1)} ms, back ${got.back[round].med.toFixed(1)} ms`);
+  }
+  const med = (k) => got[k].map((x) => x.med).sort((a, b) => a - b)[1];
+  const s = med('spawn'), k = med('km5'), b = med('back');
+  const sum = { spawn: +s.toFixed(2), km5: +k.toFixed(2), back: +b.toFixed(2), calls: { spawn: got.spawn[0].calls, km5: got.km5[0].calls, back: got.back[0].calls }, tris: { spawn: got.spawn[0].tris, km5: got.km5[0].tris, back: got.back[0].tris } };
+  out.frames = sum;
+  ok(`frame time flat (median of 3 runs, headless swiftshader): spawn ${sum.spawn} ms, km 5 ${sum.km5} ms, back at spawn ${sum.back} ms (margin ${FRAME_MARGIN * 100}%); draw calls ${sum.calls.spawn} / ${sum.calls.km5} / ${sum.calls.back}, triangles ${sum.tris.spawn} / ${sum.tris.km5} / ${sum.tris.back}`,
+    k <= s * (1 + FRAME_MARGIN) && b <= s * (1 + FRAME_MARGIN), sum);
+  return out;
+}
+
+// ---- biomes and where the animals live
+async function runBiomes(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(1280, 800, false);
+  const ev = (body) => C.ev(String.raw`(() => { ${H} W.manual(true); W.start(); ${body} })()`);
+  let r = await ev(String.raw`const near = {}, counts = {}; let n = 0;
+    for (let x = -${BIOME_RADIUS}; x <= ${BIOME_RADIUS}; x += 20) for (let z = -${BIOME_RADIUS}; z <= ${BIOME_RADIUS}; z += 20) { const d = Math.hypot(x, z); if (d > ${BIOME_RADIUS}) continue;
+      const b = W.biomeAt(W.SPAWN.x + x, W.SPAWN.z + z); n++; counts[b] = (counts[b] || 0) + 1; if (!(b in near) || d < near[b]) near[b] = d; }
+    return { near, counts, n, spawn: W.SPAWN, spawnBiome: W.biomeAt(W.SPAWN.x, W.SPAWN.z) };`);
+  ok(`all four biomes within ${BIOME_RADIUS} m of spawn (nearest: ${Object.entries(r.near).map(([b, d]) => b + ' ' + d.toFixed(0) + ' m').join(', ')}; share of ${r.n} samples: ${Object.entries(r.counts).map(([b, c]) => b + ' ' + Math.round(c / r.n * 100) + '%').join(', ')}); spawn is on the ${r.spawnBiome}`,
+    ['farm', 'forest', 'savanna', 'water'].every((b) => r.near[b] <= BIOME_RADIUS) && r.spawnBiome === 'farm', r);
+  // every animal found live in its own biome, and still in it after 10 s of wandering
+  const found = {};
+  for (const b of ['farm', 'forest', 'savanna', 'water']) {
+    r = await ev(String.raw`const want = W.ANIMALS.filter((a) => a.biome === '${b}').map((a) => a.id), got = {};
+      // spots of this biome on a 150 m grid out from spawn, nearest first
+      const spots = []; for (let x = -1200; x <= 1200; x += 150) for (let z = -1200; z <= 1200; z += 150) { const px = W.SPAWN.x + x, pz = W.SPAWN.z + z; if (W.biomeAt(px, pz) === '${b}' && ('${b}' === 'water' ? W.heightAt(px, pz) < -3 : W.heightAt(px, pz) > 0.8)) spots.push({ x: px, z: pz, d: Math.hypot(x, z) }); }
+      spots.sort((p, q) => p.d - q.d);
+      for (const f of spots.slice(0, 60)) { if (want.every((id) => got[id])) break;
+        W.teleport(f.x, f.z); W.settle(); W.step(25);
+        for (const a of W.animalsNear(90)) if (want.includes(a.type) && !got[a.type]) got[a.type] = { ...a, at: f };
+        // ten seconds of wandering for those found here; they stay in their biome
+        W.step(600); for (const a of W.animalsNear(1e9)) if (got[a.type] && got[a.type].key === a.key) got[a.type].after = a.biome; }
+      return got;`);
+    Object.assign(found, r);
+  }
+  const animals = await C.ev('window.__ww.ANIMALS.map((a) => ({ id: a.id, biome: a.biome }))');
+  for (const a of animals) {
+    const f = found[a.id];
+    ok(`the ${a.id} lives in the ${a.biome}: found at ${f ? f.x.toFixed(0) + ', ' + f.z.toFixed(0) : '-'} in the ${f?.biome} (home ${f?.home}; after 10 s: ${f?.after ?? 'out of range'})`, f && f.biome === a.biome && f.home === a.biome && (f.after == null || f.after === a.biome), f);
+  }
+  // showcase screenshots: each biome with an animal form
+  for (const [b, form] of [['farm', 'horse'], ['forest', 'bear'], ['savanna', 'giraffe'], ['water', 'dolphin']]) {
+    await ev(String.raw`const f = findBiome('${b}', W.SPAWN.x, W.SPAWN.z, { depth: -5 }); W.become('human'); W.teleport(f.x, f.z); W.settle(); W.become('${form}'); W.look(0.6, 0.28); W.step(40); W.render(); return true;`);
+    await sleep(400); await C.shot(`biome-${b}-${form}`);
+  }
+  return out;
+}
+
+// ---- touch-only round (real time, CDP touches)
+async function runTouch(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const W0 = 390, H0 = 844;
+  await C.open(W0, H0, true);
+  const rect = (sel) => C.ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; })()`);
+  const st = () => C.ev('window.__ww.state()');
+  await C.shot('touch-title');
+  let p = await rect('#playBtn'); await C.tap(p.x, p.y); await sleep(500);
+  let s = await st();
+  ok(`tapping PLAY starts the game, the touch controller shows (${s.screen}, showing ${s.touch.showing})`, s.screen === 'play' && s.touch.showing && s.touch.touchMode, s);
+  const btns = () => C.ev(`[...document.querySelectorAll('.tp-root .tp-btn:not(.tp-pause)')].filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.dataset.tp)`);
+  let b = await btns();
+  ok(`as the human, ${b.length} right-hand buttons (${b.join(', ')}): no power yet`, b.length === 3 && !b.includes('power'), b);
+  // the stick: push up for 1.2 s
+  s = await st(); const a0 = { x: s.x, z: s.z };
+  await C.touch('touchStart', [[90, H0 - 150]]); for (let i = 1; i <= 6; i++) { await C.touch('touchMove', [[90, H0 - 150 - i * 10]]); await sleep(30); } await sleep(1200); await C.touch('touchEnd', []); await sleep(200);
+  s = await st();
+  ok(`the stick moves the guy (${Math.hypot(s.x - a0.x, s.z - a0.z).toFixed(1)} m)`, Math.hypot(s.x - a0.x, s.z - a0.z) > 3, s);
+  // a drag on the right looks around
+  const y0 = s.camYaw;
+  await C.touch('touchStart', [[260, 300]]); for (let i = 1; i <= 8; i++) { await C.touch('touchMove', [[260 + i * 10, 300]]); await sleep(25); } await C.touch('touchEnd', []); await sleep(250);
+  s = await st();
+  ok(`a drag on the right turns the camera (yaw ${y0.toFixed(2)} -> ${s.camYaw.toFixed(2)})`, s.camYaw < y0 - 0.3, { y0, y1: s.camYaw });
+  // jump once
+  const j0 = s.jumps; p = await rect('.tp-root [data-tp="jump"]'); await C.tap(p.x, p.y); await sleep(900);
+  s = await st();
+  ok(`one tap on JUMP is one jump (${s.jumps - j0})`, s.jumps - j0 === 1, s);
+  // change: open the wheel, pick the rabbit (met through the hook first: the setup, not the controls)
+  await C.ev(`window.__ww.meet('rabbit')`); await sleep(100);
+  p = await rect('.tp-root [data-tp="change"]'); await C.tap(p.x, p.y); await sleep(400);
+  s = await st();
+  ok(`one tap on CHANGE opens the wheel once (${s.overlay}, opened ${s.wheels})`, s.overlay === 'wheel' && s.wheels === 1, s);
+  await C.shot('touch-wheel');
+  const c0 = s.changes; p = await rect('.wslot[data-id="rabbit"]'); await C.tap(p.x, p.y); await sleep(600);
+  s = await st();
+  ok(`one tap on the rabbit in the wheel is one change (${s.changes - c0}): now ${s.form}, wheel closed`, s.changes - c0 === 1 && s.form === 'rabbit' && !s.overlay, s);
+  b = await btns();
+  ok(`as an animal, ${b.length} right-hand buttons (${b.join(', ')}): 4 or fewer`, b.length <= 4 && b.includes('power'), b);
+  // power once
+  const pw0 = s.powers; p = await rect('.tp-root [data-tp="power"]'); await C.tap(p.x, p.y); await sleep(1200);
+  s = await st();
+  ok(`one tap on the power (LONG HOP) is one power (${s.powers - pw0})`, s.powers - pw0 === 1, s);
+  // view: first person and back
+  const v0 = s.views; p = await rect('.tp-root [data-tp="cam"]'); await C.tap(p.x, p.y); await sleep(300);
+  s = await st(); const fp1 = s.fp;
+  await C.shot('touch-first-person');
+  await C.tap(p.x, p.y); await sleep(300); s = await st();
+  ok(`VIEW toggles first person once per tap (${s.views - v0} taps: ${fp1} then ${s.fp})`, s.views - v0 === 2 && fp1 === true && s.fp === false, s);
+  // the pause menu: open, the book, close, pause again, play
+  p = await rect('.tp-root [data-tp="pause"]'); await C.tap(p.x, p.y); await sleep(300); s = await st();
+  ok(`the pause button opens the pause menu once (${s.overlay}, ${s.pauses})`, s.overlay === 'pause' && s.pauses === 1, s);
+  await C.shot('touch-pause');
+  p = await rect('#pBookBtn'); await C.tap(p.x, p.y); await sleep(300); s = await st();
+  ok(`ANIMAL BOOK in the pause menu opens the book (${s.overlay}, ${s.books})`, s.overlay === 'book' && s.books === 1, s);
+  await C.shot('touch-book');
+  p = await rect('#bookX'); await C.tap(p.x, p.y); await sleep(300); s = await st();
+  ok(`the book's close button goes back to play (${s.overlay})`, s.overlay === null && s.touch.showing, s);
+  p = await rect('.tp-root [data-tp="pause"]'); await C.tap(p.x, p.y); await sleep(300);
+  p = await rect('#resumeBtn'); await C.tap(p.x, p.y); await sleep(300); s = await st();
+  ok(`PLAY in the pause menu resumes (${s.overlay}, paused ${s.pauses} times)`, s.overlay === null && s.pauses === 2 && s.touch.showing, s);
+  await C.shot('touch-play');
+  return out;
+}
+
+// ---- device lenses: controls, wheel and book at each size (touch mode)
+const LAYOUT = String.raw`(() => { const W = innerWidth, H = innerHeight;
+  const vis = (e) => { if (!e || !e.getClientRects().length) return false; const s = getComputedStyle(e); return s.display !== 'none' && s.visibility !== 'hidden' && +s.opacity > 0; };
+  const box = (e) => { const r = e.getBoundingClientRect(); return { n: e.dataset.tp || e.dataset.id || e.id || e.className, l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+  const on = (q) => q.l >= -0.5 && q.t >= -0.5 && q.r <= W + 0.5 && q.b <= H + 0.5;
+  const hit = (p, q) => p.l < q.r - 0.5 && q.l < p.r - 0.5 && p.t < q.b - 0.5 && q.t < p.b - 0.5;
+  const pairs = (list) => { const o = []; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (hit(list[i], list[j])) o.push(list[i].n + ' x ' + list[j].n); return o; };
+  const scroll = { x: document.documentElement.scrollWidth - W, y: document.documentElement.scrollHeight - H };
+  return { W, H, vis, box, on, pairs, scroll };
+})()`;
+async function runSize(C, size) {
+  const [w, h] = size.split('x').map(Number), out = [], ok = (name, pass, got) => { out.push({ name: size + ': ' + name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(w, h, true);
+  await C.ev(String.raw`(() => { ${H} W.start(); W.meet('fox'); W.meet('cow'); W.meet('eagle'); W.become('fox'); return true; })()`);
+  await C.tap(Math.round(w * 0.75), Math.round(h * 0.3)); await sleep(500);   // a touch on empty ground: touch mode on
+  let r = await C.ev(String.raw`(() => { const L = ${LAYOUT};
+    const els = [...document.querySelectorAll('.tp-root .tp-ring.tp-stick, .tp-root .tp-btn, .tp-root .tp-pause, #formChip, #bookChip')].filter(L.vis), boxes = els.map(L.box);
+    return { n: boxes.length, off: boxes.filter((q) => !L.on(q)).map((q) => q.n), hits: L.pairs(boxes), scroll: L.scroll, showing: window.__ww.state().touch.showing, boxes }; })()`);
+  ok(`${r.n} controls (stick, ${r.n - 4} buttons, pause, 2 HUD chips) all on screen, none overlapping, no scroll (${r.scroll.x}, ${r.scroll.y})`, r.showing && r.n === 8 && !r.off.length && !r.hits.length && r.scroll.x <= 0 && r.scroll.y <= 0, r);
+  await sleep(300); await C.shot(`size-${size}-play`);
+  await C.ev(`window.__ww.openWheel()`); await sleep(300);
+  r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; const slots = [...document.querySelectorAll('#ring .wslot')].map(L.box), x = L.box(document.getElementById('wheelX')), nm = L.box(document.getElementById('wname'));
+    return { n: slots.length, size: Math.round(slots[0].r - slots[0].l), off: [...slots, x, nm].filter((q) => !L.on(q)).map((q) => q.n), hits: L.pairs([...slots, x, nm]), scroll: L.scroll }; })()`);
+  ok(`the wheel fits: ${r.n} slots of ${r.size} px, all on screen, none overlapping each other, the close button or the name`, r.n === 19 && r.size >= 44 && !r.off.length && !r.hits.length && r.scroll.x <= 0 && r.scroll.y <= 0, r);
+  await C.shot(`size-${size}-wheel`);
+  await C.ev(`window.__ww.closeOverlay(); window.__ww.openBook()`); await sleep(300);
+  r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; const cards = [...document.querySelectorAll('#grid .card')].map(L.box), x = L.box(document.getElementById('bookX')), hd = L.box(document.getElementById('bookHead').querySelector('span'));
+    return { n: cards.length, size: Math.round(cards[0].r - cards[0].l), off: [...cards, x, hd].filter((q) => !L.on(q)).map((q) => q.n), hits: L.pairs([...cards, x, hd]), scroll: L.scroll }; })()`);
+  ok(`the book fits: ${r.n} cards of ${r.size} px, all on screen, none overlapping each other, the close button or the title`, r.n === 18 && r.size >= 44 && !r.off.length && !r.hits.length && r.scroll.x <= 0 && r.scroll.y <= 0, r);
+  await C.shot(`size-${size}-book`);
+  await C.ev(`window.__ww.closeOverlay(); window.__ww.openPause()`); await sleep(300);
+  r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; const b = [...document.querySelectorAll('#pause .big')].filter(L.vis).map(L.box); return { n: b.length, off: b.filter((q) => !L.on(q)).map((q) => q.n), hits: L.pairs(b), minH: Math.min(...b.map((q) => q.b - q.t)) }; })()`);
+  ok(`the pause menu fits: ${r.n} buttons on screen, ${Math.round(r.minH)} px tall, none overlapping`, r.n >= 3 && !r.off.length && !r.hits.length && r.minH >= 44, r);
+  await C.ev(`window.__ww.closeOverlay()`);
+  return out;
+}
+
 async function runSmoke(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   await C.open(1280, 800, false);
