@@ -33,6 +33,8 @@
 //              move, jump, power, Q wheel + arrows + Enter, B book + Enter on a card, V view, H human, Esc pause + Tab + Enter.
 //   gamepad  - gamepad only, a stand-in navigator.getGamepads driven by the script: A starts, the sticks move and look, A jumps,
 //              Y wheel + d-pad + A, X power, RB view, Back book + A, Start pause + d-pad + A, B back.
+// Since W2 (#158) every page load here turns the spelling gate off (__ww.spelling(false), for that page only) and plays as Guest,
+// so changes happen at once; scripts/ww-spelling.mjs tests the gate.
 // Every run also checks there were no page errors; the logic run checks the page has no emoji (non-ASCII only in the copied
 // TouchPad header).
 //
@@ -154,18 +156,21 @@ async function connect(S) {
   };
   await send('Runtime.enable'); await send('Page.enable'); await send('Log.enable');
   const C = { send, ev, errs };
+  // W2 (#158) asks for a word before each change into an animal; these runs test W1's world and changing, so each page load turns
+  // the spelling gate off for that page (__ww.spelling(false): not saved). They play as Guest; ww-spelling.mjs tests the gate.
+  const noSpelling = () => ev('window.__ww.spelling ? window.__ww.spelling(false) : true').catch(() => {});
   C.open = async (w, h, touch, q = '', keepStorage = false) => {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
     if (!keepStorage) { await send('Page.navigate', { url: base + 'wild-world.html?blank' }); await sleep(300); await ev('try { localStorage.clear(); } catch (e) {} true').catch(() => {}); }
     await send('Page.navigate', { url: base + 'wild-world.html' + q });
-    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__ww').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__ww').catch(() => false)) { await noSpelling(); return; } }
     throw new Error('page did not load window.__ww');
   };
   C.reload = async () => {
     await send('Page.reload', {});
     await sleep(300);
-    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__ww').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__ww').catch(() => false)) { await noSpelling(); return; } }
     throw new Error('page did not reload window.__ww');
   };
   C.shot = async (name) => { if (!shots) return; const sh = await send('Page.captureScreenshot', { format: 'png' }); if (sh.result?.data) fs.writeFileSync(path.join(shots, name + '.png'), Buffer.from(sh.result.data, 'base64')); };
@@ -351,11 +356,11 @@ async function runForms(C) {
   for (const t of ['fish', 'dolphin', 'eagle', 'rabbit']) ok(`a human who only steers meets the ${t} (from ${r[t]?.from} m in ${(r[t]?.ticks / 60).toFixed(1)} s)`, r[t]?.met, r[t]);
   // ---- the book and a reload
   r = await ev(String.raw`W.reset(); W.meet('fox'); W.meet('eagle'); W.meet('cow'); W.become('fox'); W.openBook(); const cards = document.querySelectorAll('#grid .card').length, open = document.querySelectorAll('#grid .card:not(.locked)').length; W.closeOverlay();
-    return { cards, open, met: S().met, form: S().form, saved: JSON.parse(localStorage.getItem('wildworld.save')) };`);
-  ok(`the book shows all 18 (${r.cards}), the 3 met ones open (${r.open}); saved under wildworld.save with v:1`, r.cards === 18 && r.open === 3 && r.saved?.v === 1 && r.saved.met.length === 3, r);
+    return { cards, open, met: S().met, form: S().form, saved: JSON.parse(localStorage.getItem('wildworld.book.guest')) };`);
+  ok(`the book shows all 18 (${r.cards}), the 3 met ones open (${r.open}); saved as Guest's book, wildworld.book.guest with v:2 (W2, #158)`, r.cards === 18 && r.open === 3 && r.saved?.v === 2 && r.saved.met.length === 3, r);
   await C.reload();
   const r2 = await C.ev(`(() => { const s = window.__ww.state(); return { met: s.met.sort(), form: s.form, keys: Object.keys(localStorage).filter((k) => k.startsWith('wildworld.')) }; })()`);
-  ok(`a reload keeps the book (${r2.met.join(', ')}) and the form (${r2.form})`, r2.met.join() === 'cow,eagle,fox' && r2.form === 'fox' && r2.keys.join() === 'wildworld.save', r2);
+  ok(`a reload keeps the book (${r2.met.join(', ')}) and the form (${r2.form})`, r2.met.join() === 'cow,eagle,fox' && r2.form === 'fox' && r2.keys.join() === 'wildworld.book.guest', r2);
   return out;
 }
 
