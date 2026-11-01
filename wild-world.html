@@ -83,7 +83,10 @@
   .card.cur { box-shadow: 0 0 0 4px var(--sun); }
 
   /* ---------- W2 (#158): who's playing, spelling, the profile maker, the parent view ---------- */
-  #title .who { display: flex; gap: 10px; justify-content: center; max-width: 100%; overflow-x: auto; padding: 4px; scrollbar-width: none; }
+  /* the player tiles wrap onto rows when there's height; on a short screen they're one row that scrolls sideways (auto margins
+     centre it without pushing the first tiles out of reach) */
+  #title .who { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: min(100%, 560px); padding: 4px; }
+  @media (max-height: 430px) { #title .who { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; max-width: 100%; scrollbar-width: none; } #title .who > .ptile:first-child { margin-left: auto; } #title .who > .ptile:last-child { margin-right: auto; } }
   .ptile { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 74px; padding: 0; border: 0; background: none; color: var(--ink); font-weight: 800; font-size: 13px; line-height: 1.15; touch-action: manipulation; }
   .ptile .face { width: 58px; height: 58px; border-radius: 50%; background: var(--c, #fff); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 3px #fff, 0 3px 0 rgba(0,0,0,.25); }
   .ptile .face svg { width: 32px; height: 32px; }
@@ -152,7 +155,8 @@
 
   .pv-head h2 { flex: 1; margin: 0; font-size: 24px; display: flex; align-items: center; gap: 8px; }
   .pv-head h2 svg { width: 28px; height: 28px; }
-  .pv-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pv-tabs { display: flex; gap: 6px; flex: none; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .pv-tab { flex: none; }
   .pv-tab { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 2px 12px 2px 2px; border: 0; border-radius: 999px; background: #e6ecf4; color: var(--ink); font-weight: 800; font-size: 15px; touch-action: manipulation; }
   .pv-tab .face { width: 40px; height: 40px; }
   .pv-tab .face svg { width: 24px; height: 24px; }
@@ -1968,7 +1972,7 @@ function drawWho() {
   if (!Profiles.full()) { const b = mkBtn('ptile add', `<span class="face">${ICON.plus}</span><span class="nm">New</span>`, 'New profile', () => Maker.open()); b.dataset.id = 'new'; box.appendChild(b); }
 }
 function openTitle() {
-  closeOverlay(); screen = 'title'; keys.clear();
+  closeOverlay(); screen = 'title'; keys.clear(); toastT = 0; $('toast').classList.remove('on');
   $('title').classList.add('on'); $('hud').classList.remove('on'); $('hint').classList.remove('on'); drawWho();
 }
 

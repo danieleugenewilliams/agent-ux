@@ -27,7 +27,8 @@
 //              (the spelling shows), tap NEW WORD and get the next one right.
 //   WxH      - at that size in touch mode: the title (player tiles, PLAY, the parent button), the spelling panel at level 1 (tiles)
 //              and level 2 (keyboard open), the maker's three pages and the parent view: every control on screen, none
-//              overlapping, every target at least 44 px both ways, no page scroll.
+//              overlapping, every target at least 44 px both ways, no page scroll; then with 6 profiles every title tile and parent
+//              tab can be reached (its row scrolls on a short screen).
 // Every run also checks there were no page errors.
 //
 // Usage:
@@ -535,6 +536,17 @@ async function runSize(C, size) {
   r = await C.ev(String.raw`(() => { const W = window.__ww; W.openParent(); const L = ${LAYOUT}; const c = L.check('#parent button', ['#pvSum']), list = document.getElementById('pvList').getBoundingClientRect(); return { ...c, listH: Math.round(list.height), listOn: list.top >= 0 && list.bottom <= innerHeight + 0.5 }; })()`);
   ok(`the parent view: ${r.n} buttons (close, 3 player tabs, 2 levels) on screen, none overlapping, each at least 44 px; the word list (${r.listH} px tall) scrolls inside it`, r.n === 6 && good(r) && r.listOn && r.listH >= 44, r);
   await C.shot(`ww2-${size}-parent`);
+  await C.ev('window.__ww.closeOverlay()');
+  // a full house: PROFILE.max profiles. Every title tile and every parent tab can be reached (scrolled to, if its row scrolls)
+  const REACH = String.raw`(sel, rowSel) => { const out = []; for (const e of document.querySelectorAll(sel)) { e.scrollIntoView({ block: 'nearest', inline: 'nearest' }); const r = e.getBoundingClientRect(), row = e.closest(rowSel).getBoundingClientRect();
+      out.push({ id: e.dataset.id, ok: r.left >= row.left - 0.5 && r.right <= row.right + 0.5 && r.left >= -0.5 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5 && Math.min(r.width, r.height) >= 43.5 }); } return out; }`;
+  r = await C.ev(String.raw`(() => { const W = window.__ww; for (const n of ['Ann', 'Bo', 'Cy', 'Di']) W.addProfile(n, 'sun', '#ff8a3d', 1); W.openTitle(); const reach = ${REACH}; const t = reach('#who .ptile', '.who');
+    const L = ${LAYOUT}; const c = L.check('#title .row button, #parentB'); window.scrollTo(0, 0); return { t, c, n: W.profiles().length }; })()`);
+  ok(`a full house (${r.n - 1} profiles): every one of the ${r.t.length} title tiles can be reached on screen, PLAY and the lock still fit`, r.n === 7 && r.t.length === 7 && r.t.every((q) => q.ok) && good(r.c), r);
+  await C.shot(`ww2-${size}-title-full`);
+  r = await C.ev(String.raw`(() => { const W = window.__ww; W.openParent(); const reach = ${REACH}; const t = reach('.pv-tab', '.pv-tabs'); const L = ${LAYOUT}; const c = L.check('#parent button:not(.pv-tab)', ['#pvSum']), list = document.getElementById('pvList').getBoundingClientRect();
+    return { t, c, listH: Math.round(list.height) }; })()`);
+  ok(`and the parent view's ${r.t.length} tabs can each be reached; the levels and close button still fit and the list keeps ${r.listH} px`, r.t.length === 7 && r.t.every((q) => q.ok) && good(r.c) && r.listH >= 44, r);
   await C.ev('window.__ww.closeOverlay()');
   return out;
 }
