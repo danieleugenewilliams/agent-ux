@@ -613,7 +613,7 @@ const ANIMALS = [
   { id: 'elephant', name: 'Elephant', biome: 'savanna', beh: 'wander', speed: 5, r: 1.5, camH: 4.4, camD: 9.5, eye: 2.6, jump: 5 },
   { id: 'giraffe', name: 'Giraffe', biome: 'savanna', beh: 'wander', speed: 6, r: 0.9, camH: 5.6, camD: 9, eye: 4.25, jump: 6 },
   { id: 'cheetah', name: 'Cheetah', biome: 'savanna', beh: 'flee', flee: 4.5, speed: 8, r: 0.6, camH: 1.6, camD: 5, eye: 1.0, jump: 8.5 },
-  { id: 'eagle', name: 'Eagle', biome: 'water', beh: 'fly', speed: 3, r: 0.5, camH: 1.4, camD: 5.5, eye: 0.75, jump: 5 },
+  { id: 'eagle', name: 'Eagle', biome: 'water', beh: 'fly', speed: 3, r: 0.9, camH: 1.4, camD: 5.5, eye: 0.75, jump: 5 },
   { id: 'fish', name: 'Fish', biome: 'water', beh: 'swim', speed: 1.5, swim: 6, r: 0.4, camH: 1.0, camD: 3.6, eye: 0.38, jump: 3 },
   { id: 'dolphin', name: 'Dolphin', biome: 'water', beh: 'swim', speed: 1.5, swim: 10, r: 0.9, camH: 1.4, camD: 5.5, eye: 0.5, jump: 3 },
 ];
@@ -668,8 +668,9 @@ function animateModel(g, phase, amt, mode) {
 }
 
 // ===========================================================================
-// Props: one InstancedMesh per kind for the whole world, with a fixed slot of instances for each loaded chunk.
-// A chunk writes its slot when it loads and zeroes it when it goes, so nothing is allocated as you walk.
+// Props: one InstancedMesh per kind for the whole world, its buffer sized once for the most chunks that can be loaded.
+// When chunks come or go the loaded props are packed to the front and count is set to them, so nothing is allocated
+// as you walk and no empty instances are drawn.
 // ===========================================================================
 const PROP_DEFS = {
   pine: { cap: 34, col: 0.45, h: 6, knock: true, build: () => new Parts().cyl(0.22, 0.3, 1.4, 0x7a4a26, 0, 0.7, 0).cone(1.7, 2.6, 0x2e8b57, 0, 2.3, 0).cone(1.3, 2.1, 0x37a160, 0, 3.4, 0).cone(0.85, 1.7, 0x46b56c, 0, 4.4, 0) },
@@ -693,13 +694,20 @@ for (const k of PROP_KINDS) {
   const d = PROP_DEFS[k], im = new THREE.InstancedMesh(d.build().build(), MAT, d.cap * SLOTS);
   im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   for (let i = 0; i < im.count; i++) im.setMatrixAt(i, ZERO_M);
-  im.frustumCulled = false;   // the instances move between slots; a cached bounding sphere would cull the whole kind
+  im.userData.capacity = im.count; im.count = 0;
+  im.frustumCulled = false;   // the instances are repacked as chunks change; a cached bounding sphere would cull the whole kind
   scene.add(im); PROPS[k] = im;
 }
+let propsDirty = false;
+function packProps() {
+  const n = {}; for (const k of PROP_KINDS) n[k] = 0;
+  for (const c of chunks.values()) for (const p of c.props) { p.i = n[p.t]++; writeProp(p, 0, true); }
+  for (const k of PROP_KINDS) { const im = PROPS[k]; im.count = n[k]; im.instanceMatrix.clearUpdateRanges(); if (n[k]) im.instanceMatrix.addUpdateRange(0, n[k] * 16); im.instanceMatrix.needsUpdate = true; }
+  propsDirty = false;
+}
 const _up = new V3(0, 1, 0), _ax = new V3();
-function writeProp(p, slot) {
+function writeProp(p, slot, packing) {
   const im = PROPS[p.t];
-  if (slot == null) { im.setMatrixAt(p.i, ZERO_M); im.instanceMatrix.needsUpdate = true; return; }
   _pq.setFromAxisAngle(_up, p.ry);
   _pv.set(p.x, p.y, p.z); _ps.set(p.s, p.s, p.s);
   if (p.fallen) {
@@ -707,7 +715,8 @@ function writeProp(p, slot) {
     _ax.set(p.fz, 0, -p.fx).normalize(); const tip = new THREE.Quaternion().setFromAxisAngle(_ax, p.t === 'rock' ? 1.3 : 1.45);
     _pq.premultiply(tip); _pv.y -= 0.15 * p.s;
   }
-  _pm.compose(_pv, _pq, _ps); im.setMatrixAt(p.i, _pm); im.instanceMatrix.needsUpdate = true;
+  _pm.compose(_pv, _pq, _ps); im.setMatrixAt(p.i, _pm);
+  if (!packing) { im.instanceMatrix.addUpdateRange(p.i * 16, 16); im.instanceMatrix.needsUpdate = true; }
 }
 
 // ===========================================================================
@@ -799,13 +808,12 @@ function loadChunk(cx, cz) {
   const key = cx + ',' + cz; if (chunks.has(key)) return;
   const slot = freeSlots.pop(); if (slot === undefined) return;
   const mesh = buildTerrain(cx, cz); scene.add(mesh);
-  const props = chunkProps(cx, cz);
-  for (const p of props) { p.i = slot * PROP_DEFS[p.t].cap + p.k; writeProp(p, slot); }
+  const props = chunkProps(cx, cz); propsDirty = true;
   chunks.set(key, { cx, cz, key, mesh, props, slot, gen: ++chunkGen, spawns: chunkSpawns(cx, cz) });
 }
 function unloadChunk(c) {
   scene.remove(c.mesh); c.mesh.geometry.dispose();   // the material is the shared one
-  for (const p of c.props) writeProp(p, null);
+  propsDirty = true;
   freeSlots.push(c.slot); chunks.delete(c.key);
 }
 let loadR = LOAD_R, pending = [];
@@ -822,6 +830,7 @@ function updateChunks(budget = 2) {
   const pcx = Math.floor(P.x / CHUNK), pcz = Math.floor(P.z / CHUNK);
   if (lastChunk !== pcx + ',' + pcz + ',' + loadR) wantChunks();
   while (budget-- > 0 && pending.length) { const [x, z] = pending.shift(); loadChunk(x, z); }
+  if (propsDirty) packProps();
 }
 // the colliders near a spot (trunks, rocks, hay, barns that are still standing)
 function* propsNear(x, z, r) {
@@ -963,7 +972,7 @@ function usePower() {
     case 'giraffe': P.far = !P.far; loadR = P.far ? FAR_R : LOAD_R; P.cd = 0.5; break;
     case 'eagle': if (P.grounded) return false; P.swoop = 1.3; P.cd = 2; break;
     case 'fish': return false;   // fish dives while power is held (see tickPlayer)
-    case 'dolphin': if (!P.swimming || P.y < SEA - 2.2) return false; P.leap = true; P.vy = 12; P.vx = fx * 10; P.vz = fz * 10; P.cd = 1.2; break;
+    case 'dolphin': if (!P.swimming || P.y < SEA - 2.2) return false; P.leap = true; P.vy = 14; P.vx = fx * 10; P.vz = fz * 10; P.cd = 1.2; break;
   }
   P.powers++; Sfx.power(); return true;
 }
@@ -1097,7 +1106,7 @@ function tickAnimal(a, dt) {
   let vx = 0, vz = 0, sp = 0;
   a.scare = Math.max(0, a.scare - dt); a.call = Math.max(0, a.call - dt);
   if (d.beh === 'fly') {   // eagles circle over the water near home
-    a.ang += dt * 0.45; const tx = a.hx + Math.cos(a.ang) * 9, tz = a.hz + Math.sin(a.ang) * 9;
+    a.ang += dt * 0.25; const tx = a.hx + Math.cos(a.ang) * 6, tz = a.hz + Math.sin(a.ang) * 6;
     if (a.scare > 0) { a.hx += dx / dist * 4 * dt; a.hz += dz / dist * 4 * dt; }
     vx = tx - a.x; vz = tz - a.z; const l = Math.hypot(vx, vz) || 1; sp = Math.min(4, l * 2); vx /= l; vz /= l;
   } else if (a.scare > 0) { vx = dx / dist; vz = dz / dist; sp = Math.max(d.flee || 0, Math.min(4.5, d.speed * 0.6)); }
@@ -1440,7 +1449,7 @@ onTap($('wheelX'), closeOverlay);
 onTap($('bookX'), closeOverlay);
 P.form = FORMS[save0.form] && (save0.form === 'human' || P.met.has(save0.form)) ? save0.form : 'human';
 setModel(P.form); P.pop = 1;
-wantChunks(); while (pending.length) updateChunks(99); refreshLive();
+wantChunks(); do updateChunks(99); while (pending.length); refreshLive();
 hud(); padLabels();
 
 let last = performance.now(), acc = 0, frames = 0;
@@ -1496,7 +1505,7 @@ window.__ww = {
     P.vy = 0; P.vx = P.vz = 0; P.grounded = y == null; P.hop = P.leap = false; P.roll = 0;
     return this.state();
   },
-  settle() { wantChunks(); while (pending.length) updateChunks(99); refreshLive(); updateView(); return chunks.size; },
+  settle() { wantChunks(); do updateChunks(99); while (pending.length); refreshLive(); updateView(); return chunks.size; },
   look(yaw, pitch) { cam.yaw = yaw; if (pitch != null) cam.pitch = pitch; P.yaw = yaw; return true; },
   face(yaw) { P.yaw = yaw; cam.yaw = yaw; return true; },
   input(o = {}) { Object.assign(VIN, { x: 0, y: 0, jump: false, power: false }, o); return { ...VIN }; },
@@ -1523,7 +1532,7 @@ window.__ww = {
   },
   info() {
     const inst = {}; let liveInst = 0;
-    for (const k of PROP_KINDS) { let n = 0; for (const c of chunks.values()) for (const p of c.props) if (p.t === k) n++; inst[k] = { capacity: PROPS[k].count, live: n }; liveInst += n; }
+    for (const k of PROP_KINDS) { let n = 0; for (const c of chunks.values()) for (const p of c.props) if (p.t === k) n++; inst[k] = { capacity: PROPS[k].userData.capacity, count: PROPS[k].count, live: n }; liveInst += n; }
     return { geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, meshes: sceneMeshes(), chunks: chunks.size, animals: live.size, instances: inst, liveInstances: liveInst,
       programs: renderer.info.programs?.length ?? null, frames };
   },
