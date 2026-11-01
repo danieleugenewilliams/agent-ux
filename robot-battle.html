@@ -3768,10 +3768,17 @@ const Facts = {
   // #161: the ladder of whoever is the tracker's child, 'start' or 'check' (the parent view's switch, through Facts.as). The
   // same ladder (whatever id the record saved it under) changes nothing and writes nothing. Another one: every fact keeps its
   // progress, and the new ladder starts at step 1 and opens each step its facts already pass (advance), so a child who
-  // knows the early tables moves straight on. Guest has none to change. Returns whether the record changed
+  // knows the early tables moves straight on. Guest has none to change. Returns whether the record changed.
+  // The ladder left keeps its place (rec.ladderWas[its id] = { step, opened }), so switching back brings back every step
+  // it had open, a parent's openings included: a switch and a switch back loses nothing
   setLadder(id) {
     if (!this.rec || this.child?.guest || !Object.hasOwn(LADDERS, id) || ladderId(this.rec.ladder) === id) return false;
-    this.rec.ladder = id; this.rec.step = 1; this.rec.opened = [{ step: 1, at: this.now(), by: 'parent' }];
+    const was = this.rec.ladderWas && typeof this.rec.ladderWas === 'object' && !Array.isArray(this.rec.ladderWas) ? { ...this.rec.ladderWas } : {};
+    const from = ladderId(this.rec.ladder); if (from) was[from] = { step: this.rec.step, opened: this.rec.opened };
+    const back = was[id]; delete was[id];
+    this.rec.ladderWas = was; this.rec.ladder = id;
+    if (back && Number.isInteger(back.step) && back.step >= 1 && back.step <= LADDERS[id].length && Array.isArray(back.opened)) { this.rec.step = back.step; this.rec.opened = back.opened; }
+    else { this.rec.step = 1; this.rec.opened = [{ step: 1, at: this.now(), by: 'parent' }]; }
     this.advance(); this.save(); return true;
   },
   // ---- #142: division. A child's ÷ facts are the 81 partners of the × facts (DIV_FACTS), kept in rec.facts under their own

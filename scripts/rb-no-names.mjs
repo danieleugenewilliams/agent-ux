@@ -553,6 +553,13 @@ async function runLadder(C) {
   const raw1 = await C.storage(), rec1 = JSON.parse(raw1['robotbattle.facts.' + ids[1]]), rec0 = JSON.parse(raw0['robotbattle.facts.' + ids[1]]);
   ok("a profile saved before #161 (the seeded start child): the view reads start; switched to check and back, it's on start with every fact kept", r.t0 === 'start' && r.x && r.y && rec1.ladder === 'start' && canon(rec1.facts) === canon(rec0.facts), { r, ladder: rec1.ladder === 'start' });
   ok("... and the other child's record is untouched (byte-identical)", raw1['robotbattle.facts.' + ids[0]] === raw0['robotbattle.facts.' + ids[0]], 'differs');
+  // a step a parent opened (the real records have steps 2 to 6 opened this way, far past what their facts pass) survives a
+  // switch and a switch back: the same step and the same openings
+  r = await C.ev(String.raw`(() => { const R = window.__rb, id = ${JSON.stringify(ids[1])}; R.parent(true, id); for (let i = 0; i < 4; i++) R.parentDo('step', id);
+    const k = 'robotbattle.facts.' + id, a = JSON.parse(localStorage.getItem(k)); R.parentDo('ladder', id, 'check'); const m = JSON.parse(localStorage.getItem(k));
+    R.parentDo('ladder', id, 'start'); const b = JSON.parse(localStorage.getItem(k)); R.parent(false);
+    return { a: a.step, m: m.step, b: b.step, mLad: m.ladder, opened: JSON.stringify(a.opened) === JSON.stringify(b.opened), facts: JSON.stringify(a.facts) === JSON.stringify(b.facts) }; })()`);
+  ok('steps a parent opened survive a switch to check and back: the same step and openings, every fact kept', r.a >= 5 && r.mLad === 'check' && r.b === r.a && r.opened && r.facts, r);
   return out;
 }
 
