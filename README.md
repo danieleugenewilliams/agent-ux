@@ -8,7 +8,7 @@ Single-file browser games and scenes. Each one is a self-contained HTML page: op
 | `cowboy-duel.html` | **Quick Draw**, a pixel-art cowboy duel. |
 | `ocean.html` | **Open Water**, a sailing and fishing game on a realistic 3D ocean. |
 | `ocean-scene-v1.html` | The earlier ocean scenery, with no gameplay. |
-| `neon-dash.html` | **Neon Dash**, a 2.5D rhythm runner built from Orion and Apollo's Geometry Dash clone. 1 player, or a 2-player split-screen race. |
+| `neon-dash.html` | **Neon Dash**, a 2.5D rhythm runner built from the boys' own Geometry Dash clone. 1 player, or a 2-player split-screen race. |
 | `wild-world.html` | **Wild World**, an endless 3D world full of animals. Meet an animal, then turn into it and use its power. |
 
 ## Running
@@ -89,7 +89,7 @@ L opens the catch log, M toggles sound and H hides the conditions panel. Sound i
 
 ## Neon Dash (neon-dash.html)
 
-Orion and Apollo designed this game in their "Coding with Dad" class, starting from their own Canvas2D Geometry Dash clone. Neon Dash keeps all of their ideas and rebuilds them with glowing 3D graphics and music that drives the level.
+The boys designed this game in their "Coding with Dad" class, starting from their own Canvas2D Geometry Dash clone. Neon Dash keeps all of their ideas and rebuilds them with glowing 3D graphics and music that drives the level.
 
 **The four modes, each with its own world and music**
 
@@ -128,3 +128,22 @@ On the menu, use ← → to pick a level and Enter to play. During a game, Esc o
 For tests, `window.__nd` exposes `start`, `step`, `frames`, `autoplay` and `solve`.
 
 *Geometry Dash* is a trademark of RobTop Games. Neon Dash is an unofficial, non-commercial fan project with no affiliation or endorsement, and it uses no assets from the original game.
+
+## Wild World (wild-world.html)
+
+Walk an endless low-poly world, meet 18 animals, and change into any animal you've met by spelling a word. Each player has their own profile, animal book and spelling level.
+
+### How to play two players
+
+Two players, each on their own iPad or computer, explore the same world together. It works on the home Wi-Fi only, through a small game server on the Mac:
+
+1. On the Mac, in this folder, run `node scripts/ww-relay.mjs` (Node 22 or newer, nothing to install). It prints the address to open, for example `http://192.168.1.20:8160/wild-world.html`.
+2. Open that address on both iPads. They must be on the same Wi-Fi as the Mac. The GitHub Pages copy can't reach the game server, so it explains this instead.
+3. On one iPad, pause and tap **2 PLAYERS**, then **HOST**. It shows 4 animal pictures.
+4. On the other iPad, pause and tap **2 PLAYERS**, then **JOIN**, then tap the same 4 pictures.
+
+Together you see each other move, and an animal either of you meets goes into both books. A human can ride a friend who is a horse, an elephant or a dolphin. **RACE** and **TAG** are in the pause menu. If the server stops, both games carry on alone with nothing lost. Press Ctrl+C in the Mac's terminal to stop the server.
+
+The game server's copy keeps its own saves, separate from the Pages copy. To move the players across, open the parent view (hold the lock on the title screen), tap the save arrow, then load that file on the other copy.
+
+For tests, `window.__ww` exposes the game, and `node scripts/ww-world.mjs`, `node scripts/ww-spelling.mjs` and `node scripts/ww-two.mjs` check it.

@@ -569,7 +569,7 @@ async function runSize(C, size) {
   await C.ev('window.__ww.closeOverlay()');
   // the parent view
   r = await C.ev(String.raw`(() => { const W = window.__ww; W.openParent(); const L = ${LAYOUT}; const c = L.check('#parent button', ['#pvSum']), list = document.getElementById('pvList').getBoundingClientRect(); return { ...c, listH: Math.round(list.height), listOn: list.top >= 0 && list.bottom <= innerHeight + 0.5 }; })()`);
-  ok(`the parent view: ${r.n} buttons (close, 3 player tabs, 2 levels) on screen, none overlapping, each at least 44 px; the word list (${r.listH} px tall) scrolls inside it`, r.n === 6 && good(r) && r.listOn && r.listH >= 44, r);
+  ok(`the parent view: ${r.n} buttons (save to a file and load one (#160), close, 3 player tabs, 2 levels) on screen, none overlapping, each at least 44 px; the word list (${r.listH} px tall) scrolls inside it`, r.n === 8 && good(r) && r.listOn && r.listH >= 44, r);
   await C.shot(`ww2-${size}-parent`);
   await C.ev('window.__ww.closeOverlay()');
   // a full house: PROFILE.max profiles. Every title tile and every parent tab can be reached (scrolled to, if its row scrolls)
