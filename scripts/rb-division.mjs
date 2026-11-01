@@ -13,7 +13,7 @@
 //               fast days, miss day, review box, due and polish after every step, and Facts.progress reads the same;
 //             * × untouched: every × entry, the × New facts in play, the step, the cheers, the ⭐ count and the garage's
 //               unlocks are byte-identical before and after hundreds of ÷ answers;
-//             * Q5: on for Orion and Apollo (records from before #142 too) and a new profile, off for Guest (and the hook can't
+//             * Q5: on for Sam and Max (records from before #142 too) and a new profile, off for Guest (and the hook can't
 //               turn it on); the parent switch turns it off (no ÷ wire after that) and on, on the live record or a saved one;
 //               a reset keeps it; it survives a reload;
 //             * Q4, repairs: the wires' facts (Facts.pickWire, as a Quick Fix board asks it) hold at most 1 ÷ fact in any 3 in a
@@ -26,12 +26,12 @@
 //               choice), and into a pre-#142 build (robot-battle.html at 9904818, the main #142 was built on, fetched by git into a temporary
 //               copy): it accepts it for every choice and keeps the ÷ facts, then reloads with no page errors; a backup made by
 //               the pre-#142 build restores here.
-//   size    - at each size, Apollo's grid with ÷ facts at every stage, a locked one and a polish: the ×/÷ toggle by touch (a
+//   size    - at each size, Max's grid with ÷ facts at every stage, a locked one and a polish: the ×/÷ toggle by touch (a
 //             click at desktop), the keyboard (X, and Tab then Enter on the toggle) and the gamepad (X), each switching the grid;
 //             on the ÷ grid a cell picked by touch, the arrows and the d-pad, its info showing its progress; every part of the
 //             panel on screen with no scrolling, the title, info and legend not overlapping, cells at least 20 px; no answer
 //             anywhere (no "=", no answer in the info, the column headers blank, the row headers the divisors, every label
-//             "a ÷ b: stage"). Then the parent view on Apollo's tab: its ÷ grid (toggle by touch / keyboard / pad), a ÷ fact's
+//             "a ÷ b: stage"). Then the parent view on Max's tab: its ÷ grid (toggle by touch / keyboard / pad), a ÷ fact's
 //             info with its progress and no answer, the slowest ÷ facts, on screen once scrolled to with no sideways overflow;
 //             the Division switch beside Quick Fix wiring, each button at least 44 px, changed by touch (a click at desktop)
 //             and by the keyboard with the focus kept, saved; the gamepad's buttons leave it as it is.
@@ -162,7 +162,7 @@ async function connect(S) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
     await send('Page.navigate', { url: u });
-    for (let i = 0; i < 150; i++) { await sleep(150); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(150); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) { if (u === url) await ev(KIDS_JS); return; } }
     throw new Error('page did not load window.__rb: ' + u);
   };
   const tap = async (x, y, holdMs = 40) => {
@@ -189,6 +189,23 @@ async function connect(S) {
   return { send, ev, open, tap, click, key, padOn, padBtn, errs };
 }
 
+// #161: nothing is seeded any more, so these checks make their own made-up profiles the first time a page of this build opens
+// on empty storage (no list, no record): Sam (the quick-check ladder) and Max (the ladder that starts at ×1 and ×2). CLEAR empties storage as a
+// fresh device and puts the two back, as the game's old seed did
+const KIDS = [{ id: 'sam', name: 'Sam', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'max', name: 'Max', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
+const KIDS_SET = `localStorage.setItem('robotbattle.profiles', ${JSON.stringify(JSON.stringify(KIDS))})`;
+const KIDS_JS = `(() => { const R = window.__rb; if (localStorage.getItem('robotbattle.profiles') == null && !Object.keys(localStorage).some((k) => k.startsWith('robotbattle.facts.')) && R.Profiles) { ${KIDS_SET}; R.Profiles.load(); R.Title.home(); R.Title.drawKids(); R.Title.draw(); } return true; })()`;
+const CLEAR = `(localStorage.clear(), ${KIDS_SET})`;
+// #161: a profile made since #161 is on a ladder id ('start' or 'check') that a build from before it doesn't know, so its
+// records would be refused there as damaged. For the checks that restore this build's backup into an older build, TO_OLD
+// (run in the older page) puts the backup's ladders in that build's own ids first, found by their steps, as the same
+// profile made on that build would have them. Everything else in the backup is as this build wrote it.
+const TO_OLD = String.raw`((bk) => { const L = window.__rb.LADDERS, ids = Object.keys(L), id = { start: ids.find((k) => L[k][0].kind !== 'check'), check: ids.find((k) => L[k][0].kind === 'check') };
+  const b = JSON.parse(JSON.stringify(bk)); for (const [k, v] of Object.entries(b.data || {})) { if (k.startsWith('facts.') && v && id[v.ladder]) v.ladder = id[v.ladder]; if (k === 'profiles' && Array.isArray(v)) for (const p of v) if (p && id[p.ladder]) p.ladder = id[p.ladder]; }
+  return b; })`;
+// (#161) in the older page: storage holds Sam and Max as that build would have made them (its own ladder ids, by their steps)
+const OLD_KIDS = String.raw`(() => { const L = window.__rb.LADDERS, ids = Object.keys(L), id = { start: ids.find((k) => L[k][0].kind !== 'check'), check: ids.find((k) => L[k][0].kind === 'check') };
+  localStorage.clear(); localStorage.setItem('robotbattle.profiles', JSON.stringify(${JSON.stringify(KIDS)}.map((p) => ({ ...p, ladder: id[p.ladder] })))); window.__rb.Profiles.load(); })()`;
 // ---- in the page ----
 const HELPERS = String.raw`
   const R = window.__rb, F = R.Facts, DAY = 864e5, out = [];
@@ -225,9 +242,9 @@ async function runLogic(C) {
     ok("factOf('÷54,6') is 54 ÷ 6 = 9, its × partner 6 × 9", f && f.answer === 9 && R.partnerOf(f)?.key === '×6,9' && R.factOf({ op: '/', a: 54, b: 6 })?.key === '÷54,6', f);
     ok('not ÷ facts are refused: 55 ÷ 6, 90 ÷ 9 (answer 10), 54 ÷ 0, 0 ÷ 5', [[55, 6], [90, 9], [54, 0], [0, 5]].every(([a, b]) => R.makeFact('÷', a, b) === null));
     ok('the × facts keep their keys (7 × 8 and 8 × 7 are ×7,8)', R.makeFact('×', 8, 7)?.key === '×7,8' && R.factOf('×7,8')?.answer === 56);
-    // a fresh Apollo
-    R.manual(true); localStorage.clear(); R.player('apollo');
-    ok('a fresh Apollo: division on, no ÷ fact open', R.division().division === true && R.division().open === 0, R.division());
+    // a fresh Max
+    R.manual(true); ${CLEAR}; R.player('max');
+    ok('a fresh Max: division on, no ÷ fact open', R.division().division === true && R.division().open === 0, R.division());
     let any = false; for (let i = 0; i < 30; i++) if (R.nextWire().op === '÷') any = true;
     ok('... and no ÷ wire with none open (30 wires)', !any);
     // Q2: partners New, Learning, Known, Mastered
@@ -251,7 +268,7 @@ async function runLogic(C) {
     ok('6 × 9 missed (back to Learning): 54 ÷ 6, answered, stays open; 54 ÷ 9, never answered, locks again', ent('×', 6, 9).s === 'learning' && open(54, 6) && !open(54, 9), { x: ent('×', 6, 9).s });
 
     // Q3: the same answers to a × fact and a ÷ fact leave them the same (a seeded walk)
-    localStorage.clear(); R.player('apollo'); setX(7, 9, 'known');
+    ${CLEAR}; R.player('max'); setX(7, 9, 'known');
     let seed = 142; const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
     // (due and polish are times: the two answers are a millisecond or so apart, so they're compared to the second)
     const sec = (t) => (t ? Math.round(t / 1000) : t ?? null);
@@ -272,7 +289,7 @@ async function runLogic(C) {
     ok('a seeded walk (900 answers, fast / slow / too slow / wrong / next day): 2 × 8 and 63 ÷ 7 have the same stage, streak, fast days, miss day, box, due, polish and progress after every answer', same, firstBad);
     ok('... and the ÷ fact went through every stage (New, Learning, Known, Mastered)', ['new', 'learning', 'known', 'mastered'].every((s) => climbed.has(s)), [...climbed]);
     // the plain climb, step by step
-    localStorage.clear(); R.player('apollo'); setX(5, 9, 'known');
+    ${CLEAR}; R.player('max'); setX(5, 9, 'known');
     const steps = [];
     steps.push(ans('÷', 45, 9, 'fast').to); steps.push(ans('÷', 45, 9, 'fast').to);
     day(); steps.push(ans('÷', 45, 9, 'fast').to);
@@ -283,11 +300,11 @@ async function runLogic(C) {
     ok('... 45 ÷ 9 never joined the × facts in play, nor cheered a table', !F.rec.inPlay.includes('÷45,9') && !Object.keys(F.rec.cheered).length, { inPlay: F.rec.inPlay, cheered: F.rec.cheered });
 
     // × untouched by ÷ answers
-    localStorage.clear(); R.player('apollo');
+    ${CLEAR}; R.player('max');
     for (const [a, b] of [[1, 2], [1, 3], [2, 2], [2, 9]]) { ans('×', a, b, 'fast'); ans('×', a, b, 'fast'); }
     for (const [a, b, s] of [[6, 9, 'known'], [7, 8, 'known'], [3, 4, 'mastered'], [5, 5, 'known'], [4, 9, 'mastered'], [2, 6, 'known']]) setX(a, b, s);
     const xOnly = () => { const r = F.rec, fx = Object.fromEntries(Object.entries(r.facts).filter(([k]) => k[0] === '×'));
-      return canon({ fx, inPlay: r.inPlay, step: r.step, opened: r.opened, cheered: r.cheered, unlocks: r.garage.unlocks, mastery: R.mastered(), grid: R.grid().rows, slow: R.Progress.data('apollo').slowest.map((q) => q.key + ':' + q.ms + ':' + q.n) }); };
+      return canon({ fx, inPlay: r.inPlay, step: r.step, opened: r.opened, cheered: r.cheered, unlocks: r.garage.unlocks, mastery: R.mastered(), grid: R.grid().rows, slow: R.Progress.data('max').slowest.map((q) => q.key + ':' + q.ms + ':' + q.n) }); };
     const before = xOnly();
     const opened = [...F.divOpen().values()];
     seed = 7; let n = 0;
@@ -301,10 +318,10 @@ async function runLogic(C) {
   // ---- Q5: the setting
   await C.open(1280, 800, false);
   res = await C.ev(String.raw`(() => { ${HELPERS}
-    R.manual(true); localStorage.clear();
-    // records as the pre-#142 build wrote them (no division field) for Orion and Apollo
-    for (const id of ['orion', 'apollo']) { R.player(id); delete F.rec.division; F.save(); }
-    ok('Orion and Apollo (records with no division field, as before #142): on', R.player('orion') && R.division().division === true && R.player('apollo') && R.division().division === true);
+    R.manual(true); ${CLEAR};
+    // records as the pre-#142 build wrote them (no division field) for Sam and Max
+    for (const id of ['sam', 'max']) { R.player(id); delete F.rec.division; F.save(); }
+    ok('Sam and Max (records with no division field, as before #142): on', R.player('sam') && R.division().division === true && R.player('max') && R.division().division === true);
     const z = R.addProfile('Divvy'); R.player(z.id);
     ok('a new profile: on', R.division().division === true, R.division());
     R.player('guest');
@@ -314,39 +331,39 @@ async function runLogic(C) {
     for (const [a, b] of [[6, 9], [7, 8], [3, 4]]) setX(a, b, 'known');
     let gx = 0; for (let i = 0; i < 30; i++) if (R.nextWire().op === '÷') gx++;
     ok('Guest with Known × facts: no ÷ wire in 30', gx === 0, gx);
-    // the parent switch, on whoever is playing (Apollo), and on a saved record (Orion)
-    R.player('apollo'); for (const [a, b] of [[6, 9], [7, 8], [3, 4]]) setX(a, b, 'known');
-    R.parent(true, 'apollo');
-    const off = R.parentDo('division', 'apollo', 'off');
-    const saved = () => JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).division;
-    ok('parent: Apollo off, live and saved, and the view shows it', off.ok && R.division().division === false && saved() === false && off.view.children.find((c) => c.id === 'apollo').division === false, { off: off.ok, saved: saved() });
+    // the parent switch, on whoever is playing (Max), and on a saved record (Sam)
+    R.player('max'); for (const [a, b] of [[6, 9], [7, 8], [3, 4]]) setX(a, b, 'known');
+    R.parent(true, 'max');
+    const off = R.parentDo('division', 'max', 'off');
+    const saved = () => JSON.parse(localStorage.getItem('robotbattle.facts.max')).division;
+    ok('parent: Max off, live and saved, and the view shows it', off.ok && R.division().division === false && saved() === false && off.view.children.find((c) => c.id === 'max').division === false, { off: off.ok, saved: saved() });
     let dx = 0; R.nextWire({ reset: true }); for (let i = 0; i < 60; i++) if (R.nextWire().op === '÷') dx++;
     ok('... and no ÷ wire after that (60 wires)', dx === 0, dx);
-    const on = R.parentDo('division', 'apollo', 'on');
+    const on = R.parentDo('division', 'max', 'on');
     dx = 0; R.nextWire({ reset: true }); for (let i = 0; i < 30; i++) if (R.nextWire().op === '÷') dx++;
-    ok('parent: Apollo on again (live and saved: no field), and ÷ wires come again', on.ok && R.division().division === true && saved() === undefined && dx > 0, { dx, saved: saved() });
-    const flip = R.parentDo('division', 'apollo'), back = R.parentDo('division', 'apollo'), bad = R.parentDo('division', 'apollo', 'maybe');
+    ok('parent: Max on again (live and saved: no field), and ÷ wires come again', on.ok && R.division().division === true && saved() === undefined && dx > 0, { dx, saved: saved() });
+    const flip = R.parentDo('division', 'max'), back = R.parentDo('division', 'max'), bad = R.parentDo('division', 'max', 'maybe');
     ok('with no value it flips (off, on); a value that isn\'t on or off is refused', flip.division === false && back.division === true && !bad.ok, { flip, back, bad: bad.ok });
-    const oo = R.parentDo('division', 'orion', 'off');
-    ok("on Orion's tab while Apollo plays: Orion's saved record goes off, Apollo stays on", oo.ok && JSON.parse(localStorage.getItem('robotbattle.facts.orion')).division === false && R.division().division === true);
+    const oo = R.parentDo('division', 'sam', 'off');
+    ok("on Sam's tab while Max plays: Sam's saved record goes off, Max stays on", oo.ok && JSON.parse(localStorage.getItem('robotbattle.facts.sam')).division === false && R.division().division === true);
     R.parent(false);
     // a reset keeps it, and still keeps the garage and the saved squad as it did before #142
-    const ob = JSON.parse(localStorage.getItem('robotbattle.facts.orion')); ob.garage.__keep = 1; ob.squad = [{ id: 'sq-k', type: 'charger', name: 'Bolt', health: 80, damage: {}, upg: { plating: 1, job: 0 } }]; ob.squadGone = [{ id: 'sq-g', how: 'gone', at: 1 }]; localStorage.setItem('robotbattle.facts.orion', JSON.stringify(ob));
-    R.parent(true, 'orion'); R.parentDo('reset', 'orion'); const rc = R.parentDo('confirm', 'orion'); R.parent(false);
-    const oa = JSON.parse(localStorage.getItem('robotbattle.facts.orion'));
-    ok('a reset of Orion keeps division off', rc.ok && oa.division === false, rc);
+    const ob = JSON.parse(localStorage.getItem('robotbattle.facts.sam')); ob.garage.__keep = 1; ob.squad = [{ id: 'sq-k', type: 'charger', name: 'Bolt', health: 80, damage: {}, upg: { plating: 1, job: 0 } }]; ob.squadGone = [{ id: 'sq-g', how: 'gone', at: 1 }]; localStorage.setItem('robotbattle.facts.sam', JSON.stringify(ob));
+    R.parent(true, 'sam'); R.parentDo('reset', 'sam'); const rc = R.parentDo('confirm', 'sam'); R.parent(false);
+    const oa = JSON.parse(localStorage.getItem('robotbattle.facts.sam'));
+    ok('a reset of Sam keeps division off', rc.ok && oa.division === false, rc);
     ok('... and keeps the garage and the saved squad (as before #142)', oa.garage?.__keep === 1 && oa.squad?.[0]?.id === 'sq-k' && oa.squadGone?.[0]?.id === 'sq-g', { garage: oa.garage?.__keep, squad: oa.squad, squadGone: oa.squadGone });
     return out; })()`);
   out.push(...res);
   await C.open(1280, 800, false);
-  res = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('orion'); const o = R.division().division; R.player('apollo'); const a = R.division().division;
-    ok('after a reload: Orion still off, Apollo on', o === false && a === true, { o, a });
-    R.player('orion'); R.division(true); return out; })()`);
+  res = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('sam'); const o = R.division().division; R.player('max'); const a = R.division().division;
+    ok('after a reload: Sam still off, Max on', o === false && a === true, { o, a });
+    R.player('sam'); R.division(true); return out; })()`);
   out.push(...res);
 
   // ---- Q4: the share of ÷ wires
   res = await C.ev(String.raw`(() => { ${HELPERS}
-    localStorage.clear(); R.manual(true); R.player('apollo');
+    ${CLEAR}; R.manual(true); R.player('max');
     for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) setX(a, b, 'known');
     R.nextWire({ reset: true });
     const seq = []; for (let i = 0; i < 300; i++) { const f = R.nextWire(); seq.push(f.op); if (f.op === '÷') ans('÷', f.a, f.b, i % 5 ? 'fast' : 'miss'); else ans('×', f.a, f.b, 'fast'); if (i % 40 === 39) day(); }
@@ -357,10 +374,10 @@ async function runLogic(C) {
     return out; })()`);
   out.push(...res);
 
-  // real Quick Fix boards (wave 2: math boards with a band and decoys), Apollo with every × fact Known
+  // real Quick Fix boards (wave 2: math boards with a band and decoys), Max with every × fact Known
   res = [];
   await C.open(1280, 800, false);
-  await C.ev(String.raw`(() => { ${HELPERS} localStorage.clear(); R.manual(true); R.player('apollo'); for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) setX(a, b, 'known'); R.start(0); R.waveTo(2); return true; })()`);
+  await C.ev(String.raw`(() => { ${HELPERS} ${CLEAR}; R.manual(true); R.player('max'); for (let a = 1; a <= 9; a++) for (let b = a; b <= 9; b++) setX(a, b, 'known'); R.start(0); R.waveTo(2); return true; })()`);
   let nWires = 0, nDiv = 0, perBoard = [], distinct = true, decoysOk = true, textOk = true, matched = 0, boards = 0, why = null;
   // (waves 0 (wires by how hard the robot was hit: up to 4), 1–2 (1 wire), 3–4 (2) and 5 on (3): boards of every size)
   for (let i = 0; i < 60; i++) {
@@ -406,9 +423,9 @@ async function runLogic(C) {
 
   // colour wiring and Guest: no ÷ wires on a board
   await C.open(1280, 800, false);
-  res = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('apollo'); for (const [a, b] of [[6, 9], [7, 8], [3, 4]]) setX(a, b, 'known'); R.wiring('colour'); R.start(0); R.waveTo(2); return out; })()`);
+  res = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('max'); for (const [a, b] of [[6, 9], [7, 8], [3, 4]]) setX(a, b, 'known'); R.wiring('colour'); R.start(0); R.waveTo(2); return out; })()`);
   let q = await C.ev(QUICKFIX);
-  out.push({ name: 'Apollo on colour wiring: the Quick Fix has no facts (no ÷)', pass: q.ok && q.facts == null, got: q });
+  out.push({ name: 'Max on colour wiring: the Quick Fix has no facts (no ÷)', pass: q.ok && q.facts == null, got: q });
   await C.ev(`(() => { const R = window.__rb; R.wiring('math'); R.player('guest'); R.start(0); R.waveTo(2); return true; })()`);
   q = await C.ev(QUICKFIX);
   out.push({ name: 'Guest: the Quick Fix has no ÷ wire (colour)', pass: q.ok && !(q.facts || []).some((f) => f.op === '÷'), got: q });
@@ -416,25 +433,25 @@ async function runLogic(C) {
   // ---- saves
   await C.open(1280, 800, false);
   res = await C.ev(String.raw`(() => { ${HELPERS}
-    R.manual(true); localStorage.clear(); R.player('apollo');
+    R.manual(true); ${CLEAR}; R.player('max');
     ans('×', 2, 3, 'fast'); ans('×', 2, 3, 'fast'); setX(6, 9, 'known'); delete F.rec.division; F.save();
-    const raw = localStorage.getItem('robotbattle.facts.apollo');
+    const raw = localStorage.getItem('robotbattle.facts.max');
     ok('(setup) a record as the pre-#142 build writes it: no ÷ keys, no division, no divPlay', !/÷|division|divPlay/.test(raw));
     return out; })()`);
   out.push(...res);
   await C.open(1280, 800, false);
-  res = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('apollo');
+  res = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('max');
     const c = F.divCounts();
     ok('it loads with no ÷ progress (0 answered, 0 Mastered), division on, 6 × 9\'s partners open', c.mastered === 0 && Object.keys(F.rec.facts).every((k) => k[0] === '×') && R.division().division && c.open === 2, c);
     return out; })()`);
   out.push(...res);
-  // a backup from this build: ÷ facts for Apollo, Orion off
-  const B = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('apollo'); ans('÷', 54, 6, 'fast'); ans('÷', 54, 6, 'fast'); day(); ans('÷', 54, 6, 'fast');
-    R.player('orion'); R.division(false); R.player('apollo'); return JSON.parse(JSON.stringify(R.backup())); })()`);
-  out.push({ name: 'a backup from this build: format 2, Apollo\'s ÷ facts in it, Orion\'s division off', pass: B.format === 2 && B.data['facts.apollo'].facts['÷54,6']?.s === 'known' && B.data['facts.orion'].division === false, got: { format: B.format, e: B.data['facts.apollo']?.facts?.['÷54,6'] } });
+  // a backup from this build: ÷ facts for Max, Sam off
+  const B = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('max'); ans('÷', 54, 6, 'fast'); ans('÷', 54, 6, 'fast'); day(); ans('÷', 54, 6, 'fast');
+    R.player('sam'); R.division(false); R.player('max'); return JSON.parse(JSON.stringify(R.backup())); })()`);
+  out.push({ name: 'a backup from this build: format 2, Max\'s ÷ facts in it, Sam\'s division off', pass: B.format === 2 && B.data['facts.max'].facts['÷54,6']?.s === 'known' && B.data['facts.sam'].division === false, got: { format: B.format, e: B.data['facts.max']?.facts?.['÷54,6'] } });
   for (const ch of ['backup', 'best', 'device']) {
-    res = await C.ev(String.raw`(() => { ${HELPERS} const B = ${JSON.stringify(B)}; localStorage.clear(); R.player(null); const x = R.restore(B, '${ch}'); const a = JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null');
-      ok('this build: a fresh device restores it ("${ch}"), Apollo\'s ÷ facts kept', x.ok && a?.facts?.['÷54,6']?.s === 'known', { ok: x.ok, why: x.why });
+    res = await C.ev(String.raw`(() => { ${HELPERS} const B = ${JSON.stringify(B)}; ${CLEAR}; R.player(null); const x = R.restore(B, '${ch}'); const a = JSON.parse(localStorage.getItem('robotbattle.facts.max') || 'null');
+      ok('this build: a fresh device restores it ("${ch}"), Max\'s ÷ facts kept', x.ok && a?.facts?.['÷54,6']?.s === 'known', { ok: x.ok, why: x.why });
       return out; })()`);
     out.push(...res);
   }
@@ -443,36 +460,36 @@ async function runLogic(C) {
   for (const ch of ['backup', 'best', 'device']) {
     await C.open(1280, 800, false, MU);
     const isOlder = await C.ev(`!window.__rb.DIV_FACTS`);
-    res = await C.ev(String.raw`(() => { const R = window.__rb, out = []; const B = ${JSON.stringify(B)}; localStorage.clear(); R.manual(true);
-      R.player('apollo'); R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.player(null);   // (a device with progress, so 'best' and 'device' merge)
-      const x = R.restore(B, '${ch}'); const a = JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null');
-      out.push({ name: 'pre-#142 build (${ch}): it accepts a backup from this build', pass: !!x.ok, got: x.why });
+    res = await C.ev(String.raw`(() => { const R = window.__rb, out = []; const B = ${JSON.stringify(B)}; ${OLD_KIDS}; R.manual(true);
+      R.player('max'); R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.player(null);   // (a device with progress, so 'best' and 'device' merge)
+      const x = R.restore(${TO_OLD}(B), '${ch}'); const a = JSON.parse(localStorage.getItem('robotbattle.facts.max') || 'null');
+      out.push({ name: 'pre-#142 build (${ch}): it accepts a backup from this build (its ladders in that build\'s ids: TO_OLD)', pass: !!x.ok, got: x.why });
       const want = '${ch}' === 'device' ? true : a?.facts?.['÷54,6']?.s === 'known';
-      out.push({ name: "pre-#142 build (${ch}): Apollo's ÷ facts kept in the stored record" + ('${ch}' === 'device' ? ' (Keep this device: this device\'s record, as that build always does)' : ''), pass: !!a && want, got: a ? Object.keys(a.facts) : null });
+      out.push({ name: "pre-#142 build (${ch}): Max's ÷ facts kept in the stored record" + ('${ch}' === 'device' ? ' (Keep this device: this device\'s record, as that build always does)' : ''), pass: !!a && want, got: a ? Object.keys(a.facts) : null });
       return out; })()`);
     out.push({ name: `(the page is the pre-#142 build: no DIV_FACTS)`, pass: isOlder });
     out.push(...res);
     await C.open(1280, 800, false, MU);
-    res = await C.ev(String.raw`(() => { const R = window.__rb; R.manual(true); R.player('apollo'); R.start(0); R.parent(true, 'apollo'); R.parent(false); R.showGrid(true); R.showGrid(false);
-      return [{ name: 'pre-#142 build (${ch}): reloads, plays and opens the parent view and grid with it', pass: !!R.Facts.rec && R.Facts.rec.child === 'apollo' }]; })()`);
+    res = await C.ev(String.raw`(() => { const R = window.__rb; R.manual(true); R.player('max'); R.start(0); R.parent(true, 'max'); R.parent(false); R.showGrid(true); R.showGrid(false);
+      return [{ name: 'pre-#142 build (${ch}): reloads, plays and opens the parent view and grid with it', pass: !!R.Facts.rec && R.Facts.rec.child === 'max' }]; })()`);
     out.push(...res);
   }
   // a backup made by the pre-#142 build restores here
   await C.open(1280, 800, false, MU);
-  const BM = await C.ev(String.raw`(() => { const R = window.__rb; localStorage.clear(); R.manual(true); R.player('apollo'); R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.player('orion'); R.answer(4, 5, 20, 1500); return JSON.parse(JSON.stringify(R.backup())); })()`);
+  const BM = await C.ev(String.raw`(() => { const R = window.__rb; ${OLD_KIDS}; R.manual(true); R.player('max'); R.answer(2, 3, 6, 1500); R.answer(2, 3, 6, 1500); R.player('sam'); R.answer(4, 5, 20, 1500); return JSON.parse(JSON.stringify(R.backup())); })()`);
   await C.open(1280, 800, false);
-  res = await C.ev(String.raw`(() => { ${HELPERS} const B = ${JSON.stringify(BM)}; localStorage.clear(); R.player(null); const x = R.restore(B, 'best'); R.player('apollo');
-    ok('a backup made by the pre-#142 build restores here: Apollo\'s 2 × 3 Learning, no ÷ progress, division on', x.ok && ent('×', 2, 3)?.s === 'learning' && F.divCounts().mastered === 0 && R.division().division === true, { ok: x.ok, why: x.why });
+  res = await C.ev(String.raw`(() => { ${HELPERS} const B = ${JSON.stringify(BM)}; ${CLEAR}; R.player(null); const x = R.restore(B, 'best'); R.player('max');
+    ok('a backup made by the pre-#142 build restores here: Max\'s 2 × 3 Learning, no ÷ progress, division on', x.ok && ent('×', 2, 3)?.s === 'learning' && F.divCounts().mastered === 0 && R.division().division === true, { ok: x.ok, why: x.why });
     return out; })()`);
   out.push(...res);
   return out;
 }
 
-// Apollo for the sizes: × facts Known / Mastered so ÷ facts open, then ÷ facts at every stage through answers:
+// Max for the sizes: × facts Known / Mastered so ÷ facts open, then ÷ facts at every stage through answers:
 //   56 ÷ 8 Known (days [d1, today]); 56 ÷ 7 Learning; 12 ÷ 4 Mastered; 12 ÷ 3 Mastered needing a polish; 45 ÷ 9 New, streak 1;
 //   63 ÷ 7 locked (7 × 9 never answered); 54 ÷ 6 open, never answered
 const SEED = String.raw`(() => { ${HELPERS}
-  R.manual(true); localStorage.clear(); R.player('apollo');
+  R.manual(true); ${CLEAR}; R.player('max');
   for (const [a, b, s] of [[7, 8, 'known'], [3, 4, 'mastered'], [5, 9, 'known'], [6, 9, 'known']]) setX(a, b, s);
   ans('÷', 56, 8, 'fast'); ans('÷', 56, 8, 'fast'); ans('÷', 12, 4, 'fast'); ans('÷', 12, 4, 'fast'); ans('÷', 12, 3, 'fast'); ans('÷', 12, 3, 'fast');
   day(); ans('÷', 12, 4, 'fast'); ans('÷', 12, 3, 'fast');
@@ -588,12 +605,12 @@ async function runSize(C, size) {
   await C.ev(`(() => { window.__rb.showGrid(false); window.__rb.division(true); return true; })()`);
 
   // ---- the parent view
-  await C.ev(`window.__rb.parent(true, 'apollo')`);
+  await C.ev(`window.__rb.parent(true, 'max')`);
   c = await C.ev(AT('#pBody .pgop .gopb'));
   ok('parent: a ×/÷ toggle over the grid, at least 44 px and on top', c && c.w >= 44 && c.h >= 44 && c.hit, c);
   if (c) await press(c);
   ok(`parent: ${touch ? 'a tap' : 'a click'} on ÷ shows the ÷ grid`, (await st()) === '÷', await st());
-  const pg = await C.ev(`window.__rb.grid('apollo', '÷')`);
+  const pg = await C.ev(`window.__rb.grid('max', '÷')`);
   ok('parent ÷ grid: the headers the divisors only, every label "a ÷ b: stage", the stages as Facts has them', pg.heads?.join('|') === ['÷', ...Array(9).fill(''), 1, 2, 3, 4, 5, 6, 7, 8, 9].join('|') && pg.labels.every((l) => !l.includes('=')) && JSON.stringify(pg.dom) === JSON.stringify(pg.rows), { heads: pg.heads });
   c = await C.ev(AT('#pBody .fgrid .cell[data-key="÷56,8"]'));
   ok('parent ÷ grid: cells on top once scrolled to', c && c.hit && c.w >= 14, c);
@@ -623,10 +640,10 @@ async function runSize(C, size) {
     return { siblings: d.parentElement === W.parentElement, beside: Math.abs(r.top - rw.top) < 2 || r.top >= rw.bottom - 1, btn, docX: document.documentElement.scrollWidth - innerWidth, pressed: [...d.querySelectorAll('button')].map((b) => b.dataset.w + ':' + b.getAttribute('aria-pressed')).join(' ') }; })()`);
   ok('parent: the Division switch sits beside Quick Fix wiring (same row, or wrapped under it), on, its buttons at least 44 px, on screen, text not cut, nothing over them', sw && sw.siblings && sw.beside && sw.btn.every((b) => b.w >= 44 && b.h >= 44 && b.hit && !b.cut && b.in) && sw.docX <= 0 && sw.pressed === 'on:true off:false', sw);
   await shot('parent-switch');
-  const saved = () => C.ev(`JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).division ?? 'on'`);
+  const saved = () => C.ev(`JSON.parse(localStorage.getItem('robotbattle.facts.max')).division ?? 'on'`);
   c = await C.ev(AT('#pBody [data-act="division"][data-w="off"]'));
   if (c) await press(c);
-  ok(`parent: ${touch ? 'a tap' : 'a click'} on Off turns Apollo's division off, saved`, (await saved()) === false && (await C.ev('window.__rb.division().division')) === false, await saved());
+  ok(`parent: ${touch ? 'a tap' : 'a click'} on Off turns Max's division off, saved`, (await saved()) === false && (await C.ev('window.__rb.division().division')) === false, await saved());
   let tb = false;
   for (let i = 0; i < 40 && !tb; i++) { await C.key('Tab', true); tb = await C.ev(`document.activeElement?.matches?.('[data-act="division"][data-w="on"]') ?? false`); }
   if (tb) await C.key('Enter');
@@ -634,7 +651,7 @@ async function runSize(C, size) {
   for (let i = 0; i < 30; i++) { await C.key('Tab'); if (await C.ev(`document.activeElement?.matches?.('[data-act="division"][data-w="off"]') ?? false`)) break; }
   await C.key('Space');
   ok('parent: keyboard Tab to Off and Space: off, saved', (await saved()) === false, await saved());
-  await C.ev(`window.__rb.parentDo('division', 'apollo', 'on')`);
+  await C.ev(`window.__rb.parentDo('division', 'max', 'on')`);
   const seen = [];
   for (const b of [0, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16]) { await padStep(C, b); seen.push(await saved()); }
   ok('parent: (the pad reaches the view: still open after them, and X switched its grid)', (await C.ev('window.__rb.state().progress.ui')) === 'parent', await C.ev('window.__rb.state().progress.ui'));

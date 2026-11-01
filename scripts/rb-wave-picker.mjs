@@ -61,6 +61,20 @@ const url = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve
 const withQ = (u, q) => u + (u.includes('?') ? '&' : '?') + q;
 if (shots) fs.mkdirSync(shots, { recursive: true });
 
+// #161: nothing is seeded any more, so these checks make their own made-up profiles the first time a page of this build opens
+// on empty storage (no list, no record): Sam (the quick-check ladder) and Max (the ladder that starts at ×1 and ×2). CLEAR empties storage as a
+// fresh device and puts the two back, as the game's old seed did
+const KIDS = [{ id: 'sam', name: 'Sam', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'max', name: 'Max', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
+const KIDS_SET = `localStorage.setItem('robotbattle.profiles', ${JSON.stringify(JSON.stringify(KIDS))})`;
+const KIDS_JS = `(() => { const R = window.__rb; if (localStorage.getItem('robotbattle.profiles') == null && !Object.keys(localStorage).some((k) => k.startsWith('robotbattle.facts.')) && R.Profiles) { ${KIDS_SET}; R.Profiles.load(); R.Title.home(); R.Title.drawKids(); R.Title.draw(); } return true; })()`;
+const CLEAR = `(localStorage.clear(), ${KIDS_SET})`;
+// #161: a profile made since #161 is on a ladder id ('start' or 'check') that a build from before it doesn't know, so its
+// records would be refused there as damaged. For the checks that restore this build's backup into an older build, TO_OLD
+// (run in the older page) puts the backup's ladders in that build's own ids first, found by their steps, as the same
+// profile made on that build would have them. Everything else in the backup is as this build wrote it.
+const TO_OLD = String.raw`((bk) => { const L = window.__rb.LADDERS, ids = Object.keys(L), id = { start: ids.find((k) => L[k][0].kind !== 'check'), check: ids.find((k) => L[k][0].kind === 'check') };
+  const b = JSON.parse(JSON.stringify(bk)); for (const [k, v] of Object.entries(b.data || {})) { if (k.startsWith('facts.') && v && id[v.ladder]) v.ladder = id[v.ladder]; if (k === 'profiles' && Array.isArray(v)) for (const p of v) if (p && id[p.ladder]) p.ladder = id[p.ladder]; }
+  return b; })`;
 // main's page (before #129), for "a backup from this build restores into main": a temp copy from git, removed at exit
 let mainTmp = null;
 function mainUrl() {
@@ -165,7 +179,7 @@ async function connect(S) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
     await send('Page.navigate', { url: u });
-    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) { if (u.startsWith(url)) await ev(KIDS_JS); return; } }
     throw new Error('page did not load window.__rb: ' + u);
   };
   const tap = async (x, y) => {
@@ -198,13 +212,13 @@ async function runLogic(C) {
   if (!(await C.ev(has('waves')))) { ok('__rb.waves exists (the waves cleared and the picker\'s range)', false, 'missing'); ok('__rb.wavePick exists (the picker)', await C.ev(has('wavePick')), 'missing'); return out; }
 
   // ---- nothing cleared: no picker, and wave 1 as today
-  let r = await C.ev(`(() => { const R = window.__rb; R.player('apollo'); return { w: R.waves(), chip: R.wavePick('state').shown }; })()`);
+  let r = await C.ev(`(() => { const R = window.__rb; R.player('max'); return { w: R.waves(), chip: R.wavePick('state').shown }; })()`);
   ok('a fresh child: best 0, the picker offers only wave 1 and its chip is hidden', r.w.best === 0 && JSON.stringify(r.w.offer) === '[1]' && r.chip === false, r);
 
   // ---- recording: waves 1-3 cleared as play clears them
-  r = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('apollo'); R.start(0); const steps = [];
+  r = await C.ev(String.raw`(() => { ${HELPERS} R.manual(true); R.player('max'); R.start(0); const steps = [];
     for (let w = 1; w <= 3; w++) { const n = R.nextWave(); const c = clearWave(); steps.push({ n: n.wave, ...c, best: R.waves().best }); }
-    return { steps, best: R.waves().best, saved: saved('apollo')?.waves }; })()`);
+    return { steps, best: R.waves().best, saved: saved('max')?.waves }; })()`);
   ok('clearing waves 1, 2 and 3 records best 1, 2 then 3 as each clear screen shows', r.steps.map((s) => s.cleared && s.screen && s.best).join() === '1,2,3', r.steps);
   ok('best 3 is saved in the record (rec.waves.best)', r.saved?.best === 3, r.saved);
   // latched: a lower wave's clear never lowers it (waveTo 1 on an empty meadow clears at once, but it isn't play either)
@@ -214,7 +228,7 @@ async function runLogic(C) {
   ok('best is latched: recording wave 2 after best 3 leaves 3', r === 3, r);
   // a reload keeps it; the picker now offers 1-4
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; R.player('apollo'); const s = R.wavePick('state'); return { w: R.waves(), s }; })()`);
+  r = await C.ev(`(() => { const R = window.__rb; R.player('max'); const s = R.wavePick('state'); return { w: R.waves(), s }; })()`);
   ok('a reload keeps best 3', r.w.best === 3, r.w);
   ok('best 3: the picker offers waves 1-4, none a boss wave, and its chip shows', JSON.stringify(r.w.offer) === '[1,2,3,4]' && r.w.boss.length === 0 && r.s.shown === true, r);
   r = await C.ev(`(() => { const R = window.__rb; R.wavePick('open'); const s = R.wavePick('state'); R.wavePick('close'); return s; })()`);
@@ -227,21 +241,21 @@ async function runLogic(C) {
 
   // ---- ?wave=7 never counts
   await C.open(1280, 800, false, withQ(url, 'wave=7'));
-  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('apollo'); const chip = R.wavePick('state').shown; R.manual(true); R.start(0); const n = R.nextWave(); const c = clearWave();
-    return { n: n.wave, c, best: R.waves().best, saved: saved('apollo')?.waves, chip }; })()`);
+  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('max'); const chip = R.wavePick('state').shown; R.manual(true); R.start(0); const n = R.nextWave(); const c = clearWave();
+    return { n: n.wave, c, best: R.waves().best, saved: saved('max')?.waves, chip }; })()`);
   ok('?wave=7: the picker chip is hidden (the address picks the wave)', r.chip === false, r);
   ok('?wave=7: wave 7 comes out and is cleared (the clear screen up), and best stays 3, saved', r.n === 7 && r.c.cleared && r.c.screen && r.best === 3 && r.saved?.best === 3, r);
-  // any ?wave= counts for nothing, even ?wave=1: Orion (nothing cleared) clears wave 1 there and still has best 0
+  // any ?wave= counts for nothing, even ?wave=1: Sam (nothing cleared) clears wave 1 there and still has best 0
   await C.open(1280, 800, false, withQ(url, 'wave=1'));
-  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('orion'); R.manual(true); R.start(0); const n = R.nextWave(); const c = clearWave();
-    return { n: n.wave, c, best: R.waves().best, saved: saved('orion')?.waves ?? null }; })()`);
-  ok('?wave=1: Orion clears wave 1 (the clear screen up) and best stays 0', r.n === 1 && r.c.cleared && r.c.screen && r.best === 0 && !(r.saved?.best), r);
+  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('sam'); R.manual(true); R.start(0); const n = R.nextWave(); const c = clearWave();
+    return { n: n.wave, c, best: R.waves().best, saved: saved('sam')?.waves ?? null }; })()`);
+  ok('?wave=1: Sam clears wave 1 (the clear screen up) and best stays 0', r.n === 1 && r.c.cleared && r.c.screen && r.best === 0 && !(r.saved?.best), r);
 
   // ---- best 4 offers 1-5 with 5 marked as the boss wave
   await C.open(1280, 800, false);
-  r = await C.ev(SEED('apollo', 4));
+  r = await C.ev(SEED('max', 4));
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; R.player('apollo'); R.wavePick('open'); const s = R.wavePick('state'); R.wavePick('close'); return { w: R.waves(), s }; })()`);
+  r = await C.ev(`(() => { const R = window.__rb; R.player('max'); R.wavePick('open'); const s = R.wavePick('state'); R.wavePick('close'); return { w: R.waves(), s }; })()`);
   ok('best 4: the picker offers 1-5, wave 5 marked ⚔️ (a boss wave, Waves.boss)', JSON.stringify(r.w.offer) === '[1,2,3,4,5]' && JSON.stringify(r.w.boss) === '[5]' && r.s.tiles.find((t) => t.n === 5)?.boss && r.s.tiles.filter((t) => t.boss).length === 1, r);
 
   // ---- starting at wave N: the composition, the squad and the bag. Reference: the same wave from ?wave=N (Waves.spawn too)
@@ -253,9 +267,9 @@ async function runLogic(C) {
   for (const n of [3, 5]) {
     await C.open(1280, 800, false);
     // a saved squad of two, and a bag, before the run starts
-    await C.ev(SEED('apollo', 4, `R.Facts.rec.squad = [{ id: 'sq-a', type: 'charger', name: 'Bolt', health: 80, damage: {}, upg: { plating: 1, job: 0 } }, { id: 'sq-b', type: 'bouncer', name: 'Zip', health: 60, damage: {}, upg: { plating: 0, job: 0 } }];`));
+    await C.ev(SEED('max', 4, `R.Facts.rec.squad = [{ id: 'sq-a', type: 'charger', name: 'Bolt', health: 80, damage: {}, upg: { plating: 1, job: 0 } }, { id: 'sq-b', type: 'bouncer', name: 'Zip', health: 60, damage: {}, upg: { plating: 0, job: 0 } }];`));
     await C.open(1280, 800, false);
-    r = await C.ev(String.raw`(() => { ${HELPERS} R.player('apollo'); G.bag = { armour: 2, motor: 1 };
+    r = await C.ev(String.raw`(() => { ${HELPERS} R.player('max'); G.bag = { armour: 2, motor: 1 };
       const sq = () => G.squad.map((q) => [q.uid, q.name, q.type, Math.round(q.health), q.maxHealth].join(':')).sort().join('|');
       const before = { squad: sq(), bag: JSON.stringify(G.bag), parts: G.parts };
       const p = R.wavePick('pick', ${n}); const s = R.start(0); R.manual(true);
@@ -270,35 +284,35 @@ async function runLogic(C) {
       r = await C.ev(String.raw`(() => { ${HELPERS} const c = clearWave(); return { c, best: R.waves().best }; })()`);
       ok('wave 3 from the picker (best 4): cleared, best stays 4', r.c.cleared && r.best === 4, r);
     } else {
-      r = await C.ev(String.raw`(() => { ${HELPERS} const c = clearWave(); return { c, best: R.waves().best, saved: saved('apollo')?.waves?.best }; })()`);
+      r = await C.ev(String.raw`(() => { ${HELPERS} const c = clearWave(); return { c, best: R.waves().best, saved: saved('max')?.waves?.best }; })()`);
       ok('wave 5 from the picker (best 4, the boss wave): cleared, best 5, saved', r.c.cleared && r.best === 5 && r.saved === 5, r);
     }
   }
-  // the pick is clamped to whoever starts: Apollo picks 5, goes back, Orion (nothing cleared) starts at wave 1
+  // the pick is clamped to whoever starts: Max picks 5, goes back, Sam (nothing cleared) starts at wave 1
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('apollo'); const p = R.wavePick('pick', 5); R.player(null); R.player('orion'); const w = R.waves(); R.start(0); R.manual(true); return { p, w, wave: G.wave }; })()`);
-  ok('a pick is the child\'s own: Apollo picks 5, ◀ back, Orion (nothing cleared) starts at wave 1', r.wave === 1 && r.w.best === 0, r);
+  r = await C.ev(String.raw`(() => { ${HELPERS} R.player('max'); const p = R.wavePick('pick', 5); R.player(null); R.player('sam'); const w = R.waves(); R.start(0); R.manual(true); return { p, w, wave: G.wave }; })()`);
+  ok('a pick is the child\'s own: Max picks 5, ◀ back, Sam (nothing cleared) starts at wave 1', r.wave === 1 && r.w.best === 0, r);
 
   // ---- saves
   await C.open(1280, 800, false);
   // a record saved before #129: no waves field
-  await C.ev(`(() => { const R = window.__rb; R.player('orion'); const k = 'robotbattle.facts.orion', v = JSON.parse(localStorage.getItem(k)); delete v.waves; localStorage.setItem(k, JSON.stringify(v)); return true; })()`);
+  await C.ev(`(() => { const R = window.__rb; R.player('sam'); const k = 'robotbattle.facts.sam', v = JSON.parse(localStorage.getItem(k)); delete v.waves; localStorage.setItem(k, JSON.stringify(v)); return true; })()`);
   await C.open(1280, 800, false);
-  r = await C.ev(`(() => { const R = window.__rb; R.player('orion'); return { w: R.waves(), chip: R.wavePick('state').shown }; })()`);
+  r = await C.ev(`(() => { const R = window.__rb; R.player('sam'); return { w: R.waves(), chip: R.wavePick('state').shown }; })()`);
   ok('a record saved before #129 (no waves field) loads with best 0 and no picker', r.w.best === 0 && r.chip === false, r);
   // backups: a backup without the field; then device vs backup either way, with "Use the backup" and "Keep the best"
   r = await C.ev(String.raw`(() => { const R = window.__rb, B = R.Backup;
-    const set = (n) => { R.player('apollo'); if (n == null) delete R.Facts.rec.waves; else R.Facts.rec.waves = { best: n }; R.Facts.save(); };
+    const set = (n) => { R.player('max'); if (n == null) delete R.Facts.rec.waves; else R.Facts.rec.waves = { best: n }; R.Facts.save(); };
     const bak = (n) => { set(n); return JSON.parse(JSON.stringify(R.backup())); };
     const res = {};
-    const old = bak(null); delete old.data['facts.apollo'].waves;
-    set(0); R.player('orion');
-    res.oldBackup = R.restore(old, 'backup').ok; R.player('apollo'); res.oldBest = R.waves().best;
+    const old = bak(null); delete old.data['facts.max'].waves;
+    set(0); R.player('sam');
+    res.oldBackup = R.restore(old, 'backup').ok; R.player('max'); res.oldBest = R.waves().best;
     const b2 = bak(2), b5 = bak(5);
     for (const [dev, b, nm] of [[5, b2, 'd5b2'], [2, b5, 'd2b5']]) for (const ch of ['backup', 'best']) {
-      set(dev); R.player('orion');
-      const x = R.restore(b, ch); R.player('apollo');
-      res[nm + ch] = { ok: x.ok, best: R.waves().best, saved: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).waves?.best };
+      set(dev); R.player('sam');
+      const x = R.restore(b, ch); R.player('max');
+      res[nm + ch] = { ok: x.ok, best: R.waves().best, saved: JSON.parse(localStorage.getItem('robotbattle.facts.max')).waves?.best };
     }
     set(5); res.backup5 = bak(5);
     return res; })()`);
@@ -310,9 +324,9 @@ async function runLogic(C) {
   const bk = r.backup5, mu = mainUrl();
   for (const ch of ['backup', 'best']) {
     await C.open(1280, 800, false, mu);
-    const m = await C.ev(`(() => { const R = window.__rb; localStorage.clear(); const x = R.restore(${JSON.stringify(bk)}, '${ch}'); const p = R.player('apollo');
-      return { ok: x.ok, why: x.why ?? null, player: p.ok, waves: JSON.parse(localStorage.getItem('robotbattle.facts.apollo') || 'null')?.waves ?? null, hasHook: typeof R.waves === 'function' }; })()`);
-    ok(`a backup from this build restores into main (${MAIN_SHA}) with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}", and the child loads (main keeps or ignores waves)`, m.ok && m.player && !m.hasHook, m);
+    const m = await C.ev(`(() => { const R = window.__rb; localStorage.clear(); const x = R.restore(${TO_OLD}(${JSON.stringify(bk)}), '${ch}'); const p = R.player('max');
+      return { ok: x.ok, why: x.why ?? null, player: p.ok, waves: JSON.parse(localStorage.getItem('robotbattle.facts.max') || 'null')?.waves ?? null, hasHook: typeof R.waves === 'function' }; })()`);
+    ok(`a backup from this build (its ladders in main's ids: TO_OLD) restores into main (${MAIN_SHA}) with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}", and the child loads (main keeps or ignores waves)`, m.ok && m.player && !m.hasHook, m);
   }
   return out;
 }
@@ -344,11 +358,11 @@ async function runSize(C, size) {
   if (!(await C.ev(has('wavePick')))) { ok('__rb.wavePick exists', false, 'missing'); return out; }
   for (const best of [3, 14]) {
     const tag = `best ${best}`;
-    await C.ev(SEED('apollo', best));
+    await C.ev(SEED('max', best));
     await C.open(w, h, touch);
     // the game's own loop reads this pad (navigator.getGamepads stubbed before anything reads it)
     await C.ev(`(() => { window.__pad = { id: 'check pad', index: 0, connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) }; return true; })()`);
-    await C.ev(`(() => { window.__rb.player('apollo'); return true; })()`);
+    await C.ev(`(() => { window.__rb.player('max'); return true; })()`);
     await sleep(150);
     let s = await C.ev(`__rb.wavePick('state')`);
     ok(`${tag}: on the pilot pick, the wave chip shows wave 1 (the default start)`, s.shown && s.pick === 1, s);

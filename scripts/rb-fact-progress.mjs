@@ -5,19 +5,19 @@
 // way out, as scripts/rb-jump-sweep.mjs does):
 //   logic   - at 1280 x 800, through window.__rb and the tracker's clock (__rb.clock):
 //             * every stage: New with streak 0 / 1, Learning with 0 / 1 fast days, Known with 2 fast days, Mastered,
-//               Mastered needing a polish, Orion's quick check (1 fast answer -> Known);
+//               Mastered needing a polish, Sam's quick check (1 fast answer -> Known);
 //             * today counted vs not; a miss today blocks today;
 //             * progress agrees with what answer() then does: fixtures answered fast once a day reach Mastered in
 //               exactly toMastered days; a Known fact with 2 fast days goes Mastered on a new day exactly when progress
 //               said 1 more; a polish clears with one fast answer the same day it slipped; and a seeded random walk
-//               (fast / slow / too-slow / miss / next day, on Apollo's and Orion's facts) checks every answer against the
+//               (fast / slow / too-slow / miss / next day, on Max's and Sam's facts) checks every answer against the
 //               progress read just before it;
-//             * Apollo's records: 1 x 6 (Known, days [d1, today]) and 2 x 3 (Learning, days [today]);
+//             * Max's records: 1 x 6 (Known, days [d1, today]) and 2 x 3 (Learning, days [today]);
 //             * reading never writes: the saved record, the stage counts, the star total and the backup are the same
 //               before and after opening the grid and the parent view and tapping facts; entries keep their old fields
 //               only; a saved record reloads as it was, with the same progress.
 //   size    - at each size: the grid's tap info (by touch, the keyboard's arrows, the gamepad's d-pad) and the parent view (a touch on a
-//             cell) show the progress for Apollo's records, every element on screen (bounding boxes), the grid panel not
+//             cell) show the progress for Max's records, every element on screen (bounding boxes), the grid panel not
 //             scrolling, no horizontal overflow, the rules key there, and no answer in the grid's info.
 //
 // Usage:
@@ -72,6 +72,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ---- in the page: shared helpers, then the records the checks read ----
 // D = a day (ms). fast = right in 1.5 s (a typical time that can't spell a product), slow = right in 4 s (not fast, not
 // too slow), crawl = right in 7 s (over FACT.slow: a Mastered fact slips), miss = wrong.
+// #161: nothing is seeded any more, so these checks make their own made-up profiles the first time a page of this build opens
+// on empty storage (no list, no record): Sam (the quick-check ladder) and Max (the ladder that starts at ×1 and ×2). CLEAR empties storage as a
+// fresh device and puts the two back, as the game's old seed did
+const KIDS = [{ id: 'sam', name: 'Sam', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'max', name: 'Max', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
+const KIDS_SET = `localStorage.setItem('robotbattle.profiles', ${JSON.stringify(JSON.stringify(KIDS))})`;
+const KIDS_JS = `(() => { const R = window.__rb; if (localStorage.getItem('robotbattle.profiles') == null && !Object.keys(localStorage).some((k) => k.startsWith('robotbattle.facts.')) && R.Profiles) { ${KIDS_SET}; R.Profiles.load(); R.Title.home(); R.Title.drawKids(); R.Title.draw(); } return true; })()`;
+const CLEAR = `(localStorage.clear(), ${KIDS_SET})`;
 const HELPERS = String.raw`
   const R = window.__rb, D = 864e5, out = [];
   const ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
@@ -84,12 +91,12 @@ const HELPERS = String.raw`
   const has = (p, o) => !!p && Object.entries(o).every(([k, v]) => (v && typeof v === 'object' ? has(p[k], v) : p[k] === v));
   const js = (x) => JSON.stringify(x);
 `;
-// Apollo's records, as #133 describes them, built through answer() and the clock (the day the grid is read is "today"):
+// Max's records, as #133 describes them, built through answer() and the clock (the day the grid is read is "today"):
 //   1 x 6 Known, days [d1, today]; 2 x 3 Learning, days [today]; 1 x 7 Mastered; 1 x 8 Mastered needing a polish;
 //   1 x 9 Learning after a miss today (days [d1] kept, today blocked); 1 x 1 New, streak 0; 1 x 2 New, streak 1 (slow);
 //   1 x 3 New, streak 1 (fast: today counted); 1 x 4 Learning with 0 fast days (two slow); 2 x 7 Known (for "no answer")
 const BUILD = String.raw`
-  R.manual(true); R.player('apollo');
+  R.manual(true); R.player('max');
   fast(1, 7); fast(1, 7); fast(1, 8); fast(1, 8); fast(1, 9); fast(1, 9); fast(2, 7); fast(2, 7);
   day();                                     // d1, the day before "today"
   fast(1, 6); fast(1, 6); fast(1, 7); fast(1, 8); fast(1, 9); fast(2, 7);
@@ -105,8 +112,8 @@ const LOGIC = String.raw`(() => {
   if (typeof R.progress !== 'function') { ok('__rb.progress exists (Facts.progress)', false, typeof R.progress); return out; }
   if (typeof R.Facts.progress !== 'function') ok('Facts.progress exists', false, typeof R.Facts.progress);
 
-  // ---- Orion's quick check (step 1 is kind 'check'): a fact never answered goes to Known on 1 fast answer
-  R.manual(true); R.player('orion');
+  // ---- Sam's quick check (step 1 is kind 'check'): a fact never answered goes to Known on 1 fast answer
+  R.manual(true); R.player('sam');
   let p = P(3, 7);
   ok('check step: a fresh fact needs 1 fast answer -> Known', has(p, { stage: 'new', next: 'known', need: { kind: 'check', have: 0, want: 1 }, toMastered: 3, today: 'open', todayCounted: false }), p);
   let r = fast(3, 7);
@@ -119,7 +126,7 @@ const LOGIC = String.raw`(() => {
   p = P(4, 7);
   ok('check step: after a slow check, Learning with 0 fast days', has(p, { stage: 'learning', next: 'known', need: { kind: 'days', have: 0, want: 2 }, toMastered: 3, today: 'open' }), p);
 
-  // ---- Apollo's records
+  // ---- Max's records
   ${BUILD}
   const T = today();
   p = P(1, 1);
@@ -131,9 +138,9 @@ const LOGIC = String.raw`(() => {
   p = P(1, 4);
   ok('Learning with 0 fast days: 0/2 -> Known, 3 to Mastered', has(p, { stage: 'learning', next: 'known', need: { kind: 'days', have: 0, want: 2 }, toMastered: 3, today: 'open' }), p);
   p = P(2, 3);
-  ok("Apollo's 2 x 3 (Learning, days [today]): 1/2 -> Known, 2 more fast days to Mastered, today counted", has(p, { stage: 'learning', next: 'known', need: { kind: 'days', have: 1, want: 2 }, toMastered: 2, today: 'counted', todayCounted: true }) && js(entry(2, 3).days) === js([T]), { p, days: entry(2, 3).days, T });
+  ok("Max's 2 x 3 (Learning, days [today]): 1/2 -> Known, 2 more fast days to Mastered, today counted", has(p, { stage: 'learning', next: 'known', need: { kind: 'days', have: 1, want: 2 }, toMastered: 2, today: 'counted', todayCounted: true }) && js(entry(2, 3).days) === js([T]), { p, days: entry(2, 3).days, T });
   p = P(1, 6);
-  ok("Apollo's 1 x 6 (Known, days [d, today]): 2/3 -> Mastered, 1 more fast day, today counted", has(p, { stage: 'known', next: 'mastered', need: { kind: 'days', have: 2, want: 3 }, toMastered: 1, today: 'counted', todayCounted: true }) && entry(1, 6).days.length === 2 && entry(1, 6).days[1] === T, { p, days: entry(1, 6).days, T });
+  ok("Max's 1 x 6 (Known, days [d, today]): 2/3 -> Mastered, 1 more fast day, today counted", has(p, { stage: 'known', next: 'mastered', need: { kind: 'days', have: 2, want: 3 }, toMastered: 1, today: 'counted', todayCounted: true }) && entry(1, 6).days.length === 2 && entry(1, 6).days[1] === T, { p, days: entry(1, 6).days, T });
   p = P(1, 7);
   ok('Mastered: nothing more to do', has(p, { stage: 'mastered', next: null, need: null, toMastered: 0, polish: false }), p);
   p = P(1, 8);
@@ -207,22 +214,22 @@ const LOGIC = String.raw`(() => {
     }
     return { bad, first };
   };
-  const ap = walk('apollo', [[2, 2], [2, 4], [2, 5], [2, 6], [2, 9], [1, 5]], 900);
-  ok('random walk (Apollo, 900 steps): every answer matches the progress read before it', ap.bad === 0, ap);
-  const or = walk('orion', [[5, 6], [5, 7], [6, 6], [6, 8], [7, 9], [8, 9]], 900);
-  ok('random walk (Orion, from the quick check, 900 steps): every answer matches', or.bad === 0, or);
+  const ap = walk('max', [[2, 2], [2, 4], [2, 5], [2, 6], [2, 9], [1, 5]], 900);
+  ok('random walk (Max, 900 steps): every answer matches the progress read before it', ap.bad === 0, ap);
+  const or = walk('sam', [[5, 6], [5, 7], [6, 6], [6, 8], [7, 9], [8, 9]], 900);
+  ok('random walk (Sam, from the quick check, 900 steps): every answer matches', or.bad === 0, or);
   return out;
 })()`;
 
 // reading never writes: the saved record, stage counts, star total and backup before and after the grid and parent view
 const SNAP = String.raw`(() => { const R = window.__rb, b = R.backup(); delete b.exported;
-  return JSON.stringify({ rec: localStorage.getItem('robotbattle.facts.apollo'), counts: R.grid('apollo').counts, star: R.mastered('apollo'), backup: b }); })()`;
+  return JSON.stringify({ rec: localStorage.getItem('robotbattle.facts.max'), counts: R.grid('max').counts, star: R.mastered('max'), backup: b }); })()`;
 const FIELDS = String.raw`(() => { const ok = new Set(['op', 'a', 'b', 's', 'streak', 'n', 'right', 'ms', 'hist', 'days', 'missDay', 'due', 'box', 'miss', 'last', 'polish']);
-  const r = JSON.parse(localStorage.getItem('robotbattle.facts.apollo')); return Object.entries(r.facts).flatMap(([k, e]) => Object.keys(e).filter((f) => !ok.has(f)).map((f) => k + '.' + f)); })()`;
-const UI_PREP = String.raw`(() => { const R = window.__rb; R.player('apollo'); R.start(0); return true; })()`;
+  const r = JSON.parse(localStorage.getItem('robotbattle.facts.max')); return Object.entries(r.facts).flatMap(([k, e]) => Object.keys(e).filter((f) => !ok.has(f)).map((f) => k + '.' + f)); })()`;
+const UI_PREP = String.raw`(() => { const R = window.__rb; R.player('max'); R.start(0); return true; })()`;
 const UI_READS = String.raw`(() => { const R = window.__rb;
   R.showGrid(true); for (const [a, b] of [[1, 6], [2, 3], [5, 5], [9, 9], [1, 8]]) R.tapCell(a, b); R.showGrid(false);
-  R.parent(true, 'apollo'); for (const [a, b] of [[1, 6], [4, 4], [2, 3]]) document.querySelector('#pBody .fgrid .cell[data-a="' + a + '"][data-b="' + b + '"]').click();
+  R.parent(true, 'max'); for (const [a, b] of [[1, 6], [4, 4], [2, 3]]) document.querySelector('#pBody .fgrid .cell[data-a="' + a + '"][data-b="' + b + '"]').click();
   R.parent(false); return true; })()`;
 
 // ---- the size runs: after BUILD, the grid by touch and keys, then the parent view by touch ----
@@ -309,7 +316,7 @@ async function connect(S) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
     await send('Page.navigate', { url });
-    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) return void (await ev(KIDS_JS)); }
     throw new Error('page did not load window.__rb: ' + url);
   };
   const tap = async (x, y) => {
@@ -335,7 +342,7 @@ async function runLogic(C) {
   const out = res.slice(), ok = (name, pass, got) => out.push({ name, pass: !!pass, got: pass ? undefined : got });
   if (res.length < 3) return out;   // no progress hook: the rest has nothing to read
   // reads never write
-  await C.ev(UI_PREP);   // (picking Apollo and starting play save his record: that isn't a read)
+  await C.ev(UI_PREP);   // (picking Max and starting play save his record: that isn't a read)
   const s0 = await C.ev(SNAP);
   await C.ev(UI_READS);
   const s1 = await C.ev(SNAP);
@@ -343,10 +350,10 @@ async function runLogic(C) {
   const extra = await C.ev(FIELDS);
   ok('no new saved field on any entry', extra.length === 0, extra);
   // a saved record reloads as it was, with the same progress (the clock offset put back: it isn't saved)
-  const before = await C.ev(`JSON.stringify({ off: __rb.Facts.offset, facts: JSON.parse(localStorage.getItem('robotbattle.facts.apollo')).facts, p: [[1,6],[2,3],[1,9],[1,8],[1,1]].map(([a,b]) => __rb.progress(a, b, 'apollo')) })`);
+  const before = await C.ev(`JSON.stringify({ off: __rb.Facts.offset, facts: JSON.parse(localStorage.getItem('robotbattle.facts.max')).facts, p: [[1,6],[2,3],[1,9],[1,8],[1,1]].map(([a,b]) => __rb.progress(a, b, 'max')) })`);
   const B = JSON.parse(before);
   await C.open(1280, 800, false);
-  const after = await C.ev(`(() => { __rb.manual(true); __rb.clock(${B.off}); __rb.player('apollo'); return JSON.stringify({ off: __rb.Facts.offset, facts: __rb.Facts.rec.facts, p: [[1,6],[2,3],[1,9],[1,8],[1,1]].map(([a,b]) => __rb.progress(a, b)) }); })()`);
+  const after = await C.ev(`(() => { __rb.manual(true); __rb.clock(${B.off}); __rb.player('max'); return JSON.stringify({ off: __rb.Facts.offset, facts: __rb.Facts.rec.facts, p: [[1,6],[2,3],[1,9],[1,8],[1,1]].map(([a,b]) => __rb.progress(a, b)) }); })()`);
   const A = JSON.parse(after);
   ok('a saved record reloads with the same facts and the same progress', JSON.stringify(A.facts) === JSON.stringify(B.facts) && JSON.stringify(A.p) === JSON.stringify(B.p), { before: B.p, after: A.p });
   return out;
@@ -403,7 +410,7 @@ async function runSize(C, size) {
   }
   await C.ev('__rb.showGrid(false)');
   // the parent view: a touch on 1 x 6 in its grid
-  await C.ev(`__rb.parent(true, 'apollo')`);
+  await C.ev(`__rb.parent(true, 'max')`);
   c = await cellAt('#pBody .fgrid .cell[data-a="1"][data-b="6"]');
   if (c) await (touch ? C.tap(c.x, c.y) : C.click(c.x, c.y));
   const pi = await info('#pBody .pgrid .ginfo');
