@@ -34,7 +34,7 @@
   #hint { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 10; display: none; background: var(--panel); border-radius: 12px; padding: 4px 12px;
     font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
   #hint.on { display: block; }
-  html.tp-showing #hint { display: none; }
+  html.tp-showing #hint, html.touchy #hint, html.ov-open #hint, html.ov-open #hud, html.ov-open #toast { display: none; }
   #flash { position: fixed; inset: 0; z-index: 9; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 55%, #fff 0, #fff8 30%, #fff0 70%); }
 
   /* ---------- overlays (above the TouchPad's z-index 20) ---------- */
@@ -683,7 +683,7 @@ const PROP_DEFS = {
   flowers: { cap: 12, col: 0, h: 0, build: () => { const P = new Parts(); [[0, 0, 0xff5d8f], [0.5, 0.3, 0xffd23f], [-0.4, 0.4, 0xffffff], [0.2, -0.5, 0xb26bff], [-0.5, -0.3, 0xff8a3d]].forEach(([x, z, c]) => P.box(0.04, 0.4, 0.04, 0x3e9e3e, x, 0.2, z).box(0.18, 0.12, 0.18, c, x, 0.42, z)); return P; } },
   hay: { cap: 4, col: 0.8, h: 1.4, build: () => new Parts().cyl(0.7, 0.7, 1.2, 0xe8c35a, 0, 0.7, 0, 0, 0, Math.PI / 2, 9).cyl(0.72, 0.72, 0.1, 0xc9a23e, 0, 0.7, 0, 0, 0, Math.PI / 2, 9) },
   fence: { cap: 16, col: 0, h: 0, build: () => new Parts().box(0.15, 1.1, 0.15, 0x9b6b43, 2, 0.55, 0).box(0.15, 1.1, 0.15, 0x9b6b43, -2, 0.55, 0).box(4.1, 0.12, 0.08, 0xf5f0e6, 0, 0.55, 0).box(4.1, 0.12, 0.08, 0xf5f0e6, 0, 0.92, 0) },
-  barn: { cap: 1, col: 6.2, h: 10, build: () => new Parts().box(8, 5, 10, 0xd9443a, 0, 2.5, 0).add(new THREE.CylinderGeometry(4.9, 4.9, 10.6, 3), 0x8e2b2b, 0, 6.44, 0, -Math.PI / 2, 0, 0, 1, 0.6, 1)
+  barn: { cap: 1, col: 6.2, h: 10, build: () => new Parts().box(8, 5, 10, 0xd9443a, 0, 2.5, 0).add(new THREE.CylinderGeometry(4.9, 4.9, 10.6, 3), 0x8e2b2b, 0, 6.44, 0, -Math.PI / 2, 0, 0, 1, 1, 0.6)
       .box(3, 3.6, 0.1, 0xf6efe0, 0, 1.8, 5.02).box(2.6, 3.2, 0.12, 0x8a3a2a, 0, 1.7, 5.04).box(0.2, 4, 0.14, 0xf6efe0, 0, 1.7, 5.06, 0, 0, 0.68).box(0.2, 4, 0.14, 0xf6efe0, 0, 1.7, 5.06, 0, 0, -0.68)
       .box(1.2, 1.2, 0.1, 0xf6efe0, 0, 6.2, 5.02).cyl(1.8, 1.8, 9, 0xc9ced6, 6.4, 4.5, 2.5, 0, 0, 0, 10).ball(1.85, 0x8e9aa8, 6.4, 9, 2.5) },
 };
@@ -851,7 +851,7 @@ water.position.y = SEA; water.renderOrder = 2; scene.add(water);
 
 const PUFF_N = 48, puffPos = new Float32Array(PUFF_N * 3), puffVel = new Float32Array(PUFF_N * 3);
 const puffGeo = new THREE.BufferGeometry(); puffGeo.setAttribute('position', new THREE.BufferAttribute(puffPos, 3));
-const puffMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.55, transparent: true, opacity: 0, depthWrite: false });
+const puffMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.3, transparent: true, opacity: 0, depthWrite: false });
 const puff = new THREE.Points(puffGeo, puffMat); puff.frustumCulled = false; scene.add(puff);
 let puffLife = 0;
 function doPuff(x, y, z, color = 0xffffff, spread = 1) {
@@ -1139,7 +1139,7 @@ function checkMeets() {
 function meet(id) {
   if (!A[id] || P.met.has(id)) return false;
   P.met.add(id); save(); Sfx.meet();
-  toast(id, 'You met a ' + A[id].name + '!');
+  toast(id, 'You met ' + (/^[AEIOU]/.test(A[id].name) ? 'an ' : 'a ') + A[id].name + '!');
   hud(); return true;
 }
 function save() { store.set('save', { v: 1, met: [...P.met], form: P.form, fp: P.fp, sound: Sfx.on }); }
@@ -1339,7 +1339,7 @@ function updateView() {
     camera.lookAt(_cl.copy(camera.position).add(_cf));
   } else {
     _cl.set(P.x, P.y + F.camH * 0.62, P.z);
-    camera.position.copy(_cl).addScaledVector(_cf, -F.camD);
+    camera.position.copy(_cl).addScaledVector(_cf, -F.camD * (camera.aspect < 1 ? 1.35 : 1));
     const cg = groundAt(camera.position.x, camera.position.z) + 0.5;
     if (camera.position.y < cg) camera.position.y = cg;
     if (!(isSwimmer(P.form) && P.under) && camera.position.y < SEA + 0.35) camera.position.y = SEA + 0.35;
@@ -1363,7 +1363,7 @@ function onTap(el, fn) {
   el.addEventListener('click', (e) => { if (e.detail === 0 && !e.pointerType) return; Sfx.click(); fn(e); });
 }
 function startPlay() { if (screen === 'play') return; screen = 'play'; $('title').classList.remove('on'); $('hud').classList.add('on'); $('hint').classList.add('on'); hud(); padLabels(); }
-function showOv(id) { for (const o of ['pause', 'wheel', 'book']) $(o).classList.toggle('on', o === id); overlay = id; keys.clear(); VIN.jump = VIN.power = false; }
+function showOv(id) { for (const o of ['pause', 'wheel', 'book']) $(o).classList.toggle('on', o === id); overlay = id; document.documentElement.classList.toggle('ov-open', !!id); keys.clear(); VIN.jump = VIN.power = false; }
 function closeOverlay() { showOv(null); try { document.activeElement?.blur(); } catch (e) {} }
 let pauses = 0, wheels = 0, books = 0;
 function openPause() { if (screen !== 'play') return; pauses++; showOv('pause'); pauseLabels(); }
@@ -1485,14 +1485,14 @@ window.__ww = {
   state() {
     const F = FORMS[P.form];
     return {
-      x: +P.x.toFixed(3), y: +P.y.toFixed(3), z: +P.z.toFixed(3), vy: +P.vy.toFixed(3), yaw: +P.yaw.toFixed(4), form: P.form, chunk: [Math.floor(P.x / CHUNK), Math.floor(P.z / CHUNK)],
+      x: +P.x.toFixed(3) + 0, y: +P.y.toFixed(3) + 0, z: +P.z.toFixed(3) + 0, vy: +P.vy.toFixed(3) + 0, yaw: +P.yaw.toFixed(4), form: P.form, chunk: [Math.floor(P.x / CHUNK), Math.floor(P.z / CHUNK)],
       met: [...P.met], ground: +groundAt(P.x, P.z).toFixed(3), grounded: P.grounded, swimming: P.swimming, under: P.under, speed: +P.speed.toFixed(3),
       fp: P.fp, camYaw: cam.yaw, camPitch: cam.pitch, day: +day.toFixed(3), dayTarget, fogFar: scene.fog.far, loadR, far: P.far, quiet: P.quiet, sniff: P.sniff,
       sniffTarget: P.sniffTarget, arrowYaw: arrow.rotation.y, arrowOn: arrow.scale.x > 0, gallop: P.gallop, burst: P.burst, roll: P.roll, flutter: P.flutter, dig: P.dig, leap: P.leap,
       cd: P.cd, lastSmash: P.lastSmash, changes: Change.count, jumps: P.jumps, views: P.views, powers: P.powers, pauses, wheels, books,
       screen, overlay, manual, ticks, meetMult: P.quiet > 0 ? 2 : 1,
       camera: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, camH: F.camH, eye: F.eye, model: P.model ? { visible: P.model.visible } : null,
-      touch: touch.state, biome: biomeAt(P.x, P.z),
+      touch: touch.state, biome: biomeAt(P.x, P.z), puff: +puffLife.toFixed(2), flash: +getComputedStyle($("flash")).opacity,
     };
   },
   manual(on = true) { manual = !!on; return manual; },

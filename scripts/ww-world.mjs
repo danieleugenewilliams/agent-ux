@@ -205,12 +205,12 @@ async function runForms(C) {
   // ---- all 18 change in and out, through requestChange; an unmet animal is refused; W2's gate holds a change until it says go
   let r = await ev(String.raw`W.reset(); const o = { refused: W.requestChange('cow'), form0: S().form, forms: [] };
     for (const a of W.ANIMALS) { const c0 = S().changes; W.become(a.id); W.step(2); const s1 = S(); W.become('human'); W.step(2); const s2 = S();
-      o.forms.push({ id: a.id, in: s1.form, out: s2.form, n: s2.changes - c0 }); }
+      o.forms.push({ id: a.id, in: s1.form, out: s2.form, n: s2.changes - c0, puffIn: s1.puff, puffOut: s2.puff }); }
     let held = null; W.Change.gate = (id, go) => { held = { id, go }; };
     o.gated = W.requestChange('cow'); o.formWhileGated = S().form; held.go(); o.formAfterGo = S().form; W.Change.gate = null; W.become('human');
     return o;`);
   ok('an animal not met yet is refused (requestChange false, still human)', r.refused === false && r.form0 === 'human', r);
-  ok(`all 18 forms change in and back to human (${r.forms.filter((f) => f.in === f.id && f.out === 'human' && f.n === 2).length}/18)`, r.forms.length === 18 && r.forms.every((f) => f.in === f.id && f.out === 'human' && f.n === 2), r.forms);
+  ok(`all 18 forms change in and back to human, each with a puff (${r.forms.filter((f) => f.in === f.id && f.out === 'human' && f.n === 2).length}/18)`, r.forms.length === 18 && r.forms.every((f) => f.in === f.id && f.out === "human" && f.n === 2 && f.puffIn > 0 && f.puffOut > 0), r.forms);
   ok('W2 hook: with Change.gate set, requestChange waits ("gated") until the gate says go', r.gated === 'gated' && r.formWhileGated === 'human' && r.formAfterGo === 'cow', r);
   // ---- speed: the human, the cheetah's burst, the horse's gallop (an open run along +x on dry ground)
   r = await ev(String.raw`const run = openRun('farm', 70) || openRun(null, 70); if (!run) return { run: null };
@@ -394,29 +394,34 @@ async function runWalk(C) {
   return out;
 }
 
-// the frames as drawn in play (real time): the median ms between frames over ms, after a warm-up, and one render's calls/tris
-const FRAMES = (ms) => String.raw`new Promise((done) => { const W = window.__ww, t = []; let last = 0, t0 = 0; W.manual(false);
-  const f = (now) => { if (!t0) t0 = now; else t.push(now - last); last = now; if (now - t0 < ${ms}) requestAnimationFrame(f); else {
-    t.sort((a, b) => a - b); W.manual(true); const r = W.render(); done({ med: t[t.length >> 1], frames: t.length, calls: r.calls, tris: r.tris }); } };
-  setTimeout(() => requestAnimationFrame(f), 1500); })`;
+// A frame's work, timed: one tick and one render, waited out on the GPU (a 1-pixel read), 150 times after 30 to warm up; the median ms.
+// (The ms between requestAnimationFrame calls is also taken, for the record, but headless Chrome snaps it to 16.7 / 33.3 / 50 ms,
+// so a frame that costs 32 ms or 34 ms reads 33 or 50: too coarse to compare.) The camera faces the same way (north) every time.
+const FRAMES = String.raw`new Promise((done) => { const W = window.__ww, gl = W.renderer.getContext(), px = new Uint8Array(4), t = [];
+  W.manual(true); W.look(0, 0.32);
+  for (let i = 0; i < 180; i++) { const t0 = performance.now(); W.step(1); W.renderer.render(W.scene, W.camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); if (i >= 30) t.push(performance.now() - t0); }
+  t.sort((a, b) => a - b); const r = W.render();
+  const raf = []; let last = 0, n = 0; W.manual(false);
+  const f = (now) => { if (last) raf.push(now - last); last = now; if (++n < 90) requestAnimationFrame(f); else { W.manual(true); raf.sort((a, b) => a - b); done({ med: t[t.length >> 1], p90: t[Math.floor(t.length * 0.9)], raf: raf[raf.length >> 1], calls: r.calls, tris: r.tris }); } };
+  requestAnimationFrame(f); })`;
 async function runFrames(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   const got = { spawn: [], km5: [], back: [] };
   for (let round = 0; round < 3; round++) {
     await C.open(1280, 800, false);
     const x0 = await C.ev(String.raw`(() => { ${H} W.manual(true); W.start(); W.settle(); return S().x; })()`);
-    got.spawn.push(await C.ev(FRAMES(4000)));
+    got.spawn.push(await C.ev(FRAMES));
     await C.ev(String.raw`(() => { ${H} ${WALK} W.manual(true); walkTo(${x0} + 5000); W.settle(); return true; })()`);
-    got.km5.push(await C.ev(FRAMES(4000)));
-    await C.ev(String.raw`(() => { ${H} ${WALK} W.manual(true); walkTo(${x0}); W.settle(); return true; })()`);
-    got.back.push(await C.ev(FRAMES(4000)));
-    if (!json) console.log(`  frames round ${round + 1}: spawn ${got.spawn[round].med.toFixed(1)} ms, km 5 ${got.km5[round].med.toFixed(1)} ms, back ${got.back[round].med.toFixed(1)} ms`);
+    got.km5.push(await C.ev(FRAMES));
+    await C.ev(String.raw`(() => { ${H} ${WALK} W.manual(true); walkTo(${x0}); const z = S().z; W.teleport(${x0}, z); W.settle(); return true; })()`);
+    got.back.push(await C.ev(FRAMES));
+    if (!json) console.log(`  frames round ${round + 1}: spawn ${got.spawn[round].med.toFixed(2)} ms (rAF ${got.spawn[round].raf.toFixed(1)}), km 5 ${got.km5[round].med.toFixed(2)} ms (rAF ${got.km5[round].raf.toFixed(1)}), back ${got.back[round].med.toFixed(2)} ms (rAF ${got.back[round].raf.toFixed(1)})`);
   }
   const med = (k) => got[k].map((x) => x.med).sort((a, b) => a - b)[1];
   const s = med('spawn'), k = med('km5'), b = med('back');
   const sum = { spawn: +s.toFixed(2), km5: +k.toFixed(2), back: +b.toFixed(2), calls: { spawn: got.spawn[0].calls, km5: got.km5[0].calls, back: got.back[0].calls }, tris: { spawn: got.spawn[0].tris, km5: got.km5[0].tris, back: got.back[0].tris } };
   out.frames = sum;
-  ok(`frame time flat (median of 3 runs, headless swiftshader): spawn ${sum.spawn} ms, km 5 ${sum.km5} ms, back at spawn ${sum.back} ms (margin ${FRAME_MARGIN * 100}%); draw calls ${sum.calls.spawn} / ${sum.calls.km5} / ${sum.calls.back}, triangles ${sum.tris.spawn} / ${sum.tris.km5} / ${sum.tris.back}`,
+  ok(`a frame's work flat (median of 3 runs, headless swiftshader at 1280x800): spawn ${sum.spawn} ms, km 5 ${sum.km5} ms, back at spawn ${sum.back} ms (margin ${FRAME_MARGIN * 100}%); draw calls ${sum.calls.spawn} / ${sum.calls.km5} / ${sum.calls.back}, triangles ${sum.tris.spawn} / ${sum.tris.km5} / ${sum.tris.back}`,
     k <= s * (1 + FRAME_MARGIN) && b <= s * (1 + FRAME_MARGIN), sum);
   return out;
 }
@@ -455,8 +460,13 @@ async function runBiomes(C) {
   // showcase screenshots: each biome with an animal form
   for (const [b, form] of [['farm', 'horse'], ['forest', 'bear'], ['savanna', 'giraffe'], ['water', 'dolphin']]) {
     await ev(String.raw`const f = findBiome('${b}', W.SPAWN.x, W.SPAWN.z, { depth: -5 }); W.become('human'); W.teleport(f.x, f.z); W.settle(); W.become('${form}'); W.look(0.6, 0.28); W.step(40); W.render(); return true;`);
-    await sleep(400); await C.shot(`biome-${b}-${form}`);
+    await sleep(1000); await C.shot(`biome-${b}-${form}`);
   }
+  // the eagle high over the farm, and a wolf's night in the forest
+  await ev(String.raw`W.become('human'); W.teleport(W.SPAWN.x, W.SPAWN.z); W.settle(); W.become('eagle'); W.look(2.2, 0.35); W.input({ jump: true, jumpP: true }); W.step(150); W.input({}); W.step(10); return true;`);
+  await sleep(1000); await C.shot('eagle-flying');
+  await ev(String.raw`const f = findBiome('forest', W.SPAWN.x, W.SPAWN.z); W.become('human'); W.teleport(f.x, f.z); W.settle(); W.become('wolf'); W.look(-0.8, 0.25); W.input({ powerP: true }); W.step(1); W.input({}); W.step(150); return true;`);
+  await sleep(1000); await C.shot('wolf-night');
   return out;
 }
 
@@ -528,9 +538,16 @@ async function runTouch(C) {
 // ---- device lenses: controls, wheel and book at each size (touch mode)
 const LAYOUT = String.raw`(() => { const W = innerWidth, H = innerHeight;
   const vis = (e) => { if (!e || !e.getClientRects().length) return false; const s = getComputedStyle(e); return s.display !== 'none' && s.visibility !== 'hidden' && +s.opacity > 0; };
-  const box = (e) => { const r = e.getBoundingClientRect(); return { n: e.dataset.tp || e.dataset.id || e.id || e.className, l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+  // round things (the controller's rings, the wheel's slots) are circles; everything else is its box
+  const box = (e) => { const r = e.getBoundingClientRect(); return { n: e.dataset.tp || e.dataset.id || e.id || e.className, l: r.left, t: r.top, r: r.right, b: r.bottom, round: getComputedStyle(e).borderRadius === '50%' }; };
   const on = (q) => q.l >= -0.5 && q.t >= -0.5 && q.r <= W + 0.5 && q.b <= H + 0.5;
-  const hit = (p, q) => p.l < q.r - 0.5 && q.l < p.r - 0.5 && p.t < q.b - 0.5 && q.t < p.b - 0.5;
+  const circ = (p) => ({ x: (p.l + p.r) / 2, y: (p.t + p.b) / 2, r: (p.r - p.l) / 2 });
+  const hit = (p, q) => {
+    if (!(p.l < q.r - 0.5 && q.l < p.r - 0.5 && p.t < q.b - 0.5 && q.t < p.b - 0.5)) return false;
+    if (p.round && q.round) { const a = circ(p), b = circ(q); return Math.hypot(a.x - b.x, a.y - b.y) < a.r + b.r - 0.5; }
+    if (p.round || q.round) { const c = circ(p.round ? p : q), s = p.round ? q : p; const dx = Math.max(s.l - c.x, 0, c.x - s.r), dy = Math.max(s.t - c.y, 0, c.y - s.b); return Math.hypot(dx, dy) < c.r - 0.5; }
+    return true;
+  };
   const pairs = (list) => { const o = []; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) if (hit(list[i], list[j])) o.push(list[i].n + ' x ' + list[j].n); return o; };
   const scroll = { x: document.documentElement.scrollWidth - W, y: document.documentElement.scrollHeight - H };
   return { W, H, vis, box, on, pairs, scroll };
