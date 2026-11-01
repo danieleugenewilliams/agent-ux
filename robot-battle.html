@@ -339,7 +339,8 @@
     #start .kids { --th: 116px; --tw: 132px; --gap: 12px; margin-top: 6px; max-height: calc(100dvh - 116px); }
     #start .kids .pilot.kid { font-size: 17px; padding: 6px 4px; gap: 4px; } #start .kids .pilot.kid .face { width: 66px; height: 66px; font-size: 36px; } }
   /* #49: the maker, over the title: a live tile and the name, the pad's A–Z board (only once a pad is in use), the 16 icons, the
-     10 colours, ✖ ✔. It scrolls on a short screen (Maker.draw keeps the cursor in view). The cursor: a dashed yellow ring */
+     10 colours, #161: the ladder (two big buttons, its icon then its words), ✖ ✔. With the board up it scrolls on a short
+     screen (Maker.draw keeps the cursor in view); without it, every size fits. The cursor: a dashed yellow ring */
   #start .maker { --c: #fff; display: none; position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; pointer-events: auto; padding: 16px; background: rgba(12,14,28,.9); }
   #start.make .maker { display: flex; }
   #start.make .wrap { visibility: hidden; }
@@ -365,16 +366,30 @@
   .maker .mkColors { display: grid; grid-template-columns: repeat(10, 46px); gap: 8px; }
   .maker .mkColors button { width: 46px; height: 46px; border-radius: 50%; background: var(--c); }
   .maker .mkColors button.on { box-shadow: 0 0 0 4px #fff, 0 0 18px var(--c); }
+  .maker .mkBot { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .maker .mkLad { display: flex; gap: 12px; justify-content: center; }
+  .maker .mkLad button { width: 220px; min-height: 64px; padding: 6px 12px; gap: 10px; border-radius: 20px; background: var(--ink); color: #fff; font: 900 17px/1.15 'Asap', sans-serif; text-align: left; box-shadow: 0 4px 0 rgba(0,0,0,.5), inset 0 0 0 3px rgba(255,255,255,.25); }
+  .maker .mkLad button .mkLi { flex: none; display: flex; font-size: 34px; }
+  .maker .mkLad button.on { background: #fff; color: var(--ink); box-shadow: 0 4px 0 var(--ink), inset 0 0 0 5px var(--c), 0 0 16px var(--c); }
   .maker .mkActs { display: flex; gap: 26px; }
   .maker .mkActs button { width: 84px; height: 84px; border-radius: 50%; font-size: 44px; box-shadow: 0 6px 0 var(--ink); }
   .maker .mkX { background: #ff4d5e; } .maker .mkOk { background: var(--green); }
-  @media (max-width: 700px) { .maker .mkIcons { grid-template-columns: repeat(8, 38px); gap: 5px; } .maker .mkIcons button { width: 38px; height: 38px; font-size: 22px; border-width: 3px; }
+  @media (max-width: 700px) { .maker .mkLad button { width: 156px; font-size: 15px; padding: 6px 8px; gap: 6px; } .maker .mkLad button .mkLi { font-size: 28px; }
+    .maker .mkIcons { grid-template-columns: repeat(8, 38px); gap: 5px; } .maker .mkIcons button { width: 38px; height: 38px; font-size: 22px; border-width: 3px; }
     .maker .mkColors { grid-template-columns: repeat(5, 44px); gap: 8px; } .maker .mkColors button { width: 44px; height: 44px; border-width: 3px; }
     .maker .mkBoard { grid-template-columns: repeat(9, 34px); gap: 4px; } .maker .mkBoard button { height: 40px; font-size: 20px; border-width: 3px; }
     .maker .mkPrev { width: 128px; font-size: 20px; } .maker .mkPrev .face { width: 84px; height: 84px; font-size: 48px; } .maker #mkName { font-size: 26px; } }
   @media (max-height: 500px) { #start .maker { padding: 8px; } .maker .mkIn { gap: 8px; } .maker .mkPrev { width: 120px; font-size: 18px; padding: 6px; } .maker .mkPrev .face { width: 64px; height: 64px; font-size: 36px; }
     .maker .mkName { height: 54px; } .maker .mkActs button { width: 64px; height: 64px; font-size: 34px; } .maker .mkBoard button { height: 36px; } .maker .mkIcons { grid-template-columns: repeat(16, 40px); gap: 5px; }
-    .maker .mkIcons button { width: 40px; height: 40px; font-size: 24px; } }
+    .maker .mkIcons button { width: 40px; height: 40px; font-size: 24px; }
+    /* #161: on a short screen the icons wrap to two rows of 8 (16 in a row ran off a 667 px phone), the colours stay one row,
+       and the ladder sits between ✖ and ✔ on the last row: ✖ [start] [quick check] ✔ */
+    .maker .mkIcons { grid-template-columns: repeat(8, 38px); gap: 5px; } .maker .mkIcons button { width: 38px; height: 38px; font-size: 22px; border-width: 3px; }
+    .maker .mkColors { grid-template-columns: repeat(10, 38px); gap: 7px; } .maker .mkColors button { width: 38px; height: 38px; border-width: 3px; }
+    .maker .mkTop { gap: 12px; } .maker .mkPrev { width: auto; flex-direction: row; gap: 8px; padding: 6px 12px 6px 6px; } .maker .mkPrev .face { width: 48px; height: 48px; font-size: 28px; }
+    .maker .mkBot { flex-direction: row; gap: 10px; } .maker .mkActs { display: contents; } .maker .mkX { order: 0; } .maker .mkLad { order: 1; gap: 10px; } .maker .mkOk { order: 2; }
+    .maker .mkActs button { width: 56px; height: 56px; font-size: 30px; }
+    .maker .mkLad button { width: 188px; min-height: 56px; font-size: 14px; padding: 4px 8px; gap: 6px; } .maker .mkLad button .mkLi { font-size: 26px; } }
   /* ---------- HUD: the pilot's helmet portrait beside the hearts; parts found in the grass ---------- */
   #hud .health .who { display: none; flex-direction: column; align-items: center; gap: 1px; font: 900 15px 'Asap', sans-serif; color: var(--c, #fff); text-shadow: 1px 1px 0 var(--ink); }
   #hud .health .who.on { display: flex; }
@@ -1592,7 +1607,7 @@
     <div class="wtop"><span><i data-ic="wave"></i><i data-ic="play"></i></span><button class="x" id="wavePickX" aria-label="Close"><i data-ic="cross"></i></button></div>
     <div class="wtiles" id="waveTiles"></div>
   </div></div>
-  <!-- #49: the maker (from ➕ on who's playing): a live tile, the name (the pad's A–Z board under it), an icon, a colour, ✖ ✔ -->
+  <!-- #49: the maker (from ➕ on who's playing): a live tile, the name (the pad's A–Z board under it), an icon, a colour, #161: the ladder, ✖ ✔ -->
   <div class="maker" id="maker" role="dialog" aria-label="New player">
     <div class="mkIn">
       <div class="mkTop">
@@ -1605,7 +1620,10 @@
       <div class="mkBoard" id="mkBoard"></div>
       <div class="mkIcons" id="mkIcons"></div>
       <div class="mkColors" id="mkColors"></div>
-      <div class="mkActs"><button class="mkX" data-mk="back" aria-label="Back"><i data-ic="cross"></i></button><button class="mkOk" data-mk="ok" aria-label="Save"><i data-ic="check"></i></button></div>
+      <div class="mkBot">
+        <div class="mkLad" id="mkLad" role="group" aria-label="Where to start"></div>
+        <div class="mkActs"><button class="mkX" data-mk="back" aria-label="Back"><i data-ic="cross"></i></button><button class="mkOk" data-mk="ok" aria-label="Save"><i data-ic="check"></i></button></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2617,7 +2635,7 @@ const HIDDEN = { n: 8, reach: 3.5, kinds: ['armour', 'battery', 'motor', 'wiring
 // tough × (wave − 1) more health (at most toughMax ×). Stars on the clear screen: ⭐ for clearing,
 // ⭐ for fixing at least one robot that wave, ⭐ for never being powered down that wave.
 const WAVE = { edge: 100, arc: 2.8, inner: [35, 60], keepOff: 45, base: ['charger', 'sniper', 'bouncer', 'drone'], extras: ['charger', 'sniper', 'bouncer'], extraMax: 6, tough: 0.08, toughMax: 1.4 };
-// #120 (#117 N1, Orion's Q1 A / Q2 A / Q3 A): the Ninja and its minions. Every number here is a starting value, tuned at the
+// #120 (#117 N1, a child's Q1 A / Q2 A / Q3 A): the Ninja and its minions. Every number here is a starting value, tuned at the
 // playtest. ROBOT_TYPES.ninja / .minion, the wave list, the glitched brains, the squad job and the 🥷 jet boots all read it.
 //   from / minions / more: from wave `from` a Ninja and its minions replace the last extra robot of the wave (one crew a wave):
 //            minions[0] of them from wave `from`, minions[1] from wave `more`. Waves 1–2 are as they were
@@ -2645,7 +2663,7 @@ const NINJA = {
   flank: { lead: 30, reach: 40, behind: 0.6, hits: 2, allyDmg: 12, gap: 0.3, cool: 2.5, give: 6, mini: { hits: 1, allyDmg: 6, give: 9 } },
   boots: { kick: 0.15, speed: 0.06 },
 };
-// #121 (#117 N2, Orion's Q4 B / Q5 50% / Q6 B / Q7): the copier saucer and the clone it makes. Every number here is a
+// #121 (#117 N2, a child's Q4 B / Q5 50% / Q6 B / Q7): the copier saucer and the clone it makes. Every number here is a
 // starting value, tuned at the playtest. Waves.copier, the Copier, ROBOT_TYPES.clone and its brain all read it.
 //   wave:   one copier a wave on waves `from`, from + every, from + 2 × every … (4, 6, 8, 10 …), at most one a wave. Waves.copier(n)
 //           is the only place this is asked, so a boss-wave switch (N3's BOSS_WAVE.copier) goes in there. Boss waves get one too
@@ -2669,12 +2687,12 @@ const COPIER = {
     keep: 16, gunRange: 0.8, gunRest: 1.3, spread: 0.03, emCool: 5, emRange: 45, railCool: 7, railRange: 90,
     meleeCool: 5, windup: 0.4, rushT: 4, jumpCool: 6, jumpVar: 3 },
 };
-// #122 (#117 N3, Orion's Q8 A / Q9 A / Q10 A): boss waves and the Knight. Every number here is a starting value, tuned at the
+// #122 (#117 N3, a child's Q8 A / Q9 A / Q10 A): boss waves and the Knight. Every number here is a starting value, tuned at the
 // playtest. Waves (boss, list, copier, satellite), ROBOT_TYPES.knight, its brain, its axes (Axes), its fix board (bossPlan),
 // the boss bar and the 🏆 latch all read them.
 // BOSS_WAVE: every `every`th wave (5, 10, 15 …) is a boss wave: the wave's normal robots plus its boss (the Knight; #141: the
 // Knight and the Centipede in turn, Waves.bossOf). What a
-// boss wave keeps of the normal wave is one switch a line, all on as Orion chose (Dad, #117: no boss-wave exception), so
+// boss wave keeps of the normal wave is one switch a line, all on as the child chose (Dad, #117: no boss-wave exception), so
 // dropping one later is a one-line change:
 //   extras     the robots past WAVE.base's four, with the Ninja crew that takes the last extra's place (from wave NINJA.from)
 //   satellite  N4's satellite (#123: SATELLITE.from on, so wave 5 is its first, and it links to the Knight)
@@ -2685,7 +2703,7 @@ const BOSS_WAVE = {
   satellite: true,
   copier: true,
 };
-// KNIGHT: Apollo's Knight (the PDF on #117, page 3). Big, yellow and slow to turn (legTurn), so circling it works.
+// KNIGHT: a child's Knight (the PDF on #117, page 3). Big, yellow and slow to turn (legTurn), so circling it works.
 //   health × the wave's toughness (Waves.tough), like every wave robot; notice: how near before it comes for you; scale: its
 //           size against a mech's (its model is built at a mech's size, then grown; radius is its body's)
 //   sword:  up close (within reach m past the two bodies' edges, and within arc rad of where it faces) it stops and raises its
@@ -2712,11 +2730,11 @@ const KNIGHT = {
   board: { math: 1, puzzles: 1 },
   part: 'sword',
 };
-// #141 (#117 N6, Orion's and Apollo's Q1 A / Q2 A / Q3 A / Q4 A): Apollo's centipede, the second boss. Every number here is a
+// #141 (#117 N6, the children's Q1 A / Q2 A / Q3 A / Q4 A): a child's centipede, the second boss. Every number here is a
 // starting value, tuned at the playtest. Waves.bossOf, ROBOT_TYPES.centipede, its brain (centipedeAI), its moves (centStep),
 // its hit shape (centBalls), its fix board (bossPlan) and the 🏆 latch read them.
 //   Q1 A: it alternates with the Knight on the boss waves: the Knight on 5, 15, 25 …, the Centipede on 10, 20, 30 … (bossOf)
-//   scale:  its size against the model's (Apollo's model is about 5 m long and 3 m to its antenna tips in Blender; ×3 here, so it
+//   scale:  its size against the model's (a child's model is about 5 m long and 3 m to its antenna tips in Blender; ×3 here, so it
 //           rears up past a mech's head); radius: its front's body circle (what pushes against a mech)
 //   hit:    its hit shape, in the model's metres (× scale): a ball on its head, its neck and its front segment ([forward, up,
 //           radius]), and one on each of its 8 tail segments (`seg` m apart, `tailY` up, radius `tail[i]`), the tail's balls
@@ -2750,7 +2768,7 @@ const CENTIPEDE = {
   board: { math: 1, puzzles: 1 },
   part: 'saw',
 };
-// #123 (#117 N4, Orion's Q11): the satellite (the boys' drawing, page 1: a round body between two long solar-panel wings, "makes
+// #123 (#117 N4, a child's Q11): the satellite (the boys' drawing, page 1: a round body between two long solar-panel wings, "makes
 // enemies stronger", "off the ground"). Every number here is a starting value, tuned at the playtest.
 //   from:     every wave from this one brings one satellite (one at a time), boss waves too (BOSS_WAVE.satellite), so wave 5's
 //             links to the Knight
@@ -2772,7 +2790,7 @@ const SATELLITE = {
   lockPitch: 0.12,
   part: 'solar',
 };
-// #132 (Dad's and Orion's and Apollo's answers, 2026-10-25): Easy, Normal and Hard. Each saved child picks theirs on the pilot
+// #132 (Dad's and the children's answers, 2026-10-25): Easy, Normal and Hard. Each saved child picks theirs on the pilot
 // pick (rec.mode; a new child, an old record and anything unknown: Normal); Guest can pick too, unsaved. A run keeps the mode
 // it started with (Game.mode, latched by startGame). Every number of every mode is here, so a wave list or a multiplier is
 // a one-line change. Waves (list, satellite, copier, spawn), the copier's clone and the mode chip (ModePick) read it.
@@ -2821,7 +2839,7 @@ const MODELS = {
     joints: ['SAT_Body', 'SAT_Panel_L', 'SAT_Panel_R'] },
   copier: { file: 'copier-lo.glb', scale: 2.6, anchor: 3,
     joints: ['CP_Body'], keep: Object.fromEntries(Array.from({ length: 10 }, (_, i) => ['CP_Light' + i, 'lamp'])), drop: ['CP_Beam'] },
-  // #141: Apollo's centipede, anchored at its feet and grown CENTIPEDE.scale (its hit shape is CENTIPEDE.hit, the same for
+  // #141: a child's centipede, anchored at its feet and grown CENTIPEDE.scale (its hit shape is CENTIPEDE.hit, the same for
   // the code-built one). Its joints include mesh nodes the poses turn themselves (its 16 legs and 2 mandibles: Models.prep
   // gives each a pivot of its own, its rest turn kept), and `anchors` are meshes whose place the game needs (its laser
   // lenses, where the beams leave from)
@@ -2969,7 +2987,7 @@ const ICONS = {
     + ci(12, 14.4, 6.6, G('yellow')) + cn(12, 14.4, 2.6, INK) + cn(12, 14.4, 1.2, '#ff2f5b') + hl('M7.6 12.4 C8 11 9 10 10.2 9.6')],
   bouncer: ['Bouncer', ['🦘'], ln('M8.4 12.8 L15.6 14.2 L8.4 15.6 L15.6 17 L8.4 18.4', G('steel'), 1.8) + re(5.4, 18.8, 13.2, 2.8, 1, G('dark')) + re(4.4, 2.4, 15.2, 10.6, 3.4, G('blue'))
     + rn(7, 5.4, 10, 3.6, 1.8, INK) + cn(10, 7.2, 1, '#ff2f5b') + cn(14, 7.2, 1, '#ff2f5b') + hl('M6.6 5 L6.6 9')],
-  // #120: Apollo's Ninja: a green square head with two eyes, its antenna, side blades and pointed feet
+  // #120: a child's Ninja: a green square head with two eyes, its antenna, side blades and pointed feet
   ninja: ['Ninja', [], ln('M12 3.4 L12 5.4', G('dark'), 1.2) + ci(12, 2.6, 1.5, G('lime')) + pa('M1.4 13.4 L7.4 11.4 L7.4 15.2 Z', G('steel')) + pa('M22.6 13.4 L16.6 11.4 L16.6 15.2 Z', G('steel'))
     + pa('M7.6 16 L10.8 16 L10.8 19.4 L9.2 22.2 L7.6 19.4 Z', G('lime')) + pa('M13.2 16 L16.4 16 L16.4 19.4 L14.8 22.2 L13.2 19.4 Z', G('lime'))
     + re(6.8, 10.6, 10.4, 6, 1.6, G('lime')) + re(6.2, 5.2, 11.6, 6.2, 1.8, G('lime')) + cn(9.8, 8.3, 1.2, '#ff2f5b') + cn(14.2, 8.3, 1.2, '#ff2f5b') + hl('M8 7 L8 9.8')],
@@ -2978,8 +2996,8 @@ const ICONS = {
     + re(6.6, 10.6, 10.8, 6.6, 1.8, G('iron')) + ci(12, 8.4, 3.8, G('iron')) + cn(12, 8.4, 1.3, '#ff2f5b') + hl('M8.8 12.6 L8.8 15.2')],
   // #121: your clone: the mech's chest in its orange, its steel shoulders, a dark visor with two glitch-red eyes, and a
   // glitch tear (a red and a cyan bar) across it
-  // #122: Apollo's Knight: a tall yellow helmet with its antenna and a dark visor (two glitch-red eyes), on broad yellow shoulders
-  // #141: Apollo's Centipede: its round orange head (a glitch-red eye, dark mandibles, red antennae) reared up over its
+  // #122: a child's Knight: a tall yellow helmet with its antenna and a dark visor (two glitch-red eyes), on broad yellow shoulders
+  // #141: a child's Centipede: its round orange head (a glitch-red eye, dark mandibles, red antennae) reared up over its
   // segments trailing down to the right, each on its legs
   centipede: ['Centipede', [], ln('M9.8 4 L8 1 M12.2 4.8 L15 2', G('red'), 1) + ln('M12.6 17.6 L11.6 20.4 M16.4 19.4 L16 22 M19.8 20.6 L20.6 22.8', G('dark'), 1)
     + ci(19.8, 18.4, 2.6, G('orange')) + ci(15.8, 16.4, 3, G('orange')) + ci(11.6, 13.6, 3.4, G('orange')) + ln('M3.6 10.4 Q1.4 12 2.6 14.4', '#14182a', 1.2)
@@ -3219,22 +3237,21 @@ const srange = (a, b) => a + (b - a) * srand();
 // wiring, created }], in the order they were made, at most PROFILE.max. CHILDREN is that list (each entry with its icon as
 // ic, as the rest of the game reads it) plus Guest, last. CHILDREN and its entries are the same objects for the whole page
 // (childOf, Facts.peek and Facts.as compare by identity): a new profile is spliced in before Guest, never a new array.
-// Seeding: when robotbattle.profiles doesn't exist yet, it's made once with Orion and Apollo as they were before #49 (their
-// ids, so their records robotbattle.facts.orion / .apollo are theirs as they stand: nothing is moved or rewritten). Once the
-// list exists seeding never runs again, so a profile removed (#50) stays removed.
-// A new profile: a random id ('p_' + base36: a name can't hold '_', so an id is never some other profile's name), the
-// apollo ladder (×1, ×2 first) and math wiring. A name: 1–10 letters, digits or spaces, not "Guest", not one already used
-// (any case). PROFILE.icons / colors: what the maker offers (16 icons from the icon set, 10 colours).
+// #161: nothing is seeded. A device that has never played opens to Guest and ➕, and kids and parents make their own profiles.
+// A device from before #49 (records robotbattle.facts.<id>, no list) gets its profiles made from those records the first
+// time it opens (Profiles.fromRecords: each record's own id, ladder and wiring, a plain name, "Player 1" on), and that list
+// is saved once, so nothing is orphaned and nothing is moved or rewritten. Once the list exists it's only ever read, so a
+// profile removed (#50) stays removed.
+// A new profile: a random id ('p_' + base36: a name can't hold '_', so an id is never some other profile's name), the ladder
+// the maker picked (#161: 'start', ×1 and ×2 first, or 'check', the quick check) and math wiring. A name: 1–10
+// letters, digits or spaces, not "Guest", not one already used (any case). PROFILE.icons / colors: what the maker offers
+// (16 icons from the icon set, 10 colours). PROFILE.player: the plain name a profile made from a record gets ("Player 1").
 const PROFILE = {
-  max: 12, nameMax: 10, ladder: 'apollo', wiring: 'math',
+  max: 12, nameMax: 10, ladder: 'start', wiring: 'math', player: 'Player',
   icons: ['bow', 'sun', 'moon', 'star', 'rocket', 'robot', 'flame', 'gem', 'shield', 'bolt', 'swirl', 'flag', 'trophy', 'dice', 'spider', 'sparkle'],
   colors: ['#3fb4ff', '#ff8a1f', '#ff4d5e', '#ffd83d', '#4cd964', '#b06bff', '#ff6ec7', '#3ff0ff', '#b8f04a', '#c8834a'],
-  seed: [
-    { id: 'orion',  name: 'Orion',  icon: 'bow', hex: '#3fb4ff', ladder: 'orion',  wiring: 'math' },
-    { id: 'apollo', name: 'Apollo', icon: 'sun', hex: '#ff8a1f', ladder: 'apollo', wiring: 'math' },
-  ],
 };
-const GUEST = { id: 'guest', name: 'Guest', hex: '#c9d2e3', ic: 'smile', ladder: 'apollo', wiring: 'colour', guest: true };
+const GUEST = { id: 'guest', name: 'Guest', hex: '#c9d2e3', ic: 'smile', ladder: 'start', wiring: 'colour', guest: true };
 const CHILDREN = [GUEST];
 // a CHILDREN entry from an entry, an index (a tile's place), an id or a name (any case); ids are looked for first
 const childOf = (c) => {
@@ -3255,7 +3272,7 @@ const Profiles = {
     if (!this.okName(name) || name.toLowerCase() === GUEST.name.toLowerCase()) return null;
     const hex = typeof p.hex === 'string' && /^#[0-9a-f]{6}$/i.test(p.hex) ? p.hex.toLowerCase() : PROFILE.colors[0];
     return { id: p.id, name, icon: typeof p.icon === 'string' && ICONS[p.icon] ? p.icon : PROFILE.icons[0], hex,
-      ladder: LADDERS[p.ladder] ? p.ladder : PROFILE.ladder, wiring: ['math', 'colour'].includes(p.wiring) ? p.wiring : PROFILE.wiring, created: Number.isFinite(p.created) ? p.created : 0 };
+      ladder: ladderId(p.ladder) ? p.ladder : PROFILE.ladder, wiring: ['math', 'colour'].includes(p.wiring) ? p.wiring : PROFILE.wiring, created: Number.isFinite(p.created) ? p.created : 0 };
   },
   // a list, checked: each entry clean, ids and names once each (any case), at most PROFILE.max
   cleanList(list) {
@@ -3266,16 +3283,39 @@ const Profiles = {
     }
     return out;
   },
-  // the saved list. None yet: seeded once (Orion and Apollo) and saved. One that can't be read: whoever has a record here
-  // (Orion and Apollo as seeded, anyone else as a plain profile), not written until something changes
+  // #161: profiles made from records alone (a device from before #49, a list that can't be read, a backup with no list):
+  // recs = { id: record } (ids Guest's and damaged ones left out by the caller). Each gets its record's id, ladder and wiring
+  // (the defaults where the record has none it reads), an icon and a colour of its own, and a plain name: PROFILE.player
+  // and the first number no profile in taken (names, any case) has, oldest record first. Nothing is saved here
+  fromRecords(recs, taken = []) {
+    const used = new Set(taken.map((n) => String(n).toLowerCase())), out = [];
+    const ids = Object.keys(recs).filter((id) => /^[a-z0-9_]{1,40}$/.test(id) && id !== GUEST.id)
+      .sort((a, b) => (Number(recs[a]?.created) || 0) - (Number(recs[b]?.created) || 0) || (a < b ? -1 : a > b ? 1 : 0));
+    let n = 1;
+    for (const id of ids) {
+      while (used.has(`${PROFILE.player} ${n}`.toLowerCase())) n++;
+      const r = recs[id] && typeof recs[id] === 'object' ? recs[id] : {}, name = `${PROFILE.player} ${n}`, i = out.length;
+      used.add(name.toLowerCase());
+      out.push({ id, name, icon: PROFILE.icons[i % PROFILE.icons.length], hex: PROFILE.colors[i % PROFILE.colors.length], ladder: ladderId(r.ladder) ? r.ladder : PROFILE.ladder,
+        wiring: ['math', 'colour'].includes(r.wiring) ? r.wiring : PROFILE.wiring, created: Number.isFinite(r.created) ? r.created : 0 });
+    }
+    return this.cleanList(out);
+  },
+  // every record in storage: { id: the record as saved (null if it can't be read) }, Guest's left out
+  records() {
+    const recs = {};
+    try { for (let i = 0; i < localStorage.length; i++) { const m = /^robotbattle\.facts\.([a-z0-9_]+)$/.exec(localStorage.key(i) || ''); if (m && m[1] !== GUEST.id) recs[m[1]] = store.get('facts.' + m[1], null); } } catch (e) {}
+    return recs;
+  },
+  // the saved list. None yet: made from the records here (#161: none on a fresh device, so only Guest and ➕; a device from
+  // before #49 gets a profile per record), saved once when there were any. One that can't be read: made from the records
+  // the same way, not written until something changes
   read() {
     let raw = null; try { raw = localStorage.getItem('robotbattle.profiles'); } catch (e) {}
-    if (raw == null) { const list = PROFILE.seed.map((p) => ({ ...p, created: Date.now() })); store.set('profiles', list); return list; }
+    if (raw == null) { const list = this.fromRecords(this.records()); if (list.length) store.set('profiles', list); return list; }
     let v = null; try { v = JSON.parse(raw); } catch (e) {}
     if (Array.isArray(v)) return this.cleanList(v);
-    const ids = [];
-    try { for (let i = 0; i < localStorage.length; i++) { const m = /^robotbattle\.facts\.([a-z0-9_]+)$/.exec(localStorage.key(i) || ''); if (m && m[1] !== GUEST.id) ids.push(m[1]); } } catch (e) {}
-    return this.cleanList(ids.sort().map((id) => PROFILE.seed.find((p) => p.id === id) || { id, name: id.replace(/^p_/, '').slice(0, PROFILE.nameMax), icon: PROFILE.icons[0], hex: PROFILE.colors[0] }));
+    return this.fromRecords(this.records());
   },
   // the list as saved now: the profiles in CHILDREN (Guest left out)
   list() { return CHILDREN.filter((C) => !C.guest).map((C) => ({ id: C.id, name: C.name, icon: C.ic, hex: C.hex, ladder: C.ladder, wiring: C.wiring, created: C.created })); },
@@ -3313,8 +3353,9 @@ const Profiles = {
   colorOf(c) { const h = typeof c === 'string' ? c.toLowerCase() : c; return Number.isInteger(h) ? PROFILE.colors[h] ?? null : PROFILE.colors.includes(h) ? h : null; },
   // make one (icon / color left out: suggested): { ok, id, name, icon, color } or { ok: false, why: 'full' | 'no name' |
   // 'reserved' | 'name taken' | 'bad name' (a character that isn't a letter, digit or space, or too long) | 'no such icon' |
-  // 'no such color' }. It's saved at once; its record is made the first time it plays (Facts.load), as Orion's was.
-  add(name, icon, color) {
+  // 'no such color' | 'no such ladder' }. ladder: 'start' or 'check' (#161: the maker's choice; left out, PROFILE.ladder).
+  // It's saved at once; its record is made the first time it plays (Facts.load), on that ladder.
+  add(name, icon, color, ladder) {
     // (the list as saved now first: one another tab added since this page read it must not be written over, which would
     // leave its record with no profile, and every backup of this device refused for it)
     this.load();
@@ -3323,9 +3364,24 @@ const Profiles = {
     const s = this.suggest(), ic = icon == null ? s.icon : this.iconOf(icon), hex = color == null ? s.color : this.colorOf(color);
     if (!ic) return { ok: false, why: 'no such icon' };
     if (!hex) return { ok: false, why: 'no such color' };
-    const p = { id: this.newId(), name: this.tidy(name), icon: ic, hex, ladder: PROFILE.ladder, wiring: PROFILE.wiring, created: Date.now() };
+    const lad = ladder == null ? PROFILE.ladder : Object.hasOwn(LADDERS, ladder) ? ladder : null;
+    if (!lad) return { ok: false, why: 'no such ladder' };
+    const p = { id: this.newId(), name: this.tidy(name), icon: ic, hex, ladder: lad, wiring: PROFILE.wiring, created: Date.now() };
     this.sync([...this.list(), p]); this.save();
-    return { ok: true, id: p.id, name: p.name, icon: ic, color: hex };
+    return { ok: true, id: p.id, name: p.name, icon: ic, color: hex, ladder: lad };
+  },
+  // #161: profile id's ladder to ladder ('start' or 'check'), as the parent view's switch sets it: the list (re-read first,
+  // so another tab's profile is kept) and their record, which keeps every fact's progress (Facts.setLadder). The same
+  // ladder writes nothing. { ok, id, ladder, changed } or { ok: false, why }
+  setLadder(id, ladder) {
+    if (!Object.hasOwn(LADDERS, ladder ?? '')) return { ok: false, why: 'no such ladder' };
+    this.load();
+    const C = CHILDREN.find((q) => !q.guest && q.id === String(id ?? '').toLowerCase());
+    if (!C) return { ok: false, why: 'no such child' };
+    const was = ladderId(C.ladder);
+    if (was !== ladder) { C.ladder = ladder; this.save(); }
+    const rec = Facts.as(C, () => Facts.setLadder(ladder));
+    return { ok: true, id: C.id, ladder, changed: was !== ladder || !!rec };
   },
   // #50: id is still in the saved list (a list that's missing or can't be read: yes, as read() would rebuild it from the
   // records). Facts.save asks first, so a page left open on a profile removed elsewhere can't write its record back
@@ -3338,7 +3394,7 @@ const Profiles = {
   // title starts on Guest). Nothing else is touched. Playing as them: play carries on as Guest first (pickChild swaps the
   // record mid-game, as switching child does), so nothing writes their record back. The record goes before the list does:
   // a profile left with no record plays blank, but a record left with no profile would make every backup refused.
-  // The list is re-read first (another tab's profile is kept). Removing everyone saves [], so seeding never runs again.
+  // The list is re-read first (another tab's profile is kept). Removing everyone saves [], so the list is never made again.
   // Returns { ok, id, name, wasLast, wasPlaying } or { ok: false, why }
   remove(id) {
     this.load();
@@ -3372,8 +3428,12 @@ const STAGES = ['new', 'learning', 'known', 'mastered'];
 // facts again, the slow ones mixed in, until every one is Known. Any other step is done when FACT.open
 // of its facts are Known (or Mastered).
 // Once the last step is done the child is in maintenance: spaced reviews, plus whatever isn't Known yet.
+// #161: the two ladders, by what they do: start (×1 and ×2 first, a table or two at a time) and check (a quick check of
+// every fact, then the slow ones until steady). A profile or record saved before #161 names its ladder by an older id;
+// ladderId maps it as it's read (LADDER_OLD, keyed by a hash of the old id), and the record itself keeps the id it has, so
+// nothing the player hasn't touched is rewritten. Every lookup goes through ladderId / ladderSteps.
 const LADDERS = {
-  apollo: [
+  start: [
     { op: '×', tables: [1, 2], range: [1, 9] },
     { op: '×', tables: [5], range: [1, 9] },
     { op: '×', tables: [3, 4], range: [1, 9] },
@@ -3381,12 +3441,25 @@ const LADDERS = {
     { op: '×', tables: [6], range: [1, 9] },
     { op: '×', tables: [7, 8], range: [1, 9] },
   ],
-  orion: [
+  check: [
     { op: '×', range: [1, 9], kind: 'check' },
     { op: '×', range: [1, 9], kind: 'steady' },
   ],
 };
-Profiles.load();   // #49: CHILDREN = the saved profiles (seeded once with Orion and Apollo), then Guest
+// a short hash of a string (32-bit FNV-1a, base 36)
+const idHash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
+// the ladder ids saved before #161, by hash: the quick-check ladder's, then the one starting at ×1 and ×2
+const LADDER_OLD = { '1pg53w2': 'check', '10kxt4a': 'start' };
+// a ladder id as saved (today's, or one from before #161) -> 'start' | 'check', or null if it isn't one
+const ladderId = (id) => (typeof id !== 'string' ? null : Object.hasOwn(LADDERS, id) ? id : LADDER_OLD[idHash(id)] ?? null);
+// the steps of a saved ladder id (undefined if it isn't one)
+const ladderSteps = (id) => LADDERS[ladderId(id)];
+// #161: how the maker and the parent view show each ladder: its icon first, then its words (and the parent view's line)
+const LADDER_LOOK = {
+  start: { ic: 'play', name: 'Start from the beginning', hint: 'A few tables at a time, ×1 and ×2 first.' },
+  check: { ic: 'timer', name: 'Quick check: already knows some facts', hint: 'A quick check of every fact, then the slow ones until steady.' },
+};
+Profiles.load();   // #49: CHILDREN = the saved profiles (#161: none on a fresh device; a device from before #49 gets its records'), then Guest
 // The operations, and the spellings answer() / nextFact() accept for them. #142: '÷', the division partners of the 81
 // ordered pairs: a ÷ b with b (the divisor) 1–9 and the answer a / b 1–9 (54 ÷ 6 = 9). A ÷ fact is ordered (54 ÷ 6 and
 // 54 ÷ 9 are two facts) and keyed '÷' + dividend + ',' + divisor ('÷54,6'), in rec.facts beside the × facts, so × progress
@@ -3526,7 +3599,7 @@ const Facts = {
   day(t = this.now()) { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS); },
   date(t = this.now()) { const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; },
   blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now, cheered: {}, garage: blankGarage() }; },
-  valid(r, C) { return !!r && r.v === 1 && r.child === C.id && LADDERS[r.ladder] && Number.isInteger(r.step) && r.step >= 1 && r.step <= LADDERS[r.ladder].length && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
+  valid(r, C) { return !!r && r.v === 1 && r.child === C.id && !!ladderSteps(r.ladder) && Number.isInteger(r.step) && r.step >= 1 && r.step <= ladderSteps(r.ladder).length && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
   // pick who's playing: their saved record (a fresh one if there's none, or it can't be read); Guest's is never saved
   load(c) {
     const C = childOf(c); if (!C) return null;
@@ -3556,7 +3629,7 @@ const Facts = {
   },
   // (#50: not for a profile removed from the saved list since, say in another tab: its record stays deleted)
   save() { if (this.rec && this.child && !this.child.guest && Profiles.saved(this.child.id)) store.set('facts.' + this.child.id, this.rec); },
-  get steps() { return this.rec ? LADDERS[this.rec.ladder] : []; },
+  get steps() { return this.rec ? ladderSteps(this.rec.ladder) : []; },
   get curStep() { return this.steps[this.rec.step - 1]; },
   // the last step is open and done: spaced reviews from here on
   get maintaining() { return !!this.rec && this.rec.step === this.steps.length && this.stepDone(this.rec.step); },
@@ -3619,7 +3692,7 @@ const Facts = {
     try { return fn(); } finally { [this.child, this.rec] = keep; }
   },
   // every fact on a record's ladder, by key (the goal: 45, every fact with factors 1–9)
-  goal(rec = this.rec) { const out = new Set(); (LADDERS[rec?.ladder] || []).forEach((st) => stepFacts(st).forEach((f) => out.add(f.key))); return out; },
+  goal(rec = this.rec) { const out = new Set(); (ladderSteps(rec?.ladder) || []).forEach((st) => stepFacts(st).forEach((f) => out.add(f.key))); return out; },
   // facts Mastered out of the goal, for child c (whoever is playing if c is left out). The ⭐ badge, the
   // parent view and the garage (#31) read this. Never writes; null for nobody.
   mastery(c) {
@@ -3691,6 +3764,22 @@ const Facts = {
   setWiring(mode) {
     if (!this.rec || this.child?.guest || !['math', 'colour'].includes(mode)) return false;
     this.rec.wiring = mode; this.save(); return true;
+  },
+  // #161: the ladder of whoever is the tracker's child, 'start' or 'check' (the parent view's switch, through Facts.as). The
+  // same ladder (whatever id the record saved it under) changes nothing and writes nothing. Another one: every fact keeps its
+  // progress, and the new ladder starts at step 1 and opens each step its facts already pass (advance), so a child who
+  // knows the early tables moves straight on. Guest has none to change. Returns whether the record changed.
+  // The ladder left keeps its place (rec.ladderWas[its id] = { step, opened }), so switching back brings back every step
+  // it had open, a parent's openings included: a switch and a switch back loses nothing
+  setLadder(id) {
+    if (!this.rec || this.child?.guest || !Object.hasOwn(LADDERS, id) || ladderId(this.rec.ladder) === id) return false;
+    const was = this.rec.ladderWas && typeof this.rec.ladderWas === 'object' && !Array.isArray(this.rec.ladderWas) ? { ...this.rec.ladderWas } : {};
+    const from = ladderId(this.rec.ladder); if (from) was[from] = { step: this.rec.step, opened: this.rec.opened };
+    const back = was[id]; delete was[id];
+    this.rec.ladderWas = was; this.rec.ladder = id;
+    if (back && Number.isInteger(back.step) && back.step >= 1 && back.step <= LADDERS[id].length && Array.isArray(back.opened)) { this.rec.step = back.step; this.rec.opened = back.opened; }
+    else { this.rec.step = 1; this.rec.opened = [{ step: 1, at: this.now(), by: 'parent' }]; }
+    this.advance(); this.save(); return true;
   },
   // ---- #142: division. A child's ÷ facts are the 81 partners of the × facts (DIV_FACTS), kept in rec.facts under their own
   // '÷' keys, so a ÷ answer never touches a × entry. The switch is rec.division: on unless it's false (so every record from
@@ -3780,10 +3869,10 @@ const Facts = {
     e.days = e.days.filter((d) => d < today); e.missDay = today; e.box = 0;
     e.polish = now;
   },
-  // the first answer to fact key on record r is a quick check's (Orion's): never answered, and r's current step is a
+  // the first answer to fact key on record r is a quick check's: never answered, and r's current step is a
   // 'check' step holding it. answer() asks this, so progress() reads it the same way (r needn't be whoever is playing)
   checkFirst(r, key) {
-    const st = LADDERS[r?.ladder]?.[(r?.step ?? 0) - 1];
+    const st = ladderSteps(r?.ladder)?.[(r?.step ?? 0) - 1];
     const e = r?.facts?.[key];
     return (e ? e.n === 0 : true) && st?.kind === 'check' && stepFacts(st).some((q) => q.key === key);
   },
@@ -3836,7 +3925,7 @@ const Facts = {
     ms = Math.max(0, Number(ms) || 0);
     const now = this.now(), today = this.day(now), e = this.entry(f), from = e.s;
     const right = value !== '' && value != null && Number(value) === f.answer, fast = right && ms < FACT.fast;
-    // Orion's quick check: the first answer to a fact in a 'check' step sorts it at once
+    // the quick check: the first answer to a fact in a 'check' step sorts it at once
     const check = this.checkFirst(this.rec, f.key);   // (#133: progress() asks the same)
     e.n++; e.last = now;
     e.ms.push(Math.round(ms)); if (e.ms.length > FACT.keepTimes) e.ms.shift();
@@ -3978,7 +4067,8 @@ const Facts = {
     open.forEach((k) => cnt[this.stage(k)]++);
     const st = this.curStep, fs = stepFacts(st);
     return {
-      child: this.child.id, guest: !!this.child.guest, wiring: this.rec.wiring, step: this.rec.step, steps: this.steps.length, maintaining: this.maintaining,
+      child: this.child.id, guest: !!this.child.guest, wiring: this.rec.wiring, track: ladderId(this.rec.ladder), step: this.rec.step,   // (#161: track = 'start' | 'check')
+      steps: this.steps.length, maintaining: this.maintaining,
       ladder: this.steps.map((s, i) => ({ step: i + 1, op: s.op, tables: s.tables ?? null, range: [...s.range], kind: s.kind ?? null, facts: stepFacts(s).length, open: i < this.rec.step })),
       open: open.length, stages: cnt, inPlay: [...this.rec.inPlay],
       current: { kind: st.kind ?? null, facts: fs.length, known: fs.filter((f) => ['known', 'mastered'].includes(this.stage(f.key))).length, answered: fs.filter((f) => this.rec.facts[f.key]?.n > 0).length },
@@ -4018,9 +4108,13 @@ const Backup = {
   // (#49: or a profile the backup brings that isn't on this device: one of incoming, Backup.incoming's list)
   kidOf(key, incoming = []) { const m = /^facts\.(.+)$/.exec(key); return m ? CHILDREN.find((C) => C.id === m[1]) || incoming.find((C) => C.id === m[1]) || { id: m[1], unknown: true } : null; },
   // #49: the profiles in a backup's data (its robotbattle.profiles) that this device doesn't have (by id), as CHILDREN-like
-  // entries ({ id, name, ic, hex, ladder, wiring, created, incoming: true }). A file made before #49 has no list: none
+  // entries ({ id, name, ic, hex, ladder, wiring, created, incoming: true }). #161: a file made before #49 has no list: its
+  // records that aren't this device's get profiles made from them (Profiles.fromRecords: a plain name no profile here has)
   incoming(data) {
-    return Profiles.cleanList(isObj(data) ? data.profiles : null).filter((p) => !CHILDREN.some((C) => C.id === p.id))
+    const recs = {};
+    if (isObj(data) && data.profiles == null) for (const k of ownKeys(data)) { const m = /^facts\.(.+)$/.exec(k); if (m && !CHILDREN.some((C) => C.id === m[1])) recs[m[1]] = data[k]; }
+    const list = isObj(data) && data.profiles == null ? Profiles.fromRecords(recs, CHILDREN.filter((C) => !C.guest).map((C) => C.name)) : Profiles.cleanList(isObj(data) ? data.profiles : null);
+    return list.filter((p) => !CHILDREN.some((C) => C.id === p.id))
       .map((p) => ({ id: p.id, name: p.name, ic: p.icon, hex: p.hex, ladder: p.ladder, wiring: p.wiring, created: p.created, incoming: true }));
   },
   // a key Guest owns: its record, or the who-played-last setting when that was Guest
@@ -4140,8 +4234,9 @@ const Backup = {
     }
     out.facts = F;
     // the ladder
-    const steps = LADDERS[out.ladder].length;
-    out.step = clamp(Math.max(dev.step, bak.ladder === dev.ladder ? bak.step : 1), 1, steps);
+    // (#161: the same ladder whatever id each side saved it under: today's, or the one from before #161)
+    const steps = ladderSteps(out.ladder).length;
+    out.step = clamp(Math.max(dev.step, ladderId(bak.ladder) === ladderId(dev.ladder) ? bak.step : 1), 1, steps);
     const op = new Map();
     for (const o of [...arr(dev.opened), ...arr(bak.opened)]) if (isObj(o) && Number.isInteger(o.step) && (!op.has(o.step) || num(o.at) < num(op.get(o.step).at))) op.set(o.step, clone(o));
     out.opened = [...op.values()].sort((p, q) => p.step - q.step);
@@ -7551,15 +7646,18 @@ const Title = {
 // (◀ ▶ ▲ ▼, the d-pad); an icon or colour is picked as the cursor lands on it. Enter: a letter types it, ✖ goes back, anything
 // else saves; pad A: the same, but on an icon or colour it only picks it. Pad X deletes a letter, B goes back, Start saves. Esc goes back. ✔ saves the
 // profile and goes on to the pilot pick (as that child: pickChild); a name that can't be one buzzes and says why.
+// #161: and the ladder, LADDER_LOOK's two buttons: Start from the beginning (picked at first) or Quick check. A tap picks one;
+// the cursor landing on one picks it, as on an icon; Enter there saves, pad A only picks.
 const MAKER_WHY = { 'no name': ['tag', 'Type a name'], 'name taken': ['tag', 'That name is taken'], reserved: ['tag', 'Guest is taken'],
   'bad name': ['tag', 'Letters and numbers only'], full: ['lock', `${PROFILE.max} players is the most`] };
 const Maker = {
-  on: false, name: '', icon: null, color: null, why: null, at: 'name', board: false,
+  on: false, name: '', icon: null, color: null, ladder: PROFILE.ladder, why: null, at: 'name', board: false,
   init() {
     const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     $('mkBoard').innerHTML = L.map((c) => `<button data-mk="key:${c}" aria-label="${c}">${c}</button>`).join('') + `<button data-mk="key: " class="sp" aria-label="Space">${icon('space')}</button>`;
     $('mkIcons').innerHTML = PROFILE.icons.map((n) => `<button data-mk="icon:${n}" aria-label="${n}">${icon(n)}</button>`).join('');
     $('mkColors').innerHTML = PROFILE.colors.map((h) => `<button data-mk="color:${h}" aria-label="colour ${h}" style="--c:${h}"></button>`).join('');
+    $('mkLad').innerHTML = Object.entries(LADDER_LOOK).map(([id, L]) => `<button data-mk="ladder:${id}" aria-label="${L.name}"><b class="mkLi">${icon(L.ic)}</b><span>${L.name}</span></button>`).join('');
     const m = $('maker');
     m.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -7575,12 +7673,12 @@ const Maker = {
     $('mkName').addEventListener('input', (e) => { this.setName(e.target.value); });
   },
   // what the hooks see: null when shut
-  status() { return this.on ? { name: this.name, icon: this.icon, color: this.color, why: this.why, board: this.board, at: this.at } : null; },
+  status() { return this.on ? { name: this.name, icon: this.icon, color: this.color, ladder: this.ladder, why: this.why, board: this.board, at: this.at } : null; },
   open(how) {
     if (Profiles.full()) { if (!Game.manual) Sfx.buzz(); const b = $('kids').lastElementChild; b?.classList.remove('shake'); void b?.offsetWidth; b?.classList.add('shake'); return { ok: false, why: 'full' }; }
     if (Game.pilot || Game.child) return { ok: false, why: 'not on who\'s playing' };
     const s = Profiles.suggest();
-    Object.assign(this, { on: true, name: '', icon: s.icon, color: s.color, why: null, at: 'name', board: how === 'pad' || padConnected() });
+    Object.assign(this, { on: true, name: '', icon: s.icon, color: s.color, ladder: PROFILE.ladder, why: null, at: 'name', board: how === 'pad' || padConnected() });
     Title.kid = CHILDREN.length;
     $('mkName').value = '';
     $('maker').scrollTop = 0;
@@ -7604,21 +7702,21 @@ const Maker = {
   },
   type(ch) { if (this.name.length >= PROFILE.nameMax) { if (!Game.manual) Sfx.buzz(); return this.name; } if (!Game.manual) Sfx.click(); return this.setName(this.name + ch); },
   del() { return this.setName(this.name.slice(0, -1)); },
-  // the icon or colour under the cursor is the one picked
+  // the icon, colour or ladder under the cursor is the one picked
   pickAt() {
     const [k, v] = this.at.split(/:(.*)/s);
-    if (k === 'icon') this.icon = v; else if (k === 'color') this.color = v;
+    if (k === 'icon') this.icon = v; else if (k === 'color') this.color = v; else if (k === 'ladder' && Object.hasOwn(LADDERS, v)) this.ladder = v;
   },
   activate() {
     const [k, v] = this.at.split(/:(.*)/s);
     if (k === 'key') return this.type(this.name === '' || this.name.endsWith(' ') ? v : v.toLowerCase());   // (Max, not MAX)
     if (k === 'back') return this.close();
-    if (k === 'icon' || k === 'color') { this.pickAt(); this.draw(); if (!Game.manual) Sfx.click(); return { ok: true }; }
+    if (k === 'icon' || k === 'color' || k === 'ladder') { this.pickAt(); this.draw(); if (!Game.manual) Sfx.click(); return { ok: true }; }
     return this.save();
   },
   save() {
     if (!this.on) return { ok: false, why: 'not open' };
-    const res = Profiles.add(this.name, this.icon, this.color);
+    const res = Profiles.add(this.name, this.icon, this.color, this.ladder);
     if (!res.ok) {
       this.why = res.why; this.draw();
       if (!Game.manual) Sfx.buzz();
@@ -7659,7 +7757,8 @@ const Maker = {
     for (const el of $('maker').querySelectorAll('[data-mk]')) {
       const k = el.dataset.mk;
       el.classList.toggle('cur', k === this.at);
-      el.classList.toggle('on', k === 'icon:' + this.icon || k === 'color:' + this.color);
+      el.classList.toggle('on', k === 'icon:' + this.icon || k === 'color:' + this.color || k === 'ladder:' + this.ladder);
+      if (k.startsWith('ladder:')) el.setAttribute('aria-pressed', String(k === 'ladder:' + this.ladder));
     }
     const w = this.why && MAKER_WHY[this.why];
     $('mkWhy').innerHTML = w ? `${icon('warn')}${icon(w[0])}<span>${w[1]}</span>` : '';
@@ -7674,8 +7773,8 @@ const Maker = {
   key(e) {
     const inBox = e.target === $('mkName'), c = e.code;
     if (c === 'Escape') { e.preventDefault(); if (!e.repeat) this.close(); return; }
-    // (Enter: a letter types it, ✖ goes back, anything else saves, an icon or colour under the cursor included: it's picked)
-    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (!e.repeat) { if (/^(icon|color):/.test(this.at)) this.save(); else this.activate(); } return; }
+    // (Enter: a letter types it, ✖ goes back, anything else saves, an icon, colour or ladder under the cursor included: it's picked)
+    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (!e.repeat) { if (/^(icon|color|ladder):/.test(this.at)) this.save(); else this.activate(); } return; }
     const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[c];
     if (d) { if (inBox && this.at === 'name' && d[0]) return; e.preventDefault(); this.move(...d); return; }
     if (c === 'Tab' || inBox) return;   // typing in the box is the browser's (the input event tidies it)
@@ -7692,7 +7791,7 @@ const Maker = {
     if (pad.aP) this.activate();
   },
 };
-// #129 (Orion's answers: a wave picker for the waves already cleared, saved children only, the squad and the bag kept): on
+// #129 (a child's answers: a wave picker for the waves already cleared, saved children only, the squad and the bag kept): on
 // the pilot pick, a saved child who has cleared a wave gets the wave chip (the wave the run starts at, 1 at first); a tap on
 // it, ▲ / W or the d-pad's up opens a small grid of tiles, waves 1 to their best + 1, a boss wave's (Waves.boss) marked ⚔️.
 // A tap on a tile picks it; the keys' arrows / WASD and the d-pad move a cursor (it starts on the pick, and doesn't wrap),
@@ -8819,7 +8918,7 @@ iconTex.preload = () => Promise.all([...WORLD_ICONS.map((n) => iconTex(n).userDa
 // 'failed' | 'skipped' (file://: the game's own look); Models.done resolves once every load has ended either way.
 // ===========================================================================
 const MODEL_POSES = {knight:{stance:{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]},walk:[{J_Shoulder_L:[0,0,70],J_Shoulder_R:[0,0,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-21.21,0,0],J_Knee_L:[28.28,0,0],J_Hip_R:[21.21,0,0],J_Shoulder_L:[0,17.68,70],J_Shoulder_R:[0,17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-30,0,0],J_Knee_L:[40,0,0],J_Hip_R:[30,0,0],J_Shoulder_L:[0,25,70],J_Shoulder_R:[0,25,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[-21.21,0,0],J_Knee_L:[28.28,0,0],J_Hip_R:[21.21,0,0],J_Shoulder_L:[0,17.68,70],J_Shoulder_R:[0,17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Shoulder_L:[0,0,70],J_Shoulder_R:[0,0,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[21.21,0,0],J_Hip_R:[-21.21,0,0],J_Knee_R:[28.28,0,0],J_Shoulder_L:[0,-17.68,70],J_Shoulder_R:[0,-17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[30,0,0],J_Hip_R:[-30,0,0],J_Knee_R:[40,0,0],J_Shoulder_L:[0,-25,70],J_Shoulder_R:[0,-25,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]},{J_Hip_L:[21.21,0,0],J_Hip_R:[-21.21,0,0],J_Knee_R:[28.28,0,0],J_Shoulder_L:[0,-17.68,70],J_Shoulder_R:[0,-17.68,-70],J_Elbow_L:[0,20,0],J_Elbow_R:[0,-20,0]}],tl:{SLICE:{hit:0.45,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.25,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,45,-15],J_Elbow_R:[0,-20,0],J_Wrist_R:[0,40,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0]}],[0.45,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-85,-15],J_Elbow_R:[0,-15,0],J_Wrist_R:[0,40,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,-25,0]}],[0.85,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]},CHOP:{hit:0.48,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.3,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-20,60],J_Elbow_R:[0,-30,0],J_Wrist_R:[-110,0,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[-8,0,0]}],[0.48,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-60,-40],J_Elbow_R:[0,-10,0],J_Wrist_R:[20,70,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[12,0,0]}],[0.6,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-60,-40],J_Elbow_R:[0,-10,0],J_Wrist_R:[20,70,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[12,0,0]}],[0.95,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]},STAB:{hit:0.4,keys:[[0,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}],[0.25,{J_Head:[0,-10,0],J_Shoulder_L:[0,-25,65],J_Elbow_L:[0,55,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0],J_Body:[0,-15,0],J_Wrist_L:[90,0,0]}],[0.4,{J_Head:[0,-10,0],J_Shoulder_L:[0,60,20],J_Elbow_L:[0,-30,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-35,0,0],J_Knee_L:[30,0,0],J_Hip_R:[20,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0],J_Wrist_L:[90,0,0]}],[0.55,{J_Head:[0,-10,0],J_Shoulder_L:[0,60,20],J_Elbow_L:[0,-30,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-35,0,0],J_Knee_L:[30,0,0],J_Hip_R:[20,0,0],J_Knee_R:[10,0,0],J_Body:[0,20,0],J_Wrist_L:[90,0,0]}],[0.85,{J_Head:[0,-10,0],J_Shoulder_L:[0,20,60],J_Elbow_L:[0,40,0],J_Shoulder_R:[0,-5,-50],J_Elbow_R:[0,-80,0],J_Wrist_R:[-25,20,0],J_Hip_L:[-20,0,0],J_Knee_L:[25,0,0],J_Hip_R:[15,0,0],J_Knee_R:[10,0,0]}]]}}},ninja:{stance:{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]},guard:{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,80,10],NJ_Elbow_L:[0,60,0],NJ_Shoulder_R:[0,-80,-10],NJ_Elbow_R:[0,-60,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]},walk:[{NJ_Body:[6,0,0],NJ_Shoulder_L:[0,0,60],NJ_Shoulder_R:[0,0,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-21.21,0,0],NJ_Knee_L:[28.28,0,0],NJ_Hip_R:[21.21,0,0],NJ_Shoulder_L:[0,-21.21,60],NJ_Shoulder_R:[0,-21.21,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-30,0,0],NJ_Knee_L:[40,0,0],NJ_Hip_R:[30,0,0],NJ_Shoulder_L:[0,-30,60],NJ_Shoulder_R:[0,-30,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[-21.21,0,0],NJ_Knee_L:[28.28,0,0],NJ_Hip_R:[21.21,0,0],NJ_Shoulder_L:[0,-21.21,60],NJ_Shoulder_R:[0,-21.21,-60]},{NJ_Body:[6,0,0],NJ_Shoulder_L:[0,0,60],NJ_Shoulder_R:[0,0,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[21.21,0,0],NJ_Hip_R:[-21.21,0,0],NJ_Knee_R:[28.28,0,0],NJ_Shoulder_L:[0,21.21,60],NJ_Shoulder_R:[0,21.21,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[30,0,0],NJ_Hip_R:[-30,0,0],NJ_Knee_R:[40,0,0],NJ_Shoulder_L:[0,30,60],NJ_Shoulder_R:[0,30,-60]},{NJ_Body:[6,0,0],NJ_Hip_L:[21.21,0,0],NJ_Hip_R:[-21.21,0,0],NJ_Knee_R:[28.28,0,0],NJ_Shoulder_L:[0,21.21,60],NJ_Shoulder_R:[0,21.21,-60]}],run:[{NJ_Body:[18,0,0],NJ_Knee_L:[10,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-31.82,0,0],NJ_Knee_L:[52.43,0,0],NJ_Hip_R:[31.82,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-45,0,0],NJ_Knee_L:[70,0,0],NJ_Hip_R:[45,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[-31.82,0,0],NJ_Knee_L:[52.43,0,0],NJ_Hip_R:[31.82,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Knee_L:[10,0,0],NJ_Knee_R:[10,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[31.82,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-31.82,0,0],NJ_Knee_R:[52.43,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[45,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-45,0,0],NJ_Knee_R:[70,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]},{NJ_Body:[18,0,0],NJ_Hip_L:[31.82,0,0],NJ_Knee_L:[10,0,0],NJ_Hip_R:[-31.82,0,0],NJ_Knee_R:[52.43,0,0],NJ_Shoulder_L:[0,-55,50],NJ_Shoulder_R:[0,55,-50],NJ_Elbow_L:[0,-20,0],NJ_Elbow_R:[0,20,0]}],tl:{KICK:{hit:0.28,keys:[[0,{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]}],[0.15,{NJ_Body:[-5,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-40,0,0],NJ_Knee_R:[100,0,0]}],[0.3,{NJ_Body:[-20,0,0],NJ_Shoulder_L:[0,40,-10],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-40,10],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-95,0,0]}],[0.45,{NJ_Body:[-20,0,0],NJ_Shoulder_L:[0,40,-10],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-40,10],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[-95,0,0]}],[0.7,{NJ_Body:[8,0,0],NJ_Shoulder_L:[0,60,40],NJ_Elbow_L:[0,75,0],NJ_Shoulder_R:[0,-60,-40],NJ_Elbow_R:[0,-75,0],NJ_Hip_L:[-20,0,0],NJ_Knee_L:[25,0,0],NJ_Hip_R:[15,0,0],NJ_Knee_R:[20,0,0]}]]}}},minion:{stance:{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]},walk:[{SprinterA_Body:[13.2,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-23.33,0,0],SprinterA_Knee_L:[39.7,0,0],SprinterA_Hip_R:[23.33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-33,0,0],SprinterA_Knee_L:[52,0,0],SprinterA_Hip_R:[33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[-23.33,0,0],SprinterA_Knee_L:[39.7,0,0],SprinterA_Hip_R:[23.33,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[23.33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-23.33,0,0],SprinterA_Knee_R:[39.7,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-33,0,0],SprinterA_Knee_R:[52,0,0],SprinterA_Head:[-6,0,0]},{SprinterA_Body:[13.2,0,0],SprinterA_Hip_L:[23.33,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-23.33,0,0],SprinterA_Knee_R:[39.7,0,0],SprinterA_Head:[-6,0,0]}],run:[{SprinterA_Body:[22,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-38.89,0,0],SprinterA_Knee_L:[59.5,0,0],SprinterA_Hip_R:[38.89,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-55,0,0],SprinterA_Knee_L:[80,0,0],SprinterA_Hip_R:[55,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[-38.89,0,0],SprinterA_Knee_L:[59.5,0,0],SprinterA_Hip_R:[38.89,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Knee_R:[10,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[38.89,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-38.89,0,0],SprinterA_Knee_R:[59.5,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[55,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-55,0,0],SprinterA_Knee_R:[80,0,0],SprinterA_Head:[-10,0,0]},{SprinterA_Body:[22,0,0],SprinterA_Hip_L:[38.89,0,0],SprinterA_Knee_L:[10,0,0],SprinterA_Hip_R:[-38.89,0,0],SprinterA_Knee_R:[59.5,0,0],SprinterA_Head:[-10,0,0]}],tl:{KICK:{hit:0.28,keys:[[0,{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]}],[0.12,{SprinterA_Body:[-5,0,0],SprinterA_Hip_L:[-45,0,0],SprinterA_Knee_L:[100,0,0],SprinterA_Hip_R:[5,0,0],SprinterA_Knee_R:[20,0,0]}],[0.25,{SprinterA_Body:[-22,0,0],SprinterA_Hip_L:[-100,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[10,0,0]}],[0.4,{SprinterA_Body:[-22,0,0],SprinterA_Hip_L:[-100,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[10,0,0]}],[0.6,{SprinterA_Body:[10,0,0],SprinterA_Hip_L:[-15,0,0],SprinterA_Knee_L:[20,0,0],SprinterA_Hip_R:[10,0,0],SprinterA_Knee_R:[15,0,0]}]]}}}};
-// #141: Apollo's Centipede (centipede.poses.json, copied from: degrees, YZX). UNLIKE the others its shoulders, elbows, wrists,
+// #141: a child's Centipede (centipede.poses.json, copied from: degrees, YZX). UNLIKE the others its shoulders, elbows, wrists,
 // legs (∓40°) and mandibles (x 12°) rest turned, so each of its poses is whole: every one of its 36 nodes (MODELS.centipede.
 // joints) with its absolute angle. To keep the page small it's written here as the stance in full (its rest: the same angles
 // as the .glb's) and each pose, gait sample and timeline key as only the nodes that differ from it, made whole again as the
@@ -9130,7 +9229,7 @@ function buildBouncer(paint) {
   return { root, body, legs: [], glow, armour, spring, top, ...robotHud(root, 5.0) };
 }
 
-// #120: Apollo's Ninja: green, a square head with two eyes and an antenna, thin arms out to small round hands, a blade
+// #120: a child's Ninja: green, a square head with two eyes and an antenna, thin arms out to small round hands, a blade
 // sticking out of each side of its body, and box legs that end in pointed feet. Fast. Its kick leg swings on its hip.
 function buildNinja(paint) {
   const mdl = modelRobot('ninja', paint); if (mdl) return mdl;   // #124: the boys' model, once it's in
@@ -9198,12 +9297,12 @@ function buildAxe(paint) {
   const cap = cyl(0.2, 0.2, 0.3, paint.stripe, steel, 10); cap.position.y = -0.75; g.add(cap);
   return g;
 }
-// #122: Apollo's Knight (#117, page 3), much bigger than a Charger: a tall square helmet with two eyes behind its visor and an
+// #122: a child's Knight (#117, page 3), much bigger than a Charger: a tall square helmet with two eyes behind its visor and an
 // antenna, a boxy yellow body with a belt, its arms straight out to the sides (its sword in its left hand, its axe in its
 // right) and two box legs with big boots. Its sword's edge glows as it winds up (edge); the axe in its hand (axe) hides
 // while one it threw is out
 function buildKnight(paint) {
-  const mdl = modelRobot('knight', paint); if (mdl) return mdl;   // #124: Apollo's model, once it's in
+  const mdl = modelRobot('knight', paint); if (mdl) return mdl;   // #124: a child's model, once it's in
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
   const metal = { metalness: 0.55, roughness: 0.4 }, steel = { metalness: 0.85, roughness: 0.25 };
   const { armour, glow } = robotMats(paint);
@@ -9267,7 +9366,7 @@ function centRig(md, joints, lenses) {
   md.lenses = lenses; md.iconY0 = md.iconY;
   const g0 = md.glow.dispose.bind(md.glow); md.glow.dispose = () => { g0(); bm.dispose(); };   // (removeRobot frees the beams' material too)
 }
-// #141: Apollo's Centipede built in code, for when its model isn't in (offline, a 404, file://): the model's own joints, by name
+// #141: a child's Centipede built in code, for when its model isn't in (offline, a 404, file://): the model's own joints, by name
 // and in their places (so the same poses drive it), each with a plain piece: an orange segment on each, a round head with
 // glitch-red eyes, red antennae and two dark mandibles, red arms with a laser box at each elbow, the DIG scoop on its left
 // wrist and the CRUNCH saw on its right, and a leg each side of every tail segment
@@ -9471,7 +9570,7 @@ const ROBOT_TYPES = {
     hot: (r) => r.ai.mode === 'windup',
     sparkBox: [4, 2.6, 6, 4],
   },
-  // #141: Apollo's Centipede, the second boss (CENTIPEDE: its numbers). Long and low, rearing up at the front; LASER at range,
+  // #141: a child's Centipede, the second boss (CENTIPEDE: its numbers). Long and low, rearing up at the front; LASER at range,
   // CRUNCH up close and DIG under the ground (centipedeAI; each move runs on its own clock in centStep, the dig's tunnel in
   // move). balls: its hit shape (centBalls), a ball on its head, neck and front and one on each tail segment, so a shot at its
   // tail lands. Beaten like the Knight (Q4 A): its bigger board (bossPlan, cfg.board), its rare part (the 🪚 saw) and its
@@ -10728,7 +10827,7 @@ function knightArms(r, md, dt, mode, down, wind) {
   S.arm.rotation.z = damp(S.arm.rotation.z, S.s * sr, fast, dt); S.arm.rotation.y = damp(S.arm.rotation.y, S.s * sf, fast, dt);
   A.arm.rotation.z = damp(A.arm.rotation.z, A.s * ar, fast, dt); A.arm.rotation.y = damp(A.arm.rotation.y, A.s * af, fast, dt);
 }
-// #124: Apollo's model. It marches (its gait.walk). Every wind-up is the same big tell, as the code-built one's: the
+// #124: a child's model. It marches (its gait.walk). Every wind-up is the same big tell, as the code-built one's: the
 // weapon raised overhead, CHOP's raise key (its sword arm), or the same on its other arm for the axe (mirrored), reached
 // by 80% of the wind-up and held. Its swipes are SLICE and CHOP in turn (the 1st, 3rd … a SLICE), swung from the raise to
 // the move's hit key over the swing (swipeT); the throw swings from the axe's raise to STAB's lunge (throwT: the axe is
@@ -10746,7 +10845,7 @@ function knightJoints(r, md, dt, mode, down, wind) {
 }
 
 // ---------------------------------------------------------------------------
-// #141 Apollo's Centipede (Q3 A: the coordinator's three moves). Glitched, it crawls at its target, turning slowly
+// #141 a child's Centipede (Q3 A: the coordinator's three moves). Glitched, it crawls at its target, turning slowly
 // (CENTIPEDE.legTurn). It picks a move by how far off its target is: CRUNCH within its reach and arc, DIG from dig.min to
 // dig.max off when the laser can't reach (or is cooling), LASER from laser.min to its reach while it faces its target. Each
 // starts with a wind-up (centWindup: it stops and won't turn, rears up, the ❗, its armour pulsing red), then runs on its own
@@ -13366,7 +13465,7 @@ const Progress = {
   // what the parent view shows for child c, straight from the record (nothing is written)
   data(c) {
     const C = childOf(c); if (!C || C.guest) return null;
-    const rec = Facts.peek(C), steps = LADDERS[rec.ladder], days = Facts.days(rec, PARENT.days), td = days[days.length - 1];
+    const rec = Facts.peek(C), steps = ladderSteps(rec.ladder), days = Facts.days(rec, PARENT.days), td = days[days.length - 1];
     return {
       id: C.id, name: C.name, mastery: Facts.mastery(C), step: rec.step, steps: steps.length, stepName: stepName(steps[rec.step - 1]),
       next: rec.step < steps.length ? { step: rec.step + 1, name: stepName(steps[rec.step]) } : null,
@@ -13376,6 +13475,7 @@ const Progress = {
       fixMs: (() => { const f = Facts.fixDays(rec, PARENT.days); return { today: f[f.length - 1].median, days: f }; })(),   // #48: median fix times
       grid: Facts.grid(rec), cheered: Object.keys(rec.cheered || {}).map(Number), polish: [...Facts.polished(rec)],   // #115: the ⭐ facts that need a polish
       wiring: rec.wiring,   // #134: their Quick Fix setting ('math' or 'colour'), the parent's switch
+      track: ladderId(rec.ladder),   // #161: their ladder, 'start' or 'check' (whatever id the record saved it under), the parent's switch
       // #142: division: on or off (the parent's switch); div = the ÷ facts: counts (open, stages of the 81, mastered,
       // polish), grid (rows[d-1][q-1] = q·d ÷ d's stage, or 'locked' while it isn't open) and the 10 slowest
       division: Facts.divOn(rec, C),
@@ -13435,7 +13535,11 @@ const Progress = {
       // #142: division, beside it: on or off for this child
       + `<div class="pset" role="group" aria-label="Division for ${esc(D.name)}"><h3>Division</h3><div class="pseg">`
       + PDIV.map((W) => `<button class="pbtn pw${(D.division ? 'on' : 'off') === W.id ? ' on' : ''}" data-act="division" data-w="${W.id}" aria-pressed="${(D.division ? 'on' : 'off') === W.id}">${icon(W.ic)}<span>${W.name}</span></button>`).join('')
-      + `</div><p>${D.division ? 'Each ÷ fact opens once its × fact is Known.' : 'Times facts only.'}</p></div></div>`
+      + `</div><p>${D.division ? 'Each ÷ fact opens once its × fact is Known.' : 'Times facts only.'}</p></div>`
+      // #161: the ladder, start from the beginning or a quick check (the only way to the quick check for a profile already made)
+      + `<div class="pset plad" role="group" aria-label="Where ${esc(D.name)} starts"><h3>Where to start</h3><div class="pseg">`
+      + Object.entries(LADDER_LOOK).map(([id, L]) => `<button class="pbtn pw${D.track === id ? ' on' : ''}" data-act="ladder" data-w="${id}" aria-pressed="${D.track === id}" aria-label="${L.name}">${icon(L.ic)}<span>${L.name}</span></button>`).join('')
+      + `</div><p>${LADDER_LOOK[D.track]?.hint ?? ''} Changing it keeps every fact's progress.</p></div></div>`
       + `<div class="pact">${D.next ? `<button class="pbtn step" data-act="step">${icon('skip')} Open step ${D.next.step}: ${D.next.name}</button>` : `<button class="pbtn step off" data-act="step" disabled>${icon('check')} Every step is open</button>`}</div>`
       // (#50: 🗑️ Reset and 🗑️ Remove side by side, on a row of their own)
       + `<div class="pact pdanger"><button class="pbtn reset" data-act="reset">${icon('bin')} Reset ${esc(D.name)}</button><button class="pbtn remove" data-act="remove">${icon('bin')} Remove ${esc(D.name)}</button></div></div></div>`
@@ -13467,6 +13571,12 @@ const Progress = {
       const m = v ?? (Facts.peek(C).wiring === 'math' ? 'colour' : 'math');
       res = Facts.as(C, () => Facts.setWiring(m)) ? { ok: true, wiring: m } : { ok: false, why: 'math or colour' };
       if (res.ok) refocus = ['wiring', m];
+    }
+    // #161: 'ladder' (v = 'start' | 'check'; left out: the other one): their profile's ladder and their record's (Profiles.setLadder)
+    else if (what === 'ladder') {
+      const l = v ?? (ladderId(Facts.peek(C).ladder) === 'check' ? 'start' : 'check');
+      res = Profiles.setLadder(C.id, l);
+      if (res.ok) refocus = ['ladder', l];
     }
     // #142: 'division' (v = 'on' | 'off', or true | false; left out: the other one), saved in their record as wiring is
     else if (what === 'division') {
@@ -13655,7 +13765,7 @@ const BackupUI = {
     };
   },
 };
-// #49: names in a sentence: 'Orion and Apollo', 'Max, Orion and Apollo'
+// #49: names in a sentence: 'Max and Sam', 'Ada, Max and Sam'
 const andList = (n) => (n.length > 2 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : n.join(' and '));
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -15689,6 +15799,7 @@ window.__rb = {
     return robotState(r);
   },
   Profiles, PROFILE, Title, Maker, Backup,   // (#49)
+  ladderId, ladderSteps, LADDER_LOOK,   // (#161)
   WavePick, WAVE_JUMP,   // (#129)
   MODES, ModePick,       // (#132)
   // #132: the mode chip: no argument: its state (ModePick.status: pick, run, shown, saved); 'next': the next mode, as a tap
@@ -15766,19 +15877,23 @@ window.__rb = {
   // swaps the pilot and carries on.
   start(pilot) { const res = startGame(pilot); return { ...res, state: Game.state, paused: Game.paused, title: this.state().title, pilot: this.state().pilot }; },
   // ---- math (M1): who's playing and the fact tracker ----
-  // pick who's playing ('orion', 'apollo', 'guest', any case, or an index), as a tap on their tile does:
+  // pick who's playing (an id such as 'p_k3x9q2', a name, 'guest', any case, or an index), as a tap on their tile does:
   // loads their record and goes on to the pilot pick; null goes back to who's playing (title only)
   player(name) { const res = pickChild(name); return { ...res, title: this.state().title, wiring: wiringMode(), facts: Facts.summary() }; },
   // #49: the profiles, in tile order (Guest and ➕ aren't profiles): [{ id, name, icon, hex, ladder, wiring, created }]
   profiles() { return Profiles.list(); },
   // #49: make a profile, as the maker's ✔ does but without picking it: { ok, id } or { ok: false, why: 'full' | 'name taken' |
   // 'no name' | 'reserved' | 'bad name' | 'no such icon' | 'no such color' }. icon / color: a name / hex from the maker's sets
-  // (or an index into them); left out, the maker's suggestion (one nobody has yet)
-  addProfile(name, icon, color) { const was = Title.tiles()[Title.kid], res = Profiles.add(name, icon, color); if (res.ok) { Title.drawKids(was); Title.draw(); } return res; },
+  // (or an index into them); left out, the maker's suggestion (one nobody has yet). #161: ladder 'start' (left out) or 'check'
+  addProfile(name, icon, color, ladder) { const was = Title.tiles()[Title.kid], res = Profiles.add(name, icon, color, ladder); if (res.ok) { Title.drawKids(was); Title.draw(); } return res; },
+  // #161: a profile's ladder, as the parent view's switch sets it (without opening the view): { ok, id, ladder, changed }
+  setLadder(child, ladder) { return Profiles.setLadder(childOf(child)?.id ?? child, ladder); },
   // #49: the maker: 'open' (as ➕ does; refused when full), 'close' (✖), 'save' (✔), 'name' (v = the name as typed), 'type' (v = a
-  // letter, as the pad's board types it), 'del', 'icon' / 'color' (v = one of the sets). Returns state().who
+  // letter, as the pad's board types it), 'del', 'icon' / 'color' (v = one of the sets), #161: 'ladder' (v = 'start' | 'check').
+  // Returns state().who
   maker(what, v) {
     const A = { open: () => (Title.kid = CHILDREN.length, Title.activate('hook')), close: () => Maker.close(), save: () => Maker.save(), name: () => Maker.setName(v), type: () => Maker.type(v), del: () => Maker.del(),
+      ladder: () => { if (Maker.on && Object.hasOwn(LADDERS, v ?? '')) { Maker.ladder = v; Maker.draw(); } },   // (#161: 'start' | 'check')
       icon: () => { if (Maker.on && PROFILE.icons.includes(v)) { Maker.icon = v; Maker.draw(); } }, color: () => { if (Maker.on && Profiles.colorOf(v)) { Maker.color = Profiles.colorOf(v); Maker.draw(); } } }[what];
     if (!A) return { ok: false, why: 'no such action' };
     const res = A();
@@ -15856,7 +15971,7 @@ window.__rb = {
   tapCell(a, b) { return Progress.tapCell(a, b); },
   // #133: fact a × b's progress for child (whoever is playing if left out; another child's saved record is only read):
   // Facts.progress, what the grid's tap info and the parent view show. null for no such fact or child
-  // (#142: op '÷': fact a ÷ b, e.g. progress(54, 6, 'apollo', '÷'); open = it's open: its × partner is Known, or it's been answered)
+  // (#142: op '÷': fact a ÷ b, e.g. progress(54, 6, 'p_k3x9q2', '÷'); open = it's open: its × partner is Known, or it's been answered)
   progress(a, b, child, op = '×') {
     const f = makeFact(op, a, b), C = child == null ? Game.child : childOf(child), r = C && Facts.peek(C);
     return f && r ? { op: f.op, fact: factStr(f), key: f.key, ...(f.op === '÷' ? { open: Facts.divOpenKey(f.key, r) } : {}), ...Facts.progressOf(f.key, r) } : null;
@@ -15890,12 +16005,13 @@ window.__rb = {
   // press a button in the open parent view: 'tab' | 'step' | 'reset' | 'confirm' | 'cancel', on child (the tab shown if left out)
   // (#50: | 'remove' (asks) | 'confirmRemove' (removes the profile and its record, once asked about it))
   // (#134: | 'wiring' with v = 'math' | 'colour' (left out: the other one): the child's Quick Fix setting, saved)
+  // (#161: | 'ladder' with v = 'start' | 'check' (left out: the other one): the child's ladder, every fact kept)
   parentDo(what, child, v) { const res = Progress.act(what, child, v); return { ...res, view: this.parent() }; },
   // ---- storage D1 (#69): back up and restore ----
   // the backup of this device as an object, the same as the file ⬇ Back up downloads: { app, format, exported, device, data }
   backup() { return Backup.now(); },
   // restore a backup (the object, or a file's text). choice: 'best' | 'device' | 'backup' for every child, or
-  // { orion: …, apollo: … } (a child left out: 'best'). No choice = a preview: the summary, and nothing is written.
+  // { p_k3x9q2: …, p_7fw2ab: … } (a child left out: 'best'). No choice = a preview: the summary, and nothing is written.
   // Returns { ok, why?, preview?, summary: { kids: [{ child, choice, inBackup, write, device, backup, result, lower }],
   // settings, skipped, meta, writes } } (summary null when the file is refused)
   restore(obj, choice) { const res = Backup.restore(obj, choice); if (Progress.mode === 'parent') Progress.drawParent(); return res; },

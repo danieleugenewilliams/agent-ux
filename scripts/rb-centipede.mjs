@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Robot Battle: Apollo's centipede boss (#141, #117 N6; Orion's and Apollo's Q1 A / Q2 A / Q3 A / Q4 A).
+// Robot Battle: the centipede boss a child designed (#141, #117 N6; the children's Q1 A / Q2 A / Q3 A / Q4 A).
 //
 // The page is served over http by this script (the models only load over http, never on file://), from the repo. Each run is
 // its own headless Chrome (muted, not detached, killed with its profile deleted on every way out); the server is closed on
@@ -170,7 +170,7 @@ async function connect(S) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: !!touch, screenOrientation: w > h ? { type: 'landscapePrimary', angle: 90 } : { type: 'portraitPrimary', angle: 0 } });
     await send('Emulation.setTouchEmulationEnabled', { enabled: !!touch, maxTouchPoints: touch ? 5 : 0 });
     await send('Page.navigate', { url: base + file + q });
-    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) return; }
+    for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__rb').catch(() => false)) { if (file === 'robot-battle.html') await ev(KIDS_JS); return; } }
     throw new Error('page did not load window.__rb: ' + file + q);
   };
   C.block = async (on) => { C.blocked = on; await send('Network.setBlockedURLs', { urls: on ? ['*/models/*'] : [] }); };
@@ -178,6 +178,20 @@ async function connect(S) {
   return C;
 }
 
+// #161: nothing is seeded any more, so these checks make their own made-up profiles the first time a page of this build opens
+// on empty storage (no list, no record): Sam (the quick-check ladder) and Max (the ladder that starts at ×1 and ×2). CLEAR empties storage as a
+// fresh device and puts the two back, as the game's old seed did
+const KIDS = [{ id: 'sam', name: 'Sam', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'max', name: 'Max', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
+const KIDS_SET = `localStorage.setItem('robotbattle.profiles', ${JSON.stringify(JSON.stringify(KIDS))})`;
+const KIDS_JS = `(() => { const R = window.__rb; if (localStorage.getItem('robotbattle.profiles') == null && !Object.keys(localStorage).some((k) => k.startsWith('robotbattle.facts.')) && R.Profiles) { ${KIDS_SET}; R.Profiles.load(); R.Title.home(); R.Title.drawKids(); R.Title.draw(); } return true; })()`;
+const CLEAR = `(localStorage.clear(), ${KIDS_SET})`;
+// #161: a profile made since #161 is on a ladder id ('start' or 'check') that a build from before it doesn't know, so its
+// records would be refused there as damaged. For the checks that restore this build's backup into an older build, TO_OLD
+// (run in the older page) puts the backup's ladders in that build's own ids first, found by their steps, as the same
+// profile made on that build would have them. Everything else in the backup is as this build wrote it.
+const TO_OLD = String.raw`((bk) => { const L = window.__rb.LADDERS, ids = Object.keys(L), id = { start: ids.find((k) => L[k][0].kind !== 'check'), check: ids.find((k) => L[k][0].kind === 'check') };
+  const b = JSON.parse(JSON.stringify(bk)); for (const [k, v] of Object.entries(b.data || {})) { if (k.startsWith('facts.') && v && id[v.ladder]) v.ladder = id[v.ladder]; if (k === 'profiles' && Array.isArray(v)) for (const p of v) if (p && id[p.ladder]) p.ladder = id[p.ladder]; }
+  return b; })`;
 // ---- in the page: helpers. A clear stretch of meadow (no tree or rock within 34 m), an empty meadow, a frozen Centipede facing
 // a point (its brain held in 'recover', so it neither walks nor starts a move unless a hook says), player 1's health, a fix
 // done through the hooks (puzzles answered, math wires plugged or typed)
@@ -336,7 +350,7 @@ async function runLogic(C) {
 
   // ---- beaten (Q4 A): its board, the fix, the saw and the trophy; latched; no squad place
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { ${H} R.manual(true); R.player('apollo'); R.start(0); empty(); R.waveTo(10); const c0 = clear(), out = {};
+  r = await C.ev(String.raw`(() => { ${H} R.manual(true); R.player('max'); R.start(0); empty(); R.waveTo(10); const c0 = clear(), out = {};
     const beat = () => { const c = cent(c0.x, c0.z, 0); R.damage(c.id, 1e6, 'gun'); R.teleport(0, c.pos.x + 2.5, c.pos.z); const ch = R.choose(c.id, 'fix'); return { c, ch }; };
     let { c, ch } = beat(); const s = st(c);
     out.board = { slots: s.board.slots.length, math: s.board.math, puzzles: s.board.slots.filter((q) => q.kind === 'puzzle').length, wave: s.board.wave };
@@ -346,7 +360,7 @@ async function runLogic(C) {
     const at0 = out.bosses.centipede?.at;
     R.clock(60000); ({ c } = beat()); out.solved2 = solve(c.id); out.bosses2 = R.Garage.bosses(); out.bag2 = G.bag.saw || 0; out.same = out.bosses2.centipede?.at === at0;
     out.wall = wall()?.slots?.saw ?? null;
-    out.saved = JSON.parse(localStorage.getItem('robotbattle.facts.apollo'))?.garage?.bosses ?? null;
+    out.saved = JSON.parse(localStorage.getItem('robotbattle.facts.max'))?.garage?.bosses ?? null;
     return out; })()`);
   ok(`its board is a boss's: wave 10's plus 1 math wire and 1 puzzle (${r.board.math} wires + ${r.board.puzzles} puzzles = ${r.board.slots}, against ${r.normal.math} + ${r.normal.puzzles.length})`,
     r.board.math === r.plan.math && r.board.slots === r.plan.slots && r.board.math === Math.min(4, r.normal.math + 1) && r.board.puzzles === Math.min(2, r.normal.puzzles.length + 1), r);
@@ -356,32 +370,33 @@ async function runLogic(C) {
 
   // reload; backups both ways
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { ${H} R.player('apollo'); const sw = wall()?.slots?.saw; const b = R.Garage.bosses();
+  r = await C.ev(String.raw`(() => { ${H} R.player('max'); const sw = wall()?.slots?.saw; const b = R.Garage.bosses();
     const bk = JSON.parse(JSON.stringify(R.backup())); const res = {};
-    for (const ch of ['backup', 'best']) { localStorage.clear(); const x = R.restore(bk, ch); R.player('apollo'); res[ch] = { ok: x.ok, bosses: R.Garage.bosses(), saw: R.Garage.trophies().saw }; }
+    for (const ch of ['backup', 'best']) { ${CLEAR}; const x = R.restore(bk, ch); R.player('max'); res[ch] = { ok: x.ok, bosses: R.Garage.bosses(), saw: R.Garage.trophies().saw }; }
     return { wall: sw, b, res, bk }; })()`);
   ok('after a reload: the Centipede trophy and the saw on the 🏆 wall', !!r.b.centipede && r.wall?.boss === 'centipede' && r.wall.n === 2, { wall: r.wall, b: r.b });
   for (const ch of ['backup', 'best']) ok(`a backup restored with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}" keeps the Centipede trophy and the saws`, r.res[ch].ok && !!r.res[ch].bosses.centipede && r.res[ch].saw?.count === 2, r.res[ch]);
   const bk = r.bk;
-  // an old save and a backup made by main: Orion with the Knight trophy, 2 swords and 3 armour plates, saved by main (the same
-  // origin, so the same storage); then this build loads that save as it stands, and restores that backup, with nothing lost
+  // an old save and a backup made by main: main's first seeded child (picked by index: #161, no name here) with the Knight
+  // trophy, 2 swords and 3 armour plates, saved by main (the same origin, so the same storage); then this build loads that
+  // save as it stands, and restores that backup, with nothing lost (both a record with no list: #161 makes its profile)
   await C.open(1280, 800, false, '', 'main.html');
-  const old = await C.ev(String.raw`(() => { const R = window.__rb; localStorage.clear(); R.player('orion'); R.manual(true); R.start(0);
+  const old = await C.ev(String.raw`(() => { const R = window.__rb; localStorage.clear(); R.player(0); R.manual(true); R.start(0);
     R.Garage.collect('sword', 'knight'); R.Garage.collect('sword', 'knight'); for (let i = 0; i < 3; i++) R.Garage.collect('armour', 'charger'); R.Garage.latchBoss('knight'); R.Facts.save();
-    return { bk: JSON.parse(JSON.stringify(R.backup())), bosses: R.Garage.bosses(), tr: R.Garage.trophies() }; })()`);
+    return { bk: JSON.parse(JSON.stringify(R.backup())), bosses: R.Garage.bosses(), tr: R.Garage.trophies(), id: R.Game.child.id }; })()`);
   const same = (x) => x.bosses.knight?.at === old.bosses.knight.at && x.sword?.count === 2 && x.sword.from.knight === 2 && x.armour?.count === 3 && x.armour.from.charger === 3 && !x.bosses.centipede && !x.saw?.found;
   await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { ${H} const p = R.player('orion'), t = R.Garage.trophies(); const d = wall(); return { player: p.ok, bosses: R.Garage.bosses(), sword: t.sword, armour: t.armour, saw: t.saw, wallSword: d?.slots?.sword ?? null }; })()`);
+  r = await C.ev(String.raw`(() => { ${H} const p = R.player(${JSON.stringify(old.id)}), t = R.Garage.trophies(); const d = wall(); return { player: p.ok, bosses: R.Garage.bosses(), sword: t.sword, armour: t.armour, saw: t.saw, wallSword: d?.slots?.sword ?? null }; })()`);
   ok(`a save made by main (${MAIN_SHA}) loads here with nothing lost: the Knight trophy, 2 swords, 3 armour plates (the saw not found yet)`, r.player && same(r) && r.wallSword?.boss === 'knight', r);
-  r = await C.ev(String.raw`(() => { ${H} localStorage.clear(); const x = R.restore(${JSON.stringify(old.bk)}, 'backup'); const p = R.player('orion'), t = R.Garage.trophies(); return { ok: x.ok, player: p.ok, bosses: R.Garage.bosses(), sword: t.sword, armour: t.armour, saw: t.saw }; })()`);
+  r = await C.ev(String.raw`(() => { ${H} ${CLEAR}; const x = R.restore(${JSON.stringify(old.bk)}, 'backup'); const p = R.player(${JSON.stringify(old.id)}), t = R.Garage.trophies(); return { ok: x.ok, player: p.ok, bosses: R.Garage.bosses(), sword: t.sword, armour: t.armour, saw: t.saw }; })()`);
   ok(`a backup made by main restores here with nothing lost (the same)`, r.ok && r.player && same(r), r);
   // this build's backup into main: restores, the child loads, main's garage (trophies) and bag open
   for (const ch of ['backup', 'best']) {
     await C.open(1280, 800, false, '', 'main.html');
-    r = await C.ev(String.raw`(() => { ${H} localStorage.clear(); const x = R.restore(${JSON.stringify(bk)}, '${ch}'); const p = R.player('apollo');
+    r = await C.ev(String.raw`(() => { ${H} localStorage.clear(); const x = R.restore(${TO_OLD}(${JSON.stringify(bk)}), '${ch}'); const p = R.player('max');
       const d = wall(); const bag = R.bag(); R.bag();
       return { ok: x.ok, player: p.ok, wall: !!d, centipede: !!window.__rb.ROBOT_TYPES.centipede, bag, bosses: R.Garage.bosses() }; })()`);
-    ok(`this build's backup restores into main (${MAIN_SHA}) with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}": the child loads, its garage and bag open`, r.ok && r.player && r.wall && !r.centipede && r.bag === true, r);
+    ok(`this build's backup (its ladders in main's ids: TO_OLD) restores into main (${MAIN_SHA}) with "${ch === 'backup' ? 'Use the backup' : 'Keep the best'}": the child loads, its garage and bag open`, r.ok && r.player && r.wall && !r.centipede && r.bag === true, r);
   }
   return out;
 }
