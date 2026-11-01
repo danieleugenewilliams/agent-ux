@@ -43,6 +43,8 @@ const PORT = Number(opt('port', 8160));
 const HOST = opt('host', '0.0.0.0');
 const ROOT = fs.realpathSync(path.resolve(opt('root', path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))));
 const ROOM_TTL_MS = Math.max(0.2, Number(opt('room-ttl', 30))) * 1000;
+const MAX_BACKLOG = 256 * 1024, RATE_EVENTS = 30;   // bytes waiting for one slow reader; other messages a socket may send a second
+const MISS_MAX = 20, MISS_MS = 10000;   // wrong room codes allowed server-wide per window (see Rooms.join)
 const MAX_MSG = 4096, MAX_ROOMS = 64, ROOM_SIZE = 2, RATE = 90, PING_MS = 5000, DEAD_MS = 20000, CODE_LEN = 4, CODE_ICONS = 8;
 const RESERVED = new Set(['host', 'join', 'leave', 'room', 'err', 'peer-join', 'peer-left']);
 const MARK = '<script>window.WW_RELAY={v:1}</script>';
@@ -100,14 +102,16 @@ function frame(op, payload) {
 class Peer {
   constructor(sock) {
     this.sock = sock; this.buf = Buffer.alloc(0); this.frag = null; this.fragOp = 0; this.open = true; this.room = null; this.seen = Date.now();
-    this.rate = { t: 0, n: 0 };
+    this.rate = { t: 0, n: 0 }; this.events = { t: 0, n: 0 };
     sock.setNoDelay(true);   // Nagle plus delayed ACKs can hold a small frame back for 40-200 ms
     sock.on('data', (d) => this.data(d));
     sock.on('close', () => this.gone());
     sock.on('end', () => this.gone());   // the http server allows half-open sockets, so a client's FIN alone never fires 'close'
     sock.on('error', () => this.gone());
   }
-  send(obj) { if (this.open) try { this.sock.write(frame(0x1, Buffer.from(typeof obj === 'string' ? obj : JSON.stringify(obj), 'utf8'))); } catch {} }
+  // a player whose device has stopped reading (or a socket that never reads) has its messages pile up here in the server's
+  // memory; past MAX_BACKLOG it is closed rather than letting the other side fill the Mac's memory
+  send(obj) { if (this.open && this.sock.writableLength > MAX_BACKLOG) { this.close(1008); return; } if (this.open) try { this.sock.write(frame(0x1, Buffer.from(typeof obj === 'string' ? obj : JSON.stringify(obj), 'utf8'))); } catch {} }
   close(code = 1000) {
     if (!this.open) return;
     const p = Buffer.alloc(2); p.writeUInt16BE(code, 0);
@@ -152,6 +156,7 @@ class Peer {
     // only the position updates are limited (a newer one replaces a dropped one); the rare game events (a meet, a race's end,
     // a rider dropped) always go through
     if (m.t === 'st') { const now = Date.now(); if (now - this.rate.t > 1000) { this.rate.t = now; this.rate.n = 0; } if (++this.rate.n > RATE) return; }
+    else { const now = Date.now(); if (now - this.events.t > 1000) { this.events.t = now; this.events.n = 0; } if (++this.events.n > RATE_EVENTS) return; }   // game events are a few a minute; a flood of them is dropped
     if (m.t === 'host') return Rooms.host(this);
     if (m.t === 'join') return Rooms.join(this, m.code);
     if (m.t === 'leave') return Rooms.leave(this);
@@ -181,10 +186,16 @@ const Rooms = {
     this.map.set(k, room); p.room = room; p.you = 0;
     p.send({ t: 'room', code, you: 0 });
   },
+  // wrong codes, server-wide: there are only 8^4 = 4096 codes, so without a limit a device on the Wi-Fi could try them all in
+  // well under a second and walk into a room whose host is waiting. A kid mistyping gets a few goes; past MISS_MAX wrong codes
+  // in MISS_MS every join waits (answered 'busy', the right code too, so trying tells nothing) until the window ends.
+  misses: { t: 0, n: 0 },
   join(p, code) {
     this.sweep();
+    const now = Date.now(); if (now - this.misses.t > MISS_MS) { this.misses.t = now; this.misses.n = 0; }
+    if (this.misses.n >= MISS_MAX) { p.send({ t: 'err', why: 'busy' }); return; }
     const k = this.key(code), room = k && this.map.get(k);
-    if (!room) { p.send({ t: 'err', why: 'nocode' }); return; }
+    if (!room) { this.misses.n++; p.send({ t: 'err', why: 'nocode' }); return; }
     if (room.peers.includes(p)) { p.send({ t: 'room', code: room.code, you: p.you }); return; }
     if (room.peers.length >= ROOM_SIZE) { p.send({ t: 'err', why: 'full' }); return; }
     this.leave(p);

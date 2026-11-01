@@ -285,6 +285,10 @@ async function runRelay() {
   await sleep(500);
   const st2 = a.q.filter((m) => m.t === 'st').length, over2 = a.q.some((m) => m.t === 'over');
   ok(`past the rate limit only moves are dropped (${st1 + st2} of 140 moves passed in the second, at most 90), and a race's end still goes through (${over2})`, st1 + st2 <= 90 && st1 + st2 >= 85 && over2 && !raw.closed, { st1, st2, over2 });
+  a.q.length = 0; await sleep(1100);   // a fresh second
+  raw.s.write(Buffer.concat(Array.from({ length: 100 }, (_, i) => wsFrame(JSON.stringify({ t: 'meet', id: 'x' + i })))));
+  await sleep(400); const ev3 = a.q.filter((m) => m.t === 'meet').length;
+  ok(`a flood of 100 other messages in a second: at most 30 pass (${ev3}), so one player can't fill the server's memory through a friend who isn't reading`, ev3 > 0 && ev3 <= 30 && !raw.closed, { ev3 });
   raw.s.destroy(); await a.next('peer-left', 1000);
   const b2 = await nodeClient(R); b2.put({ t: 'join', code: room.code }); const rb2 = await b2.next('room');
   ok(`the same code rejoins into the free seat (${rb2?.you})`, rb2 && rb2.you === 1, rb2);
@@ -307,7 +311,12 @@ async function runRelay() {
   const msk = Buffer.from(JSON.stringify({ t: 'join', code: fr.code })), mf = Buffer.concat([Buffer.from([0x81, 0x80 | msk.length, 0, 0, 0, 0]), msk]);
   fin.write(mf); await fa.next('peer-join'); const tf = Date.now(); fin.end(); const fl = await fa.next('peer-left', 3000);
   ok(`a friend whose connection just ends (no close frame) is gone at once (${fl ? Date.now() - tf + ' ms' : 'not heard'})`, fl && Date.now() - tf < 1000, fl);
-  for (const w of [c, d, h, v, fa]) try { w.close(); } catch {}
+  // a device on the Wi-Fi trying every code (8^4 = 4096) can't walk into a waiting host's room (wrong codes are limited server-wide)
+  const bh = await nodeClient(R); bh.put({ t: 'host' }); const br = await bh.next('room'); const bf = await nodeClient(R);
+  for (let i = 0; i < 4096; i++) bf.put({ t: 'join', code: [i >> 9 & 7, i >> 6 & 7, i >> 3 & 7, i & 7] });
+  await sleep(1500); const bin = bf.q.some((m) => m.t === 'room');
+  ok(`trying all 4096 codes at once doesn't find the waiting room (${bin ? 'got in' : 'kept out'}; ${bf.q.filter((m) => m.why === 'busy').length} answered busy)`, br && !bin, { br, n: bf.q.length });
+  for (const w of [c, d, h, v, fa, bh, bf]) try { w.close(); } catch {}
   await killRelayWait(R);
   return out;
 }
