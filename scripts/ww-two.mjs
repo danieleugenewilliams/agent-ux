@@ -7,21 +7,26 @@
 //   relay    - Node only: the relay serves the repo's files and nothing outside it (path traversal, encoded or not, and dotfiles
 //              such as .git are refused, checked with raw requests that no client tidies up first); wild-world.html (and only it)
 //              carries the WW_RELAY line; rooms: a code of 4 pictures, a second player joins, a third is refused (full), a wrong
-//              code is refused, messages pass through as sent, a message over the size limit closes that socket, a page from
+//              code is refused, messages pass through as sent, a burst of small frames in one TCP write is all delivered (the
+//              socket stays), past the rate limit only moves are dropped (a race's end still passes), a message over the size
+//              limit closes that socket, a page from
 //              another origin can't open the socket, a room left empty is forgotten after --room-ttl, and a rejoin takes the free seat.
 //   together - two Chromes in one room: each sees the other's position (drawn, interpolated) within 200 ms and their change into an
 //              animal; the two play at different levels (letter tiles and typing) at once; a meet on either adds the animal to both
 //              books and both saves keep it; riding a horse, an elephant and a dolphin (mount, move with it, hop off); a form change
 //              drops the rider safely; a race and a tag game start, finish and show the winner on both screens; a third player is
 //              refused; a reload leaves and the same code rejoins; nothing about a player but an icon and a color is ever sent
-//              (every WebSocket frame both ways is read); then the relay is killed: both keep a working single-player game with
+//              (every WebSocket frame both ways is read); then, mid-tag, the line goes silent (the relay frozen with SIGSTOP, its
+//              sockets still open): both notice by themselves, the game ends, and both keep a working single-player game with
 //              their profile, animals and words, a calm notice, and after the relay comes back a reload still has everything.
 //   pages    - the page from another origin (a plain static server, as on Pages): Host and Join explain in one line why not, and
 //              the page makes no WebSocket or other request for it; the parent view saves every player to a file there and the
 //              relay's page loads it (a same-name player is added to, never doubled).
 //   touch    - a touch-only round on both devices (CDP touch events, 844x390): pause, 2 PLAYERS, HOST; the other pauses, 2 PLAYERS,
 //              JOIN and taps the 4 pictures; the host changes into a horse with CHANGE; the other taps RIDE, rides while the host
-//              walks with the stick, and taps HOP OFF.
+//              walks with the stick, and taps HOP OFF; then the relay is stopped outright: both notice at once and play goes on.
+//   keys     - one device by keyboard only (Esc, Tab, Enter: 2 PLAYERS, HOST; R rides, Space hops off; RACE), the other by gamepad
+//              only (Start, the d-pad, A: 2 PLAYERS, JOIN, the 4 pictures; X rides, A hops off; TAG).
 //   WxH      - at that size in touch mode (with a stand-in friend on a Node socket): the pause menu alone and together, the
 //              2 PLAYERS panel (Host/Join, the explanation, the keypad, the code, together) and the HUD during tag with the friend
 //              off screen (the edge arrow): every control on screen, none overlapping, every target at least 44 px, no page scroll.
@@ -50,7 +55,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--shots') shots = path.resolve(args[++i]);
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
 }
-const runs = picked.length ? picked : ['relay', 'together', 'pages', 'touch', ...SIZES];
+const runs = picked.length ? picked : ['relay', 'together', 'pages', 'touch', 'keys', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (shots) fs.mkdirSync(shots, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -160,6 +165,9 @@ async function connect(S, tag) {
     return v.result?.result?.value;
   };
   await send('Runtime.enable'); await send('Page.enable'); await send('Log.enable'); await send('Network.enable');
+  // a headless page can turn "hidden" when keyboard focus leaves it (Tab past the last control), which stops its frames: keep it
+  // focused and in front, as the one app on an iPad's screen is
+  await send('Emulation.setFocusEmulationEnabled', { enabled: true }); await send('Page.bringToFront');
   const C = { send, ev, errs, frames, requests, sockets, tag };
   const ready = async (what) => { for (let i = 0; i < 150; i++) { await sleep(200); if (await ev('document.readyState === "complete" && !!window.__ww').catch(() => false)) return; } throw new Error(tag + ': page did not ' + what); };
   C.size = async (w, h, touch) => {
@@ -213,6 +221,25 @@ function rawGet(port, rawPath, extra = '') {
   });
 }
 
+// a raw WebSocket client: so many masked frames can go out in one TCP write (as after a Wi-Fi stall)
+function rawWs(port) {
+  return new Promise((res) => {
+    const s = net.connect(port, '127.0.0.1'); let buf = Buffer.alloc(0), up = false; const W = { s, closed: false, closeCode: null };
+    s.on('connect', () => s.write(`GET /ww HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n`));
+    s.on('data', (d) => {
+      buf = Buffer.concat([buf, d]);
+      if (!up) { const i = buf.indexOf('\r\n\r\n'); if (i < 0) return; up = true; buf = buf.subarray(i + 4); res(W); }
+      while (buf.length >= 2) { const op = buf[0] & 15; let len = buf[1] & 127, off = 2; if (len === 126) { if (buf.length < 4) break; len = buf.readUInt16BE(2); off = 4; } if (buf.length < off + len) break; if (op === 8) { W.closed = true; W.closeCode = len >= 2 ? buf.readUInt16BE(off) : null; } buf = buf.subarray(off + len); }
+    });
+    s.on('close', () => { W.closed = true; }); s.on('error', () => { W.closed = true; });
+  });
+}
+function wsFrame(text) {
+  const p = Buffer.from(text), mask = Buffer.from([1, 2, 3, 4]), head = p.length < 126 ? Buffer.from([0x81, 0x80 | p.length]) : Buffer.from([0x81, 0x80 | 126, p.length >> 8, p.length & 255]);
+  const body = Buffer.from(p); for (let i = 0; i < body.length; i++) body[i] ^= mask[i & 3];
+  return Buffer.concat([head, mask, body]);
+}
+
 // ===========================================================================
 // relay: Node only
 // ===========================================================================
@@ -246,6 +273,19 @@ async function runRelay() {
   ok(`a player can't fake the server's own messages (room, peer-left)`, !a.q.some((m) => m.t === 'room' || m.t === 'peer-left'), a.q);
   b.send(JSON.stringify({ t: 'st', pad: 'x'.repeat(5000) })); await sleep(300); const left = await a.next('peer-left');
   ok(`a message over the size limit (5 KB) closes that socket (${b.readyState === 3 ? 'closed' : 'open'}), and the host hears they left`, b.readyState === 3 && left, { ready: b.readyState, left });
+  // a burst (a second of moves let go at once after a Wi-Fi stall) in ONE write: every frame is fine, so the socket stays
+  const raw = await rawWs(R.port); raw.s.write(wsFrame(JSON.stringify({ t: 'join', code: room.code }))); await sleep(200);
+  a.q.length = 0;
+  raw.s.write(Buffer.concat([...Array.from({ length: 80 }, (_, i) => wsFrame(JSON.stringify({ t: 'st', x: i, y: 0, z: 0, f: 'horse' }))), wsFrame(JSON.stringify({ t: 'meet', id: 'lion' }))]));
+  await sleep(500);
+  const st1 = a.q.filter((m) => m.t === 'st').length, meet1 = a.q.some((m) => m.t === 'meet');
+  ok(`a burst of 80 small frames and a meet in one TCP write: the socket stays open (${!raw.closed}) and all ${st1} moves and the meet arrive`, !raw.closed && st1 === 80 && meet1, { st1, meet1, closed: raw.closed, code: raw.closeCode });
+  a.q.length = 0;
+  raw.s.write(Buffer.concat([...Array.from({ length: 60 }, (_, i) => wsFrame(JSON.stringify({ t: 'st', x: 100 + i, f: 'horse' }))), wsFrame(JSON.stringify({ t: 'over', id: 1, win: 0 }))]));
+  await sleep(500);
+  const st2 = a.q.filter((m) => m.t === 'st').length, over2 = a.q.some((m) => m.t === 'over');
+  ok(`past the rate limit only moves are dropped (${st1 + st2} of 140 moves passed in the second, at most 90), and a race's end still goes through (${over2})`, st1 + st2 <= 90 && st1 + st2 >= 85 && over2 && !raw.closed, { st1, st2, over2 });
+  raw.s.destroy(); await a.next('peer-left', 1000);
   const b2 = await nodeClient(R); b2.put({ t: 'join', code: room.code }); const rb2 = await b2.next('room');
   ok(`the same code rejoins into the free seat (${rb2?.you})`, rb2 && rb2.you === 1, rb2);
   // origin: another web page can't open the socket; this page's own origin can
@@ -425,12 +465,17 @@ async function runTogether(CA, CB) {
   ok(`the same code joins again: together (${(await CB.ev('window.__ww.net()')).state})`, !!back, await CB.ev('window.__ww.net()'));
   await sleep(300);
 
-  // ---- the relay dies: both keep playing alone, with everything
+  // ---- the line goes silent (the relay frozen with SIGSTOP: the sockets stay open but nothing moves, as when a lid closes or an
+  // iPad leaves the Wi-Fi), in the middle of a game of tag: both notice by themselves and keep playing alone, with everything
+  await CA.ev('window.__ww.startGame("tag", 60)'); await CB.until('window.__ww.game() && window.__ww.game().kind === "tag" && !window.__ww.game().result', 2000);
   const before = { A: await CA.ev('window.__ww.progress()'), B: await CB.ev('window.__ww.progress()'), mA: (await CA.ev('window.__ww.state()')).met, mB: (await CB.ev('window.__ww.state()')).met };
-  const port = R.port; await killRelayWait(R);
-  const dA = await CA.until('window.__ww.net().state === "dropped"', 3000), dB = await CB.until('window.__ww.net().state === "dropped"', 3000);
+  const port = R.port; R.proc.kill('SIGSTOP'); const tStop = Date.now();
+  const dA = await CA.until('window.__ww.net().state === "dropped"', 14000, 100), dB = await CB.until('window.__ww.net().state === "dropped"', 3000, 100); const tDrop = Date.now() - tStop;
   const noteA = await CA.ev('document.getElementById("toast").classList.contains("on") ? document.getElementById("toastText").textContent : null'), noteB = await CB.ev('document.getElementById("toast").classList.contains("on") ? document.getElementById("toastText").textContent : null');
-  ok(`the relay is killed: both notice (${dA}, ${dB}) with a calm notice ("${noteA}" / "${noteB}"), and the friend is gone from the world`, dA && dB && /stopped/.test(noteA || '') && /stopped/.test(noteB || '') && !(await CA.ev('window.__ww.peer()')) && !(await CB.ev('window.__ww.peer()')), { noteA, noteB });
+  const gEnd = [await CA.ev('window.__ww.game()'), await CB.ev('window.__ww.game()')];
+  ok(`the line goes silent (relay frozen, sockets still open): after ${(tDrop / 1000).toFixed(1)} s both notice by themselves (${dA}, ${dB}) with a calm notice ("${noteA}" / "${noteB}"), the game of tag ends on both (${gEnd.map((g) => g?.result?.cancelled).join(', ')}), and the friend is gone from the world`,
+    dA && dB && tDrop < 12000 && /stopped/.test(noteA || '') && /stopped/.test(noteB || '') && gEnd.every((g) => g && g.result && g.result.cancelled) && !(await CA.ev('window.__ww.peer()')) && !(await CB.ev('window.__ww.peer()')), { noteA, noteB, gEnd, tDrop });
+  await killRelayWait(R);   // SIGKILL ends a stopped process too
   await CA.shot('two-dropped');
   for (const [C, label, mine] of [[CA, 'host', before.mA], [CB, 'joiner', before.mB]]) {
     const r = await inPage(C, `const s0 = S(); W.input({ y: -1 }); W.step(60); W.input({}); const s1 = S(); W.meet('cow'); const b = become('cow'); const s2 = S(); W.requestChange('human');
@@ -545,6 +590,71 @@ async function runTouch(CA, CB) {
   await CB.tapEl('.tp-root [data-tp="jump"]'); await sleep(350);
   rb = await CB.ev('window.__ww.ride()'); const sb2 = await CB.ev('window.__ww.state()');
   ok(`a tap on HOP OFF: down beside the horse (${rb.on ? 'still riding' : 'off'}, ${hd(sa, sb2).toFixed(1)} m away, on the ground: ${sb2.grounded})`, !rb.on && sb2.grounded && hd(sa, sb2) > 0.8 && hd(sa, sb2) < 4, { rb, sb2 });
+  // the server is stopped outright (its sockets close): both notice at once, and touch play goes on
+  const t0 = Date.now(); await killRelayWait(R);
+  const dA = await CA.until('window.__ww.net().state === "dropped"', 3000, 20), dB = await CB.until('window.__ww.net().state === "dropped"', 3000, 20), ms = Date.now() - t0;
+  const s0 = await CA.ev('window.__ww.state()');
+  await CA.touch('touchStart', [[110, 300, 2]]); await sleep(60); for (let k = 1; k <= 6; k++) { await CA.touch('touchMove', [[110, 300 - k * 10, 2]]); await sleep(30); } await sleep(700); await CA.touch('touchEnd', []); await sleep(200);
+  const s1 = await CA.ev('window.__ww.state()');
+  ok(`the server stopped outright: both notice within ${ms} ms (${dA}, ${dB}), and the stick still walks the horse (${hd(s0, s1).toFixed(1)} m)`, dA && dB && ms < 3000 && hd(s0, s1) > 2, { ms, s0, s1 });
+  return out;
+}
+
+// ===========================================================================
+// keys: one device by keyboard only, the other by gamepad only (a stand-in navigator.getGamepads, as ww-world.mjs)
+// ===========================================================================
+const KEYS = { Space: [' ', 32], Enter: ['Enter', 13], Tab: ['Tab', 9], Escape: ['Escape', 27], KeyR: ['r', 82] };
+async function runKeys(CA, CB) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const R = await startRelay({ ttl: 30 });
+  await CB.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const pad = { id: 'test pad', index: 0, connected: true, mapping: 'standard', timestamp: 0, axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })) };
+    window.__pad = pad; Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad, null, null, null] }); })();` });
+  await CA.open(R.base, 640, 400, false); await CB.open(R.base, 640, 400, false);
+  await setup(CA, 'Max', 1); await setup(CB, 'Sam', 2);
+  await CA.ev('window.__ww.manual(false); window.__ww.spelling(false); true'); await CB.ev('window.__ww.manual(false); window.__ww.spelling(false); true');
+  const key = async (code, hold = 50) => { const [k, vk] = KEYS[code], base = { code, key: k, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk };
+    await CA.send('Input.dispatchKeyEvent', { type: 'keyDown', ...base, ...(k.length === 1 || k === 'Enter' ? { text: k === 'Enter' ? '\r' : k } : {}) }); await sleep(hold);
+    await CA.send('Input.dispatchKeyEvent', { type: 'keyUp', ...base }); await sleep(180); };
+  const focusA = () => CA.ev('document.activeElement && (document.activeElement.id || "")');
+  const tabTo = async (id) => { for (let i = 0; i < 14 && (await focusA()) !== id; i++) await key('Tab'); return (await focusA()) === id; };
+  const press = async (n, hold = 120) => { await CB.ev(`window.__pad.buttons[${n}].pressed = true`); await sleep(hold); await CB.ev(`window.__pad.buttons[${n}].pressed = false`); await sleep(220); };
+  const PA = 0, PX = 2, START = 9, DOWN = 13, RIGHT = 15;
+  const focusB = () => CB.ev('(() => { const e = document.activeElement; return e ? (e.id || (e.dataset.c != null ? "key" + e.dataset.c : "")) : ""; })()');
+  const padTo = async (id, dir = DOWN) => { for (let i = 0; i < 16 && (await focusB()) !== id; i++) await press(dir, 80); return (await focusB()) === id; };
+  // the host, by keyboard: Esc, Tab to 2 PLAYERS, Enter, Enter on HOST
+  await key('Escape'); const t1 = await tabTo('pTwoBtn'); await key('Enter');
+  const f1 = await focusA(); await key('Enter');
+  const code = await CA.until('(() => { const n = window.__ww.net(); return n.state === "waiting" && n.code ? n.code : null; })()');
+  ok(`keyboard: Esc pauses, Tab reaches 2 PLAYERS (${t1}), Enter opens it with HOST in focus (${f1}), Enter hosts (${JSON.stringify(code)})`, t1 && f1 === 'twHost' && code, { t1, f1, code });
+  // the joiner, by gamepad: Start, the d-pad to 2 PLAYERS, A, right to JOIN, A, then each picture with the d-pad and A
+  await press(START); const g1 = await padTo('pTwoBtn'); await press(PA);
+  const g2 = await padTo('twJoin', RIGHT); await press(PA);
+  const picked = [];
+  for (const c of code) { const okc = await padTo('key' + c, RIGHT); picked.push(okc); await press(PA); }
+  const tog = await CB.until('window.__ww.net().state === "together"', 4000) && await CA.until('window.__ww.net().state === "together"', 4000);
+  ok(`gamepad: Start pauses, the d-pad reaches 2 PLAYERS (${g1}) and JOIN (${g2}), and the d-pad and A tap in the 4 pictures (${picked.join(',')}): together (${!!tog})`, g1 && g2 && picked.every(Boolean) && tog, { g1, g2, picked });
+  await CA.until('window.__ww.state().overlay === null', 3000); await CB.until('window.__ww.state().overlay === null', 3000);
+  // gamepad rides: the host a horse; X rides, A hops off
+  await CA.ev(`window.__ww.meet('horse'); window.__ww.requestChange('horse'); true`);
+  let s = await CA.ev('window.__ww.state()');
+  await CB.ev(`window.__ww.teleport(${s.x + 1.6}, ${s.z + 0.8}); true`); await sleep(400);
+  await press(PX); const gr = await CB.until('window.__ww.ride().on', 1500);
+  await press(PA); const go = await CB.until('!window.__ww.ride().on', 1500); const sb = await CB.ev('window.__ww.state()');
+  ok(`gamepad: X rides the horse (${!!gr}), A hops off onto the ground (${!!go}, grounded ${sb.grounded})`, gr && go && sb.grounded, { gr, go, sb });
+  // keyboard rides: now the joiner is the horse; R rides, Space hops off
+  await CA.ev(`window.__ww.requestChange('human'); true`); await CB.ev(`window.__ww.requestChange('horse'); true`);  s = await CB.ev('window.__ww.state()');
+  await CA.ev(`window.__ww.teleport(${s.x + 1.6}, ${s.z + 0.8}); true`); await sleep(400);
+  await key('KeyR'); const kr = await CA.until('window.__ww.ride().on', 1500);
+  await key('Space'); const ko = await CA.until('!window.__ww.ride().on', 1500); const sa = await CA.ev('window.__ww.state()');
+  ok(`keyboard: R rides the friend's horse (${!!kr}), Space hops off onto the ground (${!!ko}, grounded ${sa.grounded})`, kr && ko && sa.grounded, { kr, ko, sa });
+  // RACE by keyboard (Esc, Tab, Enter); TAG by gamepad (Start, d-pad, A)
+  await key('Escape'); const t2 = await tabTo('pRaceBtn'); await key('Enter');
+  const race = await CB.until('window.__ww.game() && window.__ww.game().kind === "race" ? window.__ww.game() : null', 2000);
+  ok(`keyboard: Esc, Tab to RACE (${t2}), Enter starts a race on both (${race?.kind})`, t2 && race, race);
+  await sleep(300);
+  await press(START); const g3 = await padTo('pTagBtn'); await press(PA);
+  const tag = await CA.until('window.__ww.game() && window.__ww.game().kind === "tag" ? window.__ww.game() : null', 2000);
+  ok(`gamepad: Start, the d-pad to TAG (${g3}), A starts tag on both (${tag?.kind}; the joiner is it: ${tag && tag.meIt === false})`, g3 && tag && tag.meIt === false, tag);
   await killRelayWait(R);
   return out;
 }
@@ -634,11 +744,11 @@ async function runSize(C, size) {
 async function main() {
   const all = []; const unfinished = [];
   for (const run of runs) {
-    const two = run === 'together' || run === 'touch', S = run === 'relay' ? [] : two ? [launch(), launch()] : [launch()];
+    const two = run === 'together' || run === 'touch' || run === 'keys', S = run === 'relay' ? [] : two ? [launch(), launch()] : [launch()];
     const t0 = Date.now(); let timer, Cs = [];
     try {
       for (let i = 0; i < S.length; i++) Cs.push(await connect(S[i], i ? 'B' : 'A'));
-      const job = run === 'relay' ? runRelay() : run === 'together' ? runTogether(...Cs) : run === 'pages' ? runPages(Cs[0]) : run === 'touch' ? runTouch(...Cs) : runSize(Cs[0], run);
+      const job = run === 'relay' ? runRelay() : run === 'together' ? runTogether(...Cs) : run === 'pages' ? runPages(Cs[0]) : run === 'touch' ? runTouch(...Cs) : run === 'keys' ? runKeys(...Cs) : runSize(Cs[0], run);
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       for (const C of Cs) res.push({ name: `${run}: no page errors (${C.tag})`, pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);

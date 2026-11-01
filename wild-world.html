@@ -2382,8 +2382,8 @@ const Parent = {
 //   stop the other's game.
 // ===========================================================================
 // hz: where you are, sent this often; interp: the friend is drawn this far (ms) behind their newest message, one and a half
-// sends, so there are nearly always two to slide between; snap: a jump bigger than this (m) between two messages isn't slid
-const TWO = { hz: 30, interp: 50, snap: 8, rideReach: 2.6, tagGap: 0.6, tagCool: 2000, raceDist: 60, raceSecs: 90, tagSecs: 60, goal: 4, countdown: 3 };
+// sends, so there are nearly always two to slide between; snap: a jump bigger than this (m) between two messages isn't slid; silent: this long (ms) with nothing from the friend means the line is gone
+const TWO = { hz: 30, interp: 50, snap: 8, silent: 8000, rideReach: 2.6, tagGap: 0.6, tagCool: 2000, raceDist: 60, raceSecs: 90, tagSecs: 60, goal: 4, countdown: 3 };
 const TWO_WHY = 'Two players works at home: ask a parent to start the game server';
 // what can be ridden, and where the rider sits: seat = the top of its back above its feet, z = how far forward of its middle
 // (the builder could add more big animals here: cow, bear and giraffe would all carry a rider)
@@ -2432,8 +2432,10 @@ const Net = {
     this.link = null; this.state = 'off'; this.code = null;
     if (was !== 'off') this.emit({ t: 'closed' });
   },
-  lost() { this.gen++; this.link = null; const was = this.state; this.state = 'dropped'; this.code = null; this.emit({ t: 'lost', was }); },
+  // the line dropped (closed), or went silent: hang up and say so
+  lost(silent) { this.gen++; if (this.link) this.link.close(); this.link = null; const was = this.state; this.state = 'dropped'; this.code = null; this.emit({ t: 'lost', was, silent: !!silent }); },
   receive(m) {
+    this.heardAt = performance.now();
     if (m.t === 'room') { this.code = Array.isArray(m.code) ? m.code.slice(0, 4) : null; this.you = m.you === 1 ? 1 : 0; this.state = m.peers > 1 ? 'together' : 'waiting'; }
     else if (m.t === 'peer-join') this.state = 'together';
     else if (m.t === 'peer-left') { if (this.state === 'together') this.state = 'waiting'; }
@@ -2662,6 +2664,9 @@ const Two = {
 
   // ---- every frame (and every manual step): the rider follows, the referee watches, RIDE comes and goes
   frame(now = performance.now()) {
+    // a line that goes quiet without closing (a closed lid, an iPad out of range, the router blinking): the friend sends 30
+    // times a second even when paused, so TWO.silent ms of nothing means they're gone
+    if (Net.state === 'together' && this.peer && now - (Net.heardAt || now) > TWO.silent) Net.lost(true);
     if (this.ride) this.follow();
     this.sendIfMoved(now);
     this.referee(now); this.chip(now);

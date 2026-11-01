@@ -22,7 +22,7 @@
 // {t:'err', why:'full'}); at most MAX_ROOMS rooms. Every other message is passed, as sent, to the other player; nothing is kept,
 // logged or looked at beyond its type. A room nobody is in is forgotten after --room-ttl seconds (default 30: long enough for
 // a reload to come back with the same code). Messages are at most MAX_MSG bytes (a bigger one closes that socket, 1009); a
-// socket that sends more than RATE messages a second has the extra dropped. The server pings every PING_MS; a socket that
+// socket that sends more than RATE position updates ('st') a second has the extra dropped (other messages always pass). The server pings every PING_MS; a socket that
 // hasn't answered in DEAD_MS (an iPad that went to sleep) is closed, so its room learns it is empty.
 // A browser's upgrade is refused (403) unless its Origin is this server itself, so another web page can't join a room.
 //
@@ -116,8 +116,9 @@ class Peer {
     this.gone();
   }
   data(d) {
+    // no size check on the whole read: after a Wi-Fi stall one read can carry a second's worth of small frames, all fine.
+    // Each frame's length is checked below, so what waits in buf is at most one partial frame (MAX_MSG + 14 bytes).
     this.buf = this.buf.length ? Buffer.concat([this.buf, d]) : d;
-    if (this.buf.length > MAX_MSG * 2 + 64) { this.close(1009); return; }
     while (this.open) {
       const b = this.buf; if (b.length < 2) return;
       const fin = b[0] & 0x80, rsv = b[0] & 0x70, op = b[0] & 0x0f, masked = b[1] & 0x80;
@@ -145,11 +146,11 @@ class Peer {
     }
   }
   message(text) {
-    const now = Date.now();
-    if (now - this.rate.t > 1000) { this.rate.t = now; this.rate.n = 0; }
-    if (++this.rate.n > RATE) return;   // too many: dropped, not relayed
     let m; try { m = JSON.parse(text); } catch { return; }
     if (!m || typeof m !== 'object' || typeof m.t !== 'string') return;
+    // only the position updates are limited (a newer one replaces a dropped one); the rare game events (a meet, a race's end,
+    // a rider dropped) always go through
+    if (m.t === 'st') { const now = Date.now(); if (now - this.rate.t > 1000) { this.rate.t = now; this.rate.n = 0; } if (++this.rate.n > RATE) return; }
     if (m.t === 'host') return Rooms.host(this);
     if (m.t === 'join') return Rooms.join(this, m.code);
     if (m.t === 'leave') return Rooms.leave(this);
