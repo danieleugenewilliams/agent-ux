@@ -15,8 +15,12 @@
 //              animals is found live in its own biome (and still there after 10 s of wandering).
 //   anatomy  - all 18 animals built in world space (__ww.anatomy: the tagged body, head, neck, tail and tip boxes): every neck's
 //              low end is in the body and its top end in the head; every tail's near end is in the body and its far end behind
-//              the body (more -z), rising from it (not lower than the near end) and not below the feet; every tip sits on the far end of its tail; every animal but the bear has
+//              the body (more -z) and not below the feet; the horse, cow, elephant, giraffe and lion tails hang down and back
+//              from the top of the rump (Dad's mix), every other tail rises; every tip sits on the far end of its tail; every animal but the bear has
 //              a tail. With --shots, a contact sheet of all 18 from the side and from the play camera behind.
+//   tails    - every tailed animal from the default play camera at 820x1180, 844x390 and 360x740 (__ww.tailView): how much of each
+//              tail's length faces the camera (1 side-on, 0 end-on); every line tail (at least 2x as long as wide) shows at least
+//              0.4, and no tip is wider on screen than its tail. With --shots, a contact sheet of them all from behind (440 px tiles).
 //   forms    - all 18 change in and out (requestChange, the puff), each power measured against the table in POWERS; a human who
 //              only steers (look + input) meets a fish, a dolphin, an eagle and a shy rabbit; the human paddles at the top of deep
 //              water and never goes under; a reload keeps the book.
@@ -34,7 +38,7 @@
 //
 // Usage:
 //   node scripts/ww-world.mjs                  # every run
-//   node scripts/ww-world.mjs --run forms      # one run (repeatable): forms | biomes | walk | frames | touch | keys | gamepad | WxH
+//   node scripts/ww-world.mjs --run forms      # one run (repeatable): anatomy | tails | forms | biomes | walk | frames | touch | keys | gamepad | WxH
 //   node scripts/ww-world.mjs --shots DIR      # also save screenshots (the PR's set: --shots docs/screenshots/wild-world)
 //   node scripts/ww-world.mjs path.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
@@ -59,7 +63,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['anatomy', 'forms', 'biomes', 'walk', 'frames', 'touch', 'keys', 'gamepad', ...SIZES];
+const runs = picked.length ? picked : ['anatomy', 'tails', 'forms', 'biomes', 'walk', 'frames', 'touch', 'keys', 'gamepad', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const page = path.resolve(target ?? path.join(repo, 'wild-world.html'));
 if (shots) fs.mkdirSync(shots, { recursive: true });
@@ -550,6 +554,7 @@ async function runTouch(C) {
 
 // ---- anatomy: necks meet heads, tails come out of the back end and stay on, tips stay on their tails (the boys' playtest)
 const ANAT_T = 0.03;   // "touching": within 3 cm
+const HANG = ['horse', 'cow', 'elephant', 'giraffe', 'lion'];   // Dad's mix (hand-back 2): long tails that hang
 function checkAnatomy(a) {
   const T = ANAT_T, bad = [];
   const inBox = (p, b) => p[0] >= b.min[0] - T && p[0] <= b.max[0] + T && p[1] >= b.min[1] - T && p[1] <= b.max[1] + T && p[2] >= b.min[2] - T && p[2] <= b.max[2] + T;
@@ -568,7 +573,11 @@ function checkAnatomy(a) {
       if (!inBox(near, B)) bad.push(`tail's near end ${f(near)} is not on the body`);
       if (!(far[2] < B.min[2])) bad.push(`tail's far end ${f(far)} is not behind the body (back at z ${B.min[2].toFixed(2)})`);
       if (far[1] < a.at[1] - 1e-6) bad.push(`tail's far end ${f(far)} is below the feet`);
-      if (far[1] < near[1] - 1e-6) bad.push(`tail droops instead of rising (near end y ${near[1].toFixed(2)}, far end y ${far[1].toFixed(2)})`);
+      if (HANG.includes(a.id)) {   // Dad's mix: these long tails hang from the top of the rump, down and a little back (not tucked into the legs)
+        if (!(far[1] < near[1])) bad.push(`tail should hang down (near end y ${near[1].toFixed(2)}, far end y ${far[1].toFixed(2)})`);
+        if (!(far[2] < near[2] - 0.1)) bad.push(`hanging tail is tucked in, not back from vertical (near z ${near[2].toFixed(2)}, far z ${far[2].toFixed(2)})`);
+        if (!(near[1] >= B.max[1] - 0.15)) bad.push(`hanging tail doesn't start at the top of the rump (y ${near[1].toFixed(2)}, back at ${B.max[1].toFixed(2)})`);
+      } else if (far[1] < near[1] - 1e-6) bad.push(`tail droops instead of rising (near end y ${near[1].toFixed(2)}, far end y ${far[1].toFixed(2)})`);
       lastTail = { far };
     } else if (q.role === 'tip') {
       tips++; const c = q.min.map((v, i) => (v + q.max[i]) / 2);
@@ -609,6 +618,48 @@ async function runAnatomy(C) {
       R.setRenderTarget(null); rt.dispose(); return cv.toDataURL('image/png'); })()`);
     fs.writeFileSync(path.join(shots, 'animals-side-behind.png'), Buffer.from(url.split(',')[1], 'base64'));
   }
+  return out;
+}
+
+// ---- tails from the play camera (the boys' playtest, round 2): every line tail reads as a line from behind, not a square
+const TAIL_SIZES = ['820x1180', '844x390', '360x740'], TAIL_MIN = 0.4;
+async function runTails(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const table = {};
+  for (const size of TAIL_SIZES) {
+    const [w, h] = size.split('x').map(Number);
+    await C.open(w, h, false);
+    const r = await C.ev(String.raw`(() => { ${H} W.manual(true); W.start(); const run = openRun('farm', 12) || openRun(null, 12); const o = {};
+      for (const a of W.ANIMALS) { W.become('human'); W.teleport(run.x, run.z); W.become(a.id); W.look(0, 0.32); W.step(3); const v = W.tailView(); if (v.tails.length) o[a.id] = v.tails; }
+      W.become('human'); return o; })()`);
+    for (const [id, tails] of Object.entries(r)) for (const [i, t] of tails.entries()) (table[id + (tails.length > 1 ? '#' + i : '')] ||= {})[size] = t;
+    if (shots && size === '820x1180') {
+      // a contact sheet: every tailed animal from the play camera's own spot and angle behind it (zoomed to a 24-degree view so the
+      // animal fills the tile; the change puff hidden), 440 px a tile
+      const ids = Object.keys(r);
+      const url = await C.ev(String.raw`(() => { const W = window.__ww, T = W.THREE, R = W.renderer, S = 440, cols = 4, ids = ${JSON.stringify(ids)}, rows = Math.ceil(ids.length / cols);
+        const rt = new T.WebGLRenderTarget(S, S), buf = new Uint8Array(S * S * 4), cv = document.createElement('canvas'); cv.width = cols * S; cv.height = rows * S;
+        const cx = cv.getContext('2d'), img = cx.createImageData(S, S), toS = (v) => Math.round(255 * ((v /= 255) <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055));
+        cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height); cx.font = 'bold 22px sans-serif'; const p0 = { x: W.P.x, z: W.P.z };
+        ids.forEach((id, k) => { W.become('human'); W.teleport(p0.x, p0.z); W.become(id); W.look(0, 0.32); W.step(3); W.P.pop = 1; W.render();
+          W.scene.traverse((o) => { if (o.isPoints) o.visible = false; }); const cam = W.camera.clone(); cam.aspect = 1; cam.fov = 24; cam.updateProjectionMatrix(); R.setRenderTarget(rt); R.render(W.scene, cam); W.scene.traverse((o) => { if (o.isPoints) o.visible = true; }); R.readRenderTargetPixels(rt, 0, 0, S, S, buf);
+          for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const s = ((S - 1 - y) * S + x) * 4, d = (y * S + x) * 4; img.data[d] = toS(buf[s]); img.data[d + 1] = toS(buf[s + 1]); img.data[d + 2] = toS(buf[s + 2]); img.data[d + 3] = 255; }
+          const px = (k % cols) * S, py = Math.floor(k / cols) * S; cx.putImageData(img, px, py); cx.fillStyle = '#183153'; cx.fillText(id, px + 10, py + 30); });
+        R.setRenderTarget(null); rt.dispose(); W.become('human'); return cv.toDataURL('image/png'); })()`);
+      fs.writeFileSync(path.join(shots, 'tails-play-camera.png'), Buffer.from(url.split(',')[1], 'base64'));
+    }
+  }
+  const rows = Object.entries(table);
+  for (const [id, by] of rows) {
+    const t0 = by[TAIL_SIZES[0]], line = t0.line, shown = TAIL_SIZES.map((s) => by[s]?.shown ?? null), worst = Math.min(...shown);
+    const tipOk = TAIL_SIZES.every((s) => (by[s]?.tips || []).every((tp) => tp.widthPx <= by[s].widthPx + 0.5));
+    const tips = TAIL_SIZES.map((s) => (by[s]?.tips || []).map((tp) => tp.widthPx + '/' + by[s].widthPx + ' px').join(' ')).join(', ');
+    if (line) ok(`${id}: its tail shows ${shown.join(' / ')} from the play camera (${TAIL_SIZES.join(' / ')}; at least ${TAIL_MIN})${t0.tips.length ? `; tip no wider than the tail (tip/tail ${tips})` : ''}`, worst >= TAIL_MIN && tipOk, by);
+    else ok(`${id}: a short or flat tail (not a line: under 2x as long as wide), shows ${shown.join(' / ')}${t0.tips.length ? `; tip no wider than the tail (${tips})` : ''}`, tipOk, by);
+  }
+  const lines = rows.filter(([, by]) => by[TAIL_SIZES[0]].line), worst = lines.map(([id, by]) => [id, Math.min(...TAIL_SIZES.map((s) => by[s].shown))]).sort((a, b) => a[1] - b[1]);
+  console.log('  tails ' + JSON.stringify(Object.fromEntries(rows.map(([id, by]) => [id, TAIL_SIZES.map((s) => by[s]?.shown)]))));
+  ok(`tails: ${lines.filter(([, by]) => TAIL_SIZES.every((s) => by[s].shown >= TAIL_MIN)).length}/${lines.length} line tails show at least ${TAIL_MIN} at all three sizes (worst: ${worst[0]?.[0]} ${worst[0]?.[1]})`, worst.every(([, v]) => v >= TAIL_MIN), worst);
   return out;
 }
 
@@ -751,7 +802,7 @@ async function main() {
     const S = launch(); const t0 = Date.now(); let timer;
     try {
       const C = await connect(S);
-      const job = run === 'smoke' ? runSmoke(C) : run === 'walk' ? runWalk(C) : run === 'frames' ? runFrames(C) : run === 'biomes' ? runBiomes(C) : run === 'forms' ? runForms(C) : run === 'touch' ? runTouch(C) : run === 'keys' ? runKeys(C) : run === 'gamepad' ? runGamepad(C) : run === 'anatomy' ? runAnatomy(C) : runSize(C, run);
+      const job = run === 'smoke' ? runSmoke(C) : run === 'walk' ? runWalk(C) : run === 'frames' ? runFrames(C) : run === 'biomes' ? runBiomes(C) : run === 'forms' ? runForms(C) : run === 'touch' ? runTouch(C) : run === 'keys' ? runKeys(C) : run === 'gamepad' ? runGamepad(C) : run === 'anatomy' ? runAnatomy(C) : run === 'tails' ? runTails(C) : runSize(C, run);
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       res.push({ name: run + ': no page errors', pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);

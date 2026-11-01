@@ -477,7 +477,7 @@ const MODELS = {
   horse() {
     const c = 0x9a5b2e, d = 0x3b2414, P = new Parts();
     P.tag('body').box(0.7, 0.8, 1.9, c, 0, 1.35, 0).tag(null).tag('head').box(0.34, 0.38, 0.78, c, 0, 2.38, 1.32, 0.3).tag(null);
-    P.along(0, 1.6, 0.72, 0.6, [[0.36, 1.0, 0.46, c, 0, 0.5, 0], [0.12, 1.0, 0.26, d, 0, 0.55, -0.2, null]], 'neck').along(0, 1.62, -0.93, 0.55 - Math.PI / 2, [[0.16, 0.85, 0.16, d, 0, 0.425, 0]], 'tail');
+    P.along(0, 1.6, 0.72, 0.6, [[0.36, 1.0, 0.46, c, 0, 0.5, 0], [0.12, 1.0, 0.26, d, 0, 0.55, -0.2, null]], 'neck').along(0, 1.68, -0.92, -1.22 - Math.PI / 2, [[0.16, 0.9, 0.16, d, 0, 0.45, 0]], 'tail');
     P.box(0.1, 0.24, 0.02, WHITE, 0, 2.38, 1.72, 0.3);
     P.box(0.08, 0.2, 0.08, c, 0.1, 2.66, 1.06).box(0.08, 0.2, 0.08, c, -0.1, 2.66, 1.06); eyesSide(P, 0.175, 2.46, 1.36);
     return { P, limbs: legs4(c, d, 0.2, 0.95, 0.24, 0.75) };
@@ -486,7 +486,7 @@ const MODELS = {
     const P = new Parts();
     P.tag('body').box(0.9, 0.85, 1.7, WHITE, 0, 1.17, 0).tag(null).box(0.92, 0.42, 0.55, BLACK, 0, 1.3, 0.25).box(0.5, 0.45, 0.45, BLACK, 0.21, 1.06, -0.45).box(0.4, 0.3, 0.3, BLACK, -0.26, 1.3, -0.4);
     P.tag('head').box(0.5, 0.46, 0.52, WHITE, 0, 1.45, 1.05).tag(null).box(0.52, 0.26, 0.2, 0xf7a8b8, 0, 1.31, 1.33).box(0.08, 0.22, 0.08, 0xf3e6c4, 0.2, 1.76, 1.0).box(0.08, 0.22, 0.08, 0xf3e6c4, -0.2, 1.76, 1.0);
-    P.box(0.22, 0.1, 0.08, BLACK, 0.34, 1.55, 1.0).box(0.22, 0.1, 0.08, BLACK, -0.34, 1.55, 1.0).box(0.3, 0.16, 0.3, 0xf7a8b8, 0, 0.7, -0.3).along(0, 1.45, -0.83, 0.75 - Math.PI / 2, [[0.07, 0.6, 0.07, WHITE, 0, 0.3, 0], [0.13, 0.16, 0.13, BLACK, 0, 0.66, 0, 'tip']], 'tail');
+    P.box(0.22, 0.1, 0.08, BLACK, 0.34, 1.55, 1.0).box(0.22, 0.1, 0.08, BLACK, -0.34, 1.55, 1.0).box(0.3, 0.16, 0.3, 0xf7a8b8, 0, 0.7, -0.3).along(0, 1.52, -0.82, -1.25 - Math.PI / 2, [[0.07, 0.7, 0.07, WHITE, 0, 0.35, 0], [0.06, 0.12, 0.06, BLACK, 0, 0.76, 0, 'tip']], 'tail');
     eyes(P, 0.13, 1.55, 1.32);
     return { P, limbs: legs4(WHITE, 0x3a3a3a, 0.18, 0.75, 0.3, 0.65) };
   },
@@ -523,7 +523,7 @@ const MODELS = {
   wolf() {
     const c = 0x8a8f99, l = 0xc9ccd2, P = new Parts();
     P.tag('body').box(0.45, 0.5, 1.05, c, 0, 0.75, 0).tag(null).box(0.4, 0.3, 0.6, l, 0, 0.58, 0.1).tag('head').box(0.36, 0.34, 0.38, c, 0, 1.05, 0.65).tag(null).box(0.2, 0.16, 0.28, l, 0, 0.97, 0.92).box(0.08, 0.07, 0.05, BLACK, 0, 1.02, 1.07);
-    P.cone(0.08, 0.2, c, 0.11, 1.3, 0.6, 0, 0, 0, 4).cone(0.08, 0.2, c, -0.11, 1.3, 0.6, 0, 0, 0, 4).along(0, 0.86, -0.5, 0.55 - Math.PI / 2, [[0.17, 0.62, 0.17, c, 0, 0.31, 0]], 'tail');
+    P.cone(0.08, 0.2, c, 0.11, 1.3, 0.6, 0, 0, 0, 4).cone(0.08, 0.2, c, -0.11, 1.3, 0.6, 0, 0, 0, 4).along(0, 0.86, -0.5, 1.0 - Math.PI / 2, [[0.17, 0.62, 0.17, c, 0, 0.31, 0]], 'tail');
     eyes(P, 0.09, 1.1, 0.845, 0.055, 0xffd23f);
     return { P, limbs: legs4(c, 0x5a5f69, 0.12, 0.5, 0.15, 0.4) };
   },
@@ -546,7 +546,7 @@ const MODELS = {
   fox() {
     const c = 0xf07a26, P = new Parts();
     P.tag('body').box(0.3, 0.3, 0.7, c, 0, 0.45, 0).tag(null).box(0.2, 0.2, 0.2, WHITE, 0, 0.42, 0.3).tag('head').box(0.3, 0.28, 0.28, c, 0, 0.62, 0.45).tag(null).box(0.14, 0.12, 0.22, WHITE, 0, 0.56, 0.66).box(0.06, 0.06, 0.04, BLACK, 0, 0.6, 0.78);
-    P.cone(0.07, 0.18, c, 0.09, 0.84, 0.42, 0, 0, 0, 4).cone(0.07, 0.18, c, -0.09, 0.84, 0.42, 0, 0, 0, 4).along(0, 0.52, -0.33, 0.45 - Math.PI / 2, [[0.2, 0.5, 0.2, c, 0, 0.25, 0], [0.21, 0.16, 0.21, WHITE, 0, 0.58, 0, 'tip']], 'tail');
+    P.cone(0.07, 0.18, c, 0.09, 0.84, 0.42, 0, 0, 0, 4).cone(0.07, 0.18, c, -0.09, 0.84, 0.42, 0, 0, 0, 4).along(0, 0.52, -0.33, 1.0 - Math.PI / 2, [[0.18, 0.5, 0.18, c, 0, 0.25, 0], [0.16, 0.16, 0.16, WHITE, 0, 0.58, 0, 'tip']], 'tail');
     eyes(P, 0.08, 0.67, 0.595, 0.045);
     return { P, limbs: legs4(0x2a1d16, BLACK, 0.07, 0.3, 0.1, 0.25) };
   },
@@ -560,14 +560,14 @@ const MODELS = {
   lion() {
     const c = 0xe0a63c, m = 0x9a4f1a, P = new Parts();
     P.tag('body').box(0.6, 0.65, 1.3, c, 0, 0.92, 0).tag(null).box(0.78, 0.78, 0.42, m, 0, 1.2, 0.62).tag('head').box(0.44, 0.42, 0.4, c, 0, 1.18, 0.86).tag(null).box(0.24, 0.18, 0.18, 0xf3d48a, 0, 1.08, 1.1);
-    P.box(0.1, 0.08, 0.05, 0x5a2f14, 0, 1.15, 1.2).along(0, 1.1, -0.63, 0.75 - Math.PI / 2, [[0.07, 0.8, 0.07, c, 0, 0.4, 0], [0.14, 0.16, 0.14, m, 0, 0.86, 0, 'tip']], 'tail'); eyes(P, 0.11, 1.26, 1.065, 0.06);
+    P.box(0.1, 0.08, 0.05, 0x5a2f14, 0, 1.15, 1.2).along(0, 1.18, -0.62, -1.15 - Math.PI / 2, [[0.09, 0.75, 0.09, c, 0, 0.375, 0], [0.08, 0.18, 0.08, m, 0, 0.84, 0, 'tip']], 'tail'); eyes(P, 0.11, 1.26, 1.065, 0.06);
     return { P, limbs: legs4(c, 0xb07f2c, 0.16, 0.6, 0.2, 0.5) };
   },
   elephant() {
     const c = 0x9aa1ab, P = new Parts();
     P.tag('body').box(1.5, 1.4, 2.2, c, 0, 1.8, 0).tag(null).tag('head').box(1.0, 1.0, 0.8, c, 0, 2.3, 1.35).tag(null).box(0.1, 1.1, 0.9, 0xb9a9b4, 0.62, 2.3, 1.15, 0, 0.3, -0.15).box(0.1, 1.1, 0.9, 0xb9a9b4, -0.62, 2.3, 1.15, 0, -0.3, 0.15);
     P.box(0.32, 0.6, 0.32, c, 0, 1.85, 1.78).box(0.26, 0.6, 0.26, c, 0, 1.36, 1.86, 0.2).box(0.22, 0.4, 0.22, c, 0, 1.02, 2.0, 0.6);
-    P.box(0.1, 0.1, 0.55, 0xfffbea, 0.26, 1.8, 1.9, 0.45).box(0.1, 0.1, 0.55, 0xfffbea, -0.26, 1.8, 1.9, 0.45).along(0, 2.2, -1.08, 0.6 - Math.PI / 2, [[0.07, 0.7, 0.07, c, 0, 0.35, 0], [0.12, 0.14, 0.12, 0x4a4f57, 0, 0.75, 0, 'tip']], 'tail'); eyes(P, 0.3, 2.5, 1.755, 0.08);
+    P.box(0.1, 0.1, 0.55, 0xfffbea, 0.26, 1.8, 1.9, 0.45).box(0.1, 0.1, 0.55, 0xfffbea, -0.26, 1.8, 1.9, 0.45).along(0, 2.42, -1.06, -1.25 - Math.PI / 2, [[0.08, 0.8, 0.08, c, 0, 0.4, 0]], 'tail'); eyes(P, 0.3, 2.5, 1.755, 0.08);
     return { P, limbs: legs4(c, 0xe8e1d0, 0.42, 1.1, 0.48, 0.75) };
   },
   giraffe() {
@@ -575,7 +575,7 @@ const MODELS = {
     P.tag('body').box(0.7, 0.8, 1.4, c, 0, 1.9, 0).tag(null).tag('head').box(0.3, 0.3, 0.55, c, 0, 4.18, 1.08).tag(null);
     P.along(0, 2.15, 0.5, 0.32, [[0.28, 2.1, 0.32, c, 0, 1.05, 0], [0.06, 1.9, 0.08, s, 0, 1.1, -0.17, null],
       ...[0.55, 1.05, 1.55].flatMap((t) => [[0.02, 0.2, 0.18, s, 0.145, t, 0, null], [0.02, 0.2, 0.18, s, -0.145, t, 0, null]])], 'neck');
-    P.box(0.06, 0.22, 0.06, s, 0.08, 4.42, 0.95).box(0.06, 0.22, 0.06, s, -0.08, 4.42, 0.95).box(0.1, 0.08, 0.05, s, 0, 4.12, 1.36).along(0, 2.05, -0.68, 0.6 - Math.PI / 2, [[0.05, 0.6, 0.05, c, 0, 0.3, 0], [0.1, 0.16, 0.1, s, 0, 0.66, 0, 'tip']], 'tail');
+    P.box(0.06, 0.22, 0.06, s, 0.08, 4.42, 0.95).box(0.06, 0.22, 0.06, s, -0.08, 4.42, 0.95).box(0.1, 0.08, 0.05, s, 0, 4.12, 1.36).along(0, 2.22, -0.67, -1.25 - Math.PI / 2, [[0.06, 0.75, 0.06, c, 0, 0.375, 0]], 'tail');
     const spots = [[0.36, 2.0, 0.3], [0.36, 1.8, -0.3], [0.36, 2.1, -0.05], [-0.36, 2.0, 0.25], [-0.36, 1.75, -0.35], [-0.36, 2.1, -0.1]];
     for (const [x, y, z] of spots) P.box(0.02, 0.22, 0.26, s, x, y, z);
     eyesSide(P, 0.155, 4.25, 1.15, 0.07);
@@ -585,7 +585,7 @@ const MODELS = {
     const c = 0xf0c050, P = new Parts();
     P.tag('body').box(0.38, 0.4, 1.15, c, 0, 0.75, 0).tag(null).tag('head').box(0.3, 0.28, 0.32, c, 0, 0.95, 0.7).tag(null).box(0.16, 0.12, 0.14, 0xfbe6b0, 0, 0.88, 0.89).box(0.07, 0.06, 0.04, BLACK, 0, 0.92, 0.96);
     P.box(0.03, 0.14, 0.02, BLACK, 0.07, 0.88, 0.87).box(0.03, 0.14, 0.02, BLACK, -0.07, 0.88, 0.87).box(0.09, 0.09, 0.04, c, 0.1, 1.12, 0.62).box(0.09, 0.09, 0.04, c, -0.1, 1.12, 0.62);
-    P.along(0, 0.85, -0.55, 0.6 - Math.PI / 2, [[0.06, 0.9, 0.06, c, 0, 0.45, 0], [0.075, 0.14, 0.075, BLACK, 0, 0.96, 0, 'tip']], 'tail');
+    P.along(0, 0.85, -0.55, 1.0 - Math.PI / 2, [[0.06, 0.9, 0.06, c, 0, 0.45, 0], [0.05, 0.14, 0.05, BLACK, 0, 0.97, 0, 'tip']], 'tail');
     for (const [x, y, z] of [[0.195, 0.8, 0.3], [0.195, 0.7, -0.1], [0.195, 0.85, -0.35], [-0.195, 0.78, 0.25], [-0.195, 0.72, -0.15], [-0.195, 0.84, -0.4], [0.1, 0.955, 0.1], [-0.08, 0.955, -0.25]])
       P.box(x === 0.195 || x === -0.195 ? 0.01 : 0.08, x === 0.195 || x === -0.195 ? 0.08 : 0.01, 0.08, BLACK, x, y, z);
     eyes(P, 0.08, 1.0, 0.865, 0.05);
@@ -1603,6 +1603,29 @@ window.__ww = {
   openWheel, openBook, openPause, closeOverlay, toggleView, thumbs: THUMB, makeModel,
   // a model's tagged parts in world space (built at `at`, facing +z): each part's box and the two ends of its long axis;
   // swinging tails (fish, dolphin) give their pivot and their far end
+  // the player's tails as the play camera sees them: shown = how much of the tail's length faces the camera
+  // (1 side-on, 0 end-on: |dir x ray to its middle|), and on-screen widths (px, across the tail's screen line) of each tail and its tip
+  tailView() {
+    P.pop = 1; updateView(); P.model.updateMatrixWorld(true); camera.updateMatrixWorld();
+    const body = P.model.children[0], W = body.matrixWorld, out = [];
+    const px = (p) => { const q = p.clone().project(camera); return [(q.x + 1) / 2 * innerWidth, (1 - q.y) / 2 * innerHeight]; };
+    const corners = (q) => { const m = new THREE.Matrix4().fromArray(q.m).premultiply(W), [w, h, d] = q.dims, o = [];
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) o.push(px(new V3(sx * w / 2, sy * h / 2, sz * d / 2).applyMatrix4(m))); return o; };
+    let cur = null;
+    for (const q of body.geometry.userData.anat) {
+      if (q.role === 'tail' && q.dims) {
+        const m = new THREE.Matrix4().fromArray(q.m).premultiply(W), k = q.dims.indexOf(Math.max(...q.dims)), u = [0, 0, 0]; u[k] = q.dims[k] / 2;
+        const a = new V3(...u).applyMatrix4(m), b = new V3(...u.map((x) => -x)).applyMatrix4(m), dir = b.clone().sub(a).normalize(), mid = a.clone().add(b).multiplyScalar(0.5);
+        const ray = mid.clone().sub(camera.position).normalize(), sa = px(a), sb = px(b);
+        let ax = [sb[0] - sa[0], sb[1] - sa[1]]; const l = Math.hypot(...ax) || 1; ax = [-ax[1] / l, ax[0] / l];
+        const across = (cs) => { const v = cs.map((c) => c[0] * ax[0] + c[1] * ax[1]); return Math.max(...v) - Math.min(...v); };
+        const sorted = [...q.dims].sort((x, y) => y - x);
+        cur = { shown: +dir.clone().cross(ray).length().toFixed(3), lengthPx: +l.toFixed(1), widthPx: +across(corners(q)).toFixed(1), line: sorted[0] / sorted[1] >= 2, tips: [], across };
+        out.push(cur);
+      } else if (q.role === 'tip' && cur) cur.tips.push({ widthPx: +cur.across(corners(q)).toFixed(1) });
+    }
+    return { form: P.form, tails: out.map(({ across, ...t }) => t), camD: camera.position.distanceTo(P.model.position) };
+  },
   anatomy(id, at = [12, 3, -7]) {
     const g = makeModel(id); g.position.set(...at); g.updateMatrixWorld(true);
     const body = g.children[0], W = body.matrixWorld, v = (a) => new V3(...a);
