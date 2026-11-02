@@ -27,7 +27,7 @@
 //              walks with the stick, and taps HOP OFF; then the relay is stopped outright: both notice at once and play goes on.
 //   books    - Dad's (y): together, each changes into their own animals plus the friend's (lent); an animal met together
 //              is saved in both books; lent ones never are; after a leave and after a drop each is back to their own book, and
-//              a player who is a lent animal right then turns back into the guy.
+//              a player who is a lent animal right then turns back into the guy; a lent change leaves no changed-into mark.
 //   keys     - one device by keyboard only (Esc, Tab, Enter: 2 PLAYERS, HOST; R rides, Space hops off; RACE), the other by gamepad
 //              only (Start, the d-pad, A: 2 PLAYERS, JOIN, the 4 pictures; X rides, A hops off; TAG).
 //   WxH      - at that size in touch mode (with a stand-in friend on a Node socket): the pause menu alone and together, the
@@ -678,6 +678,11 @@ async function runBooks(CA, CB) {
   sA = await saved(CA, idA); sB = await saved(CB, idB);
   ok(`after a drop the joiner, who was the lent lion, is the guy again ("${dB.toast}"), and both are back to their own books (${dB.b.canUse.join(',')} / ${dA.canUse.join(',')}); the saved books are unchanged (${sB.met.join(',')} / ${sA.met.join(',')})`,
     dB.s.form === 'human' && dB.b.lent.length === 0 && dA.lent.length === 0 && !dB.b.canUse.includes('lion') && !dA.canUse.includes('fish') && sB.met.sort().join() === 'eagle,fish' && sA.met.sort().join() === 'cow,eagle,lion' && sB.form === 'human', { dB, dA, sA, sB });
+  // the lent change leaves no trace: when the joiner later meets a lion on their own, it isn't saved as changed-into, and the
+  // first change into their own lion still asks its name
+  await CB.ev(`window.__ww.meet('lion'); true`); sB = await saved(CB, idB);
+  const own = await inPage(CB, `const g = W.requestChange('lion'); const q = W.prompt(); return { g, kind: q && q.kind };`);
+  ok(`alone, the joiner meets a lion: not saved as changed-into (${(sB.changed || []).join(',')}), and changing into it asks its name (${own.kind})`, !(sB.changed || []).includes('lion') && own.g === 'gated' && own.kind === 'name', { sB, own });
   return out;
 }
 

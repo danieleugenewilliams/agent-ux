@@ -2513,6 +2513,7 @@ const Two = {
     // the friend's lent animals go back with them (each player keeps their own finds and every animal met together); a player
     // who is one of those right now turns back into the guy, with a word about why
     const wasLent = P.form !== 'human' && !P.met.has(P.form) ? P.form : null;
+    for (const id of this.lent) if (!P.met.has(id)) Player.changed.delete(id);   // a lent change doesn't count: meeting one later still asks its name
     this.lent = new Set();
     if (wasLent) doChange('human');
     const back = wasLent ? 'You are you again: that ' + A[wasLent].name.toLowerCase() + ' was your friend\'s. Meet one to keep it.' : '';
