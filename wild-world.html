@@ -401,6 +401,7 @@ const WORDS = {
   .tw-with .face { width: 64px; height: 64px; border-radius: 50%; background: var(--c, #fff); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 3px #fff, 0 3px 0 rgba(0,0,0,.25); flex: none; }
   .tw-with .face svg { width: 36px; height: 36px; }
   .tw-panel .big[disabled] { opacity: .45; }
+  .wslot.lent:not(.cur), .card.lent:not(.cur) { box-shadow: 0 0 0 4px var(--sky), 0 3px 0 rgba(0,0,0,.25); }   /* a friend's animal, lent while together */
   .pv-head .sp-round { flex: none; }
   @media (max-height: 430px) { .tw-big { min-height: 64px; flex-direction: row; gap: 10px; } .tw-big svg { width: 32px; height: 32px; } .tw-code span { --cs: 52px; } .tw-slot { --cs: 46px; } .tw-panel { gap: 6px; padding: 8px; }
     .tw-with .face { width: 48px; height: 48px; } }
@@ -1630,14 +1631,18 @@ function meet(id, fromPeer) {
   if (!fromPeer) Two.sendMeet(id);
   hud(); return true;
 }
-function save() { store.set('book.' + who.id, { v: SAVE_V, met: [...P.met], form: P.form, fp: P.fp, sound: Sfx.on, changed: [...Player.changed] }); }
+// only this player's own animals are saved: a friend's lent animals (#160, Dad's (y)) never go into this book, as met, as the
+// form to come back as, or as changed-into
+function save() { store.set('book.' + who.id, { v: SAVE_V, met: [...P.met], form: P.form === 'human' || P.met.has(P.form) ? P.form : 'human', fp: P.fp, sound: Sfx.on, changed: [...Player.changed].filter((id) => P.met.has(id)) }); }
+// can this player change into it? Their own animals, plus, only while playing together, the friend's (lent, not saved)
+const canUse = (id) => id === 'human' || P.met.has(id) || Two.lent.has(id);
 
 // ===========================================================================
 // Changing. Every change goes through requestChange(id) -> doChange(id); W2 (#158) gates it with Change.gate.
 // ===========================================================================
 function requestChange(id) {
   if (!FORMS[id]) return false;
-  if (id !== 'human' && !P.met.has(id)) { toast(id, 'Meet it first!'); return false; }
+  if (!canUse(id)) { toast(id, 'Meet it first!'); return false; }
   if (id === P.form) return true;
   if (Change.gate) { Change.gate(id, () => doChange(id)); return 'gated'; }
   doChange(id); return true;
@@ -1981,8 +1986,8 @@ function buildWheel() {
     let x = cx, y = cy;
     if (i >= 1 && i <= 6) { const a = -Math.PI / 2 + (i - 1) / 6 * Math.PI * 2; x += Math.cos(a) * r; y += Math.sin(a) * r; }
     else if (i > 6) { const a = -Math.PI / 2 + Math.PI / 12 + (i - 7) / 12 * Math.PI * 2; x += Math.cos(a) * R; y += Math.sin(a) * R; }
-    const b = document.createElement('button'), ok = id === 'human' || P.met.has(id);
-    b.className = 'wslot' + (ok ? '' : ' locked') + (id === 'human' ? ' human' : '') + (id === P.form ? ' cur' : '') + (i === wheelSel ? ' sel' : '');
+    const b = document.createElement('button'), ok = canUse(id), lent = ok && id !== 'human' && !P.met.has(id);
+    b.className = 'wslot' + (ok ? '' : ' locked') + (lent ? ' lent' : '') + (id === 'human' ? ' human' : '') + (id === P.form ? ' cur' : '') + (i === wheelSel ? ' sel' : '');
     b.dataset.id = id; b.setAttribute('aria-label', ok ? FORMS[id].name : 'Not met yet');
     Object.assign(b.style, { width: slot + 'px', height: slot + 'px', left: x - slot / 2 + 'px', top: y - slot / 2 + 'px' });
     b.innerHTML = `<img alt="" src="${THUMB[id] || ''}">`;
@@ -1990,10 +1995,10 @@ function buildWheel() {
     b.addEventListener('pointerenter', () => { $('wname').textContent = ok ? FORMS[id].name : '???'; });
     ring.appendChild(b);
   });
-  $('wname').textContent = (WHEEL_ORDER[wheelSel] === 'human' || P.met.has(WHEEL_ORDER[wheelSel])) ? FORMS[WHEEL_ORDER[wheelSel]].name : '???';
+  $('wname').textContent = canUse(WHEEL_ORDER[wheelSel]) ? FORMS[WHEEL_ORDER[wheelSel]].name : '???';
 }
 function pickWheel(id) {
-  if (id !== 'human' && !P.met.has(id)) { $('wname').textContent = 'Meet it first!'; return; }
+  if (!canUse(id)) { $('wname').textContent = 'Meet it first!'; return; }
   closeOverlay(); requestChange(id);
 }
 function wheelKey(e) {
@@ -2019,8 +2024,8 @@ function buildBook() {
   const s = Math.floor(best.size), rows = Math.ceil(18 / best.cols), gw = best.cols * s + (best.cols - 1) * gap, gh = rows * s + (rows - 1) * gap;
   Object.assign(grid.style, { left: (W - gw) / 2 + 'px', top: top + Math.max(0, (availH - gh) / 2) + 'px', gridTemplateColumns: `repeat(${best.cols}, ${s}px)`, gridAutoRows: s + 'px' });
   for (const a of ANIMALS) {
-    const ok = P.met.has(a.id), c = document.createElement('button');
-    c.className = 'card' + (ok ? '' : ' locked') + (a.id === P.form ? ' cur' : ''); c.dataset.id = a.id; c.setAttribute('aria-label', ok ? a.name : 'Not met yet');
+    const ok = canUse(a.id), lent = ok && !P.met.has(a.id), c = document.createElement('button');
+    c.className = 'card' + (ok ? '' : ' locked') + (lent ? ' lent' : '') + (a.id === P.form ? ' cur' : ''); c.dataset.id = a.id; c.setAttribute('aria-label', ok ? a.name : 'Not met yet');
     c.innerHTML = `<img alt="" src="${THUMB[a.id] || ''}"><span style="font-size:${s < 64 ? 10 : 13}px">${ok ? a.name : '?'}</span>`;
     onTap(c, () => { if (!ok) { toast(a.id, 'Find a ' + (a.biome === 'water' ? 'lake or sea' : a.biome) + ' to meet it!'); return; } closeOverlay(); requestChange(a.id); });
     grid.appendChild(c);
@@ -2352,7 +2357,7 @@ const Parent = {
     const shown = new Map(); for (const a of ANIMALS) for (const q of [...(LISTS[a.id]?.[1] || []), ...(LISTS[a.id]?.[2] || [])]) shown.set(q.word.toLowerCase(), q.word);   // (Africa, as written)
     const pill = (w) => `<span class="pv-w s-${words.get(w) || 'new'}" data-w="${esc(w)}" title="${words.get(w) || 'new'}">${esc(shown.get(w) || w)}</span>`;
     let html = this.msg ? `<div class="pv-note" id="pvMsg"><b>${esc(this.msg)}</b></div>` : '';
-    html += '<div class="pv-note">The arrows at the top save every player (animals, words, levels) to a file, and load one. The home game server\'s copy keeps its own saves: save here, then load the file there.</div>';
+    html += '<div class="pv-note">The home game server\'s copy keeps its own saves. Bookmark http://(the Mac\'s name).local:8160/wild-world.html on each iPad as the home copy (the address the server prints); it stays the same, so the saves stay put. The arrows at the top save every player (animals, words, levels) to a file, and load one: only for a rare move between copies.</div>';
     html += p.guest ? '<div class="pv-note">Guest\'s words are kept only until the page is closed.</div>' : '';
     html += '<div class="pv-note">Dashed: new. Light: learning. Gold: mastered (right the first time on 3 different days).</div>';
     for (const a of ANIMALS) {
@@ -2463,7 +2468,7 @@ const goalArrow = new THREE.Mesh(arrow.geometry, MAT); goalArrow.scale.setScalar
 const _pv2 = new V3();
 
 const Two = {
-  page: 'off', entry: [], msg: '', calm: false, peer: null, ride: null, carrying: false, game: null, pulseT: 0, closeT: 0, nearRide: false, lastText: '',
+  page: 'off', entry: [], msg: '', lent: new Set(), calm: false, peer: null, ride: null, carrying: false, game: null, pulseT: 0, closeT: 0, nearRide: false, lastText: '',
   av() { return { icon: who.icon, color: who.color }; },
   cleanAv(a) { return { icon: a && (PROFILE.icons.includes(a.icon) || a.icon === 'person') ? a.icon : 'person', color: a && /^#[0-9a-f]{6}$/i.test(a.color) ? a.color : '#c9d2e3' }; },
   face(a) { return faceHtml(a || { icon: 'person', color: '#c9d2e3' }); },
@@ -2491,7 +2496,7 @@ const Two = {
   del() { if (this.page !== 'join') return; this.entry.pop(); this.msg = ''; this.draw(); },
   leave() { Net.close(); },
   together() {
-    Net.send({ t: 'hi', v: 1, seed: SEED, av: this.av(), x: +P.x.toFixed(2), y: +P.y.toFixed(2), z: +P.z.toFixed(2), form: P.form });
+    Net.send({ t: 'hi', v: 1, seed: SEED, av: this.av(), x: +P.x.toFixed(2), y: +P.y.toFixed(2), z: +P.z.toFixed(2), form: P.form, met: [...P.met] });
     this.sendState();
     clearInterval(this.pulseT); this.pulseT = setInterval(() => this.sendState(), 1000 / TWO.hz);
     this.page = 'together'; this.msg = '';
@@ -2505,9 +2510,15 @@ const Two = {
     this.carrying = false; this.endGame();
     if (this.peer?.model) { const m = this.peer.model; doPuff(m.position.x, m.position.y + 1, m.position.z); scene.remove(m); }
     this.peer = null; $('peerTag').classList.remove('on'); $('peerArrow').classList.remove('on');
-    if (why === 'left') { this.page = 'wait'; this.notice('Your friend left', 'Keep exploring! They can join again with the same code.'); }
-    else if (why === 'lost') { this.page = 'off'; this.msg = ''; this.notice('The two player game stopped', 'Keep playing on your own: your animals are saved.'); }
-    else this.page = 'off';
+    // the friend's lent animals go back with them (each player keeps their own finds and every animal met together); a player
+    // who is one of those right now turns back into the guy, with a word about why
+    const wasLent = P.form !== 'human' && !P.met.has(P.form) ? P.form : null;
+    this.lent = new Set();
+    if (wasLent) doChange('human');
+    const back = wasLent ? 'You are you again: that ' + A[wasLent].name.toLowerCase() + ' was your friend\'s. Meet one to keep it.' : '';
+    if (why === 'left') { this.page = 'wait'; this.notice('Your friend left', back || 'Keep exploring! They can join again with the same code.'); }
+    else if (why === 'lost') { this.page = 'off'; this.msg = ''; this.notice('The two player game stopped', back || 'Keep playing on your own: your animals are saved.'); }
+    else { this.page = 'off'; if (back) this.notice('Back to you!', back); }
     if (overlay === 'two') this.draw(); else if (overlay === 'pause') pauseLabels();
     this.nearRide = false; padLabels();
   },
@@ -2516,6 +2527,8 @@ const Two = {
     const first = !this.peer;
     this.peer = this.peer || { snaps: [], last: null, form: null, model: null, phase: 0, prev: null, shown: null, av: null };
     this.peer.av = this.cleanAv(m.av);
+    // Dad's (y): while together, the friend's own animals are lent to this player (to change into), never saved here
+    this.lent = new Set((Array.isArray(m.met) ? m.met : []).filter((id) => typeof id === 'string' && Object.hasOwn(A, id) && !P.met.has(id)));
     this.addSnap({ x: m.x, y: m.y, z: m.z, yaw: 0, f: m.form, s: 0 });
     if (first && Net.you === 1 && Number.isFinite(m.x) && Number.isFinite(m.z)) {   // the friend who joins starts next to the host
       placeAt(m.x + 3, m.z); wantChunks(); do updateChunks(99); while (pending.length); refreshLive(); this.sendState();
@@ -2984,7 +2997,7 @@ window.__ww = {
   answer(text) { if (overlay !== 'spell' || !Ask.p) return null; const word = Ask.p.word, right = Ask.submit(text, true); return { right, word, form: P.form, prompt: Ask.status() }; },
   again() { Ask.again(); return Ask.status(); },
   // open the panel for animal with a given word from its lists (the tests' way to aim at one word); go: change if right
-  ask(animal, word) { const q = [...(LISTS[animal]?.[1] || []), ...(LISTS[animal]?.[2] || [])].find((x) => x.word.toLowerCase() === String(word).toLowerCase()); if (!q || !P.met.has(animal)) return null; return Ask.open(animal, () => { Player.changed.add(animal); doChange(animal); }, q); },
+  ask(animal, word) { const q = [...(LISTS[animal]?.[1] || []), ...(LISTS[animal]?.[2] || [])].find((x) => x.word.toLowerCase() === String(word).toLowerCase()); if (!q || !canUse(animal)) return null; return Ask.open(animal, () => { Player.changed.add(animal); doChange(animal); }, q); },
   // an animal's words with the current player's stage for each
   words(animal) { const L = LISTS[animal]; if (!L) return null; const st = (q) => ({ word: q.word, clue: q.clue, stage: Spell.stage(q.word) }); return { name: A[animal].name.toLowerCase(), nameStage: Spell.stage(A[animal].name), fact: L.fact, level1: L[1].map(st), level2: L[2].map(st) }; },
   // the current player's word progress
@@ -3053,6 +3066,8 @@ window.__ww = {
       last: L ? { x: L.x, y: L.y, z: L.z, f: L.f, wall: L.wall } : null, av: p.av, model: p.model ? { form: p.form, x: r(p.model.position.x), y: r(p.model.position.y), z: r(p.model.position.z), visible: p.model.visible, inScene: !!p.model.parent } : null,
       formAt: p.formAt || null, mark: p.mark || null, tagOn: $('peerTag').classList.contains('on'), arrowOn: $('peerArrow').classList.contains('on'), now: Date.now() };
   },
+  // the book while together (Dad's (y)): own = this player's own (saved) animals, lent = the friend's they can use only while together
+  book() { return { own: [...P.met], lent: [...Two.lent], saved: (store.get('book.' + who.id, null) || {}).met || [], canUse: ANIMALS.map((a) => a.id).filter((id) => canUse(id)) }; },
   ride() { return { on: !!Two.ride, form: Two.ride ? Two.ride.form : null, carrying: Two.carrying, can: Two.canMount(), near: Two.nearRide }; },
   mount() { return Two.mount(); }, dismount() { return Two.dismount('hop'); },
   game() {

@@ -25,6 +25,9 @@
 //   touch    - a touch-only round on both devices (CDP touch events, 844x390): pause, 2 PLAYERS, HOST; the other pauses, 2 PLAYERS,
 //              JOIN and taps the 4 pictures; the host changes into a horse with CHANGE; the other taps RIDE, rides while the host
 //              walks with the stick, and taps HOP OFF; then the relay is stopped outright: both notice at once and play goes on.
+//   books    - Dad's (y): together, each changes into their own animals plus the friend's (lent); an animal met together
+//              is saved in both books; lent ones never are; after a leave and after a drop each is back to their own book, and
+//              a player who is a lent animal right then turns back into the guy.
 //   keys     - one device by keyboard only (Esc, Tab, Enter: 2 PLAYERS, HOST; R rides, Space hops off; RACE), the other by gamepad
 //              only (Start, the d-pad, A: 2 PLAYERS, JOIN, the 4 pictures; X rides, A hops off; TAG).
 //   WxH      - at that size in touch mode (with a stand-in friend on a Node socket): the pause menu alone and together, the
@@ -55,7 +58,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--shots') shots = path.resolve(args[++i]);
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
 }
-const runs = picked.length ? picked : ['relay', 'together', 'pages', 'touch', 'keys', ...SIZES];
+const runs = picked.length ? picked : ['relay', 'together', 'pages', 'touch', 'books', 'keys', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (shots) fs.mkdirSync(shots, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -621,6 +624,64 @@ async function runTouch(CA, CB) {
 }
 
 // ===========================================================================
+// books (Dad's (y)): while together each can change into their own animals plus the friend's; an animal met together goes
+// into both saved books for good; the friend's older animals are lent, never saved; after a leave or a drop each is back to
+// their own book, and a player who is a lent animal right then turns back into the guy
+// ===========================================================================
+async function runBooks(CA, CB) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  let R = await startRelay({ ttl: 30 });
+  await CA.open(R.base, 320, 240, false); await CB.open(R.base, 320, 240, false);
+  const idA = await setup(CA, 'Max', 1), idB = await setup(CB, 'Sam', 2);
+  await CA.ev(`window.__ww.meet('lion'); window.__ww.meet('cow'); true`); await CB.ev(`window.__ww.meet('fish'); true`);
+  const saved = (C, id) => C.ev(`(JSON.parse(localStorage.getItem('wildworld.book.${id}')) || { met: [] })`);
+  const pair = async (C1, C2) => {
+    await C1.ev('window.__ww.host()'); const code = await C1.until('(() => { const n = window.__ww.net(); return n.state === "waiting" && n.code ? n.code : null; })()');
+    await C2.ev(`window.__ww.join(${JSON.stringify(code)})`);
+    return await C2.until('window.__ww.net().state === "together" && window.__ww.peer() && window.__ww.peer().av', 4000) && await C1.until('window.__ww.net().state === "together" && window.__ww.peer() && window.__ww.peer().av', 4000) ? code : null;
+  };
+  const code = await pair(CA, CB); await sleep(300);
+  let bA = await CA.ev('window.__ww.book()'), bB = await CB.ev('window.__ww.book()');
+  ok(`together, each can change into their own animals plus the friend's: the host ${bA.canUse.join(',')} (lent: ${bA.lent.join(',')}), the joiner ${bB.canUse.join(',')} (lent: ${bB.lent.join(',')})`,
+    code && bA.canUse.includes('fish') && bA.lent.join() === 'fish' && !bA.own.includes('fish') && ['lion', 'cow'].every((x) => bB.canUse.includes(x) && bB.lent.includes(x) && !bB.own.includes(x)), { bA, bB });
+  // the wheel shows the lent fish open, and changing into it asks its name (spelling at the host's own level)
+  const wheel = await CA.ev(`(() => { window.__ww.openWheel(); const s = document.querySelector('#ring .wslot[data-id="fish"]'); const r = { locked: s.classList.contains('locked'), lent: s.classList.contains('lent') }; window.__ww.closeOverlay(); return r; })()`);
+  const ch = await inPage(CA, `const g = W.requestChange('fish'); const q = W.prompt(); W.answer(q.word); return { g, word: q.word, mode: q.mode, form: S().form };`);
+  let sA = await saved(CA, idA);
+  ok(`the host's wheel shows the friend's fish open (locked ${wheel.locked}, marked lent ${wheel.lent}); changing into it asks its name at the host's level (${ch.word}, ${ch.mode}) and changes them (${ch.form})`, !wheel.locked && wheel.lent && ch.g === 'gated' && ch.word === 'fish' && ch.mode === 'tiles' && ch.form === 'fish', { wheel, ch });
+  ok(`the lent fish is never saved in the host's book: not met (${sA.met.join(',')}), not the form to come back as (${sA.form}), not changed-into (${(sA.changed || []).join(',')})`, !sA.met.includes('fish') && sA.form === 'human' && !(sA.changed || []).includes('fish'), sA);
+  let sB = await saved(CB, idB);
+  ok(`and the host's lion and cow are not saved in the joiner's book (${sB.met.join(',')})`, !sB.met.includes('lion') && !sB.met.includes('cow'), sB);
+  // met together: in both saved books for good
+  await CB.ev(`window.__ww.meet('eagle')`); await CA.until('window.__ww.state().met.includes("eagle")', 2000);
+  sA = await saved(CA, idA); sB = await saved(CB, idB);
+  ok(`an animal met while together (the joiner's eagle) is saved in both books (${sA.met.includes('eagle')}, ${sB.met.includes('eagle')})`, sA.met.includes('eagle') && sB.met.includes('eagle'), { sA, sB });
+  // a leave, with the host a lent fish right then: back to the guy, back to their own book; the joiner too
+  await CA.ev('window.__ww.leave()');
+  await CB.until('window.__ww.net().state === "waiting"', 3000);
+  const afA = await CA.ev('({ s: window.__ww.state(), b: window.__ww.book(), toast: document.getElementById("toastText").textContent })'), afB = await CB.ev('window.__ww.book()');
+  sA = await saved(CA, idA); sB = await saved(CB, idB);
+  ok(`after a leave the host, who was the lent fish, is the guy again ("${afA.toast}"); each is back to their own book: the host ${afA.b.canUse.join(',')}, the joiner ${afB.canUse.join(',')}`,
+    afA.s.form === 'human' && !afA.b.canUse.includes('fish') && afA.b.lent.length === 0 && ['lion', 'cow', 'eagle'].every((x) => afA.b.canUse.includes(x)) && afB.lent.length === 0 && !afB.canUse.includes('lion') && !afB.canUse.includes('cow') && ['fish', 'eagle'].every((x) => afB.canUse.includes(x)), { afA, afB });
+  ok(`and the saved books are each player's own finds plus the eagle met together, nothing borrowed, nothing lost (${sA.met.join(',')} / ${sB.met.join(',')})`, sA.met.sort().join() === 'cow,eagle,lion' && sB.met.sort().join() === 'eagle,fish', { sA, sB });
+  const refuse = await CA.ev(`window.__ww.requestChange('fish')`);
+  ok(`alone again, the host can't change into the fish (${refuse})`, refuse === false, refuse);
+  // rejoin with the same code: lent again; the joiner becomes the lent lion; then the relay is killed (a drop)
+  await CA.ev(`window.__ww.join(${JSON.stringify(code)})`);
+  await CA.until('window.__ww.net().state === "together" && window.__ww.peer() && window.__ww.peer().av', 4000); await CB.until('window.__ww.net().state === "together" && window.__ww.peer() && window.__ww.peer().av', 4000); await sleep(300);
+  bB = await CB.ev('window.__ww.book()');
+  const lion = await inPage(CB, `const g = W.requestChange('lion'); if (g === 'gated') W.answer(W.prompt().word); return S().form;`);
+  ok(`the same code rejoins and the friend's animals are lent again (${bB.lent.join(',')}); the joiner changes into the lent lion (${lion})`, bB.lent.includes('lion') && lion === 'lion', { bB, lion });
+  await killRelayWait(R);
+  await CB.until('window.__ww.net().state === "dropped"', 3000); await CA.until('window.__ww.net().state === "dropped"', 3000);
+  const dB = await CB.ev('({ s: window.__ww.state(), b: window.__ww.book(), toast: document.getElementById("toastText").textContent })'), dA = await CA.ev('window.__ww.book()');
+  sA = await saved(CA, idA); sB = await saved(CB, idB);
+  ok(`after a drop the joiner, who was the lent lion, is the guy again ("${dB.toast}"), and both are back to their own books (${dB.b.canUse.join(',')} / ${dA.canUse.join(',')}); the saved books are unchanged (${sB.met.join(',')} / ${sA.met.join(',')})`,
+    dB.s.form === 'human' && dB.b.lent.length === 0 && dA.lent.length === 0 && !dB.b.canUse.includes('lion') && !dA.canUse.includes('fish') && sB.met.sort().join() === 'eagle,fish' && sA.met.sort().join() === 'cow,eagle,lion' && sB.form === 'human', { dB, dA, sA, sB });
+  return out;
+}
+
+// ===========================================================================
 // keys: one device by keyboard only, the other by gamepad only (a stand-in navigator.getGamepads, as ww-world.mjs)
 // ===========================================================================
 const KEYS = { Space: [' ', 32], Enter: ['Enter', 13], Tab: ['Tab', 9], Escape: ['Escape', 27], KeyR: ['r', 82] };
@@ -764,11 +825,11 @@ async function runSize(C, size) {
 async function main() {
   const all = []; const unfinished = [];
   for (const run of runs) {
-    const two = run === 'together' || run === 'touch' || run === 'keys', S = run === 'relay' ? [] : two ? [launch(), launch()] : [launch()];
+    const two = run === 'together' || run === 'touch' || run === 'keys' || run === 'books', S = run === 'relay' ? [] : two ? [launch(), launch()] : [launch()];
     const t0 = Date.now(); let timer, Cs = [];
     try {
       for (let i = 0; i < S.length; i++) Cs.push(await connect(S[i], i ? 'B' : 'A'));
-      const job = run === 'relay' ? runRelay() : run === 'together' ? runTogether(...Cs) : run === 'pages' ? runPages(Cs[0]) : run === 'touch' ? runTouch(...Cs) : run === 'keys' ? runKeys(...Cs) : runSize(Cs[0], run);
+      const job = run === 'relay' ? runRelay() : run === 'together' ? runTogether(...Cs) : run === 'pages' ? runPages(Cs[0]) : run === 'touch' ? runTouch(...Cs) : run === 'keys' ? runKeys(...Cs) : run === 'books' ? runBooks(...Cs) : runSize(Cs[0], run);
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       for (const C of Cs) res.push({ name: `${run}: no page errors (${C.tag})`, pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);
