@@ -128,3 +128,22 @@ On the menu, use ← → to pick a level and Enter to play. During a game, Esc o
 For tests, `window.__nd` exposes `start`, `step`, `frames`, `autoplay` and `solve`.
 
 *Geometry Dash* is a trademark of RobTop Games. Neon Dash is an unofficial, non-commercial fan project with no affiliation or endorsement, and it uses no assets from the original game.
+
+## Wild World (wild-world.html)
+
+Walk an endless low-poly world, meet 18 animals, and change into any animal you've met by spelling a word. Each player has their own profile, animal book and spelling level.
+
+### How to play two players
+
+Two players, each on their own iPad or computer, explore the same world together. It works on the home Wi-Fi only, through a small game server on the Mac:
+
+1. On the Mac, in this folder, run `node scripts/ww-relay.mjs` (Node 22 or newer, nothing to install). It prints the addresses to open: `http://<mac-name>.local:8160/wild-world.html`, and the Mac's current IP address, for example `http://192.168.1.20:8160/wild-world.html`.
+2. Open that address on both iPads. They must be on the same Wi-Fi as the Mac. The GitHub Pages copy can't reach the game server, so it explains this instead.
+3. On one iPad, pause and tap **2 PLAYERS**, then **HOST**. It shows 4 animal pictures.
+4. On the other iPad, pause and tap **2 PLAYERS**, then **JOIN**, then tap the same 4 pictures.
+
+Together you see each other move. While you play together, each of you can change into your own animals and your friend's too, and an animal either of you meets goes into both books for good. When you stop playing together, you each have your own animals again (plus the ones you met together). A human can ride a friend who is a horse, an elephant or a dolphin. **RACE** and **TAG** are in the pause menu. If the server stops, both games carry on alone with nothing lost. Press Ctrl+C in the Mac's terminal to stop the server.
+
+**Bookmark `http://<mac-name>.local:8160/wild-world.html` on each iPad as the home copy.** The game server's copy keeps its own saves, separate from the Pages copy, and the `.local` name stays the same even when the Mac's IP address changes, so the saves stay put. For a rare move between copies, open the parent view (hold the lock on the title screen), tap the save arrow, then load that file on the other copy.
+
+For tests, `window.__ww` exposes the game, and `node scripts/ww-world.mjs`, `node scripts/ww-spelling.mjs` and `node scripts/ww-two.mjs` check it.

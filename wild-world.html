@@ -196,8 +196,10 @@
 <div id="hud">
   <div class="chip" id="formChip"><img id="formImg" alt=""><div><span id="formName">You</span><small id="formPower">Meet an animal!</small></div></div>
   <div class="chip" id="bookChip"><div class="ic" id="bookIc"></div><span id="bookCount">0/18</span></div>
+  <div class="chip" id="gameChip"><div class="ic" id="gameIc"></div><span id="gameText"></span></div>
 </div>
-<div id="toast"><img id="toastImg" alt=""><span id="toastText"></span></div>
+<div id="peerTag"></div><div id="peerArrow"><span class="pt"></span><span class="fc"></span></div>
+<div id="toast"><img id="toastImg" alt=""><span id="toastIc"></span><span id="toastText"></span></div>
 <div id="hint">WASD move - drag to look - Space jump / fly - Shift power - Q change - V view - B book - Esc pause</div>
 
 <div id="title" class="ov on">
@@ -215,6 +217,9 @@
   <button class="big" id="pHumanBtn"></button>
   <button class="big" id="pSoundBtn"></button>
   <button class="big" id="pWhoBtn"></button>
+  <button class="big" id="pTwoBtn"></button>
+  <button class="big" id="pRaceBtn"></button>
+  <button class="big" id="pTagBtn"></button>
   <div class="keys">Esc: pause - Q: change - B: book - V: view - H: human</div>
 </div></div>
 
@@ -234,6 +239,10 @@
 
 <!-- the parent view: behind the hold-to-open button on the title screen -->
 <div id="parent" class="ov" role="dialog" aria-label="Parents"><div class="pv-panel" id="pvPanel"></div></div>
+<input type="file" id="pvFile" accept=".json,application/json" hidden>
+
+<!-- two players (#160): host or join a room on the home game server, from the pause menu -->
+<div id="two" class="ov" role="dialog" aria-label="Two players"><div class="tw-panel" id="twPanel"></div></div>
 
 <!-- ===========================================================================
 WORDS (#158): what you spell to change into each animal. Edit freely.
@@ -340,6 +349,63 @@ const WORDS = {
   },
 };
 </script>
+
+<style>
+  /* ---------- W3 (#160): two players: the friend's face over their head (or at the screen's edge), the game chip, the panel ---------- */
+  #gameChip { display: none; }
+  #hud.game #gameChip { display: flex; }
+  #hud.game #bookChip { display: none; }
+  #gameChip .ic { background: var(--sky); color: #fff; }
+  #gameChip.it .ic { background: var(--berry); }
+  #gameChip.it { background: #b0254f; }
+  #peerTag, #peerArrow { position: fixed; left: 0; top: 0; z-index: 8; pointer-events: none; display: none; }
+  #peerTag { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
+  #peerArrow { width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; }
+  #peerTag.on, #peerArrow.on { display: block; }
+  #peerTag .face, #peerArrow .face, #toastIc .face { width: 100%; height: 100%; border-radius: 50%; background: var(--c, #fff); color: var(--ink); display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 3px #fff, 0 2px 0 rgba(0,0,0,.3); }
+  #peerTag .face svg, #peerArrow .face svg, #toastIc .face svg { width: 60%; height: 60%; }
+  #peerTag.it .face, #peerArrow.it .face { box-shadow: inset 0 0 0 3px #fff, 0 0 0 4px var(--berry); }
+  #peerArrow .fc { position: absolute; inset: 0; }
+  #peerArrow .pt { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+  #peerArrow .pt::before { content: ''; position: absolute; left: 24px; top: -10px; border-left: 14px solid var(--sun); border-top: 10px solid transparent; border-bottom: 10px solid transparent;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,.5)); }
+  html.ov-open #peerTag, html.ov-open #peerArrow { display: none; }
+  #toastIc { display: none; width: 44px; height: 44px; flex: none; }
+  #toast.ic #toastImg { display: none; }
+  #toast.ic #toastIc { display: block; }
+
+  .tw-panel { position: relative; width: min(640px, calc(100vw - 16px)); max-height: calc(100% - 12px); background: #fffdf5; color: var(--ink); border-radius: 22px; padding: 10px;
+    display: flex; flex-direction: column; gap: 10px; box-shadow: 0 6px 0 rgba(0,0,0,.25); overflow: hidden; }
+  .tw-head { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+  .tw-head h2 { flex: 1; margin: 0; font-size: 24px; display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+  .tw-head h2 svg { width: 30px; height: 30px; flex: none; }
+  .tw-row { display: flex; gap: 12px; justify-content: center; }
+  .tw-big { flex: 1; max-width: 260px; min-height: 96px; border: 0; border-radius: 18px; background: var(--sun); color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; font-weight: 800; font-size: 20px; box-shadow: 0 4px 0 rgba(0,0,0,.2); touch-action: manipulation; }
+  .tw-big svg { width: 40px; height: 40px; flex: none; }
+  .tw-big.join { background: var(--sky); color: #fff; }
+  .tw-big.leave { background: #e6ecf4; min-height: 56px; flex-direction: row; gap: 10px; }
+  .tw-big.leave svg { width: 28px; height: 28px; }
+  .tw-msg { text-align: center; font-weight: 800; font-size: 16px; line-height: 1.25; color: #c0392b; }
+  .tw-msg:empty { display: none; }
+  .tw-msg.calm { color: var(--ink); }
+  .tw-note { text-align: center; font-weight: 800; font-size: 17px; }
+  .tw-code { display: flex; gap: 10px; justify-content: center; }
+  .tw-code span, .tw-slot { width: var(--cs, 72px); height: var(--cs, 72px); border-radius: 16px; background: #dff3ff; box-shadow: 0 3px 0 rgba(0,0,0,.2); overflow: hidden; flex: none; }
+  .tw-code img, .tw-slot img, .tw-key img { width: 100%; height: 100%; display: block; object-fit: contain; }
+  .tw-slot { --cs: 56px; background: #fff; box-shadow: none; border: 3px dashed #b9c8dc; }
+  .tw-slot.full { border: 3px solid var(--leaf); background: #dff3ff; }
+  .sp-key.tw-key { background: #dff3ff; overflow: hidden; }
+  .tw-with { display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 800; font-size: 20px; }
+  .tw-with .face { width: 64px; height: 64px; border-radius: 50%; background: var(--c, #fff); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 3px #fff, 0 3px 0 rgba(0,0,0,.25); flex: none; }
+  .tw-with .face svg { width: 36px; height: 36px; }
+  .tw-panel .big[disabled] { opacity: .45; }
+  .wslot.lent:not(.cur), .card.lent:not(.cur) { box-shadow: 0 0 0 4px var(--sky), 0 3px 0 rgba(0,0,0,.25); }   /* a friend's animal, lent while together */
+  .pv-head .sp-round { flex: none; }
+  @media (max-height: 430px) { .tw-big { min-height: 64px; flex-direction: row; gap: 10px; } .tw-big svg { width: 32px; height: 32px; } .tw-code span { --cs: 52px; } .tw-slot { --cs: 46px; } .tw-panel { gap: 6px; padding: 8px; }
+    .tw-with .face { width: 48px; height: 48px; } }
+</style>
 
 <!-- ===========================================================================
 TouchPad: on-screen controller for phones and tablets (issue #92).
@@ -1556,26 +1622,34 @@ function checkMeets() {
     if (Math.hypot(a.x - P.x, a.z - P.z) < meetReach(a) && Math.abs(a.y - P.y) < 7) meet(a.type);
   }
 }
-function meet(id) {
-  if (!A[id] || P.met.has(id)) return false;
+// fromPeer (#160): the other player met it; it goes into this player's own book too (and isn't sent back)
+function meet(id, fromPeer) {
+  if (!Object.hasOwn(A, id) || P.met.has(id)) return false;   // own keys only: a friend's 'constructor' isn't an animal
   P.met.add(id); save(); Sfx.meet();
-  toast(id, 'You met ' + (/^[AEIOU]/.test(A[id].name) ? 'an ' : 'a ') + A[id].name + '!', 4.5, LISTS[id]?.fact);   // W2: and its fact
+  const an = (/^[AEIOU]/.test(A[id].name) ? 'an ' : 'a ') + A[id].name;
+  toast(id, (fromPeer ? 'Your friend met ' : 'You met ') + an + '!', 4.5, LISTS[id]?.fact);   // W2: and its fact
+  if (!fromPeer) Two.sendMeet(id);
   hud(); return true;
 }
-function save() { store.set('book.' + who.id, { v: SAVE_V, met: [...P.met], form: P.form, fp: P.fp, sound: Sfx.on, changed: [...Player.changed] }); }
+// only this player's own animals are saved: a friend's lent animals (#160, Dad's (y)) never go into this book, as met, as the
+// form to come back as, or as changed-into
+function save() { store.set('book.' + who.id, { v: SAVE_V, met: [...P.met], form: P.form === 'human' || P.met.has(P.form) ? P.form : 'human', fp: P.fp, sound: Sfx.on, changed: [...Player.changed].filter((id) => P.met.has(id)) }); }
+// can this player change into it? Their own animals, plus, only while playing together, the friend's (lent, not saved)
+const canUse = (id) => id === 'human' || P.met.has(id) || Two.lent.has(id);
 
 // ===========================================================================
 // Changing. Every change goes through requestChange(id) -> doChange(id); W2 (#158) gates it with Change.gate.
 // ===========================================================================
 function requestChange(id) {
   if (!FORMS[id]) return false;
-  if (id !== 'human' && !P.met.has(id)) { toast(id, 'Meet it first!'); return false; }
+  if (!canUse(id)) { toast(id, 'Meet it first!'); return false; }
   if (id === P.form) return true;
   if (Change.gate) { Change.gate(id, () => doChange(id)); return 'gated'; }
   doChange(id); return true;
 }
 function doChange(id) {
   if (!FORMS[id] || id === P.form) return false;
+  if (Two.ride) Two.dismount('self');   // #160: a rider who changes hops off first
   const was = P.form; P.form = id;
   P.gallop = P.burst = P.roll = P.flutter = P.swoop = P.quiet = P.sniff = P.dig = 0; P.cd = 0; P.hop = P.leap = P.canDouble = false; P.vx = P.vz = 0;
   if (P.far) { P.far = false; loadR = LOAD_R; }
@@ -1583,6 +1657,7 @@ function doChange(id) {
   setModel(id); Change.count++;
   doPuff(P.x, P.y + FORMS[id].camH * 0.3, P.z, 0xffffff, 1 + FORMS[id].r * 0.5); flash(); Sfx.puff();
   save(); hud(); padLabels();
+  Two.changed();   // #160: a mount that changes drops its rider safely; the friend sees the new form at once
   return was;
 }
 
@@ -1631,6 +1706,17 @@ const ICON = {
   family: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7.5" cy="5.5" r="2.8"/><circle cx="16.5" cy="5.5" r="2.8"/><circle cx="12" cy="12.5" r="2.2"/><path d="M3 21v-7c0-2.2 2-4.5 4.5-4.5S12 11.8 12 14v7zM12 21v-7c0-2.2 2-4.5 4.5-4.5S21 11.8 21 14v7z"/></svg>',
   tiles: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="7" width="6" height="10" rx="1.5"/><rect x="9" y="5" width="6" height="10" rx="1.5"/><rect x="16" y="8" width="6" height="10" rx="1.5"/></svg>',
   ear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 10a5.5 5.5 0 0 1 11 0c0 3-2.5 4-3.5 6s-1 4-3.5 4-3-2-3-2"/><path d="M10 10a2.5 2.5 0 0 1 5 0c0 1.5-1.5 2-1.5 3"/></svg>',
+  // W3 (#160)
+  two: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="7" r="3.2"/><circle cx="16.5" cy="8" r="2.8"/><path d="M1.5 20c0-4.4 2.9-7.5 6.5-7.5s6.5 3.1 6.5 7.5z"/><path d="M15.5 20c0-2.6-.8-4.8-2.2-6.3.9-.6 2-.9 3.2-.9 3.1 0 5.5 2.8 5.5 7.2z"/></svg>',
+  host: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l9.5 8.5H19v10H5V11H2.5z"/><circle cx="12" cy="17.5" r="1.7" fill="#fff"/><path d="M8.6 14.3a4.8 4.8 0 0 1 6.8 0M6.7 12.2a7.5 7.5 0 0 1 10.6 0" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  join: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h6v18h-6"/><path d="M3 12h11M10 8l4 4-4 4"/></svg>',
+  leave: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H4v18h6"/><path d="M9 12h12M17 8l4 4-4 4"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="2.5" width="2.4" height="19.5" rx="1"/><path d="M6.4 3.5h12.6l-3 4.5 3 4.5H6.4z"/></svg>',
+  tag: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 11V4.5a1.5 1.5 0 0 1 3 0V10h.5V3a1.5 1.5 0 0 1 3 0v7h.5V4.5a1.5 1.5 0 0 1 3 0V14c0 4.4-2.6 8-7 8-3 0-4.6-1.6-6-4l-2.6-4.6a1.6 1.6 0 0 1 2.7-1.6z"/></svg>',
+  ride: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="4.2" r="2.6"/><path d="M8.5 8.5h7l-1 5.5h-5z"/><rect x="2" y="14.5" width="20" height="3.5" rx="1.5"/><rect x="4" y="17" width="2.6" height="5" rx="1"/><rect x="17.4" y="17" width="2.6" height="5" rx="1"/></svg>',
+  hopoff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5c7 0 12 3 13 11"/><path d="M13 13l4 4 4-4"/><path d="M3 21h18"/></svg>',
+  save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>',
+  load: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v3h16v-3"/></svg>',
 };
 const THUMB = {};
 function renderThumbs() {
@@ -1656,7 +1742,8 @@ function renderThumbs() {
 // HUD, toast, flash
 // ===========================================================================
 let toastT = 0;
-function toast(id, text, sec = 2.4, sub = '') {
+function toast(id, text, sec = 2.4, sub = '', ic = '') {   // ic (#160): a face or an icon (html) in place of the animal's picture
+  $('toast').classList.toggle('ic', !!ic); $('toastIc').innerHTML = ic || '';
   $('toastImg').src = THUMB[id] || THUMB.human || ''; $('toastText').textContent = text;
   if (sub) { const sm = document.createElement('small'); sm.textContent = sub; $('toastText').appendChild(sm); }
   $('toast').classList.add('on'); toastT = sec;
@@ -1688,6 +1775,7 @@ addEventListener('keydown', (e) => {
   if (overlay === 'spell') { Ask.key(e); return; }
   if (overlay === 'maker') { Maker.key(e); return; }
   if (overlay === 'parent') { if (e.code === 'Escape') { e.preventDefault(); closeOverlay(); } return; }
+  if (overlay === 'two') { Two.key(e); return; }
   if (screen !== 'play') { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); startPlay(); } return; }
   if (GAME_KEYS.has(e.code)) e.preventDefault();
   if (e.code === 'Escape' || e.code === 'KeyP') { openPause(); return; }
@@ -1695,6 +1783,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyB') { if (!e.repeat) openBook(); return; }
   if (e.code === 'KeyV' || e.code === 'KeyC') { if (!e.repeat) toggleView(); return; }
   if (e.code === 'KeyH') { if (!e.repeat) requestChange('human'); return; }
+  if (e.code === 'KeyR') { if (!e.repeat) { if (Two.ride) Two.dismount('hop'); else Two.mount(); } return; }   // #160: ride the friend / hop off
   if (!e.repeat) kp.add(e.code); keys.add(e.code);
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
@@ -1713,8 +1802,10 @@ const TOUCH_BTNS = [
 const touch = TouchPad.create({ buttons: TOUCH_BTNS, pause: true, active: () => screen === 'play' && !overlay });
 function padLabels() {
   const f = P.form, pw = POWERS[f], el = (id) => document.querySelector(`.tp-root [data-tp="${id}"]`);
-  const pb = el('power'); if (pb) { pb.style.display = pw ? '' : 'none'; if (pw) pb.innerHTML = ICON[pw.icon] + `<span>${pw.name.toUpperCase()}</span>`; }
-  const jb = el('jump'); if (jb) jb.innerHTML = (f === 'eagle' ? ICON.wing : ICON.jump) + `<span>${f === 'eagle' ? 'FLY' : isSwimmer(f) ? 'UP' : 'JUMP'}</span>`;
+  // #160: the guy has no power, so his power button is RIDE when he's next to a friend he can ride; riding, JUMP is HOP OFF
+  const ride = !Two.ride && Two.nearRide;
+  const pb = el('power'); if (pb) { pb.style.display = pw || ride ? '' : 'none'; if (ride) pb.innerHTML = ICON.ride + '<span>RIDE</span>'; else if (pw) pb.innerHTML = ICON[pw.icon] + `<span>${pw.name.toUpperCase()}</span>`; }
+  const jb = el('jump'); if (jb) jb.innerHTML = Two.ride ? ICON.hopoff + '<span>HOP OFF</span>' : (f === 'eagle' ? ICON.wing : ICON.jump) + `<span>${f === 'eagle' ? 'FLY' : isSwimmer(f) ? 'UP' : 'JUMP'}</span>`;
 }
 
 // ---------- gamepad (read every frame): left stick moves, right stick looks, A jump / fly, X or B power, Y the wheel,
@@ -1793,7 +1884,11 @@ function tick() {
   if (inp.change) { openWheel(); return; }
   if (inp.cam) toggleView();
   applyLook();
-  tickPlayer(DT, inp);
+  // #160: no moving during a race's or tag's countdown; a rider goes where the animal goes (jump or power hops off)
+  if (Two.frozen()) { inp.x = inp.y = 0; inp.jump = inp.jumpP = inp.power = inp.powerP = false; }
+  if (Two.ride) { if (inp.jumpP || inp.powerP) Two.dismount('hop'); else Two.follow(); }
+  else if (inp.powerP && Two.canMount()) Two.mount();
+  else tickPlayer(DT, inp);
   updateChunks();
   if (ticks % 20 === 0) refreshLive();
   for (const a of live.values()) tickAnimal(a, DT);
@@ -1817,12 +1912,14 @@ function updateView() {
     P.model.visible = !P.fp;
     const flying = P.form === 'eagle' && !P.grounded;
     animateModel(P.model, P.phase, Math.min(1, P.speed / 3), P.form === 'eagle' ? (flying ? 'fly' : 'fold') : 'walk');
+    if (Two.ride) Two.sit(P.model);
   }
   const g = groundAt(P.x, P.z);
   blob.position.set(P.x, Math.max(g, SEA) + 0.04, P.z); blob.scale.setScalar(F.r * 1.6 * clamp(1 - (P.y - Math.max(g, SEA)) / 12, 0.2, 1)); blob.visible = !P.fp && !P.swimming;
   // the arrow (dog's sniff)
   if (P.sniff > 0 && P.sniffTarget) { const t = P.sniffTarget; arrow.position.set(P.x, P.y + F.camH * 0.75 + 0.9, P.z); arrow.rotation.y = Math.atan2(t.x - P.x, t.z - P.z); arrow.scale.setScalar(1 + 0.08 * Math.sin(time * 6)); }
   else arrow.scale.setScalar(0);
+  Two.view();   // #160: the friend, the race flag and its arrow
   // the camera: behind (adjusted to the body) or through its eyes
   _cf.set(Math.sin(cam.yaw) * Math.cos(cam.pitch), -Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
   if (P.fp) {
@@ -1856,7 +1953,7 @@ function onTap(el, fn) {
 function startPlay() { if (screen === 'play') return; try { document.activeElement?.blur(); } catch (e) {} screen = 'play'; $('title').classList.remove('on'); $('hud').classList.add('on'); $('hint').classList.add('on'); hud(); padLabels(); }
 function showOv(id) {
   const was = overlay;
-  for (const o of ['pause', 'wheel', 'book', 'spell', 'maker', 'parent']) $(o).classList.toggle('on', o === id);
+  for (const o of ['pause', 'wheel', 'book', 'spell', 'maker', 'parent', 'two']) $(o).classList.toggle('on', o === id);
   overlay = id; document.documentElement.classList.toggle('ov-open', !!id); keys.clear(); VIN.jump = VIN.power = false;
   if (was === 'spell' && id !== 'spell') Ask.leave();
 }
@@ -1869,6 +1966,11 @@ function pauseLabels() {
   $('pHumanBtn').innerHTML = ICON.person + '<span>BE HUMAN</span>'; $('pHumanBtn').style.display = P.form === 'human' ? 'none' : '';
   $('pSoundBtn').innerHTML = (Sfx.on ? ICON.soundOn : ICON.soundOff) + `<span>SOUND ${Sfx.on ? 'ON' : 'OFF'}</span>`;
   $('pWhoBtn').innerHTML = (ICON[who.icon] || ICON.person) + '<span>PLAYER</span>';
+  // #160: 2 PLAYERS always; RACE and TAG only while together (and then PLAYER waits: leave first to switch who's playing)
+  const tg = Net.state === 'together';
+  $('pTwoBtn').innerHTML = ICON.two + '<span>2 PLAYERS</span>';
+  $('pRaceBtn').innerHTML = ICON.flag + '<span>RACE</span>'; $('pTagBtn').innerHTML = ICON.tag + '<span>TAG</span>';
+  $('pRaceBtn').style.display = $('pTagBtn').style.display = tg ? '' : 'none'; $('pWhoBtn').style.display = tg ? 'none' : '';
 }
 // the wheel: the guy in the middle, the 6 farm animals on the inner ring, the other 12 outside
 const WHEEL_ORDER = ['human', ...ANIMALS.map((a) => a.id)];
@@ -1884,8 +1986,8 @@ function buildWheel() {
     let x = cx, y = cy;
     if (i >= 1 && i <= 6) { const a = -Math.PI / 2 + (i - 1) / 6 * Math.PI * 2; x += Math.cos(a) * r; y += Math.sin(a) * r; }
     else if (i > 6) { const a = -Math.PI / 2 + Math.PI / 12 + (i - 7) / 12 * Math.PI * 2; x += Math.cos(a) * R; y += Math.sin(a) * R; }
-    const b = document.createElement('button'), ok = id === 'human' || P.met.has(id);
-    b.className = 'wslot' + (ok ? '' : ' locked') + (id === 'human' ? ' human' : '') + (id === P.form ? ' cur' : '') + (i === wheelSel ? ' sel' : '');
+    const b = document.createElement('button'), ok = canUse(id), lent = ok && id !== 'human' && !P.met.has(id);
+    b.className = 'wslot' + (ok ? '' : ' locked') + (lent ? ' lent' : '') + (id === 'human' ? ' human' : '') + (id === P.form ? ' cur' : '') + (i === wheelSel ? ' sel' : '');
     b.dataset.id = id; b.setAttribute('aria-label', ok ? FORMS[id].name : 'Not met yet');
     Object.assign(b.style, { width: slot + 'px', height: slot + 'px', left: x - slot / 2 + 'px', top: y - slot / 2 + 'px' });
     b.innerHTML = `<img alt="" src="${THUMB[id] || ''}">`;
@@ -1893,10 +1995,10 @@ function buildWheel() {
     b.addEventListener('pointerenter', () => { $('wname').textContent = ok ? FORMS[id].name : '???'; });
     ring.appendChild(b);
   });
-  $('wname').textContent = (WHEEL_ORDER[wheelSel] === 'human' || P.met.has(WHEEL_ORDER[wheelSel])) ? FORMS[WHEEL_ORDER[wheelSel]].name : '???';
+  $('wname').textContent = canUse(WHEEL_ORDER[wheelSel]) ? FORMS[WHEEL_ORDER[wheelSel]].name : '???';
 }
 function pickWheel(id) {
-  if (id !== 'human' && !P.met.has(id)) { $('wname').textContent = 'Meet it first!'; return; }
+  if (!canUse(id)) { $('wname').textContent = 'Meet it first!'; return; }
   closeOverlay(); requestChange(id);
 }
 function wheelKey(e) {
@@ -1922,14 +2024,14 @@ function buildBook() {
   const s = Math.floor(best.size), rows = Math.ceil(18 / best.cols), gw = best.cols * s + (best.cols - 1) * gap, gh = rows * s + (rows - 1) * gap;
   Object.assign(grid.style, { left: (W - gw) / 2 + 'px', top: top + Math.max(0, (availH - gh) / 2) + 'px', gridTemplateColumns: `repeat(${best.cols}, ${s}px)`, gridAutoRows: s + 'px' });
   for (const a of ANIMALS) {
-    const ok = P.met.has(a.id), c = document.createElement('button');
-    c.className = 'card' + (ok ? '' : ' locked') + (a.id === P.form ? ' cur' : ''); c.dataset.id = a.id; c.setAttribute('aria-label', ok ? a.name : 'Not met yet');
+    const ok = canUse(a.id), lent = ok && !P.met.has(a.id), c = document.createElement('button');
+    c.className = 'card' + (ok ? '' : ' locked') + (lent ? ' lent' : '') + (a.id === P.form ? ' cur' : ''); c.dataset.id = a.id; c.setAttribute('aria-label', ok ? a.name : 'Not met yet');
     c.innerHTML = `<img alt="" src="${THUMB[a.id] || ''}"><span style="font-size:${s < 64 ? 10 : 13}px">${ok ? a.name : '?'}</span>`;
     onTap(c, () => { if (!ok) { toast(a.id, 'Find a ' + (a.biome === 'water' ? 'lake or sea' : a.biome) + ' to meet it!'); return; } closeOverlay(); requestChange(a.id); });
     grid.appendChild(c);
   }
 }
-addEventListener('resize', () => { if (overlay === 'wheel') buildWheel(); if (overlay === 'book') buildBook(); if (overlay === 'spell') Ask.drawPad(); if (overlay === 'maker') Maker.draw(); if (overlay === 'parent') Parent.draw(); });
+addEventListener('resize', () => { if (overlay === 'wheel') buildWheel(); if (overlay === 'book') buildBook(); if (overlay === 'spell') Ask.drawPad(); if (overlay === 'maker') Maker.draw(); if (overlay === 'parent') Parent.draw(); if (overlay === 'two') Two.draw(); });
 
 // ===========================================================================
 // W2 (#158): who's playing (the title), spelling to change (Ask), the profile maker (Maker) and the parent view (Parent)
@@ -2221,8 +2323,8 @@ const Maker = {
 
 // ---------- the parent view: per player, the level (a parent's to change), the misses this week and every word's status
 const Parent = {
-  tab: GUEST.id,
-  open() { this.tab = who.id; showOv('parent'); this.draw(); return true; },
+  tab: GUEST.id, msg: '',
+  open() { this.tab = who.id; this.msg = ''; showOv('parent'); this.draw(); return true; },
   recOf(p) {
     if (p === who) return Spell.rec;
     if (p.guest) return Spell.guestRec || Spell.blank();
@@ -2233,7 +2335,11 @@ const Parent = {
     const P0 = $('pvPanel'), p = Profiles.get(this.tab) || GUEST, rec = this.recOf(p);
     P0.innerHTML = '';
     const head = document.createElement('div'); head.className = 'pv-head';
-    head.innerHTML = `<h2>${ICON.family}<span>Parents</span></h2>`; head.appendChild(mkBtn('sp-round plain', ICON.close, 'Close', () => closeOverlay(), { id: 'pvX' }));
+    head.innerHTML = `<h2>${ICON.family}<span>Parents</span></h2>`;
+    // #160: the saves to a file and back (the home game server's copy keeps its own saves; this moves them across)
+    head.append(mkBtn('sp-round', ICON.save, 'Save every player to a file', () => { Backup.download(); this.msg = 'Saved to a file.'; this.draw(); }, { id: 'pvSave', title: 'Save to a file' }),
+      mkBtn('sp-round', ICON.load, 'Load players from a file', () => $('pvFile').click(), { id: 'pvLoad', title: 'Load from a file' }));
+    head.appendChild(mkBtn('sp-round plain', ICON.close, 'Close', () => closeOverlay(), { id: 'pvX' }));
     const tabs = document.createElement('div'); tabs.className = 'pv-tabs';
     for (const q of Profiles.all()) { const b = mkBtn('pv-tab' + (q === p ? ' on' : ''), faceHtml(q) + `<span>${esc(q.name)}</span>`, q.name, () => { this.tab = q.id; this.draw(); }); b.dataset.id = q.id; tabs.appendChild(b); }
     const counts = { new: 0, learning: 0, mastered: 0 };
@@ -2250,7 +2356,9 @@ const Parent = {
     const list = document.createElement('div'); list.className = 'pv-list'; list.id = 'pvList';
     const shown = new Map(); for (const a of ANIMALS) for (const q of [...(LISTS[a.id]?.[1] || []), ...(LISTS[a.id]?.[2] || [])]) shown.set(q.word.toLowerCase(), q.word);   // (Africa, as written)
     const pill = (w) => `<span class="pv-w s-${words.get(w) || 'new'}" data-w="${esc(w)}" title="${words.get(w) || 'new'}">${esc(shown.get(w) || w)}</span>`;
-    let html = p.guest ? '<div class="pv-note">Guest\'s words are kept only until the page is closed.</div>' : '';
+    let html = this.msg ? `<div class="pv-note" id="pvMsg"><b>${esc(this.msg)}</b></div>` : '';
+    html += '<div class="pv-note">The home game server\'s copy keeps its own saves. Bookmark http://(the Mac\'s name).local:8160/wild-world.html on each iPad as the home copy (the address the server prints); it stays the same, so the saves stay put. The arrows at the top save every player (animals, words, levels) to a file, and load one: only for a rare move between copies.</div>';
+    html += p.guest ? '<div class="pv-note">Guest\'s words are kept only until the page is closed.</div>' : '';
     html += '<div class="pv-note">Dashed: new. Light: learning. Gold: mastered (right the first time on 3 different days).</div>';
     for (const a of ANIMALS) {
       const own = [a.name.toLowerCase(), ...(LISTS[a.id]?.[p.level] || []).map((q) => q.word.toLowerCase())];
@@ -2270,6 +2378,497 @@ const Parent = {
 };
 
 // ===========================================================================
+// W3 (#160): two players, each on their own device, in the same world. Home Wi-Fi only, for now (Dad's pick): the page talks to
+// scripts/ww-relay.mjs, which also serves it. The game only ever uses Net (host, join, send, on, close); the transport behind
+// it is one small object (HomeTransport), so another one (a Cloudflare Worker) can be added later without touching the game.
+// About a player, only their avatar (icon and color) goes over the wire: no name, no level, no words, no profile id.
+//   The host is the referee (Net.you === 0): it decides who reached the flag first, who's it, and when time's up. Timers run on
+//   each device's own clock from a duration (the devices' clocks needn't agree), and on real time, so a paused player doesn't
+//   stop the other's game.
+// ===========================================================================
+// hz: where you are, sent this often; interp: the friend is drawn this far (ms) behind their newest message, one and a half
+// sends, so there are nearly always two to slide between; snap: a jump bigger than this (m) between two messages isn't slid; silent: this long (ms) with nothing from the friend means the line is gone
+const TWO = { hz: 30, interp: 50, snap: 8, silent: 8000, rideReach: 2.6, tagGap: 0.6, tagCool: 2000, raceDist: 60, raceSecs: 90, tagSecs: 60, goal: 4, countdown: 3 };
+const TWO_WHY = 'Two players works at home: ask a parent to start the game server';
+// what can be ridden, and where the rider sits: seat = the top of its back above its feet, z = how far forward of its middle
+// (the builder could add more big animals here: cow, bear and giraffe would all carry a rider)
+const RIDE = { horse: { seat: 1.75, z: -0.2 }, elephant: { seat: 2.5, z: -0.3 }, dolphin: { seat: 0.68, z: 0.05 } };
+const HIP = 0.92;   // the guy's hips above his feet
+const CODE_PICS = ['horse', 'pig', 'chicken', 'cat', 'elephant', 'giraffe', 'fish', 'eagle'];   // a room code is 4 of these
+
+// ---------- the transport: the home game server's WebSocket (only on the page it serves, which says so with WW_RELAY)
+const HomeTransport = {
+  name: 'home',
+  available() { return !!window.WW_RELAY && location.protocol === 'http:' && typeof WebSocket === 'function'; },
+  // resolves to { send(obj), close() } once open; onMsg(obj) for each message, onClose() if the line drops later
+  connect(onMsg, onClose) {
+    return new Promise((res, rej) => {
+      let ws, opened = false;
+      try { ws = new WebSocket('ws://' + location.host + '/ww'); } catch (e) { rej(e); return; }
+      ws.onopen = () => { opened = true; res({ send: (m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); }, close: () => { ws.onclose = null; try { ws.close(); } catch (e) {} } }); };
+      ws.onmessage = (e) => { let m = null; try { m = JSON.parse(e.data); } catch (err) {} if (m && typeof m.t === 'string') onMsg(m); };
+      ws.onerror = () => {};
+      ws.onclose = () => { if (!opened) rej(new Error('closed')); else onClose(); };
+    });
+  },
+};
+
+// ---------- Net: the only thing the game talks to.  state: off | connecting | waiting (hosting, alone) | together | dropped
+const Net = {
+  transport: HomeTransport, link: null, gen: 0, state: 'off', code: null, you: 0, sent: 0, got: 0, handlers: {},
+  available() { return this.transport.available(); },
+  on(type, fn) { (this.handlers[type] ||= []).push(fn); return fn; },
+  emit(m) { for (const fn of this.handlers[m.t] || []) fn(m); },
+  async open() {
+    if (this.link) return this.link;
+    const gen = ++this.gen; this.state = 'connecting';
+    try {
+      const link = await this.transport.connect((m) => { if (gen === this.gen) { this.got++; this.receive(m); } }, () => { if (gen === this.gen) this.lost(); });
+      if (gen !== this.gen) { link.close(); return null; }
+      this.link = link; return link;
+    } catch (e) { if (gen === this.gen) { this.state = 'off'; this.emit({ t: 'fail' }); } return null; }
+  },
+  async host() { if (!this.available()) return false; const l = await this.open(); if (!l) return false; l.send({ t: 'host' }); return true; },
+  async join(code) { if (!this.available()) return false; const l = await this.open(); if (!l) return false; l.send({ t: 'join', code }); return true; },
+  send(m) { if (!this.link) return false; this.link.send(m); this.sent++; return true; },
+  close() {
+    this.gen++; const was = this.state;
+    if (this.link) { this.link.send({ t: 'leave' }); this.link.close(); }
+    this.link = null; this.state = 'off'; this.code = null;
+    if (was !== 'off') this.emit({ t: 'closed' });
+  },
+  // the line dropped (closed), or went silent: hang up and say so
+  lost(silent) { this.gen++; if (this.link) this.link.close(); this.link = null; const was = this.state; this.state = 'dropped'; this.code = null; this.emit({ t: 'lost', was, silent: !!silent }); },
+  receive(m) {
+    this.heardAt = performance.now();
+    if (m.t === 'room') { this.code = Array.isArray(m.code) ? m.code.slice(0, 4) : null; this.you = m.you === 1 ? 1 : 0; this.state = m.peers > 1 ? 'together' : 'waiting'; }
+    else if (m.t === 'peer-join') this.state = 'together';
+    else if (m.t === 'peer-left') { if (this.state === 'together') this.state = 'waiting'; }
+    else if (m.t === 'err') { this.gen++; if (this.link) this.link.close(); this.link = null; this.state = 'off'; this.code = null; }
+    this.emit(m);
+  },
+};
+
+// put the player at x, z: on the ground, paddling at the top in deep water, or swimming if a fish or dolphin (the tests' teleport too)
+function placeAt(x, z, y) {
+  P.x = x; P.z = z; const g = groundAt(x, z);
+  P.y = y != null ? y : (isSwimmer(P.form) && g < SEA - 0.9 ? (P.form === 'fish' ? SEA - 2.2 : SEA - 1.3) : Math.max(g, g < SEA - 1.25 ? SEA - Math.min(1.3, FORMS[P.form].eye * 0.75) : g));
+  P.vy = 0; P.vx = P.vz = 0; P.grounded = y == null; P.hop = P.leap = false; P.roll = 0;
+}
+
+// ---------- the race flag: a tall light you can see from far off, and an arrow over your head pointing at it
+const goal = new THREE.Group();
+{
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 46, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.5, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+  beam.position.y = 23;
+  goal.add(beam, new THREE.Mesh(new Parts().cyl(0.09, 0.09, 4, 0xffffff, 0, 2, 0).box(1.6, 1.0, 0.06, 0xff5d8f, 0.82, 3.4, 0).build(), MAT));
+  goal.visible = false; scene.add(goal);
+}
+const goalArrow = new THREE.Mesh(arrow.geometry, MAT); goalArrow.scale.setScalar(0); scene.add(goalArrow);
+const _pv2 = new V3();
+
+const Two = {
+  page: 'off', entry: [], msg: '', lent: new Set(), calm: false, peer: null, ride: null, carrying: false, game: null, pulseT: 0, closeT: 0, nearRide: false, lastText: '',
+  av() { return { icon: who.icon, color: who.color }; },
+  cleanAv(a) { return { icon: a && (PROFILE.icons.includes(a.icon) || a.icon === 'person') ? a.icon : 'person', color: a && /^#[0-9a-f]{6}$/i.test(a.color) ? a.color : '#c9d2e3' }; },
+  face(a) { return faceHtml(a || { icon: 'person', color: '#c9d2e3' }); },
+  icon(name, color = '#ffd23f') { return faceHtml({ icon: name, color }); },
+  notice(text, sub) { toast(null, text, 5, sub, this.icon('two')); },
+
+  // ---- the session
+  async host() {
+    if (!Net.available()) { this.msg = TWO_WHY; this.calm = true; this.draw(); return false; }
+    if (Net.state !== 'off' && Net.state !== 'dropped') return false;
+    this.page = 'connecting'; this.msg = ''; this.draw();
+    return Net.host();
+  },
+  joinPage() {
+    if (!Net.available()) { this.msg = TWO_WHY; this.calm = true; this.draw(); return false; }
+    this.page = 'join'; this.entry = []; this.msg = ''; this.draw(); return true;
+  },
+  async join(code) {
+    if (!Net.available()) { this.msg = TWO_WHY; this.calm = true; this.draw(); return false; }
+    if (Net.state !== 'off' && Net.state !== 'dropped') return false;
+    this.page = 'connecting'; this.msg = ''; this.draw();
+    return Net.join(code);
+  },
+  tapKey(i) { if (this.page !== 'join' || this.entry.length >= 4) return; this.entry.push(i); this.msg = ''; if (this.entry.length === 4) this.join(this.entry.slice()); else this.draw(); },
+  del() { if (this.page !== 'join') return; this.entry.pop(); this.msg = ''; this.draw(); },
+  leave() { Net.close(); },
+  together() {
+    Net.send({ t: 'hi', v: 1, seed: SEED, av: this.av(), x: +P.x.toFixed(2), y: +P.y.toFixed(2), z: +P.z.toFixed(2), form: P.form, met: [...P.met] });
+    this.sendState();
+    clearInterval(this.pulseT); this.pulseT = setInterval(() => this.sendState(), 1000 / TWO.hz);
+    this.page = 'together'; this.msg = '';
+    if (overlay === 'two') this.draw(); else if (overlay === 'pause') pauseLabels();
+    clearTimeout(this.closeT); this.closeT = setTimeout(() => { if (overlay === 'two' && this.page === 'together') closeOverlay(); }, 1200);
+  },
+  // the friend went: they left (their code still works for them), the line dropped, or this player left
+  parted(why) {
+    clearInterval(this.pulseT); this.pulseT = 0; clearTimeout(this.closeT);
+    if (this.ride) this.dismount('gone');
+    this.carrying = false; this.endGame();
+    if (this.peer?.model) { const m = this.peer.model; doPuff(m.position.x, m.position.y + 1, m.position.z); scene.remove(m); }
+    this.peer = null; $('peerTag').classList.remove('on'); $('peerArrow').classList.remove('on');
+    // the friend's lent animals go back with them (each player keeps their own finds and every animal met together); a player
+    // who is one of those right now turns back into the guy, with a word about why
+    const wasLent = P.form !== 'human' && !P.met.has(P.form) ? P.form : null;
+    for (const id of this.lent) if (!P.met.has(id)) Player.changed.delete(id);   // a lent change doesn't count: meeting one later still asks its name
+    this.lent = new Set();
+    if (wasLent) doChange('human');
+    const back = wasLent ? 'You are you again: that ' + A[wasLent].name.toLowerCase() + ' was your friend\'s. Meet one to keep it.' : '';
+    if (why === 'left') { this.page = 'wait'; this.notice('Your friend left', back || 'Keep exploring! They can join again with the same code.'); }
+    else if (why === 'lost') { this.page = 'off'; this.msg = ''; this.notice('The two player game stopped', back || 'Keep playing on your own: your animals are saved.'); }
+    else { this.page = 'off'; if (back) this.notice('Back to you!', back); }
+    if (overlay === 'two') this.draw(); else if (overlay === 'pause') pauseLabels();
+    this.nearRide = false; padLabels();
+  },
+  onHi(m) {
+    if (m.seed !== SEED) { this.notice('Your friend is in a different world', 'Open the same page on both.'); Net.close(); return; }
+    const first = !this.peer;
+    this.peer = this.peer || { snaps: [], last: null, form: null, model: null, phase: 0, prev: null, shown: null, av: null };
+    this.peer.av = this.cleanAv(m.av);
+    // Dad's (y): while together, the friend's own animals are lent to this player (to change into), never saved here
+    this.lent = new Set((Array.isArray(m.met) ? m.met : []).filter((id) => typeof id === 'string' && Object.hasOwn(A, id) && !P.met.has(id)));
+    this.addSnap({ x: m.x, y: m.y, z: m.z, yaw: 0, f: m.form, s: 0 });
+    if (first && Net.you === 1 && Number.isFinite(m.x) && Number.isFinite(m.z)) {   // the friend who joins starts next to the host
+      placeAt(m.x + 3, m.z); wantChunks(); do updateChunks(99); while (pending.length); refreshLive(); this.sendState();
+    }
+    if (first) toast(null, 'Your friend is here!', 3, 'Find their face, or follow the arrow.', this.face(this.peer.av));
+  },
+  // sent 30 times a second by a timer, and also from the frame loop as soon as you've moved (at most every 16 ms: the relay
+  // takes up to 90 a second), so a move doesn't wait for the timer
+  sendState() {
+    if (Net.state !== 'together') return;
+    const r = (v) => Math.round(v * 100) / 100;
+    const m = { t: 'st', x: r(P.x), y: r(P.y), z: r(P.z), yaw: r(P.yaw), f: P.form, s: r(P.speed), g: P.grounded ? 1 : 0, rd: this.ride ? 1 : 0 };
+    Net.send(m); this.lastSent = m; this.lastSentAt = performance.now();
+  },
+  sendIfMoved(now) {
+    const L = this.lastSent; if (Net.state !== 'together' || !L || now - this.lastSentAt < 16) return;
+    if (Math.abs(P.x - L.x) > 0.02 || Math.abs(P.z - L.z) > 0.02 || Math.abs(P.y - L.y) > 0.02 || Math.abs(wrapA(P.yaw - L.yaw)) > 0.02 || P.form !== L.f || !!this.ride !== !!L.rd) this.sendState();
+  },
+  sendMeet(id) { if (Net.state === 'together') Net.send({ t: 'meet', id }); },
+  addSnap(m) {
+    const p = this.peer; if (!p || ![m.x, m.y, m.z].every(Number.isFinite) || typeof m.f !== 'string' || !Object.hasOwn(FORMS, m.f)) return;
+    const s = { at: performance.now(), wall: Date.now(), x: m.x, y: m.y, z: m.z, yaw: Number.isFinite(m.yaw) ? m.yaw : 0, f: m.f, s: +m.s || 0, g: m.g !== 0, rd: !!m.rd };
+    if (!p.last || p.last.f !== s.f) p.formAt = s.wall;   // when their new form arrived (the tests time it)
+    p.snaps.push(s); if (p.snaps.length > 30) p.snaps.shift(); p.last = s;
+  },
+  // where the friend is drawn now: TWO.interp ms behind their newest message, between the two around it (a big jump snaps)
+  pose(now = performance.now()) {
+    const p = this.peer; if (!p || !p.snaps.length) return null;
+    const S = p.snaps, rt = now - TWO.interp; let a = S[0], b = S[0];
+    if (rt >= S[S.length - 1].at) a = b = S[S.length - 1];
+    else for (let i = S.length - 1; i > 0; i--) if (S[i - 1].at <= rt) { a = S[i - 1]; b = S[i]; break; }
+    let t = b.at > a.at ? clamp((rt - a.at) / (b.at - a.at), 0, 1) : 1;
+    if (Math.hypot(b.x - a.x, b.z - a.z) > TWO.snap) t = 1;
+    return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t), yaw: a.yaw + wrapA(b.yaw - a.yaw) * t, f: p.last.f, rd: p.last.rd, s: b.s, g: b.g };
+  },
+
+  // ---- riding: a human rides the friend while they're a horse, an elephant or a dolphin. The animal steers; jump hops off.
+  seat(mx, my, mz, yaw, form) {
+    const r = RIDE[form], y = my + r.seat - HIP;
+    return { x: mx + Math.sin(yaw) * r.z, y: form === 'dolphin' ? Math.max(y, SEA - 0.85) : y, z: mz + Math.cos(yaw) * r.z };
+  },
+  canMount() {
+    if (Net.state !== 'together' || this.ride || P.form !== 'human' || !this.peer) return false;
+    const q = this.pose(); if (!q || !RIDE[q.f] || q.rd) return false;
+    return Math.hypot(q.x - P.x, q.z - P.z) < FORMS[q.f].r + TWO.rideReach && Math.abs(q.y - P.y) < 3.5;
+  },
+  mount() {
+    if (!this.canMount()) return false;
+    this.ride = { form: this.pose().f, at: performance.now() };
+    Net.send({ t: 'mount' }); this.follow(); this.sendState(); padLabels(); Sfx.jump();
+    return true;
+  },
+  follow() {
+    if (!this.ride) return;
+    const q = this.pose();
+    if (!q || Net.state !== 'together' || q.f !== this.ride.form || !RIDE[q.f]) { this.dismount(q && Net.state === 'together' ? 'form' : 'gone'); return; }
+    const s = this.seat(q.x, q.y, q.z, q.yaw, q.f);
+    P.x = s.x; P.y = s.y; P.z = s.z; P.yaw = q.yaw; P.vx = P.vy = P.vz = 0; P.grounded = true; P.speed = 0; P.swimming = false; P.under = P.y + HUMAN.eye < SEA;
+  },
+  // off to the animal's right side, on the ground (or paddling at the top in deep water): never left inside it or up in the air
+  dismount(why = 'hop') {
+    if (!this.ride) return false;
+    const form = this.ride.form, q = this.pose(), mx = q ? q.x : P.x, mz = q ? q.z : P.z, yaw = q ? q.yaw : P.yaw, d = (FORMS[form]?.r || 1) + 0.9;
+    this.ride = null;
+    placeAt(mx + Math.cos(yaw) * d, mz - Math.sin(yaw) * d); P.yaw = yaw;
+    if (Net.state === 'together') { Net.send({ t: 'dismount' }); this.sendState(); }
+    this.nearRide = this.canMount(); padLabels();
+    if (why === 'form') toast(null, 'Hop! Your friend changed', 2.4, '', this.icon('hopoff'));
+    return true;
+  },
+  // this player's form changed: a rider is dropped off (they see the new form at once and hop down safely)
+  changed() { if (this.carrying) { this.carrying = false; Net.send({ t: 'drop' }); } this.sendState(); },
+  sit(model) { for (const m of model.userData.limbs) if (m.userData.kind === 'leg') { m.rotation.x = -1.35; m.rotation.z = m.userData.at[0] > 0 ? 0.35 : -0.35; } },
+
+  // ---- race and tag
+  frozen() { const g = this.game; return !!g && !g.result && performance.now() < g.goAt; },
+  startGame(kind, secs) {
+    if (Net.state !== 'together' || (kind !== 'race' && kind !== 'tag')) return false;
+    const w = { kind, x: +P.x.toFixed(2), z: +P.z.toFixed(2), yaw: +cam.yaw.toFixed(3), secs };
+    if (Net.you === 0) return this.begin({ ...w, seat: 0 });
+    Net.send({ t: 'want', ...w }); return true;
+  },
+  begin(w) {   // the host sets a game up and tells both
+    const g = { t: 'game', kind: w.kind, id: Date.now() % 1e9, cd: TWO.countdown, secs: clamp(Number(w.secs) || (w.kind === 'race' ? TWO.raceSecs : TWO.tagSecs), 5, 180) };
+    if (w.kind === 'race') {   // the flag: TWO.raceDist ahead of whoever started it, pulled back toward them off deep water
+      let d = TWO.raceDist, mx = w.x, mz = w.z;
+      for (; d >= 12; d -= 4) { mx = w.x + Math.sin(w.yaw) * d; mz = w.z + Math.cos(w.yaw) * d; if (groundAt(mx, mz) > SEA - 0.3) break; }
+      g.marker = { x: +mx.toFixed(2), z: +mz.toFixed(2) };
+    } else g.it = w.seat === 1 ? 1 : 0;   // whoever starts tag is it
+    Net.send(g); this.apply(g); return true;
+  },
+  apply(g) {
+    if (g.kind !== 'race' && g.kind !== 'tag') return;
+    const now = performance.now(), cd = clamp(+g.cd || 0, 0, 10), secs = clamp(+g.secs || 60, 5, 180);
+    this.endGame();
+    this.game = { kind: g.kind, id: g.id, goAt: now + cd * 1000, endAt: now + (cd + secs) * 1000, secs, it: g.kind === 'tag' ? (g.it === 1 ? 1 : 0) : null,
+      marker: g.marker && Number.isFinite(g.marker.x) && Number.isFinite(g.marker.z) ? { x: g.marker.x, z: g.marker.z } : null, result: null, tags: 0, lastTag: now, reached: false };
+    if (g.kind === 'race' && !this.game.marker) { this.game = null; return; }
+    if (this.game.marker) { goal.position.set(this.game.marker.x, Math.max(groundAt(this.game.marker.x, this.game.marker.z), SEA), this.game.marker.z); goal.visible = true; }
+    $('hud').classList.add('game'); this.chip(now);
+    const itMe = this.game.it === Net.you;
+    if (g.kind === 'race') toast(null, 'Race to the flag!', 3, 'Follow the arrow. First one there wins.', this.icon('flag'));
+    else toast(null, itMe ? 'Tag! You are it' : 'Tag! Run!', 3, itMe ? 'Touch your friend to pass it on.' : 'Don\'t let your friend touch you.', this.icon('tag', itMe ? '#ff5d8f' : '#5cc8ff'));
+  },
+  endGame() { if (this.game && !this.game.result) this.game.result = { win: null, cancelled: true }; goal.visible = false; goalArrow.scale.setScalar(0); $('hud').classList.remove('game'); },
+  referee(now) {
+    const g = this.game; if (!g || g.result || Net.state !== 'together') return;
+    if (g.kind === 'race' && now >= g.goAt && !g.reached && Math.hypot(P.x - g.marker.x, P.z - g.marker.z) < TWO.goal) {
+      g.reached = true; if (Net.you === 0) this.over(0); else Net.send({ t: 'reach', id: g.id });
+    }
+    if (Net.you !== 0 || g.result) return;   // the host decides the rest
+    const L = this.peer?.last;
+    if (g.kind === 'tag' && L && now >= g.goAt && now - g.lastTag > TWO.tagCool) {
+      const d = Math.hypot(L.x - P.x, L.z - P.z), reach = FORMS[P.form].r + FORMS[L.f].r + TWO.tagGap;
+      if (d < reach && Math.abs(L.y - P.y) < 3) { const m = { t: 'it', id: g.id, it: 1 - g.it }; Net.send(m); this.onIt(m); }
+    }
+    if (now >= g.endAt) this.over(g.kind === 'tag' ? 1 - g.it : -1);
+  },
+  over(win) { const g = this.game; if (!g || g.result) return; const m = { t: 'over', id: g.id, win }; Net.send(m); this.onOver(m); },
+  onIt(m) {
+    const g = this.game; if (!g || g.kind !== 'tag' || g.id !== m.id || g.result) return;
+    g.it = m.it === 1 ? 1 : 0; g.tags++; g.lastTag = performance.now(); Sfx.puff(); this.chip(g.lastTag);
+    const me = g.it === Net.you;
+    toast(null, me ? 'Tagged! You are it' : 'Got them! Run!', 2, '', this.icon('tag', me ? '#ff5d8f' : '#5cc8ff'));
+  },
+  onOver(m) {
+    const g = this.game; if (!g || g.id !== m.id || g.result) return;
+    const win = m.win === 0 || m.win === 1 ? m.win : -1, me = win === Net.you;
+    let text, sub;
+    if (g.kind === 'race') { text = win < 0 ? 'Time is up!' : me ? 'You win the race!' : 'Your friend wins the race!'; sub = win < 0 ? 'Nobody reached the flag.' : 'First to the flag.'; }
+    else { text = me ? 'You win at tag!' : 'Your friend wins at tag!'; sub = me ? 'Your friend was it when time ran out.' : 'You were it when time ran out.'; }
+    g.result = { win, me, text };
+    goal.visible = false; goalArrow.scale.setScalar(0); $('hud').classList.remove('game');
+    Sfx.meet(); toast(null, text, 5, sub, win < 0 ? this.icon('flag') : me ? this.face(this.av()) : this.face(this.peer?.av));
+  },
+  onWant(m) { if (Net.you === 0 && (m.kind === 'race' || m.kind === 'tag') && Number.isFinite(m.x) && Number.isFinite(m.z) && Number.isFinite(m.yaw)) this.begin({ kind: m.kind, x: m.x, z: m.z, yaw: m.yaw, secs: m.secs, seat: 1 }); },
+  onReach(m) { const g = this.game; if (Net.you === 0 && g && g.kind === 'race' && g.id === m.id && !g.result) this.over(1); },
+  // the chip next to the animal: the countdown, then the seconds left (and in tag, who's it)
+  chip(now) {
+    const g = this.game; if (!g || g.result) return;
+    const it = g.kind === 'tag' && g.it === Net.you;
+    const text = now < g.goAt ? String(Math.ceil((g.goAt - now) / 1000)) : (g.kind === 'race' ? 'GO! ' : it ? 'YOU\'RE IT ' : 'RUN! ') + Math.max(0, Math.ceil((g.endAt - now) / 1000));
+    if (text === this.lastText) return; this.lastText = text;
+    $('gameIc').innerHTML = g.kind === 'race' ? ICON.flag : ICON.tag; $('gameText').textContent = text; $('gameChip').classList.toggle('it', it);
+  },
+
+  // ---- every frame (and every manual step): the rider follows, the referee watches, RIDE comes and goes
+  frame(now = performance.now()) {
+    // a line that goes quiet without closing (a closed lid, an iPad out of range, the router blinking): the friend sends 30
+    // times a second even when paused, so TWO.silent ms of nothing means they're gone
+    if (Net.state === 'together' && this.peer && now - (Net.heardAt || now) > TWO.silent) Net.lost(true);
+    if (this.ride) this.follow();
+    this.sendIfMoved(now);
+    this.referee(now); this.chip(now);
+    const can = this.canMount(); if (can !== this.nearRide) { this.nearRide = can; padLabels(); }
+  },
+  // the friend's model, their face over their head (or an arrow at the screen's edge pointing to them), the flag's arrow
+  view() {
+    const p = this.peer, tag = $('peerTag'), arr = $('peerArrow');
+    const g = this.game, now = performance.now();
+    if (g && !g.result && g.marker) {
+      const d = Math.hypot(g.marker.x - P.x, g.marker.z - P.z);
+      if (d > 8) { goalArrow.position.set(P.x, P.y + FORMS[P.form].camH * 0.75 + 0.9, P.z); goalArrow.rotation.y = Math.atan2(g.marker.x - P.x, g.marker.z - P.z); goalArrow.scale.setScalar(1 + 0.08 * Math.sin(time * 6)); }
+      else goalArrow.scale.setScalar(0);
+    }
+    if (!p || Net.state !== 'together') { tag.classList.remove('on'); arr.classList.remove('on'); return; }
+    let q = this.pose(now); if (!q) return;
+    if (q.rd && this.carrying && RIDE[P.form]) q = { ...q, ...this.seat(P.x, P.y, P.z, P.yaw, P.form), yaw: P.yaw };   // on my back, exactly
+    if (!p.model || p.form !== q.f) {
+      if (p.model) { scene.remove(p.model); doPuff(q.x, q.y + FORMS[q.f].camH * 0.3, q.z, 0xffffff, 1 + FORMS[q.f].r * 0.5); }
+      p.model = makeModel(q.f); scene.add(p.model); p.form = q.f;
+    }
+    p.model.position.set(q.x, q.y, q.z); p.model.rotation.y = q.yaw;
+    const mv = p.prev ? Math.hypot(q.x - p.prev.x, q.z - p.prev.z) : 0; p.prev = q; p.phase += Math.min(mv, 2) * 3.2 + 0.03;
+    animateModel(p.model, p.phase, q.rd ? 0 : Math.min(1, q.s / 3), q.f === 'eagle' ? (q.g ? 'fold' : 'fly') : 'walk');
+    if (q.rd) this.sit(p.model);
+    p.shown = q;
+    // their face: over their head when they're on screen, else an arrow at the edge (kept clear of the HUD and the thumbs)
+    const v = _pv2.set(q.x, q.y + FORMS[q.f].eye + 0.9, q.z).project(camera), W = innerWidth, H = innerHeight, behind = v.z > 1;
+    const sx = (v.x + 1) / 2 * W, sy = (1 - v.y) / 2 * H, m = 24;
+    const it = !!(g && !g.result && g.kind === 'tag' && g.it !== Net.you);
+    const fh = this.face(p.av); if (tag.dataset.av !== fh) { tag.innerHTML = fh; arr.querySelector('.fc').innerHTML = fh; tag.dataset.av = fh; }
+    tag.classList.toggle('it', it); arr.classList.toggle('it', it);
+    if (!behind && sx >= m && sx <= W - m && sy >= m && sy <= H - m) {
+      tag.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px)`; tag.classList.add('on'); arr.classList.remove('on');
+      p.mark = { on: true, x: sx, y: sy };
+    } else {
+      let dx = sx - W / 2, dy = sy - H / 2; if (behind) { dx = -dx; dy = -dy; } if (Math.abs(dx) < 1e-3 && Math.abs(dy) < 1e-3) dy = 1;
+      // the thumbs' controls sit in the bottom corners (the stick's side and the buttons' side): there the arrow stays above them
+      const touchy = document.documentElement.classList.contains('tp-showing');
+      // (42 px in from every edge: the face plus its pointer, 38 px from the middle, stays whole)
+      const l = 42, r = W - 42, t = Math.min(H / 2, 84);
+      const place = (b) => { const k = Math.min(dx > 0 ? (r - W / 2) / dx : dx < 0 ? (l - W / 2) / dx : Infinity, dy > 0 ? (b - H / 2) / dy : dy < 0 ? (t - H / 2) / dy : Infinity); return [clamp(W / 2 + dx * k, l, r), clamp(H / 2 + dy * k, t, b)]; };
+      let [ax, ay] = place(Math.max(t + 1, H - 42));
+      if (touchy && ay > H - 196 && (ax < 200 || ax > W - 240)) [ax, ay] = place(Math.max(t + 1, H - 196));
+      const ang = Math.atan2(dy, dx);
+      arr.style.transform = `translate(${ax.toFixed(1)}px, ${ay.toFixed(1)}px)`; arr.querySelector('.pt').style.transform = `rotate(${ang.toFixed(3)}rad)`;
+      arr.classList.add('on'); tag.classList.remove('on');
+      p.mark = { on: false, x: ax, y: ay, angle: ang };
+    }
+  },
+
+  // ---- the panel (pause menu > 2 PLAYERS): Host or Join; the code; the 4-picture keypad; together; and on Pages, why not
+  open() {
+    if (screen !== 'play') return;
+    this.page = Net.state === 'together' ? 'together' : Net.state === 'waiting' ? 'wait' : Net.state === 'connecting' ? 'connecting' : 'off';
+    this.msg = ''; this.calm = false; showOv('two'); this.draw();
+    const f = document.querySelector('#twPanel .tw-big, #twPanel .big'); if (f) f.focus({ preventScroll: true });
+  },
+  back() { if (this.page === 'join') { this.page = 'off'; this.msg = ''; this.draw(); } else closeOverlay(); },
+  key(e) {
+    const c = e.code;
+    if (c === 'Escape') { e.preventDefault(); this.back(); return; }
+    if (this.page !== 'join') return;
+    const d = /^(?:Digit|Numpad)([1-8])$/.exec(c);
+    if (d) { e.preventDefault(); this.tapKey(+d[1] - 1); } else if (c === 'Backspace') { e.preventDefault(); this.del(); }
+  },
+  codeHtml(code, cls = 'tw-code') { return `<div class="${cls}" id="twCode">${(code || []).map((i) => `<span data-c="${i}"><img alt="${esc(A[CODE_PICS[i]]?.name || '')}" src="${THUMB[CODE_PICS[i]] || ''}"></span>`).join('')}</div>`; },
+  draw() {
+    const P0 = $('twPanel'); if (!P0) return;
+    P0.innerHTML = ''; P0.dataset.page = this.page;
+    const head = document.createElement('div'); head.className = 'tw-head';
+    if (this.page === 'join') head.appendChild(mkBtn('sp-round plain', ICON.back, 'Back', () => this.back(), { id: 'twBack' }));
+    const h = document.createElement('h2'); h.innerHTML = ICON.two + '<span>2 PLAYERS</span>'; head.appendChild(h);
+    head.appendChild(mkBtn('sp-round plain', ICON.close, 'Close', () => closeOverlay(), { id: 'twX' }));
+    P0.appendChild(head);
+    const add = (html) => { const d = document.createElement('div'); d.innerHTML = html; while (d.firstChild) P0.appendChild(d.firstChild); };
+    const msg = () => add(`<div class="tw-msg${this.calm ? ' calm' : ''}" id="twMsg" role="status">${esc(this.msg)}</div>`);
+    if (this.page === 'off') {
+      const row = document.createElement('div'); row.className = 'tw-row';
+      row.append(mkBtn('tw-big', ICON.host + '<span>HOST</span>', 'Host a game', () => this.host(), { id: 'twHost' }),
+        mkBtn('tw-big join', ICON.join + '<span>JOIN</span>', 'Join a game', () => this.joinPage(), { id: 'twJoin' }));
+      P0.appendChild(row); msg();
+    } else if (this.page === 'connecting') {
+      add('<div class="tw-note">Finding the game...</div>');
+      const row = document.createElement('div'); row.className = 'tw-row'; row.appendChild(mkBtn('big', ICON.close + '<span>CANCEL</span>', 'Cancel', () => this.leave(), { id: 'twCancel' })); P0.appendChild(row);
+    } else if (this.page === 'wait') {
+      add('<div class="tw-note">Your friend taps JOIN, then these animals:</div>' + this.codeHtml(Net.code) + '<div class="tw-note" style="font-size:15px;opacity:.8">Waiting for your friend...</div>');
+      const row = document.createElement('div'); row.className = 'tw-row'; row.appendChild(mkBtn('big', ICON.close + '<span>CANCEL</span>', 'Stop hosting', () => this.leave(), { id: 'twCancel' })); P0.appendChild(row);
+    } else if (this.page === 'join') {
+      add(`<div class="tw-code" id="twSlots">${[0, 1, 2, 3].map((k) => `<span class="tw-slot${k < this.entry.length ? ' full' : ''}">${k < this.entry.length ? `<img alt="" src="${THUMB[CODE_PICS[this.entry[k]]] || ''}">` : ''}</span>`).join('')}</div>`);
+      const pad = document.createElement('div'); pad.className = 'sp-pad'; pad.id = 'twKeys';
+      CODE_PICS.forEach((id, i) => { const k = noFocus(mkBtn('sp-key tw-key', `<img alt="" src="${THUMB[id] || ''}">`, A[id].name, () => this.tapKey(i))); k.dataset.c = i; pad.appendChild(k); });
+      pad.appendChild(noFocus(mkBtn('sp-key act', ICON.del, 'Delete', () => this.del(), { id: 'twDel' })));
+      P0.appendChild(pad); msg();
+      const W = innerWidth, H = innerHeight, inner = Math.min(640, W - 16) - 20;
+      const avail = H - 12 - 20 - head.offsetHeight - $('twSlots').offsetHeight - ($('twMsg').offsetHeight || 0) - 30;
+      fitKeys(pad, pad.children.length, inner, avail, 72, 8);
+    } else {   // together
+      add(`<div class="tw-with" id="twWith">${this.face(this.peer?.av)}<span>Playing together!</span></div>`);
+      add('<div class="tw-note" style="font-size:15px">RACE and TAG are in the pause menu.</div>');
+      const row = document.createElement('div'); row.className = 'tw-row'; row.appendChild(mkBtn('tw-big leave', ICON.leave + '<span>LEAVE</span>', 'Leave the game', () => this.leave(), { id: 'twLeave' })); P0.appendChild(row);
+    }
+  },
+  status() { return overlay === 'two' ? { page: this.page, msg: this.msg, entry: this.entry.slice(), code: Net.code } : null; },
+};
+Net.on('room', () => { if (Net.state === 'together') Two.together(); else { Two.page = 'wait'; if (overlay === 'two') Two.draw(); } });
+Net.on('peer-join', () => Two.together());
+Net.on('peer-left', () => Two.parted('left'));
+Net.on('lost', () => Two.parted('lost'));
+Net.on('closed', () => Two.parted('closed'));
+Net.on('fail', () => { Two.page = 'off'; Two.msg = 'Could not reach the game server. Is it still running?'; Two.calm = false; if (overlay === 'two') Two.draw(); });
+Net.on('err', (m) => {
+  Two.entry = []; Two.calm = false;
+  Two.msg = m.why === 'full' ? 'That game has two players already' : m.why === 'nocode' ? 'No game has those animals. Try again!' : 'The game server is busy. Try again soon.';
+  Two.page = m.why === 'busy' ? 'off' : 'join'; if (overlay === 'two') Two.draw();
+});
+Net.on('hi', (m) => Two.onHi(m));
+Net.on('st', (m) => Two.addSnap(m));
+Net.on('meet', (m) => { if (typeof m.id === 'string' && Object.hasOwn(A, m.id)) meet(m.id, true); });
+Net.on('mount', () => { if (RIDE[P.form]) Two.carrying = true; else Net.send({ t: 'drop' }); });
+Net.on('dismount', () => { Two.carrying = false; });
+Net.on('drop', () => Two.dismount('form'));
+Net.on('game', (m) => Two.apply(m));
+Net.on('want', (m) => Two.onWant(m));
+Net.on('reach', (m) => Two.onReach(m));
+Net.on('it', (m) => Two.onIt(m));
+Net.on('over', (m) => Two.onOver(m));
+
+// ---------- saves to a file and back (#160): the home game server's page has its own storage, separate from the Pages copy
+const Backup = {
+  make() {
+    Profiles.load();
+    const books = {}, words = {};
+    for (const p of Profiles.all()) { books[p.id] = Book.read(p.id); if (!p.guest) { const w = store.get('words.' + p.id, null); if (w) words[p.id] = w; } }
+    return { app: 'wild-world', v: 1, saved: new Date().toISOString(), profiles: Profiles.list.map((p) => ({ ...p })), guestLevel: GUEST.level, books, words };
+  },
+  download() {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(this.make())], { type: 'application/json' })), a = document.createElement('a');
+    a.href = url; a.download = 'wild-world-saves-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000); return true;
+  },
+  // nothing is ever lost: a player with the same name gets the animals and words added to theirs (a word keeps the copy with
+  // more answers); a new name becomes a new profile (if there's room). Guest's book is merged into Guest's.
+  restore(data) {
+    if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { return { ok: false, why: 'That is not a Wild World save file.' }; } }
+    if (!data || data.app !== 'wild-world' || data.v !== 1 || !Array.isArray(data.profiles)) return { ok: false, why: 'That is not a Wild World save file.' };
+    Profiles.load();
+    const map = { [GUEST.id]: GUEST.id }; let added = 0, merged = 0, skipped = 0, animals = 0;
+    for (const raw of data.profiles) {
+      const p = Profiles.clean(raw); if (!p) { skipped++; continue; }
+      const same = Profiles.list.find((q) => q.name.toLowerCase() === p.name.toLowerCase());
+      if (same) { map[p.id] = same.id; merged++; continue; }
+      if (Profiles.full()) { skipped++; continue; }
+      let id = p.id; while (Profiles.get(id)) id = 'p_' + Math.random().toString(36).slice(2, 8);
+      Profiles.list.push({ ...p, id }); map[p.id] = id; added++;
+    }
+    Profiles.save();
+    const okEntry = (e) => e && typeof e === 'object' && ['new', 'learning', 'mastered'].includes(e.s) && Array.isArray(e.days);
+    for (const [from, to] of Object.entries(map)) {
+      const b = data.books && data.books[from];
+      if (b && Array.isArray(b.met)) {
+        const cur = Book.read(to), met = new Set(cur.met), ch = new Set(cur.changed || []);
+        for (const id of b.met) if (typeof id === 'string' && Object.hasOwn(A, id) && !met.has(id)) { met.add(id); animals++; }
+        for (const id of Array.isArray(b.changed) ? b.changed : []) if (typeof id === 'string' && Object.hasOwn(A, id)) ch.add(id);
+        store.set('book.' + to, { v: SAVE_V, met: [...met], form: cur.form, fp: !!cur.fp, sound: cur.sound !== false, changed: [...ch] });
+      }
+      const w = data.words && data.words[from];
+      if (to !== GUEST.id && w && w.v === SAVE_V && w.words && typeof w.words === 'object') {
+        const cur = store.get('words.' + to, null), rec = cur && cur.v === SAVE_V && cur.words ? cur : Spell.blank();
+        for (const [k, e] of Object.entries(w.words)) if (/^[a-z]+$/.test(k) && okEntry(e) && (!rec.words[k] || (+e.n || 0) > (+rec.words[k].n || 0))) rec.words[k] = e;
+        rec.n = Math.max(+rec.n || 0, +w.n || 0);
+        rec.misses = [...(Array.isArray(rec.misses) ? rec.misses : []), ...(Array.isArray(w.misses) ? w.misses.filter((m) => m && typeof m.w === 'string' && Number.isFinite(m.t)) : [])].slice(-SPELL.keepMisses);
+        store.set('words.' + to, rec);
+      }
+    }
+    if (data.guestLevel === 2 && !store.get('guestLevel', null)) Profiles.setLevel(GUEST.id, 2);
+    Profiles.load(); usePlayer(Profiles.get(who.id) || GUEST);
+    return { ok: true, added, merged, skipped, animals };
+  },
+};
+$('pvFile').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { const r = Backup.restore(String(rd.result || '')); Parent.msg = r.ok ? `Loaded: ${r.added} new player${r.added === 1 ? '' : 's'}, ${r.merged} added to, ${r.animals} animal${r.animals === 1 ? '' : 's'} added.` : r.why; e.target.value = ''; if (overlay === 'parent') Parent.draw(); };
+  rd.readAsText(f);
+});
+
+// ===========================================================================
 // Start up
 // ===========================================================================
 Sfx.on = save0.sound !== false;
@@ -2284,6 +2883,9 @@ onTap($('pSoundBtn'), () => { Sfx.on = !Sfx.on; save(); pauseLabels(); });
 onTap($('wheelX'), closeOverlay);
 onTap($('bookX'), closeOverlay);
 onTap($('pWhoBtn'), openTitle);
+onTap($('pTwoBtn'), () => Two.open());
+onTap($('pRaceBtn'), () => { closeOverlay(); Two.startGame('race'); });
+onTap($('pTagBtn'), () => { closeOverlay(); Two.startGame('tag'); });
 onTap($('spSay'), () => Ask.say()); onTap($('spX'), closeOverlay);
 $('spSay').innerHTML = ICON.say; $('spX').innerHTML = ICON.close; $('parentIc').innerHTML = ICON.lock;
 noFocus($('spSay'));
@@ -2312,6 +2914,7 @@ function frame(now) {
   }
   if (P.pop < 1) P.pop = Math.min(1, P.pop + dt / 0.4);
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('on'); }
+  Two.frame(now);
   updateView();
   renderer.render(scene, camera); frames++;
 }
@@ -2339,7 +2942,7 @@ window.__ww = {
   },
   manual(on = true) { manual = !!on; return manual; },
   start() { startPlay(); return screen; },
-  step(n = 1) { for (let i = 0; i < n; i++) { if (overlay) break; tick(); } updateView(); return ticks; },
+  step(n = 1) { for (let i = 0; i < n; i++) { if (overlay) break; tick(); } Two.frame(); updateView(); return ticks; },
   render() { updateView(); renderer.render(scene, camera); return { calls: renderer.info.render.calls, tris: renderer.info.render.triangles }; },
   // a render looking four ways round, so everything loaded has been on the GPU (info.memory only counts what has been drawn)
   renderAround() { const y0 = cam.yaw; for (let k = 0; k < 4; k++) { cam.yaw = y0 + k * Math.PI / 2; updateView(); renderer.render(scene, camera); } cam.yaw = y0; return this.render(); },
@@ -2395,7 +2998,7 @@ window.__ww = {
   answer(text) { if (overlay !== 'spell' || !Ask.p) return null; const word = Ask.p.word, right = Ask.submit(text, true); return { right, word, form: P.form, prompt: Ask.status() }; },
   again() { Ask.again(); return Ask.status(); },
   // open the panel for animal with a given word from its lists (the tests' way to aim at one word); go: change if right
-  ask(animal, word) { const q = [...(LISTS[animal]?.[1] || []), ...(LISTS[animal]?.[2] || [])].find((x) => x.word.toLowerCase() === String(word).toLowerCase()); if (!q || !P.met.has(animal)) return null; return Ask.open(animal, () => { Player.changed.add(animal); doChange(animal); }, q); },
+  ask(animal, word) { const q = [...(LISTS[animal]?.[1] || []), ...(LISTS[animal]?.[2] || [])].find((x) => x.word.toLowerCase() === String(word).toLowerCase()); if (!q || !canUse(animal)) return null; return Ask.open(animal, () => { Player.changed.add(animal); doChange(animal); }, q); },
   // an animal's words with the current player's stage for each
   words(animal) { const L = LISTS[animal]; if (!L) return null; const st = (q) => ({ word: q.word, clue: q.clue, stage: Spell.stage(q.word) }); return { name: A[animal].name.toLowerCase(), nameStage: Spell.stage(A[animal].name), fact: L.fact, level1: L[1].map(st), level2: L[2].map(st) }; },
   // the current player's word progress
@@ -2450,6 +3053,32 @@ window.__ww = {
     });
     return { id, at, parts: [...parts, ...swing] };
   },
+  // ---- W3 (#160): two players
+  Net, Two, Backup, TWO, RIDE, CODE_PICS, TWO_WHY,
+  // the connection: { state (off | connecting | waiting | together | dropped), code, you (0 host / 1), available, page (the panel's), msg, sent, got }
+  net() { return { state: Net.state, code: Net.code ? Net.code.slice() : null, you: Net.you, available: Net.available(), page: Two.page, msg: Two.msg, entry: Two.entry.slice(), sent: Net.sent, got: Net.got, open: overlay === 'two' }; },
+  host() { return Two.host(); }, join(code) { return Two.join(code); }, leave() { Two.leave(); return Net.state; }, openTwo() { Two.open(); return Two.status(); },
+  // the friend as this screen shows them: shown (where the model is drawn now), last (their newest message, with the wall time it came),
+  // av (all there is about them: an icon and a color), mark (their face over their head, or the edge arrow), model
+  peer() {
+    const p = Two.peer; if (!p) return null;
+    const q = Two.pose(), L = p.last, r = (v) => +v.toFixed(3);
+    return { on: Net.state === 'together', form: q ? q.f : null, shown: q ? { x: r(q.x), y: r(q.y), z: r(q.z), yaw: r(q.yaw) } : null, rd: !!(L && L.rd),
+      last: L ? { x: L.x, y: L.y, z: L.z, f: L.f, wall: L.wall } : null, av: p.av, model: p.model ? { form: p.form, x: r(p.model.position.x), y: r(p.model.position.y), z: r(p.model.position.z), visible: p.model.visible, inScene: !!p.model.parent } : null,
+      formAt: p.formAt || null, mark: p.mark || null, tagOn: $('peerTag').classList.contains('on'), arrowOn: $('peerArrow').classList.contains('on'), now: Date.now() };
+  },
+  // the book while together (Dad's (y)): own = this player's own (saved) animals, lent = the friend's they can use only while together
+  book() { return { own: [...P.met], lent: [...Two.lent], saved: (store.get('book.' + who.id, null) || {}).met || [], canUse: ANIMALS.map((a) => a.id).filter((id) => canUse(id)) }; },
+  ride() { return { on: !!Two.ride, form: Two.ride ? Two.ride.form : null, carrying: Two.carrying, can: Two.canMount(), near: Two.nearRide }; },
+  mount() { return Two.mount(); }, dismount() { return Two.dismount('hop'); },
+  game() {
+    const g = Two.game; if (!g) return null; const now = performance.now();
+    return { kind: g.kind, id: g.id, it: g.it, meIt: g.kind === 'tag' ? g.it === Net.you : null, countdown: Math.max(0, +((g.goAt - now) / 1000).toFixed(2)), left: Math.max(0, +((g.endAt - now) / 1000).toFixed(2)),
+      marker: g.marker, result: g.result, tags: g.tags, frozen: Two.frozen(), chip: $('hud').classList.contains('game') ? $('gameText').textContent : null, goal: goal.visible,
+      toast: $('toast').classList.contains('on') ? $('toastText').textContent : null };
+  },
+  startGame(kind, secs) { return Two.startGame(kind, secs); },
+  backup() { return Backup.make(); }, restore(data) { return Backup.restore(data); },
 };
 </script>
 </body>
