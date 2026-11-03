@@ -864,6 +864,12 @@ function legs4(c, hoof, lw, lh, lx, lz) {
   return [[lx, lz, 0], [-lx, lz, Math.PI], [lx, -lz, Math.PI], [-lx, -lz, 0]].map(([x, z, ph]) => ({ geo: g, at: [x, lh, z], kind: 'leg', ph }));
 }
 const BLACK = 0x1d1d22, WHITE = 0xffffff;
+// several built geometries as one (W4: the octopus's arms)
+function mergeGeos(gs) {
+  const out = new THREE.BufferGeometry();
+  for (const k of ['position', 'normal', 'color']) { const n = gs.reduce((s, g) => s + g.attributes[k].array.length, 0), f = new Float32Array(n); let o = 0; for (const g of gs) { f.set(g.attributes[k].array, o); o += g.attributes[k].array.length; } out.setAttribute(k, new THREE.BufferAttribute(f, 3)); }
+  for (const g of gs) g.dispose(); out.computeBoundingSphere(); out.userData.anat = []; return out;
+}
 const eyes = (P, x, y, z, s = 0.06, c = BLACK) => P.box(s, s * 1.2, 0.03, c, x, y, z).box(s, s * 1.2, 0.03, c, -x, y, z);
 const eyesSide = (P, x, y, z, s = 0.06) => P.box(0.03, s * 1.2, s, BLACK, x, y, z).box(0.03, s * 1.2, s, BLACK, -x, y, z);
 
@@ -1040,9 +1046,12 @@ const MODELS = {
     const c = 0xc0508a, d = 0xa8407a, P = new Parts();
     P.tag('body').ball(0.42, c, 0, 0.8, -0.08, 1, 1.25, 1.1).tag(null).ball(0.34, d, 0, 0.46, 0.04, 1.15, 0.6, 1.15);
     for (const s of [1, -1]) P.ball(0.1, WHITE, 0.2 * s, 0.64, 0.3).box(0.05, 0.08, 0.03, BLACK, 0.21 * s, 0.64, 0.39);
-    const arm = new Parts().box(0.13, 0.42, 0.13, c, 0, -0.18, 0.11, -0.55).box(0.11, 0.08, 0.5, c, 0, -0.37, 0.45).box(0.08, 0.2, 0.08, c, 0, -0.28, 0.72, 0.5)
-      .box(0.05, 0.02, 0.05, 0xf3b6d4, 0, -0.32, 0.38).box(0.05, 0.02, 0.05, 0xf3b6d4, 0, -0.32, 0.54).build();
-    return { P, limbs: Array.from({ length: 8 }, (_, k) => { const a = (k + 0.5) / 8 * Math.PI * 2; return { geo: arm, at: [Math.sin(a) * 0.25, 0.4, Math.cos(a) * 0.25], ry: a, kind: 'tent', ph: k * 0.8 }; }) };
+    // the eight arms, every other one in each of two meshes (two draw calls, not eight): one arm built along +z, turned to each heading
+    const arms = (odd) => mergeGeos(Array.from({ length: 4 }, (_, j) => { const a = (odd + j * 2 + 0.5) / 8 * Math.PI * 2;
+      const g = new Parts().box(0.13, 0.42, 0.13, c, 0, -0.18, 0.11, -0.55).box(0.11, 0.08, 0.5, c, 0, -0.37, 0.45).box(0.08, 0.2, 0.08, c, 0, -0.28, 0.72, 0.5)
+        .box(0.05, 0.02, 0.05, 0xf3b6d4, 0, -0.32, 0.38).box(0.05, 0.02, 0.05, 0xf3b6d4, 0, -0.32, 0.54).build();
+      return g.applyMatrix4(new THREE.Matrix4().makeRotationY(a).setPosition(Math.sin(a) * 0.25, 0, Math.cos(a) * 0.25)); }));
+    return { P, limbs: [{ geo: arms(0), at: [0, 0.4, 0], kind: 'tent', ph: 0 }, { geo: arms(1), at: [0, 0.4, 0], kind: 'tent', ph: Math.PI }] };
   },
   whale() {
     const c = 0x3f5d7a, dk = 0x22344a, P = new Parts();
@@ -1235,7 +1244,7 @@ function animateModel(g, phase, amt, mode) {
     else if (l.kind === 'fluke') m.rotation.x = Math.sin(phase * 1.2) * 0.35;
     // W4 (#166)
     else if (l.kind === 'row') m.rotation.z = s * 0.25 * amt;                                                   // a row of little legs (crab, beetle, centipede)
-    else if (l.kind === 'tent') m.rotation.x = Math.sin(phase * 1.3 + l.ph) * 0.28;                             // an octopus arm curls
+    else if (l.kind === 'tent') m.rotation.y = Math.sin(phase * 1.3 + l.ph) * 0.18;                             // an octopus's arms sway, every other one in turn
     else if (l.kind === 'flip') m.rotation.z = (l.at[0] > 0 ? 1 : -1) * (0.25 + (0.5 + 0.5 * s) * 0.5 * amt);    // a penguin's flippers
     else if (l.kind === 'elyL' || l.kind === 'elyR') m.rotation.z = mode === 'fly' ? (l.kind === 'elyL' ? -1 : 1) * 1.0 : 0;   // a beetle's shell opens to fly
     else if (l.kind === 'mem') { m.visible = mode === 'fly'; m.rotation.z = Math.sin(phase * 9 + l.ph) * 0.5; }   // and its thin wings buzz
@@ -1938,9 +1947,10 @@ function tickPlayer(dt, inp) {
     if (f === 'eagle' && P.grounded && inp.jump) { P.vy = 6; P.grounded = false; P.y += 0.05; }
   }
   // bump into trunks, rocks, hay and barns (not while swimming or high up; W4: nor slithering, nor climbing)
-  if (!P.swimming && P.slither <= 0 && !(f === 'centipede' && P.climb)) {
+  if (!P.swimming && !(f === 'centipede' && P.climb)) {
     for (const p of propsNear(P.x, P.z, 4)) {
       const d0 = PROP_DEFS[p.t]; if (!d0.col || p.fallen) continue;
+      if (P.slither > 0 && d0.col * p.s <= 1.2) continue;   // the slithering snake slips past trunks, rocks and cacti (a barn still stops it)
       if (P.y > p.y + d0.h * p.s) continue;
       const r = d0.col * p.s + F.r * 0.7, dx = P.x - p.x, dz = P.z - p.z, d = Math.hypot(dx, dz);
       if (d < r && d > 1e-4) { P.x = p.x + dx / d * r; P.z = p.z + dz / d * r; if (P.roll > 0 || P.slide > 0) { P.vx *= 0.3; P.vz *= 0.3; } }
@@ -2490,7 +2500,8 @@ function buildBook() {
   for (const a of ANIMALS) {
     const ok = canUse(a.id), lent = ok && !P.met.has(a.id), c = document.createElement('button');
     c.className = 'card' + (ok ? '' : ' locked') + (lent ? ' lent' : '') + (a.id === P.form ? ' cur' : ''); c.dataset.id = a.id; c.setAttribute('aria-label', ok ? a.name : 'Not met yet');
-    c.innerHTML = `<img alt="" src="${THUMB[a.id] || ''}"><span style="font-size:${s < 64 ? 10 : 13}px">${ok ? a.name : '?'}</span>`;
+    const nm = ok ? a.name : '?', fs = Math.max(8, Math.min(s < 64 ? 10 : 13, s / (nm.length * 0.62)));   // W4: a long name (Polar Bear) fits its card
+    c.innerHTML = `<img alt="" src="${THUMB[a.id] || ''}"><span style="font-size:${fs.toFixed(1)}px">${nm}</span>`;
     onTap(c, () => { if (!ok) { toast(a.id, 'Look in ' + a.where + ' to meet it!'); return; } closeOverlay(); requestChange(a.id); });
     grid.appendChild(c);
   }

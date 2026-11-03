@@ -728,8 +728,13 @@ async function runW4(C) {
     const T = tree(); if (!T) return { T: null };
     const walk = (form, power, n = 90) => { W.become('human'); W.teleport(T.sx, T.sz); W.become(form); W.look(Math.PI / 2, 0.3); W.step(3); const y0 = S().y; if (power) { W.input({ powerP: true }); W.step(1); }
       W.input({ y: -1 }); let top = 0; for (let i = 0; i < n; i++) { W.step(1); top = Math.max(top, S().y - y0); } W.input({}); return { x: +(S().x - T.p.x).toFixed(2), top: +top.toFixed(2), look: S().look }; };
-    const o = { T, snake: walk('snake', false), slither: walk('snake', true), centipede: walk('centipede', false, 120), climb: walk('centipede', true, 240) }; W.become('human'); return o;`);
+    const o = { T, snake: walk('snake', false), slither: walk('snake', true), centipede: walk('centipede', false, 120), climb: walk('centipede', true, 240) };
+    // a barn isn't a narrow gap: it still stops a slithering snake
+    for (let t = 0; t < 80 && !o.barn; t++) { const f = findBiome('farm', W.SPAWN.x + t * 61, W.SPAWN.z + t * 47); if (!f) continue; W.become('human'); W.teleport(f.x, f.z); W.settle(); const b = W.propsNear(60).find((q) => q.t === 'barn');
+      if (b && W.heightAt(b.x - 10, b.z) > 1) { W.teleport(b.x - 10, b.z); W.become('snake'); W.look(Math.PI / 2, 0.3); W.step(3); W.input({ powerP: true }); W.step(1); W.input({ y: -1 }); W.step(150); W.input({}); o.barn = { short: +(b.x - S().x).toFixed(2), col: b.col, slither: S().slither }; } }
+    W.become('human'); return o;`);
   ok(`the snake's slither slips past a tree (${r.slither?.x} m past its trunk; without it, stopped ${r.snake?.x} m short) and moves silently (look bits ${r.slither?.look})`, r.T && r.snake.x < -0.4 && r.slither.x > 0.5 && (r.slither.look & 2), r);
+  ok(`but a barn still stops a slithering snake (${r.barn?.short} m short of the barn's middle; its wall is ${r.barn?.col} m out)`, r.barn && r.barn.slither > 0 && r.barn.short > r.barn.col - 0.1, r.barn);
   ok(`the centipede climbs: up ${r.climb?.top} m onto the tree (without Climb it stops at the trunk, up ${r.centipede?.top} m)`, r.T && r.climb.top > 2 && r.centipede.top < 0.3 && r.centipede.x < -0.3, r);
   // ---- the cave: walk in with the stick; dark inside, light outside again; a centipede in the hall; walls, roof and hill hold
   r = await ev(String.raw`const c = W.nearestCave(W.SPAWN.x, W.SPAWN.z); if (!c) return { c: null }; const o = { c: { d: c.d } }, at = c.at(10);
