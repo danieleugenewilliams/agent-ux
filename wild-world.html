@@ -117,6 +117,7 @@
   .sp-slots { display: flex; justify-content: center; gap: 5px; }
   .sp-slot { width: var(--sw, 44px); height: var(--sh, 48px); border-radius: 10px; background: #fff; border: 3px solid #b9c8dc; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: calc(var(--sh, 48px) * .6); line-height: 1; }
   .sp-slot.next { border-color: var(--sky); box-shadow: 0 0 0 3px #5cc8ff55; }
+  .sp-gap { width: calc(var(--sw, 44px) * 0.45); flex: none; }   /* W4: the space in a two-word name (polar bear), filled in */
   .sp-slot.ok { background: #d8f7e2; border-color: var(--leaf); }
   .sp-slot.fix { background: #fff1c2; border-color: #f0a500; }
   .sp-slot.ghost { color: #9fb2c8; }
@@ -195,7 +196,7 @@
 
 <div id="hud">
   <div class="chip" id="formChip"><img id="formImg" alt=""><div><span id="formName">You</span><small id="formPower">Meet an animal!</small></div></div>
-  <div class="chip" id="bookChip"><div class="ic" id="bookIc"></div><span id="bookCount">0/18</span></div>
+  <div class="chip" id="bookChip"><div class="ic" id="bookIc"></div><span id="bookCount">0/29</span></div>
   <div class="chip" id="gameChip"><div class="ic" id="gameIc"></div><span id="gameText"></span></div>
 </div>
 <div id="peerTag"></div><div id="peerArrow"><span class="pt"></span><span class="fc"></span></div>
@@ -250,6 +251,7 @@ WORDS (#158): what you spell to change into each animal. Edit freely.
   - level1 is for newer spellers (short, regular words: tap the letter tiles into order).
   - level2 is for stronger spellers (longer words: hear it, then type it).
   - Each line is "word: clue". The word is letters only (no spaces), US spelling; a capital letter is kept (Africa).
+    (An animal's own name may have a space, Polar Bear: the space is shown as a gap and filled in, never tapped or typed.)
     The clue is the sentence shown with it; "..." marks where the word goes.
   - fact: one sentence shown when you first meet the animal.
   - Keep 5 to 8 words in each list (the test script checks).
@@ -346,6 +348,62 @@ const WORDS = {
     fact: "Dolphins breathe air through a blowhole, and they swim together in a pod.",
     level1: ["calf: A baby dolphin is a ...", "pod: A group of dolphins is a ...", "fish: Dolphins hunt and eat ...", "fin: A dolphin has a tall ... on its back.", "sea: Most dolphins live in the ...", "squid: Dolphins eat fish and ..."],
     level2: ["mammal: A dolphin breathes air and feeds its baby milk. It is a ...", "blowhole: A dolphin breathes through the ... on top of its head.", "ocean: Most dolphins live in the ...", "flippers: A dolphin steers with its two ...", "whistle: Dolphins talk with clicks and a ...", "carnivore: An animal that eats meat is a ..."],
+  },
+  // W4 (#166): the eleven new animals. A two-word name (polar bear) is spelled with its space: the gap is filled in for you.
+  crab: {
+    fact: "A crab walks sideways on eight legs and pinches with its two big claws.",
+    level1: ["claw: A crab pinches with each big ...", "sand: Crabs dig holes in the ...", "shell: A crab's hard coat is its ...", "legs: A crab walks sideways on eight ...", "sea: Lots of crabs live in the ...", "pinch: A crab can give you a ..."],
+    level2: ["pincers: A crab's two big claws are also called ...", "sideways: A crab walks ...", "crustacean: A crab, a lobster and a shrimp are each a ...", "molt: A crab grows too big for its shell, so it will ...", "tide: Crabs hide in pools left by the low ...", "seashore: Crabs scuttle along the ..."],
+  },
+  shark: {
+    fact: "Sharks are fish that grow new teeth all their lives, and a baby shark is a pup.",
+    level1: ["pup: A baby shark is a ...", "fin: A shark's tall back ... sticks out of the water.", "teeth: A shark has rows of sharp ...", "fish: A shark is a kind of ...", "swim: A shark must keep moving to ...", "sea: Most sharks live in the ..."],
+    level2: ["predator: An animal that hunts other animals is a ...", "cartilage: A shark's skeleton is made of bendy ...", "ocean: Sharks swim in every ...", "gills: A shark breathes with its ...", "carnivore: An animal that eats meat is a ...", "dorsal: The tall fin on a shark's back is its ... fin."],
+  },
+  octopus: {
+    fact: "An octopus has eight arms and three hearts, and it squirts ink to hide.",
+    level1: ["ink: An octopus squirts ... to hide.", "arms: An octopus has eight ...", "sea: An octopus lives in the ...", "den: An octopus hides in a rocky ...", "crab: An octopus likes to eat a ...", "egg: A baby octopus hatches from an ..."],
+    level2: ["tentacles: Some people call an octopus's arms ...", "suckers: An octopus grips with the round ... on its arms.", "camouflage: An octopus changes color to hide. That is ...", "hearts: An octopus has three ...", "clever: An octopus can open a jar. It is very ...", "ocean: An octopus lives on the floor of the ..."],
+  },
+  whale: {
+    fact: "Whales are mammals that breathe air through a blowhole, and a baby whale is a calf.",
+    level1: ["calf: A baby whale is a ...", "pod: A group of whales is a ...", "spout: A whale blows a ... of air and water.", "sea: Whales live in the ...", "big: A blue whale is very, very ...", "tail: A whale swims by moving its ... up and down."],
+    level2: ["mammal: A whale breathes air and feeds its baby milk. It is a ...", "blowhole: A whale breathes through the ... on top of its head.", "krill: Blue whales eat tiny animals like shrimp called ...", "ocean: Whales swim across the ...", "flukes: The two halves of a whale's tail are its ...", "blubber: A whale's thick fat is called ..."],
+  },
+  worm: {
+    fact: "Earthworms have no legs and no eyes, and they make the soil good for plants.",
+    level1: ["dirt: A worm wriggles through the ...", "mud: After the rain a worm crawls in the ...", "soil: Worms help make good ... for plants.", "dig: A worm can ... under the ground.", "rain: Worms come up after the ...", "bird: A worm hides from a hungry ..."],
+    level2: ["earthworm: A worm that lives in the ground is an ...", "segments: A worm's body is made of many rings called ...", "burrow: A worm's tunnel under the ground is a ...", "compost: Worms turn old leaves into ...", "wriggle: A worm moves with a ...", "garden: Worms are good for the plants in a ..."],
+  },
+  beetle: {
+    fact: "Beetles have hard wing covers, and they fold their thin flying wings underneath.",
+    level1: ["bug: A beetle is a kind of ...", "legs: A beetle has six ...", "wing: A beetle flies with each thin ...", "shell: A beetle's hard back is like a ...", "log: Some beetles live in an old ...", "egg: A beetle starts life as a tiny ..."],
+    level2: ["insect: A bug with six legs is an ...", "antennae: A beetle feels and smells with its ...", "larva: A baby beetle is a ...", "jungle: Lots of beetles live in the warm, wet ...", "scarab: A beetle the old Egyptians loved is a ...", "thorax: A beetle's legs grow from the middle of its body, the ..."],
+  },
+  centipede: {
+    fact: "A centipede has one pair of legs on each part of its body, and it hides in dark places.",
+    level1: ["legs: A centipede has lots and lots of ...", "dark: A centipede hides in the ...", "cave: Some centipedes live in a ...", "rock: A centipede hides under a ...", "bug: A centipede hunts a little ...", "fast: A centipede can run very ..."],
+    level2: ["arthropod: An animal with jointed legs and a hard skin, like a centipede, is an ...", "antennae: A centipede feels its way with its long ...", "predator: An animal that hunts other animals is a ...", "venom: A centipede bites with ... to catch its food.", "segments: A centipede's body is made of many parts called ...", "nocturnal: Centipedes hunt at night. They are ..."],
+  },
+  polarbear: {
+    fact: "Polar bears live on the Arctic ice, and their thick fur and fat keep them warm.",
+    level1: ["ice: Polar bears walk on the ...", "snow: A polar bear is as white as ...", "cub: A baby polar bear is a ...", "seal: Polar bears hunt the ...", "swim: Polar bears can ... a long way.", "fur: A polar bear's thick white ... keeps it warm."],
+    level2: ["Arctic: Polar bears live near the North Pole, in the ...", "blubber: A polar bear's thick fat is called ...", "carnivore: An animal that eats meat is a ...", "glacier: A huge river of ice is a ...", "freezing: Arctic water is very cold. It is ...", "predator: An animal that hunts other animals is a ..."],
+  },
+  penguin: {
+    fact: "Penguins are birds that can't fly, but they swim fast, and a baby penguin is a chick.",
+    level1: ["chick: A baby penguin is a ...", "egg: A penguin chick hatches from an ...", "ice: Many penguins live on the ...", "swim: A penguin can't fly, but it can ...", "fish: Penguins catch and eat ...", "beak: A penguin grabs a fish with its ..."],
+    level2: ["Antarctica: Many penguins live near the South Pole, in ...", "flippers: A penguin swims with its two ...", "colony: A big group of penguins is a ...", "waddle: On land a penguin walks with a ...", "feathers: A penguin is covered in tiny ...", "emperor: The biggest penguin is the ... penguin."],
+  },
+  snake: {
+    fact: "Snakes have no legs, and they smell with their forked tongues.",
+    level1: ["hiss: What sound does a snake make?", "sand: Some snakes hide in the hot ...", "egg: Many baby snakes hatch from an ...", "skin: A snake sheds its old ...", "fang: A snake bites with a sharp ...", "long: A snake's body is very ..."],
+    level2: ["reptile: A snake has scales and lays eggs. It is a ...", "venom: Some snakes bite with ...", "slither: A snake moves with a ...", "scales: A snake's skin is covered in ...", "tongue: A snake smells with its forked ...", "desert: Some snakes live in the hot, dry ..."],
+  },
+  camel: {
+    fact: "A camel stores fat in its hump and can walk for days in the hot desert.",
+    level1: ["hump: A camel stores fat in its ...", "sand: A camel walks over the ...", "calf: A baby camel is a ...", "hot: The desert is very ...", "dry: There is not much rain, so a desert is ...", "legs: A camel has four long ..."],
+    level2: ["desert: Camels live in the hot, dry ...", "dromedary: A camel with one hump is a ...", "Bactrian: A camel with two humps is a ... camel.", "herbivore: An animal that eats only plants is a ...", "eyelashes: Long ... keep sand out of a camel's eyes.", "caravan: A line of camels on a long trip is a ..."],
   },
 };
 </script>
@@ -588,7 +646,7 @@ window.TouchPad = (() => {
 import * as THREE from 'three';
 
 // ===========================================================================
-// Wild World (#157, W1): an endless low-poly world, 18 animals to meet, and you can become any of them.
+// Wild World (#157, W1): an endless low-poly world, animals to meet (29 since W4, #166), and you can become any of them.
 // Everything is built in code. Test hooks: window.__ww (bottom of this script).
 // ===========================================================================
 const $ = (id) => document.getElementById(id);
@@ -603,8 +661,10 @@ const SEA = 0;
 const LOAD_R = 2, FAR_R = 3, SLOTS = (FAR_R * 2 + 1) ** 2;   // 5 x 5 chunks loaded (7 x 7 while the giraffe looks far)
 const LIVE_CAP = 20, LIVE_R = 85;                             // at most 20 live animals, all within 85 m
 const FOG = { near: 40, far: 110 }, FOG_FAR = { near: 80, far: 185 };
-const BC = 240, BLEND = 70;                                   // biome cells (m) and the border blend
-const BIOMES = ['farm', 'forest', 'savanna', 'water'];
+const BC = 200, BLEND = 70;                                   // biome cells (m) and the border blend
+// W4 (#166): seven places. Their order is fixed (the index is what the terrain and the props key off); add new ones at the end.
+const BIOMES = ['farm', 'forest', 'savanna', 'water', 'snow', 'jungle', 'desert'];
+const BI = Object.fromEntries(BIOMES.map((b, i) => [b, i]));
 
 const params = new URLSearchParams(location.search);
 const SEED = (parseInt(params.get('seed'), 10) || 157) >>> 0;
@@ -635,10 +695,17 @@ function vnoise(x, z, salt) {
 }
 function fbm(x, z, salt, oct = 3) { let s = 0, amp = 0.5, f = 1, n = 0; for (let o = 0; o < oct; o++) { s += amp * vnoise(x * f, z * f, salt + o * 17); n += amp; amp *= 0.5; f *= 2.03; } return s / n; }
 
-// Biomes: jittered cells; each 2 x 2 block of cells holds all four biomes (a seeded order per block), so every biome
-// lies within about 2 cells of anywhere. The lookup is warped so the borders wander.
-const PERMS = []; (function perm(a, l) { if (l === a.length) { PERMS.push(a.slice()); return; } for (let i = l; i < a.length; i++) { [a[l], a[i]] = [a[i], a[l]]; perm(a, l + 1); [a[l], a[i]] = [a[i], a[l]]; } })([0, 1, 2, 3], 0);
-const cellBiome = (i, j) => { const si = Math.floor(i / 2), sj = Math.floor(j / 2); return PERMS[Math.floor(hash3(si, sj, 13) * 24)][(i - si * 2) * 2 + (j - sj * 2)]; };
+// Biomes: jittered cells; each 3 x 3 block of cells holds all seven places (farm and water twice: more sea for the ocean animals,
+// and a farm for the start), in a seeded order per block, so every place lies within about 2 cells of anywhere. The lookup is
+// warped so the borders wander. (W4, #166: was a 2 x 2 block of the first four, so the same seed lays the world out anew.)
+const BLOCK = [BI.farm, BI.forest, BI.savanna, BI.water, BI.snow, BI.jungle, BI.desert, BI.farm, BI.water];
+const blockCache = new Map();
+function blockOrder(si, sj) {
+  const k = si * 65536 + sj; let o = blockCache.get(k);
+  if (!o) { o = BLOCK.slice(); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(hash3(si * 9 + i, sj, 13) * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } if (blockCache.size > 4096) blockCache.clear(); blockCache.set(k, o); }
+  return o;
+}
+const cellBiome = (i, j) => { const si = Math.floor(i / 3), sj = Math.floor(j / 3); return blockOrder(si, sj)[(i - si * 3) * 3 + (j - sj * 3)]; };
 function biomeRaw(x, z) {
   const wx = x + 70 * (vnoise(x / 90, z / 90, 21) - 0.5), wz = z + 70 * (vnoise(x / 90, z / 90, 22) - 0.5);
   const i0 = Math.floor(wx / BC), j0 = Math.floor(wz / BC);
@@ -652,15 +719,59 @@ function biomeRaw(x, z) {
   let d2 = 1e9; for (let k = 0; k < cand.length; k += 2) if (cand[k + 1] !== b1 && cand[k] < d2) d2 = cand[k];
   return { b: b1, e: clamp((d2 - d1) / BLEND, 0, 1) };
 }
-function heightRaw(x, z) {
+function heightBase(x, z) {
   const { b, e } = biomeRaw(x, z);
   const shared = 1.5 + 1.4 * fbm(x / 60, z / 60, 31);
   let h;
-  if (b === 0) h = 1.6 + 2.4 * fbm(x / 130, z / 130, 32);
-  else if (b === 1) h = 2 + 22 * Math.max(0, fbm(x / 110, z / 110, 33, 4) - 0.33);
-  else if (b === 2) h = 1.4 + 3.6 * fbm(x / 220, z / 220, 34);
-  else h = -9 + 4 * fbm(x / 90, z / 90, 35);
+  if (b === BI.farm) h = 1.6 + 2.4 * fbm(x / 130, z / 130, 32);
+  else if (b === BI.forest) h = 2 + 22 * Math.max(0, fbm(x / 110, z / 110, 33, 4) - 0.33);
+  else if (b === BI.savanna) h = 1.4 + 3.6 * fbm(x / 220, z / 220, 34);
+  else if (b === BI.water) h = -9 + 4 * fbm(x / 90, z / 90, 35);
+  else if (b === BI.snow) h = 3 + 36 * Math.max(0, fbm(x / 120, z / 120, 36, 4) - 0.3);     // snowy peaks
+  else if (b === BI.jungle) h = 2.2 + 6 * fbm(x / 50, z / 50, 37);                           // bumpy, low hills
+  else { const n = fbm(x / 70, z / 95, 38), r = 1 - Math.abs(2 * n - 1); h = 1.8 + 5.5 * r * r; }   // desert dunes: ridges
   return shared + (h - shared) * smooth(e);
+}
+
+// ---------- caves (W4, #166): a walk-in hillside, at most one per chunk, a pure function of (seed, cx, cz) like everything else.
+// The hill is a built shell (the terrain can't be carved), so the ground under it is flattened to the cave's floor. In its own
+// frame (origin: the middle of the doorway on the floor, +lz out of the door) the way in is a straight hall |lx| < hw, from the
+// door (lz 0) back to lz = -back, under a roof `roof` m up; the hill is the rock behind the door, inside a circle (hx, hz, R).
+const CAVE = { chance: 0.4, hw: 3, back: 14, roof: 5, hx: 0, hz: -10, R: 13, flat: 15, blend: 4, apron: 6,
+  homes: [BI.forest, BI.snow, BI.jungle, BI.desert] };
+const caveCache = new Map();
+function chunkCave(cx, cz) {
+  const key = cx * 65536 + cz; if (caveCache.has(key)) return caveCache.get(key);
+  let c = null; const R = rng(hashI(cx, cz, 404));
+  if (R() < CAVE.chance) {
+    const edge = CAVE.flat + CAVE.blend + 1, mx = cx * CHUNK + edge + R() * (CHUNK - 2 * edge), mz = cz * CHUNK + edge + R() * (CHUNK - 2 * edge), ry = R() * Math.PI * 2;
+    const bi = biomeRaw(mx, mz), y = heightBase(mx, mz);
+    let dry = CAVE.homes.includes(bi.b) && bi.e > 0.4 && y > SEA + 1.5;
+    for (let k = 0; k < 8 && dry; k++) { const a = k / 8 * Math.PI * 2; if (heightBase(mx + Math.cos(a) * edge, mz + Math.sin(a) * edge) < SEA + 1) dry = false; }
+    // the door: the hill's middle is (hx, hz) in the cave's frame, so the doorway is that far the other way, turned by ry
+    const cs = Math.cos(ry), sn = Math.sin(ry);
+    if (dry) c = { cx, cz, ry, cs, sn, y, mx, mz, x: mx - (CAVE.hx * cs + CAVE.hz * sn), z: mz - (-CAVE.hx * sn + CAVE.hz * cs) };
+  }
+  if (caveCache.size > 8192) caveCache.clear();
+  caveCache.set(key, c); return c;
+}
+// world -> the cave's frame (three.js turns +z toward (sin ry, cos ry) for a rotation ry about y)
+const caveLocal = (c, x, z) => { const dx = x - c.x, dz = z - c.z; return [dx * c.cs - dz * c.sn, dx * c.sn + dz * c.cs]; };
+const caveWorld = (c, lx, lz) => [c.x + lx * c.cs + lz * c.sn, c.z - lx * c.sn + lz * c.cs];
+const caveAt = (x, z) => chunkCave(Math.floor(x / CHUNK), Math.floor(z / CHUNK));
+// inside the hall, at least m from its walls and back (m < 0: that far outside them)
+const inHall = (lx, lz, m = 0) => Math.abs(lx) < CAVE.hw - m && lz > -CAVE.back + m && lz < 0.5;
+// is (x, z) inside the hall of a cave? (the centipede's home, where it gets dark)
+function caveInside(x, z, m = 0) { const c = caveAt(x, z); if (!c) return null; const [lx, lz] = caveLocal(c, x, z); return inHall(lx, lz, m) ? { c, lx, lz } : null; }
+// rock that a body of radius r can't be in: the hill, minus the hall (and nothing in front of the door)
+function caveRock(c, lx, lz, r = 0) {
+  if (lz > r || Math.hypot(lx - CAVE.hx, lz - CAVE.hz) > CAVE.R + r) return false;
+  return !(Math.abs(lx) < CAVE.hw - r && lz > -CAVE.back + r);
+}
+function heightRaw(x, z) {
+  const h = heightBase(x, z), c = caveAt(x, z); if (!c) return h;
+  const d = Math.hypot(x - c.mx, z - c.mz); if (d >= CAVE.flat + CAVE.blend) return h;
+  return lerp(c.y, h, smooth(clamp((d - CAVE.flat) / CAVE.blend, 0, 1)));
 }
 // the vertex heights, cached (the ground is read many times a tick)
 const hCache = new Map();
@@ -671,7 +782,7 @@ function groundAt(x, z) {
   if (fx + fz <= 1) { const a = vh(i, j); return a + (vh(i + 1, j) - a) * fx + (vh(i, j + 1) - a) * fz; }
   const d = vh(i + 1, j + 1); return d + (vh(i, j + 1) - d) * (1 - fx) + (vh(i + 1, j) - d) * (1 - fz);
 }
-const biomeAt = (x, z) => BIOMES[biomeRaw(x, z).b];
+const biomeAt = (x, z) => (caveInside(x, z) ? 'cave' : BIOMES[biomeRaw(x, z).b]);   // W4: inside a cave's hall is the cave
 
 // ===========================================================================
 // Renderer, scene, light
@@ -682,7 +793,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
-const SKY_DAY = new THREE.Color(0x8fd3ff), SKY_NIGHT = new THREE.Color(0x24336b), WATER_FOG = new THREE.Color(0x1d7fb0);
+const SKY_DAY = new THREE.Color(0x8fd3ff), SKY_NIGHT = new THREE.Color(0x24336b), WATER_FOG = new THREE.Color(0x1d7fb0), CAVE_DARK = new THREE.Color(0x15110e);
 scene.background = SKY_DAY.clone();
 scene.fog = new THREE.Fog(SKY_DAY.clone(), FOG.near, FOG.far);
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, FOG.far + 30);
@@ -697,6 +808,10 @@ const MAT = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: tru
 // whole loaded edge past fog far in every direction (the water uses it too, so it fogs the same as the ground beside it).
 const radialFog = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <fog_vertex>', '#ifdef USE_FOG\n\tvFogDepth = length( mvPosition.xyz );\n#endif'); };
 MAT.onBeforeCompile = radialFog;
+// W4 (#166): the octopus in its ink, see-through (its shader is warmed up with the thumbnails, so the first ink doesn't stall)
+const INK_MAT = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, transparent: true, opacity: 0.35, depthWrite: false });
+INK_MAT.onBeforeCompile = radialFog;
+function inked(g, on) { const m = on ? INK_MAT : MAT; for (const c of g.children) if (c.material !== m) c.material = m; }
 
 // ---------- Parts: build a vertex-coloured, merged geometry from boxes, cones and balls ----------
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _c = new THREE.Color();
@@ -901,11 +1016,116 @@ const MODELS = {
     const tail = new Parts().box(0.22, 0.16, 0.55, c, 0, 0, -0.27).box(0.9, 0.06, 0.32, c, 0, 0, -0.6).build();
     return { P, limbs: [{ geo: tail, at: [0, 0.4, -0.9], kind: 'fluke', ph: 0 }] };
   },
+  // ---- W4 (#166): the eleven new animals (a boy's picks)
+  crab() {
+    const c = 0xe8502e, d = 0xc63a1e, P = new Parts();
+    P.tag('body').box(0.7, 0.28, 0.5, c, 0, 0.32, 0).tag(null).box(0.6, 0.08, 0.42, d, 0, 0.49, -0.02).box(0.66, 0.06, 0.44, 0xf28a5a, 0, 0.17, 0);
+    for (const s of [1, -1]) {
+      P.box(0.04, 0.16, 0.04, c, 0.1 * s, 0.54, 0.2).ball(0.05, BLACK, 0.1 * s, 0.64, 0.2);                                    // eyes on stalks
+      P.box(0.08, 0.08, 0.3, c, 0.33 * s, 0.3, 0.32, 0, 0.5 * s, 0).box(0.2, 0.15, 0.22, c, 0.26 * s, 0.33, 0.52).box(0.07, 0.07, 0.17, d, 0.21 * s, 0.24, 0.58);   // a claw
+    }
+    const row = (s) => { const R = new Parts(); for (const z of [0.14, 0, -0.14]) R.box(0.42, 0.05, 0.05, d, 0.15 * s, -0.15, z, 0, 0, -0.785 * s); return R.build(); };
+    return { P, limbs: [{ geo: row(1), at: [0.33, 0.31, 0], kind: 'row', ph: 0 }, { geo: row(-1), at: [-0.33, 0.31, 0], kind: 'row', ph: Math.PI }] };
+  },
+  shark() {
+    const c = 0x6d7f91, P = new Parts();
+    P.tag('body').box(0.55, 0.6, 2.0, c, 0, 0.45, 0).tag(null).box(0.5, 0.22, 1.8, 0xe8eef2, 0, 0.22, 0.05).tag('head').box(0.44, 0.44, 0.6, c, 0, 0.42, 1.25).tag(null).box(0.32, 0.26, 0.32, c, 0, 0.42, 1.68);
+    P.box(0.34, 0.05, 0.04, WHITE, 0, 0.26, 1.5).box(0.06, 0.62, 0.55, c, 0, 0.98, 0.05, -0.5).box(0.06, 0.2, 0.2, c, 0, 0.82, -0.75, -0.4);   // teeth, the tall fin, a small one
+    for (const s of [1, -1]) { P.box(0.62, 0.05, 0.3, c, 0.46 * s, 0.25, 0.45, 0, 0, -0.35 * s); for (const z of [0.8, 0.9, 1.0]) P.box(0.02, 0.2, 0.03, 0x4a5868, 0.278 * s, 0.45, z); }
+    eyesSide(P, 0.225, 0.52, 1.36, 0.07);
+    const tail = new Parts().box(0.2, 0.26, 0.5, c, 0, 0, -0.25).box(0.06, 0.72, 0.3, c, 0, 0.3, -0.62, 0.5).box(0.06, 0.45, 0.25, c, 0, -0.18, -0.56, -0.5).build();
+    return { P, limbs: [{ geo: tail, at: [0, 0.45, -1.0], kind: 'tail', ph: 0 }] };
+  },
+  octopus() {
+    const c = 0xc0508a, d = 0xa8407a, P = new Parts();
+    P.tag('body').ball(0.42, c, 0, 0.8, -0.08, 1, 1.25, 1.1).tag(null).ball(0.34, d, 0, 0.46, 0.04, 1.15, 0.6, 1.15);
+    for (const s of [1, -1]) P.ball(0.1, WHITE, 0.2 * s, 0.64, 0.3).box(0.05, 0.08, 0.03, BLACK, 0.21 * s, 0.64, 0.39);
+    const arm = new Parts().box(0.13, 0.42, 0.13, c, 0, -0.18, 0.11, -0.55).box(0.11, 0.08, 0.5, c, 0, -0.37, 0.45).box(0.08, 0.2, 0.08, c, 0, -0.28, 0.72, 0.5)
+      .box(0.05, 0.02, 0.05, 0xf3b6d4, 0, -0.32, 0.38).box(0.05, 0.02, 0.05, 0xf3b6d4, 0, -0.32, 0.54).build();
+    return { P, limbs: Array.from({ length: 8 }, (_, k) => { const a = (k + 0.5) / 8 * Math.PI * 2; return { geo: arm, at: [Math.sin(a) * 0.25, 0.4, Math.cos(a) * 0.25], ry: a, kind: 'tent', ph: k * 0.8 }; }) };
+  },
+  whale() {
+    const c = 0x3f5d7a, dk = 0x22344a, P = new Parts();
+    P.tag('body').box(1.6, 1.4, 4.4, c, 0, 0.9, 0).tag(null).box(1.4, 0.4, 3.6, 0xc9d6e0, 0, 0.32, 0.4).tag('head').box(1.5, 1.2, 1.2, c, 0, 0.85, 2.7).tag(null);
+    for (const x of [-0.45, -0.15, 0.15, 0.45]) P.box(0.04, 0.02, 3.0, 0x9fb0be, x, 0.115, 0.6);   // the grooves under its throat
+    P.box(0.26, 0.05, 0.14, dk, 0, 1.61, 1.5).box(1.52, 0.05, 1.0, dk, 0, 0.55, 2.8).box(0.1, 0.32, 0.55, c, 0, 1.72, -1.2, -0.4);
+    for (const s of [1, -1]) P.box(1.3, 0.1, 0.5, c, 1.2 * s, 0.4, 1.2, 0, -0.3 * s, -0.35 * s);
+    eyesSide(P, 0.765, 0.78, 2.6, 0.12);
+    const tail = new Parts().box(0.7, 0.6, 1.4, c, 0, 0, -0.7).box(2.4, 0.1, 0.8, c, 0, 0, -1.6).build();
+    return { P, limbs: [{ geo: tail, at: [0, 0.9, -2.2], kind: 'fluke', ph: 0 }] };
+  },
+  worm() {
+    const c = 0xe8838f, d = 0xc85a68, P = new Parts();
+    P.tag('body').box(0.15, 0.14, 0.44, c, 0, 0.07, 0.04).tag(null).tag('head').ball(0.08, 0xd76b78, 0, 0.075, 0.3, 1, 0.9, 1.1).tag(null).box(0.17, 0.155, 0.09, d, 0, 0.075, 0.12);
+    for (const z of [-0.12, -0.02, 0.22]) P.box(0.155, 0.145, 0.015, d, 0, 0.07, z);
+    const tail = new Parts().box(0.14, 0.13, 0.26, c, 0, -0.005, -0.13).box(0.12, 0.11, 0.22, c, 0, -0.015, -0.36).box(0.135, 0.125, 0.015, d, 0, -0.005, -0.2).build();
+    return { P, limbs: [{ geo: tail, at: [0, 0.07, -0.18], kind: 'tail', ph: 0 }] };
+  },
+  beetle() {
+    const sh = 0x2c5a9a, dk = 0x1d2a4a, P = new Parts();
+    P.tag('body').box(0.44, 0.2, 0.5, dk, 0, 0.27, -0.04).tag(null).box(0.38, 0.2, 0.2, sh, 0, 0.36, 0.3).tag('head').box(0.22, 0.16, 0.16, dk, 0, 0.3, 0.47).tag(null);
+    P.box(0.06, 0.3, 0.06, dk, 0, 0.47, 0.57, 0.5).box(0.05, 0.12, 0.05, dk, 0, 0.62, 0.62, -0.4).box(0.12, 0.06, 0.05, dk, 0, 0.44, 0.38);   // the horn
+    for (const s of [1, -1]) P.box(0.02, 0.02, 0.22, dk, 0.08 * s, 0.33, 0.62, -0.4, 0.4 * s, 0).box(0.03, 0.04, 0.03, 0xffd23f, 0.105 * s, 0.33, 0.52);
+    const ely = (s) => new Parts().box(0.23, 0.14, 0.56, sh, 0.115 * s, 0, -0.28).box(0.1, 0.02, 0.4, 0x5d8fd0, 0.12 * s, 0.075, -0.25).build();
+    const mem = (s) => new Parts().box(0.55, 0.02, 0.3, 0xd9e6f2, 0.28 * s, 0, -0.1).build();
+    const row = (s) => { const R = new Parts(); for (const z of [0.16, 0, -0.16]) R.box(0.3, 0.04, 0.04, BLACK, 0.11 * s, -0.11, z, 0, 0, -0.75 * s); return R.build(); };
+    return { P, limbs: [{ geo: ely(1), at: [0.005, 0.38, 0.2], kind: 'elyL', ph: 0 }, { geo: ely(-1), at: [-0.005, 0.38, 0.2], kind: 'elyR', ph: 0 },
+      { geo: mem(1), at: [0.1, 0.4, 0.05], kind: 'mem', ph: 0 }, { geo: mem(-1), at: [-0.1, 0.4, 0.05], kind: 'mem', ph: Math.PI },
+      { geo: row(1), at: [0.2, 0.22, 0.02], kind: 'row', ph: 0 }, { geo: row(-1), at: [-0.2, 0.22, 0.02], kind: 'row', ph: Math.PI }] };
+  },
+  centipede() {
+    const c = 0xb04a22, d = 0x6e2a14, P = new Parts();
+    P.tag('body').box(0.3, 0.16, 1.5, c, 0, 0.2, 0).tag(null).tag('head').box(0.26, 0.14, 0.2, d, 0, 0.21, 0.84).tag(null);
+    for (let z = -0.66; z < 0.7; z += 0.15) P.box(0.34, 0.05, 0.07, d, 0, 0.29, z);
+    for (const s of [1, -1]) P.box(0.025, 0.025, 0.42, d, 0.08 * s, 0.27, 1.1, -0.3, 0.35 * s, 0).box(0.03, 0.03, 0.12, 0xffd23f, 0.07 * s, 0.17, 0.97, 0, -0.5 * s, 0).box(0.02, 0.02, 0.3, d, 0.07 * s, 0.24, -0.86, 0.3, -0.3 * s, 0).box(0.035, 0.04, 0.035, BLACK, 0.1 * s, 0.25, 0.9);
+    const row = (s, odd) => { const R = new Parts(); for (let i = 0; i < 5; i++) R.box(0.27, 0.035, 0.035, 0xe0a050, 0.085 * s, -0.1, -0.66 + (i * 2 + odd) * 0.145, 0, 0, -0.866 * s); return R.build(); };
+    return { P, limbs: [[1, 0, 0], [1, 1, Math.PI], [-1, 0, Math.PI], [-1, 1, 0]].map(([s, odd, ph]) => ({ geo: row(s, odd), at: [0.15 * s, 0.2, 0], kind: 'row', ph })) };
+  },
+  polarbear() {
+    const c = 0xf2efe4, sh = 0xdcd7c6, P = new Parts();
+    P.tag('body').box(0.9, 0.85, 1.6, c, 0, 0.98, 0).tag(null).box(0.7, 0.25, 0.5, c, 0, 1.43, 0.2).box(0.92, 0.3, 1.3, sh, 0, 0.66, -0.05);
+    P.along(0, 1.1, 0.7, 1.2, [[0.48, 0.7, 0.5, c, 0, 0.35, 0]], 'neck').tag('head').box(0.48, 0.44, 0.56, c, 0, 1.15, 1.2).tag(null).box(0.26, 0.2, 0.24, c, 0, 1.08, 1.52);
+    P.box(0.12, 0.09, 0.05, BLACK, 0, 1.14, 1.645).box(0.12, 0.12, 0.06, c, 0.17, 1.42, 1.1).box(0.12, 0.12, 0.06, c, -0.17, 1.42, 1.1); eyes(P, 0.12, 1.25, 1.485, 0.055);
+    P.along(0, 1.15, -0.8, 0.5 - Math.PI / 2, [[0.14, 0.24, 0.14, c, 0, 0.1, 0]], 'tail');
+    return { P, limbs: legs4(c, 0x4a4a4a, 0.26, 0.55, 0.28, 0.52) };
+  },
+  penguin() {
+    const k = 0x23252b, o = 0xff8c1a, P = new Parts();
+    P.tag('body').box(0.46, 0.66, 0.42, k, 0, 0.55, 0).tag(null).box(0.38, 0.56, 0.06, WHITE, 0, 0.52, 0.2).tag('head').box(0.36, 0.3, 0.34, k, 0, 1.02, 0.02).tag(null);
+    P.box(0.26, 0.14, 0.04, WHITE, 0, 0.97, 0.18).box(0.06, 0.12, 0.12, 0xffc93c, 0.18, 0.98, 0.06).box(0.06, 0.12, 0.12, 0xffc93c, -0.18, 0.98, 0.06).box(0.08, 0.06, 0.18, o, 0, 0.98, 0.27);
+    eyes(P, 0.08, 1.07, 0.195, 0.045);
+    P.along(0, 0.3, -0.2, 0.3 - Math.PI / 2, [[0.12, 0.2, 0.05, k, 0, 0.08, 0]], 'tail');
+    const flip = (s) => new Parts().box(0.06, 0.42, 0.18, k, 0.03 * s, -0.21, 0).build();
+    const foot = new Parts().box(0.1, 0.2, 0.1, o, 0, -0.1, 0).box(0.16, 0.04, 0.22, o, 0, -0.2, 0.06).build();
+    return { P, limbs: [{ geo: foot, at: [0.1, 0.22, 0.02], kind: 'leg', ph: 0 }, { geo: foot, at: [-0.1, 0.22, 0.02], kind: 'leg', ph: Math.PI },
+      { geo: flip(1), at: [0.24, 0.8, 0], kind: 'flip', ph: 0 }, { geo: flip(-1), at: [-0.24, 0.8, 0], kind: 'flip', ph: Math.PI }] };
+  },
+  snake() {
+    const c = 0x8a9a3a, d = 0x55641e, P = new Parts();
+    P.tag('body').box(0.2, 0.16, 0.9, c, 0, 0.08, 0).tag(null).box(0.18, 0.15, 0.42, c, 0.11, 0.085, 0.6, 0, 0.35, 0).tag('head').box(0.26, 0.15, 0.3, c, 0.21, 0.11, 0.9).tag(null);
+    for (const z of [-0.3, 0, 0.3]) P.box(0.12, 0.02, 0.12, d, 0, 0.165, z, 0, Math.PI / 4, 0);
+    P.box(0.02, 0.02, 0.16, 0xff3355, 0.21, 0.09, 1.1).box(0.2, 0.03, 0.03, 0xf3e6a0, 0.21, 0.06, 1.02);
+    eyesSide(P, 0.135, 0.15, 0.95, 0.05); P.box(0.27, 0.02, 0.04, BLACK, 0.21, 0.15, 0.95);
+    const tail = new Parts().box(0.18, 0.14, 0.45, c, 0, -0.01, -0.22).box(0.13, 0.11, 0.42, c, -0.08, -0.025, -0.6, 0, 0.35, 0).box(0.07, 0.07, 0.28, c, -0.22, -0.045, -0.9, 0, 0.6, 0)
+      .box(0.1, 0.02, 0.1, d, 0, 0.065, -0.25, 0, Math.PI / 4, 0).build();
+    return { P, limbs: [{ geo: tail, at: [0, 0.08, -0.45], kind: 'tail', ph: 0 }] };
+  },
+  camel() {
+    const c = 0xd8a65c, d = 0x8a5a2b, P = new Parts();
+    P.tag('body').box(0.8, 0.8, 1.8, c, 0, 1.75, 0).tag(null).box(0.6, 0.45, 0.8, c, 0, 2.3, -0.05).ball(0.32, c, 0, 2.55, -0.05, 1.1, 0.7, 1.4);   // the hump
+    P.along(0, 1.9, 0.82, 0.9, [[0.3, 0.9, 0.36, c, 0, 0.45, 0]], 'neck').tag('head').box(0.3, 0.3, 0.6, c, 0, 2.55, 1.75).tag(null).box(0.26, 0.22, 0.22, 0xc0904c, 0, 2.48, 2.08);
+    P.box(0.07, 0.12, 0.06, c, 0.1, 2.75, 1.55).box(0.07, 0.12, 0.06, c, -0.1, 2.75, 1.55).box(0.08, 0.04, 0.03, d, 0, 2.5, 2.195); eyesSide(P, 0.155, 2.62, 1.82);
+    P.along(0, 2.05, -0.9, -1.2 - Math.PI / 2, [[0.09, 0.6, 0.09, c, 0, 0.3, 0], [0.08, 0.14, 0.08, d, 0, 0.66, 0, 'tip']], 'tail');
+    return { P, limbs: legs4(c, 0x6b4a2b, 0.18, 1.35, 0.25, 0.65) };
+  },
 };
 
 // ===========================================================================
-// The 18 animals: where they live, how they act, how big they are, and their powers.
+// The 29 animals: where they live, how they act, how big they are, and their powers. New ones go at the end (saves keep ids).
 // speed is walking m/s; flee (<= 4.5, slower than the guy's 6) only for the shy ones.
+// Where (W4, #166): biome is the place it's from (the book's hint names it); homes, if given, are all the places it spawns;
+// zone 'shore' lives where the water is shallow (and the sand by it), deep (m) is how deep its water must be, cave: in a cave's hall.
+// swim (m/s) makes it a swimmer; cruise is how far under the top it swims ('floor': along the bottom).
 // ===========================================================================
 const ANIMALS = [
   { id: 'horse', name: 'Horse', biome: 'farm', beh: 'wander', speed: 9, r: 0.9, camH: 2.6, camD: 6.5, eye: 2.4, jump: 7.5 },
@@ -924,13 +1144,35 @@ const ANIMALS = [
   { id: 'giraffe', name: 'Giraffe', biome: 'savanna', beh: 'wander', speed: 6, r: 0.9, camH: 5.6, camD: 9, eye: 4.25, jump: 6 },
   { id: 'cheetah', name: 'Cheetah', biome: 'savanna', beh: 'flee', flee: 4.5, speed: 8, r: 0.6, camH: 1.6, camD: 5, eye: 1.0, jump: 8.5 },
   { id: 'eagle', name: 'Eagle', biome: 'water', beh: 'fly', speed: 3, r: 0.9, camH: 1.4, camD: 5.5, eye: 0.75, jump: 5 },
-  { id: 'fish', name: 'Fish', biome: 'water', beh: 'swim', speed: 1.5, swim: 6, r: 0.4, camH: 1.0, camD: 3.6, eye: 0.38, jump: 3 },
-  { id: 'dolphin', name: 'Dolphin', biome: 'water', beh: 'swim', speed: 1.5, swim: 10, r: 0.9, camH: 1.4, camD: 5.5, eye: 0.5, jump: 3 },
+  { id: 'fish', name: 'Fish', biome: 'water', beh: 'swim', speed: 1.5, swim: 6, cruise: 2.2, r: 0.4, camH: 1.0, camD: 3.6, eye: 0.38, jump: 3 },
+  { id: 'dolphin', name: 'Dolphin', biome: 'water', beh: 'swim', speed: 1.5, swim: 10, cruise: 1.3, r: 0.9, camH: 1.4, camD: 5.5, eye: 0.5, jump: 3 },
+  // W4 (#166)
+  { id: 'crab', name: 'Crab', biome: 'water', zone: 'shore', where: 'a beach', beh: 'flee', flee: 3, speed: 4, r: 0.45, camH: 0.9, camD: 3.2, eye: 0.55, jump: 6 },
+  { id: 'shark', name: 'Shark', biome: 'water', where: 'the sea', beh: 'swim', speed: 1.5, swim: 9, cruise: 1.6, r: 1.0, camH: 1.4, camD: 6, eye: 0.55, jump: 3 },
+  { id: 'octopus', name: 'Octopus', biome: 'water', where: 'the sea', beh: 'floor', speed: 1.5, swim: 5, cruise: 'floor', r: 0.6, camH: 1.1, camD: 4, eye: 0.7, jump: 3 },
+  { id: 'whale', name: 'Whale', biome: 'water', deep: -5.5, where: 'the deep sea', beh: 'swim', speed: 1, swim: 7, cruise: 3, r: 2.2, camH: 3, camD: 12, eye: 1.1, jump: 2 },
+  { id: 'worm', name: 'Worm', biome: 'jungle', homes: ['farm', 'forest', 'jungle'], where: 'a farm, a forest or the jungle', beh: 'wander', speed: 2.5, r: 0.25, camH: 0.5, camD: 2.2, eye: 0.15, jump: 3 },
+  { id: 'beetle', name: 'Beetle', biome: 'jungle', where: 'the jungle', beh: 'wander', speed: 3, r: 0.3, camH: 0.6, camD: 2.5, eye: 0.32, jump: 6 },
+  { id: 'centipede', name: 'Centipede', biome: 'cave', cave: true, where: 'a cave', beh: 'wander', speed: 4, r: 0.35, camH: 0.6, camD: 2.7, eye: 0.26, jump: 4 },
+  { id: 'polarbear', name: 'Polar Bear', biome: 'snow', where: 'the snowy peaks', beh: 'wander', speed: 6, r: 0.9, camH: 2.2, camD: 6, eye: 1.35, jump: 6.5 },
+  { id: 'penguin', name: 'Penguin', biome: 'snow', where: 'the snowy peaks', beh: 'wander', speed: 3, r: 0.35, camH: 1.3, camD: 3.6, eye: 1.0, jump: 5 },
+  { id: 'snake', name: 'Snake', biome: 'desert', where: 'the desert', beh: 'wander', speed: 4, r: 0.4, camH: 0.6, camD: 3.2, eye: 0.22, jump: 3 },
+  { id: 'camel', name: 'Camel', biome: 'desert', where: 'the desert', beh: 'wander', speed: 6, r: 1.0, camH: 3.0, camD: 7, eye: 2.6, jump: 6 },
 ];
 const HUMAN = { id: 'human', name: 'You', biome: null, speed: 6, r: 0.4, camH: 2.2, camD: 5.2, eye: 1.78, jump: 7 };
 const A = Object.fromEntries(ANIMALS.map((a) => [a.id, a]));
 const FORMS = { human: HUMAN, ...A };
-const BIOME_ANIMALS = { farm: [], forest: [], savanna: [], water: [] }; for (const a of ANIMALS) BIOME_ANIMALS[a.biome].push(a.id);
+for (const a of ANIMALS) { a.homes ||= a.cave ? [] : [a.biome]; a.where ||= a.biome === 'water' ? 'a lake or the sea' : 'a ' + a.biome; }
+// who can live at a spot of biome b with the ground at g (the spawn points and the wandering both ask this)
+function livesAt(def, b, g) {
+  if (def.cave) return false;
+  if (!def.homes.includes(b)) return false;
+  if (def.zone === 'shore') return g > -2.2 && g < SEA + 0.6;
+  if (def.biome === 'water') return g < (def.deep ?? -2.5);
+  return g > SEA + 0.6;
+}
+const BIOME_ANIMALS = Object.fromEntries(BIOMES.map((b) => [b, ANIMALS.filter((a) => a.homes.includes(b))]));
+const swimY = (def, g) => (def.cruise === 'floor' ? g + 0.12 : Math.max(g + 0.15, SEA - def.cruise));   // where a swimmer swims over ground g
 
 // The powers. Pairs that share a kind of power each get a second difference:
 //   cheetah (a short 3x burst) / horse (a long 2x gallop); rabbit (a long hop forward) / cat (the highest jump, straight up, plus
@@ -955,6 +1197,23 @@ const POWERS = {
   eagle: { name: 'Swoop', icon: 'wing', what: 'Flies: hold jump to flap up, glide down slowly; power swoops forward at 20 m/s' },
   fish: { name: 'Deep Dive', icon: 'down', what: 'Swims under water; hold power to dive to the sea floor' },
   dolphin: { name: 'Leap', icon: 'up', what: 'Swims under water fastest (10 m/s); power leaps high out of the water' },
+  // W4 (#166). The coordinator's suggestions, with a second difference where a kind of power is shared: shark (a 20 m/s dash
+  // under water; cheetah keeps Burst on land); worm (steers under the ground while power is held; fox's Dig jumps 20 m);
+  // whale (the highest launch out of the water; dolphin leaps lower but swims faster); beetle (flies 3 s with its shell open;
+  // eagle flies as long as it likes); camel (a long steady trot that sand doesn't slow; horse gallops faster for 10 s);
+  // polar bear (swims fast at the top, smashes only snow drifts; bear smashes trees and rocks); snake (slips past trees and
+  // rocks; deer's Quiet Steps meets from twice as far).
+  crab: { name: 'Scuttle', icon: 'claw', what: 'A pinch that knocks small things over just in front (3 m), then a fast sideways run: 11 m/s for 4 s' },
+  shark: { name: 'Dash', icon: 'fin', what: 'A fast swim dash under water: 20 m/s for 1.5 s' },
+  octopus: { name: 'Ink', icon: 'ink', what: 'A cloud of ink hides you for 5 s: shy animals stay put, and a friend playing with you can not see you' },
+  whale: { name: 'Spout', icon: 'spout', what: 'At the top, blows a spout that launches you high out of the water; swims deepest of all (3 m down)' },
+  worm: { name: 'Burrow', icon: 'burrow', what: 'Hold power to wriggle under the ground (6 m/s, steer, up to 6 s); let go to come up' },
+  beetle: { name: 'Buzz', icon: 'buzz', what: 'Opens its shell and flies for 3 s: hold jump to climb, then it glides down' },
+  centipede: { name: 'Climb', icon: 'climb', what: 'Walks up rocks, trees, barns and the cave hill, and along their tops (on and off)' },
+  polarbear: { name: 'Ice Swim', icon: 'ice', what: 'Swims fast at the top of deep water (7 m/s); power smashes snow drifts in front (6 m)' },
+  penguin: { name: 'Belly Slide', icon: 'slide', what: 'Slides on its belly: 12 m/s for 3 s, faster down slopes, fastest on snow' },
+  snake: { name: 'Slither', icon: 'slither', what: 'For 8 s slips through narrow gaps (trees and rocks do not stop it) and moves silently: shy animals stay, and a friend sees no marker' },
+  camel: { name: 'Long Haul', icon: 'haul', what: 'Trots 11 m/s for 30 s; desert sand never slows a camel (it slows the others to 3/4)' },
 };
 
 const MODEL_GEO = {};
@@ -962,7 +1221,7 @@ for (const id of Object.keys(MODELS)) { const m = MODELS[id](); MODEL_GEO[id] = 
 function makeModel(id) {
   const g = new THREE.Group(), M = MODEL_GEO[id];
   g.add(new THREE.Mesh(M.body, MAT));
-  g.userData.limbs = M.limbs.map((l) => { const m = new THREE.Mesh(l.geo, MAT); m.position.set(...l.at); m.userData = l; g.add(m); return m; });
+  g.userData.limbs = M.limbs.map((l) => { const m = new THREE.Mesh(l.geo, MAT); m.position.set(...l.at); if (l.ry != null) { m.rotation.order = 'YXZ'; m.rotation.y = l.ry; } m.userData = l; g.add(m); return m; });
   return g;
 }
 // swing the limbs: phase advances with speed; mode 'fly' flaps wings, 'fold' tucks them
@@ -974,6 +1233,12 @@ function animateModel(g, phase, amt, mode) {
     else if (l.kind === 'wingL' || l.kind === 'wingR') { const side = l.kind === 'wingL' ? 1 : -1; m.rotation.z = mode === 'fold' ? -1.25 * side : side * Math.sin(phase * 1.6) * 0.6; }
     else if (l.kind === 'tail') m.rotation.y = Math.sin(phase * 1.5) * 0.5;
     else if (l.kind === 'fluke') m.rotation.x = Math.sin(phase * 1.2) * 0.35;
+    // W4 (#166)
+    else if (l.kind === 'row') m.rotation.z = s * 0.25 * amt;                                                   // a row of little legs (crab, beetle, centipede)
+    else if (l.kind === 'tent') m.rotation.x = Math.sin(phase * 1.3 + l.ph) * 0.28;                             // an octopus arm curls
+    else if (l.kind === 'flip') m.rotation.z = (l.at[0] > 0 ? 1 : -1) * (0.25 + (0.5 + 0.5 * s) * 0.5 * amt);    // a penguin's flippers
+    else if (l.kind === 'elyL' || l.kind === 'elyR') m.rotation.z = mode === 'fly' ? (l.kind === 'elyL' ? -1 : 1) * 1.0 : 0;   // a beetle's shell opens to fly
+    else if (l.kind === 'mem') { m.visible = mode === 'fly'; m.rotation.z = Math.sin(phase * 9 + l.ph) * 0.5; }   // and its thin wings buzz
   }
 }
 
@@ -982,6 +1247,11 @@ function animateModel(g, phase, amt, mode) {
 // When chunks come or go the loaded props are packed to the front and count is set to them, so nothing is allocated
 // as you walk and no empty instances are drawn.
 // ===========================================================================
+// the cave's hill (W4): [x, y, z, r, sx, sy, sz, colour] in the cave's frame; caveTop reads the same list, so you stand on what you see
+const CAVE_ROCKS = [
+  [-8.2, 2.5, -9.5, 5, 1, 1.3, 1.8, 0x766d63], [8.2, 2.5, -9.5, 5, 1, 1.3, 1.8, 0x766d63], [0, 9.2, -9.5, 5, 1.4, 0.8, 1.7, 0x8c8378],
+  [0, 3.5, -18.8, 4.5, 1.6, 1.2, 1.0, 0x766d63], [-9.5, 4, -3.5, 3, 1, 1.4, 1, 0x8c8378], [9.5, 4, -3.5, 3, 1, 1.4, 1, 0x8c8378], [0, 12.6, -9.5, 3, 1.4, 0.35, 1.6, 0x6f9a4a],
+];
 const PROP_DEFS = {
   pine: { cap: 34, col: 0.45, h: 6, knock: true, build: () => new Parts().cyl(0.22, 0.3, 1.4, 0x7a4a26, 0, 0.7, 0).cone(1.7, 2.6, 0x2e8b57, 0, 2.3, 0).cone(1.3, 2.1, 0x37a160, 0, 3.4, 0).cone(0.85, 1.7, 0x46b56c, 0, 4.4, 0) },
   oak: { cap: 14, col: 0.5, h: 5, knock: true, build: () => new Parts().cyl(0.26, 0.34, 2.2, 0x7a4a26, 0, 1.1, 0).ball(1.8, 0x5cc24a, 0, 3.2, 0).ball(1.2, 0x7ad957, 0.9, 3.9, 0.3).ball(1.1, 0x4fb540, -0.8, 3.6, -0.4) },
@@ -996,6 +1266,29 @@ const PROP_DEFS = {
   barn: { cap: 1, col: 6.2, h: 10, build: () => new Parts().box(8, 5, 10, 0xd9443a, 0, 2.5, 0).add(new THREE.CylinderGeometry(4.9, 4.9, 10.6, 3), 0x8e2b2b, 0, 6.44, 0, -Math.PI / 2, 0, 0, 1, 1, 0.6)
       .box(3, 3.6, 0.1, 0xf6efe0, 0, 1.8, 5.02).box(2.6, 3.2, 0.12, 0x8a3a2a, 0, 1.7, 5.04).box(0.2, 4, 0.14, 0xf6efe0, 0, 1.7, 5.06, 0, 0, 0.68).box(0.2, 4, 0.14, 0xf6efe0, 0, 1.7, 5.06, 0, 0, -0.68)
       .box(1.2, 1.2, 0.1, 0xf6efe0, 0, 6.2, 5.02).cyl(1.8, 1.8, 9, 0xc9ced6, 6.4, 4.5, 2.5, 0, 0, 0, 10).ball(1.85, 0x8e9aa8, 6.4, 9, 2.5) },
+  // W4 (#166): the snowy peaks, the jungle, the desert and the caves
+  snowpine: { cap: 30, col: 0.45, h: 6, knock: true, build: () => new Parts().cyl(0.22, 0.3, 1.4, 0x6e4526, 0, 0.7, 0).cone(1.7, 2.6, 0x2a7350, 0, 2.3, 0).cone(1.3, 2.1, 0x2f8158, 0, 3.4, 0).cone(0.85, 1.7, 0x3a9264, 0, 4.4, 0)
+      .cone(1.2, 0.9, 0xf4f8ff, 0, 3.15, 0).cone(0.9, 0.8, 0xf4f8ff, 0, 4.15, 0).cone(0.55, 0.8, 0xffffff, 0, 5.0, 0) },
+  drift: { cap: 10, col: 1.1, h: 1.3, knock: true, ice: true, build: () => new Parts().ball(1.3, 0xf4f8ff, 0, 0.25, 0, 1.4, 0.6, 1.0).ball(0.8, 0xe2ecf8, 0.75, 0.45, 0.25).ball(0.6, 0xffffff, -0.6, 0.55, -0.2) },
+  jtree: { cap: 22, col: 0.55, h: 8, knock: true, build: () => new Parts().cyl(0.3, 0.45, 6.2, 0x6b4a2b, 0, 3.1, 0).add(new THREE.IcosahedronGeometry(2.6, 0), 0x2f8f3a, 0, 6.6, 0, 0, 0, 0, 1.35, 0.5, 1.35)
+      .add(new THREE.IcosahedronGeometry(1.8, 0), 0x45b04c, 0.4, 7.6, -0.3, 0, 0, 0, 1.2, 0.55, 1.2).box(0.08, 2.4, 0.08, 0x3c8a2a, 1.6, 5.2, 0.6).box(0.08, 1.8, 0.08, 0x3c8a2a, -1.4, 5.5, -0.9).box(0.08, 2.0, 0.08, 0x3c8a2a, 0.3, 5.4, -1.8) },
+  fern: { cap: 36, col: 0, h: 0, build: () => { const P = new Parts(); for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; P.box(0.22, 0.04, 0.9, k % 2 ? 0x3aa648 : 0x2c8c3a, Math.sin(a) * 0.4, 0.28, Math.cos(a) * 0.4, -0.5, a, 0); } return P; } },
+  cactus: { cap: 10, col: 0.45, h: 3.4, knock: true, build: () => new Parts().cyl(0.3, 0.34, 3.2, 0x4f9a45, 0, 1.6, 0, 0, 0, 0, 8).cyl(0.3, 0.3, 0.12, 0x6bb85e, 0, 3.22, 0, 0, 0, 0, 8)
+      .cyl(0.17, 0.17, 0.8, 0x4f9a45, 0.55, 1.5, 0, 0, 0, Math.PI / 2, 7).cyl(0.17, 0.17, 1.1, 0x4f9a45, 0.9, 1.95, 0, 0, 0, 0, 7).cyl(0.15, 0.15, 0.6, 0x4f9a45, -0.45, 2.1, 0, 0, 0, Math.PI / 2, 7).cyl(0.15, 0.15, 0.8, 0x4f9a45, -0.72, 2.45, 0, 0, 0, 0, 7) },
+  cave: { cap: 1, col: 0, h: 0, build: () => {
+    const P = new Parts(), w = 0x5e564e, r1 = 0x8c8378, hw = CAVE.hw, rf = CAVE.roof, bk = CAVE.back;
+    // the hall: two side walls, the back and the roof (their inner faces are the hall); then the cliff face with the doorway
+    P.box(1.6, rf + 2, bk + 1.6, w, -(hw + 0.8), rf / 2 - 1, -(bk + 1.6) / 2).box(1.6, rf + 2, bk + 1.6, w, hw + 0.8, rf / 2 - 1, -(bk + 1.6) / 2)
+      .box(2 * hw + 3.2, rf + 2, 1.6, w, 0, rf / 2 - 1, -bk - 0.8).box(2 * hw + 3.2, 1.6, bk + 1.6, w, 0, rf + 0.8, -(bk + 1.6) / 2);
+    P.box(5.5, 9, 1.6, r1, -(hw + 2.75), 3.5, -0.8).box(5.5, 9, 1.6, r1, hw + 2.75, 3.5, -0.8).box(2 * hw, 3, 1.6, r1, 0, rf + 1.5, -0.8);
+    // the hill: big rocks around and over the hall, none reaching into it
+    for (const [x, y, z, r, sx, sy, sz, c] of CAVE_ROCKS) P.add(new THREE.IcosahedronGeometry(r, 1), c, x, y, z, 0, 0, 0, sx, sy, sz);
+    // stalactites from the roof, stalagmites by the walls
+    for (const [x, z] of [[-1.8, -4], [1.5, -7], [-0.8, -10.5], [2, -12.5], [0.4, -2.2]]) P.cone(0.3, 1.0, 0x6a6158, x, rf - 0.5, z, Math.PI, 0, 0, 5);
+    for (const [x, z] of [[2.4, -3.5], [-2.5, -9], [2.5, -13], [-2.4, -1.4]]) P.cone(0.32, 1.1, 0x7a7065, x, 0.5, z, 0, 0, 0, 5);
+    return P;
+  } },
+  crystal: { cap: 3, col: 0, h: 0, build: () => new Parts().cone(0.18, 1.0, 0x7ff7ff, 0, 0.45, 0, 0, 0, 0.2, 5).cone(0.14, 0.7, 0xb98cff, 0.22, 0.3, 0.1, 0.3, 0, -0.4, 5).cone(0.13, 0.6, 0x7ff7ff, -0.2, 0.28, -0.08, -0.3, 0, 0.5, 5) },
 };
 const PROP_KINDS = Object.keys(PROP_DEFS);
 const PROPS = {};
@@ -1037,17 +1330,25 @@ const COL = {
   forest: new THREE.Color(0x3f9a4a), forest2: new THREE.Color(0x2f7d3c), hill: new THREE.Color(0x7aa34a),
   sav: new THREE.Color(0xe0c060), sav2: new THREE.Color(0xc9b04c), sav3: new THREE.Color(0xb7c35a),
   fields: [0x7bd34f, 0xa8e05f, 0xf4d35e, 0xb5835a, 0x6cc644, 0xf4d35e].map((c) => new THREE.Color(c)),
+  // W4 (#166)
+  snow: new THREE.Color(0xf4f8ff), snow2: new THREE.Color(0xdfe9f5), crag: new THREE.Color(0x8d939c),
+  jungle: new THREE.Color(0x2e8f3c), jungle2: new THREE.Color(0x1f6e2e), dune: new THREE.Color(0xf0cf78), dune2: new THREE.Color(0xdcae58),
+  caveFloor: new THREE.Color(0x4a423b),
 };
 const _tc = new THREE.Color();
 function groundColor(x, z, h) {
   const { b, e } = biomeRaw(x, z), n = vnoise(x / 9, z / 9, 51);
   if (h < SEA + 0.7) { const t = clamp((SEA + 0.7 - h) / 7, 0, 1); return _tc.copy(COL.sand).lerp(COL.seabed, Math.min(1, t * 2)).lerp(COL.deep, Math.max(0, t * 1.4 - 0.4)); }
-  if (b === 0) { const f = COL.fields[Math.floor(hash3(Math.floor(x / 28), Math.floor(z / 28), 41) * COL.fields.length)]; _tc.copy(f).lerp(COL.meadow, n * 0.25); }
-  else if (b === 1) _tc.copy(COL.forest).lerp(COL.forest2, n).lerp(COL.hill, clamp((h - 7) / 8, 0, 0.7));
-  else if (b === 2) _tc.copy(COL.sav).lerp(n > 0.5 ? COL.sav3 : COL.sav2, Math.abs(n - 0.5) * 1.6);
+  if (caveInside(x, z, -1.5)) return _tc.copy(COL.caveFloor);   // W4: the floor of a cave's hall
+  if (b === BI.farm) { const f = COL.fields[Math.floor(hash3(Math.floor(x / 28), Math.floor(z / 28), 41) * COL.fields.length)]; _tc.copy(f).lerp(COL.meadow, n * 0.25); }
+  else if (b === BI.forest) _tc.copy(COL.forest).lerp(COL.forest2, n).lerp(COL.hill, clamp((h - 7) / 8, 0, 0.7));
+  else if (b === BI.savanna) _tc.copy(COL.sav).lerp(n > 0.5 ? COL.sav3 : COL.sav2, Math.abs(n - 0.5) * 1.6);
+  else if (b === BI.snow) _tc.copy(COL.snow).lerp(COL.snow2, n).lerp(COL.crag, clamp((0.62 - n) * 1.6, 0, 0.85) * clamp((h - 6) / 6, 0, 1));
+  else if (b === BI.jungle) _tc.copy(COL.jungle).lerp(COL.jungle2, n);
+  else if (b === BI.desert) _tc.copy(COL.dune).lerp(COL.dune2, clamp((n - 0.35) * 1.8, 0, 1));
   else _tc.copy(COL.meadow);
   const blend = 1 - smooth(clamp(e * 2.2, 0, 1));
-  if (b !== 3) _tc.lerp(COL.meadow, blend * 0.8);
+  if (b !== BI.water) _tc.lerp(COL.meadow, blend * 0.8);
   if (h < SEA + 1.3) _tc.lerp(COL.sand, (SEA + 1.3 - h) / 0.6);
   return _tc;
 }
@@ -1065,22 +1366,32 @@ function buildTerrain(cx, cz) {
   const m = new THREE.Mesh(g, MAT); m.matrixAutoUpdate = false; return m;
 }
 // the props of a chunk: a pure function of (seed, cx, cz)
-const PLACE = [  // kind, tries, chance per biome [farm, forest, savanna, water-shore], scale range
-  ['pine', 60, [0, 0.55, 0, 0], 0.8, 1.6], ['oak', 30, [0.12, 0.25, 0, 0], 0.8, 1.5], ['acacia', 16, [0, 0, 0.4, 0], 0.8, 1.3],
-  ['rock', 24, [0.03, 0.2, 0.25, 0.25], 0.5, 1.9], ['bush', 18, [0.15, 0.4, 0.2, 0.1], 0.7, 1.3], ['grass', 90, [0.6, 0.4, 0.3, 0.15], 0.8, 1.4],
-  ['tall', 60, [0, 0, 0.75, 0], 0.8, 1.4], ['flowers', 18, [0.5, 0.25, 0, 0], 0.8, 1.2], ['hay', 6, [0.5, 0, 0, 0], 0.9, 1.2],
+const PLACE = [  // kind, tries, chance per biome [farm, forest, savanna, water-shore, snow, jungle, desert], scale range
+  ['pine', 60, [0, 0.55, 0, 0, 0, 0, 0], 0.8, 1.6], ['snowpine', 50, [0, 0, 0, 0, 0.4, 0, 0], 0.8, 1.5], ['oak', 30, [0.12, 0.25, 0, 0, 0, 0, 0], 0.8, 1.5],
+  ['jtree', 36, [0, 0, 0, 0, 0, 0.55, 0], 0.8, 1.5], ['acacia', 16, [0, 0, 0.4, 0, 0, 0, 0], 0.8, 1.3],
+  ['rock', 24, [0.03, 0.2, 0.25, 0.25, 0.3, 0.05, 0.12], 0.5, 1.9], ['bush', 18, [0.15, 0.4, 0.2, 0.1, 0, 0.5, 0], 0.7, 1.3], ['grass', 90, [0.6, 0.4, 0.3, 0.15, 0, 0.3, 0], 0.8, 1.4],
+  ['fern', 50, [0, 0, 0, 0, 0, 0.6, 0], 0.8, 1.5], ['tall', 60, [0, 0, 0.75, 0, 0, 0, 0.08], 0.8, 1.4], ['flowers', 18, [0.5, 0.25, 0, 0, 0, 0.3, 0], 0.8, 1.2],
+  ['hay', 6, [0.5, 0, 0, 0, 0, 0, 0], 0.9, 1.2], ['drift', 20, [0, 0, 0, 0, 0.3, 0, 0], 0.8, 1.4], ['cactus', 24, [0, 0, 0, 0, 0, 0, 0.25], 0.7, 1.3],
 ];
+const TREES = new Set(['pine', 'snowpine', 'acacia', 'jtree', 'cactus']);   // not right on a border
 function chunkProps(cx, cz) {
   const R = rng(hashI(cx, cz, 101)), out = [], n = {}; for (const k of PROP_KINDS) n[k] = 0;
-  const put = (t, x, z, ry, s, y) => { if (n[t] >= PROP_DEFS[t].cap) return null; const p = { t, k: n[t]++, x, y: y ?? groundAt(x, z) - 0.08, z, ry, s, fallen: false, fx: 0, fz: 1 }; p.big = (t === 'pine' || t === 'oak') ? s > 1.3 : t === 'rock' ? s > 1.5 : false; out.push(p); return p; };
+  const put = (t, x, z, ry, s, y) => { if (n[t] >= PROP_DEFS[t].cap) return null; const p = { t, k: n[t]++, x, y: y ?? groundAt(x, z) - 0.08, z, ry, s, fallen: false, fx: 0, fz: 1 }; p.big = (t === 'pine' || t === 'oak' || t === 'snowpine' || t === 'jtree') ? s > 1.3 : t === 'rock' ? s > 1.5 : false; out.push(p); return p; };
   const x0 = cx * CHUNK, z0 = cz * CHUNK;
   const mid = biomeRaw(x0 + 32, z0 + 32);
   let barn = null;
-  if (mid.b === 0 && mid.e > 0.55 && R() < 0.4) {
+  // W4: a cave (the hill, crystals in its hall); nothing else grows on the hill or in front of its door
+  const cave = chunkCave(cx, cz);
+  const clear = (x, z) => { if (!cave) return true; if (Math.hypot(x - cave.mx, z - cave.mz) < CAVE.R + 3) return false; const [lx, lz] = caveLocal(cave, x, z); return !(lz > -1 && lz < CAVE.apron && Math.abs(lx) < CAVE.hw + 2.5); };
+  if (cave) {
+    put('cave', cave.x, cave.z, cave.ry, 1, cave.y);
+    for (const [lx, lz, a] of [[-2.3, -6, 0.4], [2.2, -11, 2.2], [-2.1, -12.9, 4]]) { const [x, z] = caveWorld(cave, lx, lz); put('crystal', x, z, cave.ry + a, 1, cave.y); }
+  }
+  if (mid.b === BI.farm && mid.e > 0.55 && R() < 0.4) {
     const bx = x0 + 18 + R() * 28, bz = z0 + 18 + R() * 28, hs = [groundAt(bx - 4, bz - 5), groundAt(bx + 4, bz - 5), groundAt(bx - 4, bz + 5), groundAt(bx + 4, bz + 5)];
     if (Math.max(...hs) - Math.min(...hs) < 1.5 && Math.min(...hs) > SEA + 0.8) barn = put('barn', bx, bz, Math.floor(R() * 4) * Math.PI / 2, 1, Math.min(...hs) - 0.1);
   }
-  if (mid.b === 0 && mid.e > 0.3) {   // fence lines along the field edges
+  if (mid.b === BI.farm && mid.e > 0.3) {   // fence lines along the field edges
     for (let f = 0; f < 2; f++) {
       const alongX = R() < 0.5, len = 4 + Math.floor(R() * 4), sx = x0 + 6 + R() * 40, sz = z0 + 6 + R() * 40;
       for (let s = 0; s < len; s++) { const x = alongX ? sx + s * 4 : sx, z = alongX ? sz : sz + s * 4; if (x > x0 + 62 || z > z0 + 62 || groundAt(x, z) < SEA + 0.5) break; if (barn && Math.hypot(x - barn.x, z - barn.z) < 9) continue; put('fence', x, z, alongX ? 0 : Math.PI / 2, 1); }
@@ -1091,8 +1402,9 @@ function chunkProps(cx, cz) {
       const x = x0 + R() * CHUNK, z = z0 + R() * CHUNK, r1 = R(), ry = R() * Math.PI * 2, s = s0 + R() * (s1 - s0);
       const g = groundAt(x, z); if (g < SEA + 0.35) continue;
       const bi = biomeRaw(x, z); if (r1 >= ch[bi.b]) continue;
-      if ((t === 'pine' || t === 'acacia') && bi.e < 0.12) continue;
+      if (TREES.has(t) && bi.e < 0.12) continue;
       if (barn && Math.hypot(x - barn.x, z - barn.z) < 9) continue;
+      if (!clear(x, z)) continue;
       put(t, x, z, ry, s);
     }
   }
@@ -1100,14 +1412,17 @@ function chunkProps(cx, cz) {
 }
 // the animals that live in a chunk (spawn points): also a pure function of (seed, cx, cz)
 function chunkSpawns(cx, cz) {
-  const R = rng(hashI(cx, cz, 202)), out = [], tries = 3 + Math.floor(R() * 2);
+  const R = rng(hashI(cx, cz, 202)), out = [], tries = 3 + Math.floor(R() * 2), cave = chunkCave(cx, cz);
   for (let i = 0; i < tries; i++) {
     const x = cx * CHUNK + 4 + R() * (CHUNK - 8), z = cz * CHUNK + 4 + R() * (CHUNK - 8), pick = R();
     const b = BIOMES[biomeRaw(x, z).b], g = groundAt(x, z);
-    let list = BIOME_ANIMALS[b];
-    if (b === 'water') { if (g > -2.5) continue; } else if (g < SEA + 0.6) continue;
-    out.push({ key: cx + ',' + cz + ',' + i, type: list[Math.floor(pick * list.length)], x, z });
+    if (cave && caveRock(cave, ...caveLocal(cave, x, z), 2)) continue;
+    const list = BIOME_ANIMALS[b].filter((a) => livesAt(a, b, g));   // W4: by depth too (the whale's deep sea, the crab's shallows)
+    if (!list.length) continue;
+    out.push({ key: cx + ',' + cz + ',' + i, type: list[Math.floor(pick * list.length)].id, x, z });
   }
+  // W4: the centipedes in a cave's hall
+  if (cave) for (const [k, lx, lz] of [[0, -1.2, -6], [1, 1.3, -11]]) { const [x, z] = caveWorld(cave, lx, lz); out.push({ key: cx + ',' + cz + ',c' + k, type: 'centipede', x, z }); }
   return out;
 }
 
@@ -1343,7 +1658,8 @@ const Spell = {
   answer(p, text) {
     if (p.tried) return null;
     p.tried = true;
-    const right = String(text ?? '').trim().toLowerCase() === p.word.toLowerCase(), e = this.entry(p.word), today = this.day();
+    const bare = (t) => String(t ?? '').replace(/\s+/g, '').toLowerCase();   // W4: a name's space (polar bear) is filled in, not typed
+    const right = bare(text) === bare(p.word), e = this.entry(p.word), today = this.day();
     e.n++; e.word = p.word; e.clue = p.clue; e.of = p.of; e.kind = p.kind;
     if (right) {
       e.right++; e.back = null; e.lastDay = today;
@@ -1381,7 +1697,7 @@ Spell.load(who);
 function findSpawn() {
   for (let r = 0; r < 3000; r += 8) for (let k = 0, n = Math.max(1, Math.floor(r / 6)); k < n; k++) {
     const a = k / n * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r, bi = biomeRaw(x, z);
-    if (bi.b === 0 && bi.e > 0.6 && groundAt(x, z) > SEA + 1) return { x, z };
+    if (bi.b === BI.farm && bi.e > 0.6 && groundAt(x, z) > SEA + 1) return { x, z };
   }
   return { x: 0, z: 0 };
 }
@@ -1391,7 +1707,14 @@ const P = {
   met: new Set(save0.met.filter((id) => A[id])), fp: !!save0.fp,
   cd: 0, gallop: 0, burst: 0, roll: 0, flutter: 0, swoop: 0, quiet: 0, sniff: 0, far: false, dig: 0, digTo: null, canDouble: false, hop: false, leap: false,
   jumps: 0, views: 0, powers: 0, pop: 1, sniffTarget: null, lastSmash: null, swimming: false, under: false,
+  // W4 (#166)
+  scuttle: 0, dash: 0, ink: 0, burrow: 0, burrowing: false, buzz: 0, buzzing: false, climb: false, slide: 0, slither: 0, haul: 0, dark: 0,
 };
+// every power's timers and toggles back to rest (a change, a new player)
+function resetPowers() {
+  P.gallop = P.burst = P.roll = P.flutter = P.swoop = P.quiet = P.sniff = P.dig = 0; P.cd = 0; P.hop = P.leap = P.canDouble = false;
+  P.scuttle = P.dash = P.ink = P.burrow = P.buzz = P.slide = P.slither = P.haul = 0; P.burrowing = P.buzzing = P.climb = false;
+}
 P.y = groundAt(P.x, P.z);
 const cam = { yaw: 0, pitch: 0.32 };
 let day = 1, dayTarget = 1, ticks = 0, time = 0;
@@ -1403,19 +1726,19 @@ function setModel(id) {
 }
 
 // ---------- powers ----------
-function smash(radius, frontOnly, big) {
+function smash(radius, frontOnly, big, ice = false) {   // ice (W4): only snow drifts, the polar bear's; the others leave drifts alone
   let count = 0, maxD = 0, front = 0, back = 0;
   const fx = Math.sin(P.yaw), fz = Math.cos(P.yaw);
   for (const p of propsNear(P.x, P.z, radius)) {
-    if (!PROP_DEFS[p.t].knock || p.fallen || (p.big && !big)) continue;
+    if (!PROP_DEFS[p.t].knock || p.fallen || (p.big && !big) || !!PROP_DEFS[p.t].ice !== ice) continue;
     const dx = p.x - P.x, dz = p.z - P.z, d = Math.hypot(dx, dz); if (d > radius) continue;
     const dot = d > 0.01 ? (dx * fx + dz * fz) / d : 1;
     if (frontOnly && dot < 0.5) continue;
     p.fallen = true; p.fx = d > 0.01 ? dx / d : fx; p.fz = d > 0.01 ? dz / d : fz; writeProp(p, 0);
     count++; maxD = Math.max(maxD, d); if (dot >= 0) front++; else back++;
   }
-  P.lastSmash = { count, maxD: +maxD.toFixed(2), front, back, radius, big };
-  doPuff(P.x + fx * (frontOnly ? 2.5 : 0), P.y, P.z + fz * (frontOnly ? 2.5 : 0), 0xd8c8a8, big ? 2.5 : 1.4);
+  P.lastSmash = { count, maxD: +maxD.toFixed(2), front, back, radius, big, ice };
+  doPuff(P.x + fx * (frontOnly ? Math.min(2.5, radius * 0.6) : 0), P.y, P.z + fz * (frontOnly ? Math.min(2.5, radius * 0.6) : 0), ice ? 0xffffff : 0xd8c8a8, big ? 2.5 : 1.4);
   return count;
 }
 function nearestUnmet() {
@@ -1459,16 +1782,69 @@ function usePower() {
     case 'eagle': if (P.grounded) return false; P.swoop = 1.3; P.cd = 2; break;
     case 'fish': return false;   // fish dives while power is held (see tickPlayer)
     case 'dolphin': if (!P.swimming || P.y < SEA - 2.2) return false; P.leap = true; P.vy = 14; P.vx = fx * 10; P.vz = fz * 10; P.cd = 1.2; break;
+    // W4 (#166)
+    case 'crab': smash(3, true, false); P.scuttle = 4; P.cd = 4.5; break;
+    case 'shark': if (!P.swimming) return false; P.dash = 1.5; P.cd = 3; break;
+    case 'octopus': P.ink = 5; P.cd = 6; doPuff(P.x, P.y + 0.3, P.z, 0x2a1f3d, 1.6); break;
+    case 'whale': if (!P.swimming || P.y < SEA - 4.2) return false; P.leap = true; P.vy = 19; P.vx = fx * 6; P.vz = fz * 6; P.cd = 2; doPuff(P.x, SEA + 0.4, P.z, 0xffffff, 1.6); break;
+    case 'worm': if (!P.grounded || groundAt(P.x, P.z) < SEA + 0.3) return false; P.burrowing = true; P.burrow = 6; doPuff(P.x, P.y - 0.4, P.z, 0x8a5a2b); break;
+    case 'beetle': P.buzz = 3; P.buzzing = true; if (P.grounded) { P.vy = 5; P.grounded = false; } P.cd = 3.5; break;
+    case 'centipede': P.climb = !P.climb; P.cd = 0.3; break;
+    case 'polarbear': smash(6, true, true, true); P.cd = 0.8; break;
+    case 'penguin': if (!P.grounded) return false; P.slide = 3; P.vx = fx * 12; P.vz = fz * 12; P.cd = 3.3; break;
+    case 'snake': P.slither = 8; P.cd = 9; break;
+    case 'camel': P.haul = P.haul > 0 ? 0 : 30; P.cd = 0.3; break;
   }
   P.powers++; Sfx.power(); return true;
 }
 
-const isSwimmer = (f) => f === 'fish' || f === 'dolphin';
+const isSwimmer = (f) => !!FORMS[f]?.swim;   // W4: fish, dolphin, shark, octopus, whale
+// the cave's hill under (x, z): its top (to stand on) and whether that spot is in the hall
+function caveBump(c, x0, z0, r) {   // push the player out of the hill's rock (sliding along the hall's walls from inside)
+  let [lx, lz] = caveLocal(c, P.x, P.z);
+  if (!caveRock(c, lx, lz, r)) return false;
+  const [plx, plz] = caveLocal(c, x0, z0);
+  if (Math.abs(plx) < CAVE.hw - r + 0.01 && plz > -CAVE.back + r - 0.01) { lx = clamp(lx, -CAVE.hw + r, CAVE.hw - r); lz = Math.max(lz, -CAVE.back + r); }
+  else {
+    const dx = lx - CAVE.hx, dz = lz - CAVE.hz, d = Math.hypot(dx, dz) || 1, out = CAVE.R + r - d, front = r - lz;
+    if (front < out) lz = r; else { lx = CAVE.hx + dx / d * (CAVE.R + r); lz = CAVE.hz + dz / d * (CAVE.R + r); }
+  }
+  [P.x, P.z] = caveWorld(c, lx, lz); return true;
+}
+function caveTop(lx, lz) {   // the hill's height above the cave floor at a spot of its frame (0: off the hill)
+  if (lz > 0) return 0;
+  let t = 0;
+  for (const [x, y, z, r, sx, sy, sz] of CAVE_ROCKS) { const u = 1 - ((lx - x) / (r * sx)) ** 2 - ((lz - z) / (r * sz)) ** 2; if (u > 0) t = Math.max(t, y + r * sy * Math.sqrt(u) * 0.93); }
+  if (Math.abs(lx) < CAVE.hw + 1.6 && lz > -CAVE.back - 1.6) t = Math.max(t, CAVE.roof + 1.6);
+  if (Math.abs(lx) < CAVE.hw + 5.5 && lz > -1.6) t = Math.max(t, 8);
+  return t;
+}
+// the centipede climbing: the tops of the colliders it's on (trunks, rocks, hay, barns, drifts, cacti)
+function climbTop(x, z, r) {
+  let t = -Infinity;
+  for (const p of propsNear(x, z, r + 2)) { const d0 = PROP_DEFS[p.t]; if (!d0.col || p.fallen) continue; if (Math.hypot(x - p.x, z - p.z) < d0.col * p.s + r * 0.7) t = Math.max(t, p.y + d0.h * p.s); }
+  return t;
+}
 function tickPlayer(dt, inp) {
   const F = FORMS[P.form], f = P.form;
   P.cd = Math.max(0, P.cd - dt); P.gallop = Math.max(0, P.gallop - dt); P.burst = Math.max(0, P.burst - dt); P.flutter = Math.max(0, P.flutter - dt);
   P.swoop = Math.max(0, P.swoop - dt); P.quiet = Math.max(0, P.quiet - dt); P.sniff = Math.max(0, P.sniff - dt); P.roll = Math.max(0, P.roll - dt);
+  P.scuttle = Math.max(0, P.scuttle - dt); P.dash = Math.max(0, P.dash - dt); P.ink = Math.max(0, P.ink - dt); P.buzz = Math.max(0, P.buzz - dt);
+  P.slide = Math.max(0, P.slide - dt); P.slither = Math.max(0, P.slither - dt); P.haul = Math.max(0, P.haul - dt);
   const x0 = P.x, z0 = P.z;
+  if (P.burrowing) {   // W4: the worm under the ground, steered while power is held; it comes up when power is let go (or after 6 s)
+    P.burrow = Math.max(0, P.burrow - dt);
+    const sx = Math.sin(cam.yaw), cz = Math.cos(cam.yaw);
+    let mx = sx * -inp.y + -cz * inp.x, mz = cz * -inp.y + sx * inp.x; const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
+    const nx = P.x + mx * 6 * dt, nz = P.z + mz * 6 * dt, c = caveAt(nx, nz);
+    if (groundAt(nx, nz) > SEA + 0.3 && !(c && caveRock(c, ...caveLocal(c, nx, nz), 0.2))) { P.x = nx; P.z = nz; }
+    P.y = groundAt(P.x, P.z); P.vy = 0; P.grounded = true;
+    if (ml > 0.1) P.yaw = Math.atan2(mx, mz);
+    if (ticks % 12 === 0) doPuff(P.x, P.y - 0.5, P.z, 0x8a5a2b, 0.4);
+    if (!inp.power || P.burrow <= 0) { P.burrowing = false; P.burrow = 0; P.cd = 1; doPuff(P.x, P.y - 0.4, P.z, 0x8a5a2b); }
+    const mv = Math.hypot(P.x - x0, P.z - z0); P.speed = mv / dt; P.phase += mv * 3.2 + dt * 2; P.swimming = false; P.under = false;
+    return;
+  }
   if (P.dig > 0) {   // the fox is under ground
     P.dig -= dt; if (P.dig <= 0) { P.x = P.digTo.x; P.z = P.digTo.z; P.y = groundAt(P.x, P.z); P.vy = 0; doPuff(P.x, P.y - 0.4, P.z, 0x8a5a2b); }
     P.speed = 0; return;
@@ -1482,18 +1858,29 @@ function tickPlayer(dt, inp) {
   let speed = F.speed;
   if (f === 'horse' && P.gallop > 0) speed = 14;
   if (f === 'cheetah' && P.burst > 0) speed = 22;
+  if (f === 'crab' && P.scuttle > 0) speed = 11;
+  if (f === 'camel' && P.haul > 0) speed = 11;
+  // W4: desert sand slows everyone but its own animals (and swimmers, who aren't on it)
+  if (depth < 0.3 && f !== 'camel' && f !== 'snake' && !isSwimmer(f) && biomeRaw(P.x, P.z).b === BI.desert) speed *= 0.75;
   const deep = depth > 1.25;
   P.swimming = false;
   if (isSwimmer(f) && depth > 0.9 && !P.leap) {
     // under water: cruise below the top; jump rises to just under it; the fish's power dives to the floor
-    P.swimming = true; speed = F.swim;
-    let target = f === 'fish' ? SEA - 2.2 : SEA - 1.3;
+    P.swimming = true; speed = f === 'shark' && P.dash > 0 ? 20 : F.swim;
+    let target = F.cruise === 'floor' ? g + 0.12 : SEA - F.cruise;
     if (inp.jump) target = SEA - 0.55;
     if (f === 'fish' && inp.power) target = g + 0.15;
     target = Math.max(target, g + 0.1); if (f === 'fish') target = Math.min(target, SEA - 0.5);
     P.vy = clamp((target - P.y) * 3, -5, 4); P.y += P.vy * dt; P.grounded = false;
     P.x += mx * speed * dt; P.z += mz * speed * dt;
     if (f === 'fish') P.y = Math.min(P.y, SEA - 0.5);
+  } else if (f === 'beetle' && P.buzzing && !P.grounded) {
+    // W4: the beetle flies with its shell open: hold jump to climb while the buzz lasts (3 s), then it glides down
+    if (inp.jump && P.buzz > 0) P.vy = Math.min(4, P.vy + 16 * dt); else P.vy = Math.max(P.buzz > 0 ? -1.2 : -2.2, P.vy - 6 * dt);
+    P.x += mx * 7 * dt; P.z += mz * 7 * dt; P.y += P.vy * dt;
+    const floor = Math.max(groundAt(P.x, P.z), SEA - 0.2);
+    P.y = Math.min(P.y, floor + 25);
+    if (P.y <= floor && P.vy <= 0) { P.y = floor; P.vy = 0; P.grounded = true; P.buzzing = false; P.buzz = 0; }
   } else if (f === 'eagle' && !P.grounded) {
     // flying: hold jump to flap up; otherwise glide down slowly; power swoops forward
     if (inp.jump) P.vy = Math.min(6, P.vy + 20 * dt); else P.vy = Math.max(-2.5, P.vy - 6 * dt);
@@ -1506,10 +1893,16 @@ function tickPlayer(dt, inp) {
   } else {
     // walking, running, jumping, wading and paddling
     if (isSwimmer(f) && !P.leap) speed = F.speed;   // a fish or dolphin out of the water flops slowly
-    if (P.form === 'human' || !isSwimmer(f)) { if (deep && !P.hop) { speed = f === 'eagle' ? 2.5 : Math.min(3, speed * 0.5); } else if (depth > 0.3) speed *= 0.7; }
+    if (P.form === 'human' || !isSwimmer(f)) { if (deep && !P.hop) { speed = f === 'eagle' ? 2.5 : f === 'polarbear' ? 7 : Math.min(3, speed * 0.5); } else if (depth > 0.3) speed *= 0.7; }   // W4: the polar bear swims fast
     if (P.roll > 0) {   // the pig rolls: barely steers, speeds up downhill
       const gx = groundAt(P.x + 0.5, P.z) - groundAt(P.x - 0.5, P.z), gz = groundAt(P.x, P.z + 0.5) - groundAt(P.x, P.z - 0.5);
       P.vx += (-gx * 14 + mx * 3) * dt; P.vz += (-gz * 14 + mz * 3) * dt;
+      P.x += P.vx * dt; P.z += P.vz * dt;
+    } else if (P.slide > 0 && P.grounded) {   // W4: the penguin slides on its belly: steers a little, faster downhill, fastest on snow
+      const gx = groundAt(P.x + 0.5, P.z) - groundAt(P.x - 0.5, P.z), gz = groundAt(P.x, P.z + 0.5) - groundAt(P.x, P.z - 0.5), k = biomeRaw(P.x, P.z).b === BI.snow ? 24 : 14;
+      P.vx += (-gx * k + mx * 6) * dt; P.vz += (-gz * k + mz * 6) * dt;
+      const v = Math.hypot(P.vx, P.vz); if (v > 24) { P.vx *= 24 / v; P.vz *= 24 / v; }
+      if (deep) { P.vx *= 1 - 2 * dt; P.vz *= 1 - 2 * dt; }
       P.x += P.vx * dt; P.z += P.vz * dt;
     } else if (!P.grounded && (P.hop || P.leap)) { P.x += P.vx * dt; P.z += P.vz * dt; }
     else { P.x += mx * speed * dt; P.z += mz * speed * dt; }
@@ -1520,36 +1913,52 @@ function tickPlayer(dt, inp) {
     }
     const gNow = groundAt(P.x, P.z), dNow = SEA - gNow;
     let floor = gNow;
+    // W4: the cave's hill is ground to stand on (landed on from above, or climbed by the centipede); its hall is not
+    const cv = caveAt(P.x, P.z), climbing = f === 'centipede' && P.climb;
+    if (cv) { const [lx, lz] = caveLocal(cv, P.x, P.z); if (!inHall(lx, lz, -0.3)) { const top = caveTop(lx, lz); if (top > 0 && (climbing || P.y >= cv.y + top - 0.35)) floor = Math.max(floor, cv.y + top); } }
+    if (climbing) floor = Math.max(floor, climbTop(P.x, P.z, F.r));
     const paddle = dNow > 1.25 && !isSwimmer(f) && !P.hop;   // the guy (and land animals) paddle at the top
     if (paddle) floor = SEA - (f === 'eagle' ? 0.2 : Math.min(1.3, FORMS[f].eye * 0.75));
     if (isSwimmer(f) && dNow > 0.9 && P.leap && P.vy < 0 && P.y < SEA - 0.3) { P.leap = false; P.vx = P.vz = 0; }
-    if (!P.grounded || P.y > floor + 0.05) {
+    if (climbing && P.grounded && floor > P.y + 0.05) {   // the centipede walks up the side (staying at it till it's on top)
+      if (floor > P.y + 0.3) { P.x = x0; P.z = z0; }
+      P.y = Math.min(floor, P.y + 5 * dt); P.vy = 0;
+    }
+    else if (!P.grounded || P.y > floor + 0.05) {
       let grav = 22;
       if (f === 'chicken' && P.flutter > 0 && P.vy < 0) { P.vy = Math.max(P.vy - grav * dt, -1.5); grav = 0; }
       P.vy -= grav * dt; if (f === 'chicken' && P.flutter > 0) P.vy = Math.max(P.vy, -1.5);
       P.y += P.vy * dt;
       if (f === 'eagle' && inp.jump && P.vy > 0) P.grounded = false;
-      if (P.y <= floor) { P.y = floor; P.vy = 0; P.grounded = true; P.hop = false; if (!isSwimmer(f)) P.leap = false; P.canDouble = false; if (P.roll <= 0) P.vx = P.vz = 0; }
+      if (P.y <= floor) { P.y = floor; P.vy = 0; P.grounded = true; P.hop = false; if (!isSwimmer(f)) P.leap = false; P.canDouble = false; if (P.roll <= 0 && P.slide <= 0) P.vx = P.vz = 0; }
       else P.grounded = false;
     } else { P.y = floor; P.vy = 0; P.grounded = true; }
     if (paddle && P.y < floor) P.y = floor;
-    if (P.roll <= 0 && P.grounded) { P.vx = P.vz = 0; }
+    if (P.roll <= 0 && P.slide <= 0 && P.grounded) { P.vx = P.vz = 0; }
     if (f === 'eagle' && P.grounded && inp.jump) { P.vy = 6; P.grounded = false; P.y += 0.05; }
   }
-  // bump into trunks, rocks, hay and barns (not while swimming or high up)
-  if (!P.swimming) {
+  // bump into trunks, rocks, hay and barns (not while swimming or high up; W4: nor slithering, nor climbing)
+  if (!P.swimming && P.slither <= 0 && !(f === 'centipede' && P.climb)) {
     for (const p of propsNear(P.x, P.z, 4)) {
       const d0 = PROP_DEFS[p.t]; if (!d0.col || p.fallen) continue;
       if (P.y > p.y + d0.h * p.s) continue;
       const r = d0.col * p.s + F.r * 0.7, dx = P.x - p.x, dz = P.z - p.z, d = Math.hypot(dx, dz);
-      if (d < r && d > 1e-4) { P.x = p.x + dx / d * r; P.z = p.z + dz / d * r; if (P.roll > 0) { P.vx *= 0.3; P.vz *= 0.3; } }
+      if (d < r && d > 1e-4) { P.x = p.x + dx / d * r; P.z = p.z + dz / d * r; if (P.roll > 0 || P.slide > 0) { P.vx *= 0.3; P.vz *= 0.3; } }
     }
+  }
+  // W4: the cave's hill is solid (you walk in by the door; over it, or climbing, you're on top); its hall has a roof
+  const cv = caveAt(P.x, P.z);
+  if (cv) {
+    const [lx, lz] = caveLocal(cv, P.x, P.z), [plx, plz] = caveLocal(cv, x0, z0), wasHall = inHall(plx, plz, -0.3);
+    if (wasHall || !((f === 'centipede' && P.climb) || P.y >= cv.y + caveTop(lx, lz) - 0.4)) caveBump(cv, x0, z0, F.r * 0.8);
+    const h = caveInside(P.x, P.z, -0.2);
+    if (h) { const ceil = cv.y + CAVE.roof - Math.min(1.2, F.camH * 0.45); if (P.y > ceil) { P.y = ceil; if (P.vy > 0) P.vy = 0; } }
   }
   const mvx = P.x - x0, mvz = P.z - z0, mv = Math.hypot(mvx, mvz);
   P.speed = mv / dt;
   if (P.fp) P.yaw = cam.yaw;
   else if (mv > 0.002) { const want = Math.atan2(mvx, mvz); P.yaw += wrapA(want - P.yaw) * Math.min(1, dt * 12); }
-  P.phase += mv * (f === 'rabbit' ? 2.2 : 3.2) + dt * 2;
+  P.phase += mv * (f === 'rabbit' ? 2.2 : f === 'worm' || f === 'snake' ? 5 : 3.2) + dt * 2;
   P.under = P.y + FORMS[f].eye < SEA;
 }
 
@@ -1558,9 +1967,9 @@ function tickPlayer(dt, inp) {
 // ===========================================================================
 const live = new Map();
 function animalOk(a, x, z) {
-  const g = groundAt(x, z);
-  if (a.def.biome === 'water') return g < -2 && biomeAt(x, z) === 'water';
-  return g > SEA + 0.4 && biomeAt(x, z) === a.def.biome;
+  if (a.def.cave) return !!caveInside(x, z, 0.6);
+  const c = caveAt(x, z); if (c && caveRock(c, ...caveLocal(c, x, z), a.def.r)) return false;
+  return livesAt(a.def, BIOMES[biomeRaw(x, z).b], groundAt(x, z) + (a.def.zone ? 0 : a.def.biome === 'water' ? -0.5 : 0.2));   // a little slack at the edges (as before W4)
 }
 function spawnAnimal(s) {
   const def = A[s.type], R = rng(hashI(s.x * 100 | 0, s.z * 100 | 0, 303));
@@ -1581,10 +1990,11 @@ function refreshLive() {
 }
 function placeAnimal(a, dt) {
   const g = groundAt(a.x, a.z), b = a.def.beh;
-  if (b === 'swim') a.y = a.type === 'fish' ? Math.max(g + 0.3, SEA - 2.6 + Math.sin(time * 0.9 + a.phase) * 0.3) : Math.max(g + 0.3, SEA - 1.2 + Math.sin(time * 0.7 + a.phase) * 0.25);
+  if (b === 'swim') a.y = a.type === 'fish' ? Math.max(g + 0.3, SEA - 2.6 + Math.sin(time * 0.9 + a.phase) * 0.3) : Math.max(g + 0.3, SEA - a.def.cruise + Math.sin(time * 0.7 + a.phase) * 0.25);
+  else if (b === 'floor') a.y = g + 0.05;   // W4: the octopus walks the sea floor
   else if (b === 'fly') a.y = Math.max(g, SEA) + 3.6 + Math.sin(time * 0.8 + a.phase) * 0.5;
   else a.y = g;
-  a.model.position.set(a.x, a.y, a.z); a.model.rotation.y = a.yaw;
+  a.model.position.set(a.x, a.y, a.z); a.model.rotation.y = a.yaw + (a.type === 'crab' && a.sp > 0 ? Math.PI / 2 : 0);   // W4: a crab walks sideways
   animateModel(a.model, a.phase, Math.min(1, a.sp / 2), b === 'fly' ? 'fly' : 'walk');
 }
 function tickAnimal(a, dt) {
@@ -1597,7 +2007,7 @@ function tickAnimal(a, dt) {
     vx = tx - a.x; vz = tz - a.z; const l = Math.hypot(vx, vz) || 1; sp = Math.min(4, l * 2); vx /= l; vz /= l;
   } else if (a.scare > 0) { vx = dx / dist; vz = dz / dist; sp = Math.max(d.flee || 0, Math.min(4.5, d.speed * 0.6)); }
   else if (a.call > 0) { if (dist > 3.5) { vx = -dx / dist; vz = -dz / dist; sp = Math.min(4, d.speed * 0.6); } }
-  else if (d.beh === 'flee' && dist < 7 && P.quiet <= 0) { vx = dx / dist; vz = dz / dist; sp = d.flee; }
+  else if (d.beh === 'flee' && dist < 7 && P.quiet <= 0 && P.ink <= 0 && P.slither <= 0 && P.burrow <= 0) { vx = dx / dist; vz = dz / dist; sp = d.flee; }   // W4: unseen in ink, unheard slithering or under ground
   else if (d.beh === 'follow' && dist < 16 && dist > 3) { vx = -dx / dist; vz = -dz / dist; sp = 3.5; }
   else {
     a.t -= dt;
@@ -1605,14 +2015,14 @@ function tickAnimal(a, dt) {
       if (a.R() < 0.45) { a.mode = 'graze'; a.t = 2 + a.R() * 4; }
       else { a.mode = 'walk'; a.t = 9; for (let k = 0; k < 6; k++) { const tx = a.hx + (a.R() - 0.5) * 24, tz = a.hz + (a.R() - 0.5) * 24; if (animalOk(a, tx, tz)) { a.tx = tx; a.tz = tz; break; } } }
     }
-    if (a.mode === 'walk') { const ex = a.tx - a.x, ez = a.tz - a.z, l = Math.hypot(ex, ez); if (l < 0.8) a.t = 0; else { vx = ex / l; vz = ez / l; sp = d.beh === 'swim' ? 1.2 : Math.min(2.2, d.speed * 0.3); } }
+    if (a.mode === 'walk') { const ex = a.tx - a.x, ez = a.tz - a.z, l = Math.hypot(ex, ez); if (l < 0.8) a.t = 0; else { vx = ex / l; vz = ez / l; sp = d.beh === 'swim' || d.beh === 'floor' ? 1.2 : Math.min(2.2, d.speed * 0.3); } }
   }
   if (sp > 0) {
     const nx = a.x + vx * sp * dt, nz = a.z + vz * sp * dt;
     if (d.beh === 'fly' || animalOk(a, nx, nz)) { a.x = nx; a.z = nz; a.yaw += wrapA(Math.atan2(vx, vz) - a.yaw) * Math.min(1, dt * 6); }
     else { a.t = 0; sp = 0; }
   }
-  a.sp = sp; a.phase += sp * dt * 3.5 + (d.beh === 'swim' || d.beh === 'fly' ? dt * 3 : 0);
+  a.sp = sp; a.phase += sp * dt * 3.5 + (d.beh === 'swim' || d.beh === 'floor' || d.beh === 'fly' ? dt * 3 : 0);
   placeAnimal(a, dt);
 }
 const meetReach = (a) => (a.def.r + 2.2) * (P.quiet > 0 ? 2 : 1) + FORMS[P.form].r;
@@ -1651,7 +2061,7 @@ function doChange(id) {
   if (!FORMS[id] || id === P.form) return false;
   if (Two.ride) Two.dismount('self');   // #160: a rider who changes hops off first
   const was = P.form; P.form = id;
-  P.gallop = P.burst = P.roll = P.flutter = P.swoop = P.quiet = P.sniff = P.dig = 0; P.cd = 0; P.hop = P.leap = P.canDouble = false; P.vx = P.vz = 0;
+  resetPowers(); P.vx = P.vz = 0;
   if (P.far) { P.far = false; loadR = LOAD_R; }
   if (id === 'eagle' && !P.grounded) P.vy = 0;
   setModel(id); Change.count++;
@@ -1717,6 +2127,18 @@ const ICON = {
   hopoff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5c7 0 12 3 13 11"/><path d="M13 13l4 4 4-4"/><path d="M3 21h18"/></svg>',
   save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>',
   load: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 17v3h16v-3"/></svg>',
+  // W4 (#166): the new powers
+  claw: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 22l2.5-6.5C5 12.5 5.2 8 8.3 5.2c3-2.6 7.2-2.7 10.2-.4l-4.7 4.3 6.7.6c-.6 4.2-4.6 6.9-9 6.2L8.6 22z"/></svg>',
+  fin: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 16.5C7 9 11 4.2 17.5 3c-2 4-2.2 8.8-.2 13.5z"/><path d="M2 20.5c3-2 5 2 8 0s5 2 8 0 3 0 4 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  ink: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="12.5" r="5"/><circle cx="15" cy="9.5" r="5.5"/><circle cx="16" cy="17" r="4"/><circle cx="6.5" cy="19" r="2.2"/><circle cx="20.5" cy="4" r="1.6"/></svg>',
+  spout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 15V3M12 9c-2.5-3.5-6-4-8.5-1.5M12 9c2.5-3.5 6-4 8.5-1.5"/><path d="M3 15.5h18l-2.5 5.5h-13z" fill="currentColor"/></svg>',
+  burrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h20"/><path d="M3 16c2-3 4 3 6 0s4 3 6 0 2-1.5 3-1.5"/><path d="M18 12l3 2.5-3 2.5"/></svg>',
+  buzz: '<svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="14.5" rx="5" ry="6.5"/><path d="M12 8v13" stroke="#183153" stroke-width="1.6"/><path d="M8 9L3 4.5M16 9l5-4.5M7 13H2M17 13h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  climb: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="2" width="3.5" height="20" rx="1.2"/><path d="M15 21V5M10 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7"/><path d="M9.5 3.5L12 6l2.5-2.5M9.5 20.5L12 18l2.5 2.5"/></svg>',
+  slide: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21L22 9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="12" cy="11.5" rx="6" ry="2.8" transform="rotate(-31 12 11.5)"/><circle cx="17.2" cy="8.3" r="1.9"/></svg>',
+  slither: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M19 4.5c-6-1.5-11 .5-11 4s9 2.5 9 6.5-5 5.5-12 4.5"/><circle cx="19.5" cy="4.5" r="1.6" fill="currentColor" stroke="none"/></svg>',
+  haul: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="19" cy="5" r="3"/><path d="M2 19.5c2.5-.5 3.5-6.5 6.5-8.5s5 1 6 4c1-1 3-1.2 4.2 0L22 19.5z"/></svg>',
 };
 const THUMB = {};
 function renderThumbs() {
@@ -1727,9 +2149,10 @@ function renderThumbs() {
   const prevC = new THREE.Color(); renderer.getClearColor(prevC); const prevA = renderer.getClearAlpha();
   for (const id of ['human', ...ANIMALS.map((a) => a.id)]) {
     const m = makeModel(id); ts.add(m);
-    if (id === 'eagle') animateModel(m, 0.9, 1, 'fly');
+    animateModel(m, 0.9, id === 'eagle' ? 1 : 0, id === 'eagle' ? 'fly' : 'walk');
     const box = new THREE.Box3().setFromObject(m), c = box.getCenter(new V3()), sz = box.getSize(new V3()), r = Math.max(sz.x, sz.y, sz.z) * 0.6;
     const dir = new V3(1, 0.42, 0.75).normalize(); tc.position.copy(c).addScaledVector(dir, r / Math.tan(15 * Math.PI / 180) * 1.05); tc.lookAt(c); tc.near = 0.05; tc.updateProjectionMatrix();
+    if (id === 'octopus') { inked(m, true); renderer.setRenderTarget(rt); renderer.render(ts, tc); inked(m, false); }   // W4: warm up the ink's shader
     renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(ts, tc);
     renderer.readRenderTargetPixels(rt, 0, 0, S, S, buf);
     for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const s = ((S - 1 - y) * S + x) * 4, d = (y * S + x) * 4; img.data[d] = toS[buf[s]]; img.data[d + 1] = toS[buf[s + 1]]; img.data[d + 2] = toS[buf[s + 2]]; img.data[d + 3] = buf[s + 3]; }
@@ -1753,7 +2176,7 @@ function hud() {
   const F = FORMS[P.form];
   $('formImg').src = THUMB[P.form] || ''; $('formName').textContent = F.name;
   $('formPower').textContent = POWERS[P.form] ? POWERS[P.form].name : (P.met.size ? 'Change into an animal!' : 'Walk up to an animal!');
-  $('bookCount').textContent = P.met.size + '/18';
+  $('bookCount').textContent = P.met.size + '/' + ANIMALS.length;
   if (!$('bookIc').innerHTML) $('bookIc').innerHTML = ICON.book;
 }
 
@@ -1827,7 +2250,7 @@ function readPad(dt) {
   if (any) { touch.padUsed(); GP.used++; }
   if (overlay === 'wheel') {
     const n = WHEEL_ORDER.length;
-    if (dir) { wheelSel = (wheelSel + (dir === 'right' ? 1 : dir === 'left' ? n - 1 : dir === 'up' ? 6 : n - 6)) % n; buildWheel(); }
+    if (dir) { wheelSel = (wheelSel + (dir === 'right' ? 1 : dir === 'left' ? n - 1 : dir === 'up' ? n - wheelStep : wheelStep)) % n; buildWheel(); }
     if (pr('a')) pickWheel(WHEEL_ORDER[wheelSel]); else if (pr('b') || pr('y')) closeOverlay();
     return;
   }
@@ -1894,6 +2317,8 @@ function tick() {
   for (const a of live.values()) tickAnimal(a, DT);
   checkMeets();
   day += clamp(dayTarget - day, -DT * 0.6, DT * 0.6);
+  // W4: dark in a cave's hall, darker the further in (half a second to get used to it)
+  const hall = caveInside(P.x, P.z, -0.2), darkTo = hall ? clamp(-hall.lz / 5, 0, 1) : 0; P.dark += clamp(darkTo - P.dark, -DT * 2, DT * 2);
   ticks++; time += DT;
 }
 function toggleView() { P.fp = !P.fp; P.views++; if (!P.fp) cam.pitch = clamp(cam.pitch, -0.25, 1.25); save(); }
@@ -1905,13 +2330,15 @@ function updateView() {
   // the player model
   if (P.model) {
     const yOff = 0;
-    P.model.position.set(P.x, P.y + yOff, P.z); P.model.rotation.y = P.yaw;
-    P.model.rotation.x = P.roll > 0 ? (time * 12) % (Math.PI * 2) : (P.form === 'dolphin' && P.leap ? -P.vy * 0.06 : 0);
+    const sliding = P.form === 'penguin' && P.slide > 0;   // W4: on its belly
+    P.model.position.set(P.x, P.y + yOff + (sliding ? 0.23 : 0), P.z); P.model.rotation.y = P.yaw + (P.form === 'crab' && P.speed > 0.3 ? Math.PI / 2 : 0);   // a crab walks sideways
+    P.model.rotation.x = P.roll > 0 ? (time * 12) % (Math.PI * 2) : sliding ? Math.PI / 2 : ((P.form === 'dolphin' || P.form === 'whale') && P.leap ? -P.vy * 0.05 : 0);
     const s = P.pop < 1 ? 0.25 + 0.75 * Math.sin(P.pop * Math.PI * 0.5) * (1 + 0.15 * Math.sin(P.pop * Math.PI)) : 1;
-    P.model.scale.setScalar(P.dig > 0 ? 0.001 : s);
+    P.model.scale.setScalar(P.dig > 0 || P.burrowing ? 0.001 : s);
     P.model.visible = !P.fp;
-    const flying = P.form === 'eagle' && !P.grounded;
-    animateModel(P.model, P.phase, Math.min(1, P.speed / 3), P.form === 'eagle' ? (flying ? 'fly' : 'fold') : 'walk');
+    inked(P.model, P.ink > 0);   // W4: the octopus in its ink is see-through
+    const flying = (P.form === 'eagle' || P.form === 'beetle' && P.buzzing) && !P.grounded;
+    animateModel(P.model, P.phase, Math.min(1, P.speed / 3), P.form === 'eagle' ? (flying ? 'fly' : 'fold') : flying ? 'fly' : 'walk');
     if (Two.ride) Two.sit(P.model);
   }
   const g = groundAt(P.x, P.z);
@@ -1930,6 +2357,13 @@ function updateView() {
     camera.position.copy(_cl).addScaledVector(_cf, -F.camD * (camera.aspect < 1 ? 1.35 : 1));
     const cg = groundAt(camera.position.x, camera.position.z) + 0.5;
     if (camera.position.y < cg) camera.position.y = cg;
+    // W4: in a cave's hall the camera stays inside it with you (under the roof, between the walls)
+    const hall = caveInside(P.x, P.z, -0.5);
+    if (hall) {
+      const c = hall.c; let [lx, lz] = caveLocal(c, camera.position.x, camera.position.z);
+      lx = clamp(lx, -CAVE.hw + 0.35, CAVE.hw - 0.35); lz = Math.max(lz, -CAVE.back + 0.35);
+      [camera.position.x, camera.position.z] = caveWorld(c, lx, lz); camera.position.y = Math.min(camera.position.y, c.y + CAVE.roof - 0.35);
+    }
     if (!(isSwimmer(P.form) && P.under) && camera.position.y < SEA + 0.35) camera.position.y = SEA + 0.35;
     camera.lookAt(_cl);
   }
@@ -1937,9 +2371,10 @@ function updateView() {
   // sky and fog: day/night, far-look, under water
   const fogD = P.far ? FOG_FAR : FOG;
   if (camera.position.y < SEA) { scene.fog.color.copy(WATER_FOG); scene.background.copy(WATER_FOG); scene.fog.near = 0.5; scene.fog.far = 32; }
-  else { scene.background.copy(SKY_NIGHT).lerp(SKY_DAY, day); scene.fog.color.copy(scene.background); scene.fog.near = fogD.near; scene.fog.far = fogD.far; }
+  else { scene.background.copy(SKY_NIGHT).lerp(SKY_DAY, day).lerp(CAVE_DARK, P.dark); scene.fog.color.copy(scene.background); scene.fog.near = lerp(fogD.near, 2, P.dark); scene.fog.far = lerp(fogD.far, 30, P.dark); }
   const cf = fogD.far + 30; if (camera.far !== cf) { camera.far = cf; camera.updateProjectionMatrix(); }
-  hemi.intensity = 0.4 + 0.7 * day; sun.intensity = 0.25 + 1.25 * day;
+  // W4: a cave dims the day (or the night) it's in; outside again, the light is what it was
+  hemi.intensity = (0.4 + 0.7 * day) * (1 - 0.75 * P.dark); sun.intensity = (0.25 + 1.25 * day) * (1 - 0.9 * P.dark);
 }
 
 // ===========================================================================
@@ -1972,20 +2407,48 @@ function pauseLabels() {
   $('pRaceBtn').innerHTML = ICON.flag + '<span>RACE</span>'; $('pTagBtn').innerHTML = ICON.tag + '<span>TAG</span>';
   $('pRaceBtn').style.display = $('pTagBtn').style.display = tg ? '' : 'none'; $('pWhoBtn').style.display = tg ? 'none' : '';
 }
-// the wheel: the guy in the middle, the 6 farm animals on the inner ring, the other 12 outside
+// the wheel: the guy in the middle, the 6 farm animals on the inner ring, the others on two rings outside (W4: 29 animals). The
+// rings are ovals that fill the screen; where they can't fit with slots of 44 px or more (a phone on its side) it's a grid.
 const WHEEL_ORDER = ['human', ...ANIMALS.map((a) => a.id)];
-let wheelSel = 0;
+let wheelSel = 0, wheelStep = 6;
+function wheelLayout(W, H) {
+  const n = WHEEL_ORDER.length - 1, mid = Math.floor((n - 6) / 2), counts = [6, mid, n - 6 - mid];
+  const avoid = [[0, 0, Math.min(W - 100, 230) + 14, 56], [W - 66, 0, W, 64]];   // the name (top left) and the close button
+  const fits = (pts, s) => {
+    for (let i = 0; i < pts.length; i++) {
+      const [x, y] = pts[i]; if (x - s / 2 < 4 || x + s / 2 > W - 4 || y - s / 2 < 4 || y + s / 2 > H - 4) return false;
+      for (const [x0, y0, x1, y1] of avoid) if (x + s / 2 > x0 && x - s / 2 < x1 && y + s / 2 > y0 && y - s / 2 < y1) return false;
+      for (let j = 0; j < i; j++) if (Math.hypot(x - pts[j][0], y - pts[j][1]) < s + 4) return false;
+    }
+    return true;
+  };
+  for (let s = Math.min(76, Math.floor(Math.min(W, H) / 6)); s >= 44; s -= 2) {
+    for (const [f1, f2] of [[0.36, 0.68], [0.4, 0.7], [0.32, 0.66], [0.44, 0.73]]) {
+      const rx = W / 2 - s / 2 - 6, ry = H / 2 - s / 2 - 6, pts = [[W / 2, H / 2]];
+      counts.forEach((c, k) => {
+        const f = [f1, f2, 1][k], off = k === 1 ? Math.PI / c : k === 2 ? Math.PI / 12 : 0;
+        // the inner rings stay round (as wide as they are tall) so they don't squash against the guy in the middle
+        const ex = k === 2 ? rx : Math.min(rx, ry) * f, ey = k === 2 ? ry : Math.min(rx, ry) * f;
+        for (let j = 0; j < c; j++) { const a = -Math.PI / 2 + off + j / c * Math.PI * 2; pts.push([W / 2 + Math.cos(a) * ex, H / 2 + Math.sin(a) * ey]); }
+      });
+      if (fits(pts, s)) return { slot: s, pts, step: 6, grid: false };
+    }
+  }
+  // the grid: the most columns' worth of the biggest slots, under the name row
+  const N = WHEEL_ORDER.length, top = 62, gap = 8; let best = null;
+  for (let cols = 3; cols <= N; cols++) { const rows = Math.ceil(N / cols), s = Math.floor(Math.min((W - 16 - gap * (cols - 1)) / cols, (H - top - 8 - gap * (rows - 1)) / rows, 76)); if (!best || s > best.s) best = { s, cols, rows }; }
+  const { s, cols, rows } = best, gw = cols * s + (cols - 1) * gap, gh = rows * s + (rows - 1) * gap, x0 = (W - gw) / 2 + s / 2, y0 = top + Math.max(0, (H - top - 8 - gh) / 2) + s / 2;
+  return { slot: s, pts: WHEEL_ORDER.map((_, i) => [x0 + (i % cols) * (s + gap), y0 + Math.floor(i / cols) * (s + gap)]), step: cols, grid: true };
+}
 function openWheel() {
   if (screen !== 'play') return; wheels++; showOv('wheel');
   wheelSel = Math.max(0, WHEEL_ORDER.indexOf(P.form)); buildWheel();
 }
 function buildWheel() {
   const ring = $('ring'); ring.innerHTML = '';
-  const W = innerWidth, H = innerHeight, m = Math.min(W, H) - 16, slot = clamp(m / 7, 44, 76), R = m / 2 - slot / 2 - 4, r = R * 0.52, cx = W / 2, cy = H / 2;
+  const L = wheelLayout(innerWidth, innerHeight), slot = L.slot; wheelStep = L.step;
   WHEEL_ORDER.forEach((id, i) => {
-    let x = cx, y = cy;
-    if (i >= 1 && i <= 6) { const a = -Math.PI / 2 + (i - 1) / 6 * Math.PI * 2; x += Math.cos(a) * r; y += Math.sin(a) * r; }
-    else if (i > 6) { const a = -Math.PI / 2 + Math.PI / 12 + (i - 7) / 12 * Math.PI * 2; x += Math.cos(a) * R; y += Math.sin(a) * R; }
+    const [x, y] = L.pts[i];
     const b = document.createElement('button'), ok = canUse(id), lent = ok && id !== 'human' && !P.met.has(id);
     b.className = 'wslot' + (ok ? '' : ' locked') + (lent ? ' lent' : '') + (id === 'human' ? ' human' : '') + (id === P.form ? ' cur' : '') + (i === wheelSel ? ' sel' : '');
     b.dataset.id = id; b.setAttribute('aria-label', ok ? FORMS[id].name : 'Not met yet');
@@ -2006,8 +2469,8 @@ function wheelKey(e) {
   if (e.code === 'Escape' || e.code === 'KeyQ' || e.code === 'KeyE') { e.preventDefault(); closeOverlay(); return; }
   if (e.code === 'ArrowRight' || e.code === 'KeyD') wheelSel = (wheelSel + 1) % n;
   else if (e.code === 'ArrowLeft' || e.code === 'KeyA') wheelSel = (wheelSel + n - 1) % n;
-  else if (e.code === 'ArrowUp' || e.code === 'KeyW') wheelSel = (wheelSel + 6) % n;
-  else if (e.code === 'ArrowDown' || e.code === 'KeyS') wheelSel = (wheelSel + n - 6) % n;
+  else if (e.code === 'ArrowUp' || e.code === 'KeyW') wheelSel = (wheelSel + n - wheelStep) % n;
+  else if (e.code === 'ArrowDown' || e.code === 'KeyS') wheelSel = (wheelSel + wheelStep) % n;
   else if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); pickWheel(WHEEL_ORDER[wheelSel]); return; }
   else if (e.code === 'KeyH') { e.preventDefault(); pickWheel('human'); return; }
   else return;
@@ -2016,18 +2479,19 @@ function wheelKey(e) {
 function openBook() { if (screen !== 'play') return; books++; showOv('book'); buildBook(); focusBook(); }
 function focusBook() { const c = document.querySelector('#grid .card:not(.locked)') || $('bookX'); c.focus({ preventScroll: true }); }
 function buildBook() {
-  $('bookHead').innerHTML = ICON.book + `<span>ANIMAL BOOK ${P.met.size}/18</span>`;
+  $('bookHead').innerHTML = ICON.book + `<span>ANIMAL BOOK ${P.met.size}/${ANIMALS.length}</span>`;
   const grid = $('grid'); grid.innerHTML = '';
   const W = innerWidth, H = innerHeight, top = 66, availW = W - 32, availH = H - top - 12, gap = 8;
   let best = { size: 0, cols: 6 };
-  for (let cols = 2; cols <= 9; cols++) { const rows = Math.ceil(18 / cols), s = Math.min((availW - gap * (cols - 1)) / cols, (availH - gap * (rows - 1)) / rows, 150); if (s > best.size) best = { size: s, cols }; }
-  const s = Math.floor(best.size), rows = Math.ceil(18 / best.cols), gw = best.cols * s + (best.cols - 1) * gap, gh = rows * s + (rows - 1) * gap;
+  const N = ANIMALS.length;
+  for (let cols = 2; cols <= 12; cols++) { const rows = Math.ceil(N / cols), s = Math.min((availW - gap * (cols - 1)) / cols, (availH - gap * (rows - 1)) / rows, 150); if (s > best.size) best = { size: s, cols }; }
+  const s = Math.floor(best.size), rows = Math.ceil(N / best.cols), gw = best.cols * s + (best.cols - 1) * gap, gh = rows * s + (rows - 1) * gap;
   Object.assign(grid.style, { left: (W - gw) / 2 + 'px', top: top + Math.max(0, (availH - gh) / 2) + 'px', gridTemplateColumns: `repeat(${best.cols}, ${s}px)`, gridAutoRows: s + 'px' });
   for (const a of ANIMALS) {
     const ok = canUse(a.id), lent = ok && !P.met.has(a.id), c = document.createElement('button');
     c.className = 'card' + (ok ? '' : ' locked') + (lent ? ' lent' : '') + (a.id === P.form ? ' cur' : ''); c.dataset.id = a.id; c.setAttribute('aria-label', ok ? a.name : 'Not met yet');
     c.innerHTML = `<img alt="" src="${THUMB[a.id] || ''}"><span style="font-size:${s < 64 ? 10 : 13}px">${ok ? a.name : '?'}</span>`;
-    onTap(c, () => { if (!ok) { toast(a.id, 'Find a ' + (a.biome === 'water' ? 'lake or sea' : a.biome) + ' to meet it!'); return; } closeOverlay(); requestChange(a.id); });
+    onTap(c, () => { if (!ok) { toast(a.id, 'Look in ' + a.where + ' to meet it!'); return; } closeOverlay(); requestChange(a.id); });
     grid.appendChild(c);
   }
 }
@@ -2066,7 +2530,7 @@ function usePlayer(p) {
   Spell.load(p);
   const f = FORMS[b.form] && (b.form === 'human' || P.met.has(b.form)) ? b.form : 'human';
   if (f !== P.form) {
-    P.form = f; P.gallop = P.burst = P.roll = P.flutter = P.swoop = P.quiet = P.sniff = P.dig = 0; P.cd = 0; P.hop = P.leap = P.canDouble = false;
+    P.form = f; resetPowers();
     if (P.far) { P.far = false; loadR = LOAD_R; }
     setModel(f); P.pop = 1;
   }
@@ -2110,7 +2574,8 @@ const Ask = {
     this.animal = animal; this.go = go;
     this.p = Spell.next(animal, who.level, Player.changed, force);
     this.typed = ''; this.used = []; this.done = null; this.tried = ''; this.reveal = 0;
-    const L = [...this.p.word];
+    const L = [...this.p.word].filter((ch) => ch !== ' ');   // W4: the letters only (a two-word name's gap is filled in)
+    this.lw = L.join('');
     if (this.p.level === 1) { let t, k = 0; do t = shuffle(L); while (L.length > 1 && t.join('') === L.join('') && ++k < 30); this.tiles = t; } else this.tiles = null;
     this.opens++;
     if (overlay !== 'spell') showOv('spell');
@@ -2121,7 +2586,7 @@ const Ask = {
   // the clue as shown: "..." becomes the blanks (level 2: the first letter, then a blank a letter); a question gets them after it
   clueHtml() {
     const p = this.p, w = p.word, lv = p.level;
-    const blanks = `<span class="hint">${lv === 2 ? esc(w[0].toUpperCase()) + ' ' + Array(w.length - 1).fill('_').join(' ') : '___'}</span>`;
+    const blanks = `<span class="hint">${lv === 2 ? [...w].map((ch, i) => (i === 0 ? esc(ch.toUpperCase()) : ch === ' ' ? '&nbsp;' : '_')).join(' ') : '___'}</span>`;
     let c = esc(p.clue);
     if (c.includes('...')) c = c.replace('...', blanks); else if (lv === 2) c += ' ' + blanks;
     return c;
@@ -2129,12 +2594,12 @@ const Ask = {
   tapTile(i) {
     if (this.done || !this.tiles || this.used.includes(i)) return;
     this.used.push(i); this.typed += this.tiles[i]; Sfx.click(); this.drawSlots();
-    if (this.typed.length === this.p.word.length) this.submit(this.typed);
+    if (this.typed.length === this.lw.length) this.submit(this.typed);
   },
   type(ch) {
     if (this.done) return;
     if (this.p.level === 1) { const i = this.tiles.findIndex((c, k) => !this.used.includes(k) && c.toLowerCase() === ch.toLowerCase()); if (i >= 0) this.tapTile(i); return; }
-    if (this.typed.length >= this.p.word.length) return;
+    if (this.typed.length >= this.lw.length) return;
     this.typed += ch.toLowerCase(); Sfx.click(); this.drawSlots();
   },
   undo() { if (this.done || !this.typed) return; this.typed = this.typed.slice(0, -1); if (this.p.level === 1) this.used.pop(); this.drawSlots(); },
@@ -2148,8 +2613,8 @@ const Ask = {
     } else {
       // the right spelling, letter by letter (and said again)
       this.done = 'wrong'; Sfx.miss(); this.reveal = 0; this.drawPad(); Say.word(this.p.word);
-      const step = () => { this.reveal++; Sfx.letter(); this.drawSlots(); this.timer = this.reveal < this.p.word.length ? setTimeout(step, 330) : 0; };
-      if (instant || manual) { this.reveal = this.p.word.length; this.drawSlots(); } else this.timer = setTimeout(step, 450);
+      const step = () => { this.reveal++; Sfx.letter(); this.drawSlots(); this.timer = this.reveal < this.lw.length ? setTimeout(step, 330) : 0; };
+      if (instant || manual) { this.reveal = this.lw.length; this.drawSlots(); } else this.timer = setTimeout(step, 450);
     }
     return right;
   },
@@ -2168,17 +2633,17 @@ const Ask = {
     if (c === 'Escape') { e.preventDefault(); closeOverlay(); return; }
     if (this.done === 'wrong') { if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); this.again(); } return; }
     if (c === 'Backspace') { e.preventDefault(); this.undo(); return; }
-    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (this.p.level === 2 && this.typed.length === this.p.word.length) this.submit(); return; }
+    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); if (this.p.level === 2 && this.typed.length === this.lw.length) this.submit(); return; }
     if (/^Key[A-Z]$/.test(c) && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); if (!e.repeat) this.type(c.slice(3)); }
   },
   drawSlots() {
-    const p = this.p, n = p.word.length, panel = $('spPanel');
+    const p = this.p, n = this.lw.length, panel = $('spPanel');
     panel.classList.toggle('right', this.done === 'right');
-    const slots = $('spSlots').children;
+    const slots = $('spSlots').querySelectorAll('.sp-slot');   // (a two-word name's gap is a .sp-gap between them)
     for (let i = 0; i < n; i++) {
       const s = slots[i]; if (!s) break;
       const wrong = this.done === 'wrong';
-      s.textContent = wrong ? (i < this.reveal ? p.word[i] : '') : this.typed[i] || '';
+      s.textContent = wrong ? (i < this.reveal ? this.lw[i] : '') : this.typed[i] || '';
       s.className = 'sp-slot' + (wrong && i < this.reveal ? ' fix' : '') + (this.done === 'right' ? ' ok' : '') + (!this.done && i === this.typed.length ? ' next' : '');
     }
     if (this.tiles) $('spPad').querySelectorAll('.sp-tile').forEach((t) => t.classList.toggle('used', this.used.includes(+t.dataset.i)));
@@ -2186,12 +2651,12 @@ const Ask = {
   },
   drawPad() {
     const p = this.p; if (!p) return;
-    const n = p.word.length, W = innerWidth, H = innerHeight, inner = Math.min(760, W - 16) - 20;
+    const n = p.word.length, W = innerWidth, H = innerHeight, inner = Math.min(760, W - 16) - 20;   // (n counts a name's gap as a slot's room)
     $('spPanel').dataset.mode = p.level === 1 ? 'tiles' : 'type';
     $('spImg').src = THUMB[p.of] || ''; $('spClue').innerHTML = this.clueHtml(); $('spSay').hidden = !Say.ok();
     const sw = Math.max(18, Math.min(44, Math.floor((inner - 5 * (n - 1)) / n))), sh = Math.min(H < 430 ? 40 : 50, sw + 6);
     const sl = $('spSlots'); sl.style.setProperty('--sw', sw + 'px'); sl.style.setProperty('--sh', sh + 'px');
-    sl.innerHTML = Array.from({ length: n }, () => '<div class="sp-slot"></div>').join('');
+    sl.innerHTML = [...p.word].map((ch) => (ch === ' ' ? '<div class="sp-gap"></div>' : '<div class="sp-slot"></div>')).join('');
     const pad = $('spPad'); pad.innerHTML = ''; pad.style.width = ''; pad.removeAttribute('style');
     if (this.done === 'wrong') {
       const after = document.createElement('div'); after.className = 'sp-after';
@@ -2218,7 +2683,7 @@ const Ask = {
     if (!p) return { open: false };
     return { open, animal: this.animal, word: p.word, kind: p.kind, level: p.level, mode: p.level === 1 ? 'tiles' : 'type', clue: $('spClue').textContent, back: !!p.back, of: p.of, n: p.n,
       tiles: this.tiles ? this.tiles.slice() : null, used: this.used.slice(), typed: this.typed, done: this.done, reveal: this.reveal,
-      shown: [...$('spSlots').children].map((s) => s.textContent || '_').join(''), speech: Say.ok(), spoken: Say.count, sayShown: !$('spSay').hidden };
+      shown: [...$('spSlots').children].map((s) => (s.classList.contains('sp-gap') ? ' ' : s.textContent || '_')).join(''), speech: Say.ok(), spoken: Say.count, sayShown: !$('spSay').hidden };
   },
 };
 Change.gate = (id, go) => {
@@ -2390,6 +2855,13 @@ const Parent = {
 // sends, so there are nearly always two to slide between; snap: a jump bigger than this (m) between two messages isn't slid; silent: this long (ms) with nothing from the friend means the line is gone
 const TWO = { hz: 30, interp: 50, snap: 8, silent: 8000, rideReach: 2.6, tagGap: 0.6, tagCool: 2000, raceDist: 60, raceSecs: 90, tagSecs: 60, goal: 4, countdown: 3 };
 const TWO_WHY = 'Two players works at home: ask a parent to start the game server';
+// W4 (#166): the world's layout version, sent with hi. The same seed lays the world out differently since W4 (seven places), so a
+// W3 page and a W4 page aren't in the same world even with the same seed (a W3 page sends no w: that's 3).
+const WORLD_V = 4;
+// what the friend should see of a power, sent with every st as k (bits): 1 ink (hidden: the octopus can't be seen), 2 slither (no
+// face or arrow: the snake moves silently), 4 under the ground (the worm burrowing), 8 sliding on its belly, 16 flying (the beetle)
+const LOOK = { ink: 1, quiet: 2, under: 4, slide: 8, fly: 16 };
+const lookBits = () => (P.ink > 0 ? LOOK.ink : 0) | (P.slither > 0 ? LOOK.quiet : 0) | (P.burrowing ? LOOK.under : 0) | (P.form === 'penguin' && P.slide > 0 ? LOOK.slide : 0) | (P.form === 'beetle' && P.buzzing && !P.grounded ? LOOK.fly : 0);
 // what can be ridden, and where the rider sits: seat = the top of its back above its feet, z = how far forward of its middle
 // (the builder could add more big animals here: cow, bear and giraffe would all carry a rider)
 const RIDE = { horse: { seat: 1.75, z: -0.2 }, elephant: { seat: 2.5, z: -0.3 }, dolphin: { seat: 0.68, z: 0.05 } };
@@ -2452,8 +2924,8 @@ const Net = {
 // put the player at x, z: on the ground, paddling at the top in deep water, or swimming if a fish or dolphin (the tests' teleport too)
 function placeAt(x, z, y) {
   P.x = x; P.z = z; const g = groundAt(x, z);
-  P.y = y != null ? y : (isSwimmer(P.form) && g < SEA - 0.9 ? (P.form === 'fish' ? SEA - 2.2 : SEA - 1.3) : Math.max(g, g < SEA - 1.25 ? SEA - Math.min(1.3, FORMS[P.form].eye * 0.75) : g));
-  P.vy = 0; P.vx = P.vz = 0; P.grounded = y == null; P.hop = P.leap = false; P.roll = 0;
+  P.y = y != null ? y : (isSwimmer(P.form) && g < SEA - 0.9 ? swimY(FORMS[P.form], g) : Math.max(g, g < SEA - 1.25 ? SEA - Math.min(1.3, FORMS[P.form].eye * 0.75) : g));
+  P.vy = 0; P.vx = P.vz = 0; P.grounded = y == null; P.hop = P.leap = false; P.roll = P.slide = 0; P.burrowing = P.buzzing = false;
 }
 
 // ---------- the race flag: a tall light you can see from far off, and an arrow over your head pointing at it
@@ -2496,7 +2968,7 @@ const Two = {
   del() { if (this.page !== 'join') return; this.entry.pop(); this.msg = ''; this.draw(); },
   leave() { Net.close(); },
   together() {
-    Net.send({ t: 'hi', v: 1, seed: SEED, av: this.av(), x: +P.x.toFixed(2), y: +P.y.toFixed(2), z: +P.z.toFixed(2), form: P.form, met: [...P.met] });
+    Net.send({ t: 'hi', v: 1, w: WORLD_V, seed: SEED, av: this.av(), x: +P.x.toFixed(2), y: +P.y.toFixed(2), z: +P.z.toFixed(2), form: P.form, met: [...P.met] });
     this.sendState();
     clearInterval(this.pulseT); this.pulseT = setInterval(() => this.sendState(), 1000 / TWO.hz);
     this.page = 'together'; this.msg = '';
@@ -2524,7 +2996,7 @@ const Two = {
     this.nearRide = false; padLabels();
   },
   onHi(m) {
-    if (m.seed !== SEED) { this.notice('Your friend is in a different world', 'Open the same page on both.'); Net.close(); return; }
+    if (m.seed !== SEED || (m.w ?? 3) !== WORLD_V) { this.notice('Your friend is in a different world', 'Open the same page on both.'); Net.close(); return; }
     const first = !this.peer;
     this.peer = this.peer || { snaps: [], last: null, form: null, model: null, phase: 0, prev: null, shown: null, av: null };
     this.peer.av = this.cleanAv(m.av);
@@ -2541,17 +3013,17 @@ const Two = {
   sendState() {
     if (Net.state !== 'together') return;
     const r = (v) => Math.round(v * 100) / 100;
-    const m = { t: 'st', x: r(P.x), y: r(P.y), z: r(P.z), yaw: r(P.yaw), f: P.form, s: r(P.speed), g: P.grounded ? 1 : 0, rd: this.ride ? 1 : 0 };
+    const m = { t: 'st', x: r(P.x), y: r(P.y), z: r(P.z), yaw: r(P.yaw), f: P.form, s: r(P.speed), g: P.grounded ? 1 : 0, rd: this.ride ? 1 : 0, k: lookBits() };
     Net.send(m); this.lastSent = m; this.lastSentAt = performance.now();
   },
   sendIfMoved(now) {
     const L = this.lastSent; if (Net.state !== 'together' || !L || now - this.lastSentAt < 16) return;
-    if (Math.abs(P.x - L.x) > 0.02 || Math.abs(P.z - L.z) > 0.02 || Math.abs(P.y - L.y) > 0.02 || Math.abs(wrapA(P.yaw - L.yaw)) > 0.02 || P.form !== L.f || !!this.ride !== !!L.rd) this.sendState();
+    if (Math.abs(P.x - L.x) > 0.02 || Math.abs(P.z - L.z) > 0.02 || Math.abs(P.y - L.y) > 0.02 || Math.abs(wrapA(P.yaw - L.yaw)) > 0.02 || P.form !== L.f || !!this.ride !== !!L.rd || lookBits() !== L.k) this.sendState();
   },
   sendMeet(id) { if (Net.state === 'together') Net.send({ t: 'meet', id }); },
   addSnap(m) {
     const p = this.peer; if (!p || ![m.x, m.y, m.z].every(Number.isFinite) || typeof m.f !== 'string' || !Object.hasOwn(FORMS, m.f)) return;
-    const s = { at: performance.now(), wall: Date.now(), x: m.x, y: m.y, z: m.z, yaw: Number.isFinite(m.yaw) ? m.yaw : 0, f: m.f, s: +m.s || 0, g: m.g !== 0, rd: !!m.rd };
+    const s = { at: performance.now(), wall: Date.now(), x: m.x, y: m.y, z: m.z, yaw: Number.isFinite(m.yaw) ? m.yaw : 0, f: m.f, s: +m.s || 0, g: m.g !== 0, rd: !!m.rd, k: (m.k | 0) & 31 };
     if (!p.last || p.last.f !== s.f) p.formAt = s.wall;   // when their new form arrived (the tests time it)
     p.snaps.push(s); if (p.snaps.length > 30) p.snaps.shift(); p.last = s;
   },
@@ -2563,7 +3035,7 @@ const Two = {
     else for (let i = S.length - 1; i > 0; i--) if (S[i - 1].at <= rt) { a = S[i - 1]; b = S[i]; break; }
     let t = b.at > a.at ? clamp((rt - a.at) / (b.at - a.at), 0, 1) : 1;
     if (Math.hypot(b.x - a.x, b.z - a.z) > TWO.snap) t = 1;
-    return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t), yaw: a.yaw + wrapA(b.yaw - a.yaw) * t, f: p.last.f, rd: p.last.rd, s: b.s, g: b.g };
+    return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t), yaw: a.yaw + wrapA(b.yaw - a.yaw) * t, f: p.last.f, rd: p.last.rd, s: b.s, g: b.g, k: p.last.k || 0 };
   },
 
   // ---- riding: a human rides the friend while they're a horse, an elephant or a dolphin. The animal steers; jump hops off.
@@ -2616,7 +3088,8 @@ const Two = {
     const g = { t: 'game', kind: w.kind, id: Date.now() % 1e9, cd: TWO.countdown, secs: clamp(Number(w.secs) || (w.kind === 'race' ? TWO.raceSecs : TWO.tagSecs), 5, 180) };
     if (w.kind === 'race') {   // the flag: TWO.raceDist ahead of whoever started it, pulled back toward them off deep water
       let d = TWO.raceDist, mx = w.x, mz = w.z;
-      for (; d >= 12; d -= 4) { mx = w.x + Math.sin(w.yaw) * d; mz = w.z + Math.cos(w.yaw) * d; if (groundAt(mx, mz) > SEA - 0.3) break; }
+      const rock = (x, z) => { const c = caveAt(x, z); return !!c && caveRock(c, ...caveLocal(c, x, z), 1.5); };   // W4: never inside a cave's hill
+      for (; d >= 12; d -= 4) { mx = w.x + Math.sin(w.yaw) * d; mz = w.z + Math.cos(w.yaw) * d; if (groundAt(mx, mz) > SEA - 0.3 && !rock(mx, mz)) break; }
       g.marker = { x: +mx.toFixed(2), z: +mz.toFixed(2) };
     } else g.it = w.seat === 1 ? 1 : 0;   // whoever starts tag is it
     Net.send(g); this.apply(g); return true;
@@ -2702,11 +3175,15 @@ const Two = {
       if (p.model) { scene.remove(p.model); doPuff(q.x, q.y + FORMS[q.f].camH * 0.3, q.z, 0xffffff, 1 + FORMS[q.f].r * 0.5); }
       p.model = makeModel(q.f); scene.add(p.model); p.form = q.f;
     }
-    p.model.position.set(q.x, q.y, q.z); p.model.rotation.y = q.yaw;
+    // W4: what the friend's power lets you see: nothing in ink or under the ground; a penguin on its belly; a crab sideways
+    const k = q.k || 0, sliding = !!(k & LOOK.slide);
+    p.model.visible = !(k & (LOOK.ink | LOOK.under));
+    p.model.position.set(q.x, q.y + (sliding ? 0.23 : 0), q.z); p.model.rotation.y = q.yaw + (q.f === 'crab' && q.s > 0.3 ? Math.PI / 2 : 0); p.model.rotation.x = sliding ? Math.PI / 2 : 0;
     const mv = p.prev ? Math.hypot(q.x - p.prev.x, q.z - p.prev.z) : 0; p.prev = q; p.phase += Math.min(mv, 2) * 3.2 + 0.03;
-    animateModel(p.model, p.phase, q.rd ? 0 : Math.min(1, q.s / 3), q.f === 'eagle' ? (q.g ? 'fold' : 'fly') : 'walk');
+    animateModel(p.model, p.phase, q.rd ? 0 : Math.min(1, q.s / 3), q.f === 'eagle' ? (q.g ? 'fold' : 'fly') : k & LOOK.fly ? 'fly' : 'walk');
     if (q.rd) this.sit(p.model);
     p.shown = q;
+    if (k & (LOOK.ink | LOOK.quiet | LOOK.under)) { tag.classList.remove('on'); arr.classList.remove('on'); p.mark = { on: false, hidden: true }; return; }   // no face, no arrow
     // their face: over their head when they're on screen, else an arrow at the edge (kept clear of the HUD and the thumbs)
     const v = _pv2.set(q.x, q.y + FORMS[q.f].eye + 0.9, q.z).project(camera), W = innerWidth, H = innerHeight, behind = v.z > 1;
     const sx = (v.x + 1) / 2 * W, sy = (1 - v.y) / 2 * H, m = 24;
@@ -2850,7 +3327,7 @@ const Backup = {
       const w = data.words && data.words[from];
       if (to !== GUEST.id && w && w.v === SAVE_V && w.words && typeof w.words === 'object') {
         const cur = store.get('words.' + to, null), rec = cur && cur.v === SAVE_V && cur.words ? cur : Spell.blank();
-        for (const [k, e] of Object.entries(w.words)) if (/^[a-z]+$/.test(k) && okEntry(e) && (!rec.words[k] || (+e.n || 0) > (+rec.words[k].n || 0))) rec.words[k] = e;
+        for (const [k, e] of Object.entries(w.words)) if (/^[a-z]+( [a-z]+)?$/.test(k) && okEntry(e) && (!rec.words[k] || (+e.n || 0) > (+rec.words[k].n || 0))) rec.words[k] = e;
         rec.n = Math.max(+rec.n || 0, +w.n || 0);
         rec.misses = [...(Array.isArray(rec.misses) ? rec.misses : []), ...(Array.isArray(w.misses) ? w.misses.filter((m) => m && typeof m.w === 'string' && Number.isFinite(m.t)) : [])].slice(-SPELL.keepMisses);
         store.set('words.' + to, rec);
@@ -2937,6 +3414,8 @@ window.__ww = {
       cd: P.cd, lastSmash: P.lastSmash, changes: Change.count, jumps: P.jumps, views: P.views, powers: P.powers, pauses, wheels, books,
       screen, overlay, manual, ticks, meetMult: P.quiet > 0 ? 2 : 1, who: who.id, level: who.level, spelling: Spell.on,
       camera: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, camH: F.camH, eye: F.eye, model: P.model ? { visible: P.model.visible } : null,
+      scuttle: P.scuttle, dash: P.dash, ink: P.ink, burrowing: P.burrowing, buzzing: P.buzzing, climb: P.climb, slide: P.slide, slither: P.slither, haul: P.haul, dark: +P.dark.toFixed(3),   // W4
+      hemi: +hemi.intensity.toFixed(3), fogNear: scene.fog.near, look: lookBits(),
       gamepadUsed: GP.used, focus: document.activeElement?.id || document.activeElement?.dataset?.id || null, touch: touch.state, biome: biomeAt(P.x, P.z), puff: +puffLife.toFixed(2), flash: +getComputedStyle($("flash")).opacity,
     };
   },
@@ -2947,9 +3426,7 @@ window.__ww = {
   // a render looking four ways round, so everything loaded has been on the GPU (info.memory only counts what has been drawn)
   renderAround() { const y0 = cam.yaw; for (let k = 0; k < 4; k++) { cam.yaw = y0 + k * Math.PI / 2; updateView(); renderer.render(scene, camera); } cam.yaw = y0; return this.render(); },
   teleport(x, z, y) {
-    P.x = x; P.z = z; const g = groundAt(x, z);
-    P.y = y != null ? y : (isSwimmer(P.form) && g < SEA - 0.9 ? (P.form === 'fish' ? SEA - 2.2 : SEA - 1.3) : Math.max(g, g < SEA - 1.25 ? SEA - Math.min(1.3, FORMS[P.form].eye * 0.75) : g));
-    P.vy = 0; P.vx = P.vz = 0; P.grounded = y == null; P.hop = P.leap = false; P.roll = 0;
+    placeAt(x, z, y);
     return this.state();
   },
   settle() { wantChunks(); do updateChunks(99); while (pending.length); refreshLive(); updateView(); return chunks.size; },
@@ -2961,6 +3438,15 @@ window.__ww = {
   become(id) { if (id !== 'human' && !P.met.has(id)) meet(id); return requestChange(id); },
   reset() { store.del('save'); store.del('book.' + who.id); P.met.clear(); Player.changed.clear(); return true; },
   biomeAt, heightAt: groundAt, heightRaw,
+  // ---- W4 (#166): the caves. nearestCave: the closest cave's door (x, z, floor y), its turn ry and the spot w m out of its door
+  // (lz > 0) or into its hall (lz < 0), facing in
+  CAVE, BIOMES, WORLD_V, LOOK, caveAt, caveLocal, caveWorld, inCave: (x, z) => !!caveInside(x, z),
+  nearestCave(x0 = P.x, z0 = P.z, R = 40) {
+    let best = null; const cx0 = Math.floor(x0 / CHUNK), cz0 = Math.floor(z0 / CHUNK);
+    for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const c = chunkCave(cx0 + dx, cz0 + dz); if (c) { const d = Math.hypot(c.x - x0, c.z - z0); if (!best || d < best.d) best = { d, c }; } }
+    if (!best) return null; const c = best.c, at = (lz, lx = 0) => { const [x, z] = caveWorld(c, lx, lz); return { x, z }; };
+    return { x: c.x, z: c.z, y: c.y, ry: c.ry, d: best.d, inYaw: c.ry + Math.PI, at };
+  },
   animalsNear(r = 1e9) { return [...live.values()].filter((a) => Math.hypot(a.x - P.x, a.z - P.z) < r).map((a) => ({ key: a.key, type: a.type, x: +a.x.toFixed(2), y: +a.y.toFixed(2), z: +a.z.toFixed(2), biome: biomeAt(a.x, a.z), home: biomeAt(a.hx, a.hz), d: +Math.hypot(a.x - P.x, a.z - P.z).toFixed(2), scare: a.scare, call: a.call, mode: a.mode })); },
   liveAnimal(key) { return live.get(key) || null; },
   spawnsAround(r) { const out = [], pcx = Math.floor(P.x / CHUNK), pcz = Math.floor(P.z / CHUNK); for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) out.push(...chunkSpawns(pcx + dx, pcz + dz)); return out; },

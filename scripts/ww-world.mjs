@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Wild World W1 (#157): the endless world, the 18 animals and changing.
+// Wild World W1 (#157): the endless world, the animals (29 since W4, #166) and changing.
 //
 // The page is served over http by this script. Each run is its own headless Chrome (muted, never detached, killed with its
 // profile deleted on every way out, and killed if the run takes over 5 minutes); the server is closed on every way out too.
@@ -11,24 +11,30 @@
 //   frames   - the median ms between frames in play (real time, rAF) at the spawn, at km 5 and at the spawn again after the
 //              round trip, 3 runs each (the median of the 3), with draw calls and triangles; the km 5 and back-at-spawn medians
 //              must be within FRAME_MARGIN of the first.
-//   biomes   - the biome function sampled on a 20 m grid: all four biomes lie within BIOME_RADIUS of spawn; every one of the 18
-//              animals is found live in its own biome (and still there after 10 s of wandering).
-//   anatomy  - all 18 animals built in world space (__ww.anatomy: the tagged body, head, neck, tail and tip boxes): every neck's
+//   biomes   - the biome function sampled on a 20 m grid: all seven places (W4: snowy peaks, jungle and desert too) lie within
+//              BIOME_RADIUS of spawn, and a cave within CAVE_RADIUS; every one of the 29 animals is found live where it lives (its
+//              places; the crab in the shallows, the whale in deep water, the centipede in a cave's hall) and still there after 10 s.
+//   anatomy  - all 29 animals built in world space (__ww.anatomy: the tagged body, head, neck, tail and tip boxes): every neck's
 //              low end is in the body and its top end in the head; every tail's near end is in the body and its far end behind
 //              the body (more -z) and not below the feet; the horse, cow, elephant, giraffe and lion tails hang down and back
-//              from the top of the rump (Dad's mix), every other tail rises; every tip sits on the far end of its tail; every animal but the bear has
-//              a tail. With --shots, a contact sheet of all 18 from the side and from the play camera behind.
+//              from the top of the rump (Dad's mix; the camel's too), every other tail rises; every tip sits on the far end of its tail; every
+//              animal but the bear, crab, octopus, beetle and centipede has a tail; every animal that walks has its feet on the ground (its
+//              lowest point within 3 cm of y 0). With --shots, a contact sheet of all 29 from the side and from the play camera behind.
 //   tails    - every tailed animal from the default play camera at 820x1180, 844x390 and 360x740 (__ww.tailView): how much of each
 //              tail's length faces the camera (1 side-on, 0 end-on); every line tail (at least 2x as long as wide) shows at least
 //              0.4, and no tip is wider on screen than its tail. With --shots, a contact sheet of them all from behind (440 px tiles).
-//   forms    - all 18 change in and out (requestChange, the puff), each power measured against the table in POWERS; a human who
+//   forms    - all 29 change in and out (requestChange, the puff), each power measured against the table in POWERS; a human who
 //              only steers (look + input) meets a fish, a dolphin, an eagle and a shy rabbit; the human paddles at the top of deep
 //              water and never goes under; a reload keeps the book.
 //   touch    - a touch-only round at 390x844 in real time with CDP Input.dispatchTouchEvent: the stick moves, a drag looks, the
 //              jump, power, change (pick an animal in the wheel) and view buttons each act exactly once per tap, the pause menu
 //              opens the book and resumes; 4 or fewer right-hand buttons.
 //   WxH      - at that size in touch mode: every control (stick, buttons, pause, HUD chips) on screen with no overlap and no page
-//              scroll; the wheel's slots, the book's 18 cards and the pause menu fit with no overlap.
+//              scroll; the wheel's 30 slots, the book's 29 cards and the pause menu fit with no overlap.
+//   w4       - W4 (#166): the eleven new powers measured (crab, shark, octopus, whale, worm, beetle, centipede, polar bear, penguin,
+//              snake, camel), desert sand slowing all but its own animals, and a cave walked into with the stick: it gets dark (and
+//              light again outside, whatever the time of day), a centipede is live in its hall, its side wall stops you, the camera
+//              stays inside with you, and the hill is solid from outside.
 //   keys     - keyboard only at 1280x800 in real time (CDP key events; PLAY clicked with a real mouse first, then Space must jump):
 //              move, jump, power, Q wheel + arrows + Enter, B book + Enter on a card, V view, H human, Esc pause + Tab + Enter.
 //   gamepad  - gamepad only, a stand-in navigator.getGamepads driven by the script: A starts, the sticks move and look, A jumps,
@@ -40,7 +46,7 @@
 //
 // Usage:
 //   node scripts/ww-world.mjs                  # every run
-//   node scripts/ww-world.mjs --run forms      # one run (repeatable): anatomy | tails | forms | biomes | walk | frames | touch | keys | gamepad | WxH
+//   node scripts/ww-world.mjs --run forms      # one run (repeatable): anatomy | tails | forms | biomes | w4 | walk | frames | touch | keys | gamepad | WxH
 //   node scripts/ww-world.mjs --shots DIR      # also save screenshots (the PR's set: --shots docs/screenshots/wild-world)
 //   node scripts/ww-world.mjs path.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
@@ -55,6 +61,8 @@ import { fileURLToPath } from 'node:url';
 const SIZES = ['360x740', '568x320', '768x1024', '820x1180', '740x360', '844x390', '667x375'];
 const FRAME_MARGIN = 0.35;    // km 5 / back at spawn may be at most 35% slower a frame than spawn (headless frame time is noisy)
 const BIOME_RADIUS = 700;     // every biome within 700 m of spawn
+const CAVE_RADIUS = 900;      // and a cave within 900 m (W4)
+const N_ANIMALS = 29;
 const RUN_TIMEOUT_MS = 5 * 60 * 1000;
 const args = process.argv.slice(2);
 let json = false, target = null, shots = null; const picked = [];
@@ -65,7 +73,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['anatomy', 'tails', 'forms', 'biomes', 'walk', 'frames', 'touch', 'keys', 'gamepad', ...SIZES];
+const runs = picked.length ? picked : ['anatomy', 'tails', 'forms', 'biomes', 'w4', 'walk', 'frames', 'touch', 'keys', 'gamepad', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const page = path.resolve(target ?? path.join(repo, 'wild-world.html'));
 if (shots) fs.mkdirSync(shots, { recursive: true });
@@ -218,7 +226,7 @@ async function runForms(C) {
   ok(`no emoji: ${odd.length} non-ASCII characters, all U+2026 in the copied TouchPad header`, odd.every((o) => o.ch === '2026' && o.copied), odd.slice(0, 10));
   await C.open(1280, 800, false);
   const ev = (body) => C.ev(String.raw`(() => { ${H} W.manual(true); W.start(); ${body} })()`);
-  // ---- all 18 change in and out, through requestChange; an unmet animal is refused; W2's gate holds a change until it says go
+  // ---- all 29 change in and out, through requestChange; an unmet animal is refused; W2's gate holds a change until it says go
   let r = await ev(String.raw`W.reset(); const o = { refused: W.requestChange('cow'), form0: S().form, forms: [] };
     for (const a of W.ANIMALS) { const c0 = S().changes; W.become(a.id); W.step(2); const s1 = S(); W.become('human'); W.step(2); const s2 = S();
       o.forms.push({ id: a.id, in: s1.form, out: s2.form, n: s2.changes - c0, puffIn: s1.puff, puffOut: s2.puff }); }
@@ -226,7 +234,7 @@ async function runForms(C) {
     o.gated = W.requestChange('cow'); o.formWhileGated = S().form; held.go(); o.formAfterGo = S().form; W.Change.gate = null; W.become('human');
     return o;`);
   ok('an animal not met yet is refused (requestChange false, still human)', r.refused === false && r.form0 === 'human', r);
-  ok(`all 18 forms change in and back to human, each with a puff (${r.forms.filter((f) => f.in === f.id && f.out === 'human' && f.n === 2).length}/18)`, r.forms.length === 18 && r.forms.every((f) => f.in === f.id && f.out === "human" && f.n === 2 && f.puffIn > 0 && f.puffOut > 0), r.forms);
+  ok(`all ${N_ANIMALS} forms change in and back to human, each with a puff (${r.forms.filter((f) => f.in === f.id && f.out === 'human' && f.n === 2).length}/${N_ANIMALS})`, r.forms.length === N_ANIMALS && r.forms.every((f) => f.in === f.id && f.out === "human" && f.n === 2 && f.puffIn > 0 && f.puffOut > 0), r.forms);
   ok('W2 hook: with Change.gate set, requestChange waits ("gated") until the gate says go', r.gated === 'gated' && r.formWhileGated === 'human' && r.formAfterGo === 'cow', r);
   // ---- speed: the human, the cheetah's burst, the horse's gallop (an open run along +x on dry ground)
   r = await ev(String.raw`const run = openRun('farm', 70) || openRun(null, 70); if (!run) return { run: null };
@@ -357,7 +365,7 @@ async function runForms(C) {
   // ---- the book and a reload
   r = await ev(String.raw`W.reset(); W.meet('fox'); W.meet('eagle'); W.meet('cow'); W.become('fox'); W.openBook(); const cards = document.querySelectorAll('#grid .card').length, open = document.querySelectorAll('#grid .card:not(.locked)').length; W.closeOverlay();
     return { cards, open, met: S().met, form: S().form, saved: JSON.parse(localStorage.getItem('wildworld.book.guest')) };`);
-  ok(`the book shows all 18 (${r.cards}), the 3 met ones open (${r.open}); saved as Guest's book, wildworld.book.guest with v:2 (W2, #158)`, r.cards === 18 && r.open === 3 && r.saved?.v === 2 && r.saved.met.length === 3, r);
+  ok(`the book shows all ${N_ANIMALS} (${r.cards}), the 3 met ones open (${r.open}); saved as Guest's book, wildworld.book.guest with v:2 (W2, #158)`, r.cards === N_ANIMALS && r.open === 3 && r.saved?.v === 2 && r.saved.met.length === 3, r);
   await C.reload();
   const r2 = await C.ev(`(() => { const s = window.__ww.state(); return { met: s.met.sort(), form: s.form, keys: Object.keys(localStorage).filter((k) => k.startsWith('wildworld.')) }; })()`);
   ok(`a reload keeps the book (${r2.met.join(', ')}) and the form (${r2.form})`, r2.met.join() === 'cow,eagle,fox' && r2.form === 'fox' && r2.keys.join() === 'wildworld.book.guest', r2);
@@ -404,7 +412,7 @@ async function runWalk(C) {
     if (b.gen !== a.gen && b.uuid !== a.uuid) rebuilt.push(k);
     nH += a.heights.length; for (let i = 0; i < a.heights.length; i++) hd = Math.max(hd, Math.abs(a.heights[i] - b.heights[i]));
     if (a.props.length !== b.props.length || a.props.some((p, i) => p[0] !== b.props[i][0])) { kinds.push(k); continue; }
-    nP += a.props.length; trees += a.props.filter((p) => /pine|oak|acacia/.test(p[0])).length; rocks += a.props.filter((p) => p[0] === 'rock').length;
+    nP += a.props.length; trees += a.props.filter((p) => /pine|oak|acacia|jtree|cactus/.test(p[0])).length; rocks += a.props.filter((p) => p[0] === 'rock').length;
     for (let i = 0; i < a.props.length; i++) for (let j = 1; j < 5; j++) pd = Math.max(pd, Math.abs(a.props[i][j] - b.props[i][j]));
   }
   ok(`back at spawn all ${keys.length} chunks there were rebuilt (${rebuilt.length} with a new generation and a new geometry; spawn chunk ${c0}: generation ${first[c0.join()].gen} -> ${again[c0.join()]?.gen})`, rebuilt.length === keys.length && keys.length === 25, { rebuilt: rebuilt.length });
@@ -457,14 +465,24 @@ async function runBiomes(C) {
     for (let x = -${BIOME_RADIUS}; x <= ${BIOME_RADIUS}; x += 20) for (let z = -${BIOME_RADIUS}; z <= ${BIOME_RADIUS}; z += 20) { const d = Math.hypot(x, z); if (d > ${BIOME_RADIUS}) continue;
       const b = W.biomeAt(W.SPAWN.x + x, W.SPAWN.z + z); n++; counts[b] = (counts[b] || 0) + 1; if (!(b in near) || d < near[b]) near[b] = d; }
     return { near, counts, n, spawn: W.SPAWN, spawnBiome: W.biomeAt(W.SPAWN.x, W.SPAWN.z) };`);
-  ok(`all four biomes within ${BIOME_RADIUS} m of spawn (nearest: ${Object.entries(r.near).map(([b, d]) => b + ' ' + d.toFixed(0) + ' m').join(', ')}; share of ${r.n} samples: ${Object.entries(r.counts).map(([b, c]) => b + ' ' + Math.round(c / r.n * 100) + '%').join(', ')}); spawn is on the ${r.spawnBiome}`,
-    ['farm', 'forest', 'savanna', 'water'].every((b) => r.near[b] <= BIOME_RADIUS) && r.spawnBiome === 'farm', r);
-  // every animal found live in its own biome, and still in it after 10 s of wandering
+  const places = ['farm', 'forest', 'savanna', 'water', 'snow', 'jungle', 'desert'];
+  ok(`all seven places within ${BIOME_RADIUS} m of spawn (nearest: ${Object.entries(r.near).map(([b, d]) => b + ' ' + d.toFixed(0) + ' m').join(', ')}; share of ${r.n} samples: ${Object.entries(r.counts).map(([b, c]) => b + ' ' + Math.round(c / r.n * 100) + '%').join(', ')}); spawn is on the ${r.spawnBiome}`,
+    places.every((b) => r.near[b] <= BIOME_RADIUS) && r.spawnBiome === 'farm', r);
+  r = await ev(String.raw`const c = W.nearestCave(W.SPAWN.x, W.SPAWN.z); return c && { d: c.d, x: c.x, z: c.z, inside: W.biomeAt(c.at(-6).x, c.at(-6).z), door: W.biomeAt(c.at(3).x, c.at(3).z) };`);
+  ok(`a cave within ${CAVE_RADIUS} m of spawn (${r?.d?.toFixed(0)} m); its hall is the cave (${r?.inside}), in front of its door is not (${r?.door})`, r && r.d <= CAVE_RADIUS && r.inside === 'cave' && r.door !== 'cave', r);
+  // every animal found live where it lives, and still there after 10 s of wandering. The places, and three spots of their own (W4):
+  // the shallows (the crab), deep water (the whale) and caves' halls (the centipede)
   const found = {};
-  for (const b of ['farm', 'forest', 'savanna', 'water']) {
-    r = await ev(String.raw`const want = W.ANIMALS.filter((a) => a.biome === '${b}').map((a) => a.id), got = {};
-      // spots of this biome on a 150 m grid out from spawn, nearest first
-      const spots = []; for (let x = -1200; x <= 1200; x += 150) for (let z = -1200; z <= 1200; z += 150) { const px = W.SPAWN.x + x, pz = W.SPAWN.z + z; if (W.biomeAt(px, pz) === '${b}' && ('${b}' === 'water' ? W.heightAt(px, pz) < -3 : W.heightAt(px, pz) > 0.8)) spots.push({ x: px, z: pz, d: Math.hypot(x, z) }); }
+  for (const b of [...places, 'shallow', 'deep', 'cave']) {
+    r = await ev(String.raw`const b = '${b}', A = W.ANIMALS;
+      const want = (b === 'shallow' ? A.filter((a) => a.zone === 'shore') : b === 'deep' ? A.filter((a) => a.deep) : b === 'cave' ? A.filter((a) => a.cave) : A.filter((a) => a.homes.includes(b) && !a.zone && !a.deep)).map((a) => a.id), got = {};
+      // spots on a 150 m grid out from spawn, nearest first (the caves: a spot in each hall)
+      const spots = [];
+      if (b === 'cave') { for (let k = 0; k < 8; k++) { const c = W.nearestCave(W.SPAWN.x + Math.cos(k) * k * 300, W.SPAWN.z + Math.sin(k) * k * 300); if (c) { const p = c.at(-6); spots.push({ x: p.x, z: p.z, d: k }); } } }
+      else for (let x = -1200; x <= 1200; x += (b === 'shallow' ? 30 : 150)) for (let z = -1200; z <= 1200; z += (b === 'shallow' ? 30 : 150)) {
+        const px = W.SPAWN.x + x, pz = W.SPAWN.z + z, bi = W.biomeAt(px, pz), g = W.heightAt(px, pz);
+        const fit = b === 'shallow' ? bi === 'water' && g > -1.6 && g < 0.4 : b === 'deep' ? bi === 'water' && g < -6.2 : bi === b && (b === 'water' ? g < -3 : g > 0.8);
+        if (fit) spots.push({ x: px, z: pz, d: Math.hypot(x, z) }); }
       spots.sort((p, q) => p.d - q.d);
       for (const f of spots.slice(0, 60)) { if (want.every((id) => got[id])) break;
         W.teleport(f.x, f.z); W.settle(); W.step(25);
@@ -474,13 +492,13 @@ async function runBiomes(C) {
       return got;`);
     Object.assign(found, r);
   }
-  const animals = await C.ev('window.__ww.ANIMALS.map((a) => ({ id: a.id, biome: a.biome }))');
+  const animals = await C.ev('window.__ww.ANIMALS.map((a) => ({ id: a.id, biome: a.biome, homes: a.cave ? ["cave"] : a.homes, where: a.where }))');
   for (const a of animals) {
-    const f = found[a.id];
-    ok(`the ${a.id} lives in the ${a.biome}: found at ${f ? f.x.toFixed(0) + ', ' + f.z.toFixed(0) : '-'} in the ${f?.biome} (home ${f?.home}; after 10 s: ${f?.after ?? 'out of range'})`, f && f.biome === a.biome && f.home === a.biome && (f.after == null || f.after === a.biome), f);
+    const f = found[a.id], at = (b) => a.homes.includes(b);
+    ok(`the ${a.id} lives in ${a.where}: found at ${f ? f.x.toFixed(0) + ', ' + f.z.toFixed(0) : '-'} in the ${f?.biome} (home ${f?.home}; after 10 s: ${f?.after ?? 'out of range'})`, f && at(f.biome) && at(f.home) && (f.after == null || at(f.after)), f);
   }
   // showcase screenshots: each biome with an animal form
-  for (const [b, form] of [['farm', 'horse'], ['forest', 'bear'], ['savanna', 'giraffe'], ['water', 'dolphin']]) {
+  for (const [b, form] of [['farm', 'horse'], ['forest', 'bear'], ['savanna', 'giraffe'], ['water', 'dolphin'], ['snow', 'polarbear'], ['jungle', 'beetle'], ['desert', 'camel']]) {
     await ev(String.raw`const f = findBiome('${b}', W.SPAWN.x, W.SPAWN.z, { depth: -5 }); W.become('human'); W.teleport(f.x, f.z); W.settle(); W.become('${form}'); W.look(0.6, 0.28); W.step(40); W.render(); return true;`);
     await sleep(1000); await C.shot(`biome-${b}-${form}`);
   }
@@ -489,6 +507,11 @@ async function runBiomes(C) {
   await sleep(1000); await C.shot('eagle-flying');
   await ev(String.raw`const f = findBiome('forest', W.SPAWN.x, W.SPAWN.z); W.become('human'); W.teleport(f.x, f.z); W.settle(); W.become('wolf'); W.look(-0.8, 0.25); W.input({ powerP: true }); W.step(1); W.input({}); W.step(150); return true;`);
   await sleep(1000); await C.shot('wolf-night');
+  // W4: a cave from outside, and from inside its hall (the human walks in)
+  await ev(String.raw`const c = W.nearestCave(W.SPAWN.x, W.SPAWN.z), o = c.at(9); W.become('human'); W.teleport(o.x, o.z); W.settle(); W.look(c.inYaw, 0.2); W.step(5); W.render(); return true;`);
+  await sleep(1000); await C.shot('cave-outside');
+  await ev(String.raw`W.input({ y: -1 }); W.step(150); W.input({}); W.step(40); W.render(); return true;`);
+  await sleep(1000); await C.shot('cave-inside');
   return out;
 }
 
@@ -559,7 +582,9 @@ async function runTouch(C) {
 
 // ---- anatomy: necks meet heads, tails come out of the back end and stay on, tips stay on their tails (the boys' playtest)
 const ANAT_T = 0.03;   // "touching": within 3 cm
-const HANG = ['horse', 'cow', 'elephant', 'giraffe', 'lion'];   // Dad's mix (hand-back 2): long tails that hang
+const HANG = ['horse', 'cow', 'elephant', 'giraffe', 'lion', 'camel'];   // Dad's mix (hand-back 2): long tails that hang (W4: a camel's too)
+const NO_TAIL = ['bear', 'crab', 'octopus', 'beetle', 'centipede'];      // (W4: a crab, an octopus, a beetle and a centipede have none)
+const OFF_GROUND = ['eagle', 'fish', 'dolphin', 'shark', 'whale'];      // fly or swim: no feet to stand on
 function checkAnatomy(a) {
   const T = ANAT_T, bad = [];
   const inBox = (p, b) => p[0] >= b.min[0] - T && p[0] <= b.max[0] + T && p[1] >= b.min[1] - T && p[1] <= b.max[1] + T && p[2] >= b.min[2] - T && p[2] <= b.max[2] + T;
@@ -590,16 +615,18 @@ function checkAnatomy(a) {
       if (gap > q.size * 0.6 + T) bad.push(`tip at ${f(c)} is ${gap.toFixed(2)} m off its tail's end`);
     }
   }
-  if (a.id !== 'bear' && !tails) bad.push('no tail');
+  if (!NO_TAIL.includes(a.id) && !tails) bad.push('no tail');
+  // W4: feet on the ground (the whole model, limbs too: its lowest point within 3 cm of where it stands)
+  if (!OFF_GROUND.includes(a.id) && Math.abs(a.low - a.at[1]) > T) bad.push(`its lowest point is ${(a.low - a.at[1]).toFixed(3)} m from the ground`);
   return { bad, tails, necks, tips };
 }
 async function runAnatomy(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
   await C.open(1280, 800, false);
-  const all = await C.ev(`window.__ww.ANIMALS.map((a) => window.__ww.anatomy(a.id))`);
+  const all = await C.ev(`window.__ww.ANIMALS.map((a) => { const W = window.__ww, o = W.anatomy(a.id), m = W.makeModel(a.id); m.position.set(...o.at); m.updateMatrixWorld(true); o.low = new W.THREE.Box3().setFromObject(m).min.y; return o; })`);
   const res = all.map((a) => ({ id: a.id, ...checkAnatomy(a) })), broken = res.filter((r) => r.bad.length);
-  for (const r of res) ok(`${r.id}: ${r.necks ? r.necks + ' neck meets the head, ' : ''}${r.tails ? r.tails + ' tail on the body and behind it' : 'no tail (a bear)'}${r.tips ? ', ' + r.tips + ' tip on its tail' : ''}`, !r.bad.length, r.bad);
-  ok(`anatomy: ${res.length - broken.length}/18 animals pass${broken.length ? ' (broken: ' + broken.map((r) => r.id).join(', ') + ')' : ''}`, res.length === 18 && !broken.length, broken.map((r) => r.id));
+  for (const r of res) ok(`${r.id}: ${r.necks ? r.necks + ' neck meets the head, ' : ''}${r.tails ? r.tails + ' tail on the body and behind it' : 'no tail (a ' + r.id + ')'}${r.tips ? ', ' + r.tips + ' tip on its tail' : ''}${OFF_GROUND.includes(r.id) ? '' : '; feet on the ground'}`, !r.bad.length, r.bad);
+  ok(`anatomy: ${res.length - broken.length}/${N_ANIMALS} animals pass${broken.length ? ' (broken: ' + broken.map((r) => r.id).join(', ') + ')' : ''}`, res.length === N_ANIMALS && !broken.length, broken.map((r) => r.id));
   if (shots) {
     // a contact sheet: each animal from the side and from the play camera behind it (3 animals = 6 views a row)
     const url = await C.ev(String.raw`(() => { const W = window.__ww, T = W.THREE, R = W.renderer, S = 200, cols = 6, ids = W.ANIMALS.map((a) => a.id), rows = Math.ceil(ids.length * 2 / cols);
@@ -623,6 +650,111 @@ async function runAnatomy(C) {
       R.setRenderTarget(null); rt.dispose(); return cv.toDataURL('image/png'); })()`);
     fs.writeFileSync(path.join(shots, 'animals-side-behind.png'), Buffer.from(url.split(',')[1], 'base64'));
   }
+  return out;
+}
+
+// ---- W4 (#166): the eleven new powers, desert sand, and a cave walked into
+async function runW4(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(1280, 800, false);
+  const ev = (body) => C.ev(String.raw`(() => { ${H} W.manual(true); W.start(); ${body} })()`);
+  // a run of stick-forward along +x: metres in 1 s (power pressed at the start if asked)
+  const GO = String.raw`const go = (run, form, power, n = 60) => { W.become('human'); W.teleport(run.x, run.z); W.become(form); W.look(Math.PI / 2, 0.3); W.step(3); const x0 = S().x;
+      W.input({ y: -1, powerP: !!power }); W.step(n); const s = S(); W.input({}); return +(s.x - x0).toFixed(2); };`;
+  // ---- the crab scuttles (fast, sideways), the camel trots on and on; desert sand slows the others but not them
+  let r = await ev(String.raw`${GO} const run = openRun('farm', 80) || openRun(null, 80); if (!run) return { run: null };
+    const o = { run, human: go(run, 'human'), crab: go(run, 'crab'), scuttle: go(run, 'crab', true), camel: go(run, 'camel'), haul: go(run, 'camel', true) };
+    W.become('crab'); W.input({ y: -1 }); W.step(20); o.side = +Math.abs(Math.atan2(Math.sin(W.P.model.rotation.y - W.P.yaw), Math.cos(W.P.model.rotation.y - W.P.yaw))).toFixed(3); W.input({});
+    go(run, 'camel', true); for (let i = 0; i < 25; i++) { W.teleport(run.x, run.z); W.input({ y: -1 }); W.step(60); } o.haulAt25 = S().speed; o.haulLeft = S().haul; W.input({});
+    const sand = openRun('desert', 40);
+    if (sand) o.sand = { human: go(sand, 'human'), camel: go(sand, 'camel'), snake: go(sand, 'snake'), horse: go(sand, 'horse') };
+    o.farmSnake = go(run, 'snake'); o.farmHorse = go(run, 'horse');
+    W.become('human'); return o;`);
+  ok(`the crab scuttles: ${r.scuttle} m in 1 s (its walk ${r.crab} m), facing sideways as it goes (${r.side} rad off its way)`, r.run && r.scuttle > r.crab * 2.2 && Math.abs(r.side - Math.PI / 2) < 0.01, r);
+  ok(`the camel's long haul: ${r.haul} m in 1 s (its walk ${r.camel} m), still ${r.haulAt25?.toFixed(1)} m/s at 25 s`, r.run && r.haul > r.camel * 1.6 && r.haulAt25 > 10.5, r);
+  ok(`desert sand slows the human (${r.sand?.human} m in 1 s; ${r.human} m on the farm) and the horse (${r.sand?.horse} m; ${r.farmHorse} m), not the camel (${r.sand?.camel} m; ${r.camel} m) or the snake (${r.sand?.snake} m; ${r.farmSnake} m)`,
+    r.sand && r.sand.human < r.human * 0.8 && r.sand.horse < r.farmHorse * 0.8 && Math.abs(r.sand.camel - r.camel) < 0.3 && Math.abs(r.sand.snake - r.farmSnake) < 0.3, r);
+  // ---- the crab's pinch and the polar bear's ice smash: small things in front; snow drifts only for the polar bear
+  r = await ev(String.raw`const standBy = (b, want, other) => { for (let t = 0; t < 40; t++) { const f = findBiome(b, W.SPAWN.x + t * 97, W.SPAWN.z - t * 61); if (!f) continue; W.become('human'); W.teleport(f.x, f.z); W.settle();
+      for (const p of W.propsNear(16).filter(want)) { const sx = p.x - 2, sz = p.z; if (W.heightAt(sx, sz) < 1) continue; W.teleport(sx, sz); W.face(Math.PI / 2); const near = W.propsNear(8);
+        if (!other || near.some(other)) return { x: sx, z: sz }; } } return null; };
+    const o = {};
+    const a = standBy('forest', (p) => p.knock && !p.big && !p.fallen && p.t !== 'bush' && p.t !== 'drift');
+    if (a) { W.become('crab'); W.face(Math.PI / 2); W.step(2); W.input({ powerP: true }); W.step(1); W.input({}); o.crab = S().lastSmash; }
+    const b = standBy('snow', (p) => p.t === 'drift' && !p.fallen, (q) => q.t !== 'drift' && q.knock && !q.big && !q.fallen && q.dot > 0.5 && q.d < 5.5);
+    if (b) { W.become('bear'); W.face(Math.PI / 2); W.step(2); W.input({ powerP: true }); W.step(1); W.input({}); o.bearOnDrift = W.propsNear(3).filter((p) => p.t === 'drift' && p.fallen).length;
+      const down0 = W.propsNear(6.5).filter((p) => p.t !== 'drift' && p.fallen).length;
+      W.become('human'); W.become('polarbear'); W.face(Math.PI / 2); W.step(2); W.input({ powerP: true }); W.step(1); W.input({}); o.polar = S().lastSmash; const near = W.propsNear(6.5);
+      o.drifts = near.filter((p) => p.t === 'drift' && p.fallen).length; o.others = near.filter((p) => p.t !== 'drift' && p.fallen).length - down0; }
+    W.become('human'); return o;`);
+  ok(`the crab's pinch knocks over ${r.crab?.count} small thing just in front (out to ${r.crab?.maxD} m)`, r.crab && r.crab.count > 0 && r.crab.maxD <= 3 && r.crab.back === 0, r);
+  ok(`the polar bear smashes snow drifts in front (${r.drifts}), nothing else (${r.others} rocks or trees); the bear's smash leaves a drift alone (${r.bearOnDrift} fell)`, r.polar && r.drifts > 0 && r.others === 0 && r.bearOnDrift === 0 && r.polar.ice, r);
+  // ---- in the water: the shark's dash, the octopus on the floor and its ink, the whale deep and its spout, the polar bear's swim
+  r = await ev(String.raw`const w = findBiome('water', W.SPAWN.x, W.SPAWN.z, { depth: -6.5 }); if (!w) return { w: null };
+    const sp = (form, power) => { W.become('human'); W.teleport(w.x, w.z); W.become(form); W.look(Math.PI / 2, 0.3); W.step(30); const x0 = S().x; W.input({ y: -1, powerP: !!power }); W.step(60); W.input({}); return +(S().x - x0).toFixed(2); };
+    const o = { w, ground: W.heightAt(w.x, w.z), shark: sp('shark'), dash: sp('shark', true), human: sp('human'), polar: sp('polarbear'), bear: sp('bear') };
+    W.become('human'); W.teleport(w.x, w.z); W.become('octopus'); W.step(120); o.octo = { y: S().y, ground: S().ground, swimming: S().swimming };
+    W.input({ powerP: true }); W.step(1); W.input({}); W.step(2); o.ink = { ink: S().ink, look: S().look, seeThrough: W.P.model.children[0].material.transparent }; W.step(330); o.inkAfter = { ink: S().ink, look: S().look, seeThrough: W.P.model.children[0].material.transparent };
+    W.become('human'); W.teleport(w.x, w.z); W.become('dolphin'); W.step(90); o.dolphinY = S().y; W.input({ powerP: true }); let dtop = -1e9; for (let i = 0; i < 120; i++) { W.step(1); W.input({}); dtop = Math.max(dtop, S().y); } o.dolphinTop = dtop;
+    W.become('human'); W.teleport(w.x, w.z); W.become('whale'); W.step(120); o.whaleY = S().y; W.input({ jump: true }); W.step(150); W.input({ jump: true, powerP: true }); let top = -1e9; for (let i = 0; i < 150; i++) { W.step(1); W.input({}); top = Math.max(top, S().y); }
+    W.step(150); o.whaleTop = top; o.whaleBack = S().y; W.become('human'); return o;`);
+  ok(`the shark dashes: ${r.dash} m in 1 s (its swim ${r.shark} m, the human ${r.human} m)`, r.w && r.dash > r.shark * 1.6 && r.shark > r.human, r);
+  ok(`the octopus swims along the sea floor (${r.octo?.y.toFixed(2)} m over a floor at ${r.octo?.ground.toFixed(2)} m); its ink hides it for 5 s (see-through ${r.ink?.seeThrough}, look bits ${r.ink?.look}), then it's back (${r.inkAfter?.seeThrough}, ${r.inkAfter?.look})`,
+    r.w && r.octo.swimming && r.octo.y - r.octo.ground < 0.4 && r.octo.y < -3 && r.ink.ink > 4 && r.ink.seeThrough && (r.ink.look & 1) && !r.inkAfter.seeThrough && !(r.inkAfter.look & 1), r);
+  ok(`the whale swims deepest (${r.whaleY?.toFixed(2)} m; the dolphin ${r.dolphinY?.toFixed(2)} m) and its spout launches it highest (${r.whaleTop?.toFixed(2)} m; the dolphin's leap ${r.dolphinTop?.toFixed(2)} m), then back in (${r.whaleBack?.toFixed(2)} m)`,
+    r.w && r.whaleY < r.dolphinY - 1 && r.whaleTop > r.dolphinTop + 1 && r.whaleTop > 4 && r.whaleBack < 0, r);
+  ok(`the polar bear swims fast at the top of deep water: ${r.polar} m in 1 s (the bear paddles ${r.bear} m)`, r.w && r.polar > r.bear * 2, r);
+  // ---- the worm burrows (steered, hidden), the beetle buzzes, the penguin slides
+  r = await ev(String.raw`${GO} const run = openRun('farm', 60) || openRun(null, 60); const o = {};
+    W.become('human'); W.teleport(run.x, run.z); W.become('worm'); W.look(Math.PI / 2, 0.3); W.step(3); const x0 = S().x;
+    W.input({ y: -1, power: true, powerP: true }); W.step(1); W.input({ y: -1, power: true }); W.step(90); o.under = { burrowing: S().burrowing, scale: +W.P.model.scale.x.toFixed(3), look: S().look, d: +(S().x - x0).toFixed(2) };
+    W.input({ y: -1 }); W.step(2); W.input({}); W.P.pop = 1; W.step(30); o.up = { burrowing: S().burrowing, scale: +W.P.model.scale.x.toFixed(3) }; o.worm = go(run, 'worm');
+    W.become('human'); W.teleport(run.x, run.z); W.become('beetle'); W.face(Math.PI / 2); W.step(3); const g0 = S().ground;
+    W.input({ jump: true, powerP: true }); W.step(1); W.input({ jump: true }); W.step(110); o.beetle = { up: +(S().y - g0).toFixed(2), wings: W.P.model.children.filter((m) => m.userData.kind === 'mem' && m.visible).length, look: S().look };
+    W.step(120); const late = S().y; W.step(60); o.beetle.after = +(S().y - late).toFixed(2); W.input({}); for (let i = 0; i < 900 && !S().grounded; i++) W.step(1); o.beetle.landed = S().grounded; o.beetle.wingsAfter = W.P.model.children.filter((m) => m.userData.kind === 'mem' && m.visible).length;
+    W.become('human'); W.teleport(run.x, run.z); W.become('penguin'); W.face(Math.PI / 2); W.step(3); const p0 = S().x; W.input({ powerP: true }); W.step(1); W.input({}); W.step(30);
+    o.penguin = { d: +(S().x - p0).toFixed(2), belly: +W.P.model.rotation.x.toFixed(3), look: S().look }; W.step(200); o.penguin.after = +W.P.model.rotation.x.toFixed(3); o.penguin.walk = go(run, 'penguin');
+    W.become('human'); return o;`);
+  ok(`the worm burrows while power is held: under the ground (hidden, scale ${r.under?.scale}; a friend sees nothing: look ${r.under?.look}), steered ${r.under?.d} m in 1.5 s; let go and it comes up (scale ${r.up?.scale})`,
+    r.under?.burrowing && r.under.scale < 0.01 && (r.under.look & 4) && r.under.d > 7 && !r.up.burrowing && r.up.scale === 1 && r.under.d > r.worm * 2, r);
+  ok(`the beetle buzzes: shell open, ${r.beetle?.wings} wings out, up ${r.beetle?.up} m in 2 s holding jump; after its 3 s it can't climb (${r.beetle?.after} m in 1 s) and lands (${r.beetle?.landed}, wings away: ${r.beetle?.wingsAfter})`,
+    r.beetle && r.beetle.up > 4 && r.beetle.wings === 2 && (r.beetle.look & 16) && r.beetle.after < 0 && r.beetle.landed && r.beetle.wingsAfter === 0, r);
+  ok(`the penguin belly-slides ${r.penguin?.d} m in half a second with no stick (it waddles ${r.penguin?.walk} m in 1 s), on its belly (${r.penguin?.belly} rad), then stands (${r.penguin?.after})`,
+    r.penguin && r.penguin.d > 4 && Math.abs(r.penguin.belly - Math.PI / 2) < 0.01 && (r.penguin.look & 8) && r.penguin.after === 0, r);
+  // ---- the snake slips past a tree; the centipede climbs one
+  r = await ev(String.raw`const tree = () => { for (let t = 0; t < 40; t++) { const f = findBiome('forest', W.SPAWN.x + t * 83, W.SPAWN.z + t * 71); if (!f) continue; W.become('human'); W.teleport(f.x, f.z); W.settle();
+      for (const p of W.propsNear(20).filter((q) => (q.t === 'pine' || q.t === 'oak') && !q.fallen)) { const sx = p.x - 3, sz = p.z; if (W.heightAt(sx, sz) < 1 || W.heightAt(p.x + 3, sz) < 1) continue;
+        if (W.propsNear(25).some((q) => q !== p && q.col > 0 && Math.abs(q.z - sz) < q.col + 1 && q.x > sx - 1 && q.x < p.x + 5 && (q.x !== p.x || q.z !== p.z))) continue; return { p, sx, sz }; } } return null; };
+    const T = tree(); if (!T) return { T: null };
+    const walk = (form, power, n = 90) => { W.become('human'); W.teleport(T.sx, T.sz); W.become(form); W.look(Math.PI / 2, 0.3); W.step(3); const y0 = S().y; if (power) { W.input({ powerP: true }); W.step(1); }
+      W.input({ y: -1 }); let top = 0; for (let i = 0; i < n; i++) { W.step(1); top = Math.max(top, S().y - y0); } W.input({}); return { x: +(S().x - T.p.x).toFixed(2), top: +top.toFixed(2), look: S().look }; };
+    const o = { T, snake: walk('snake', false), slither: walk('snake', true), centipede: walk('centipede', false, 120), climb: walk('centipede', true, 240) }; W.become('human'); return o;`);
+  ok(`the snake's slither slips past a tree (${r.slither?.x} m past its trunk; without it, stopped ${r.snake?.x} m short) and moves silently (look bits ${r.slither?.look})`, r.T && r.snake.x < -0.4 && r.slither.x > 0.5 && (r.slither.look & 2), r);
+  ok(`the centipede climbs: up ${r.climb?.top} m onto the tree (without Climb it stops at the trunk, up ${r.centipede?.top} m)`, r.T && r.climb.top > 2 && r.centipede.top < 0.3 && r.centipede.x < -0.3, r);
+  // ---- the cave: walk in with the stick; dark inside, light outside again; a centipede in the hall; walls, roof and hill hold
+  r = await ev(String.raw`const c = W.nearestCave(W.SPAWN.x, W.SPAWN.z); if (!c) return { c: null }; const o = { c: { d: c.d } }, at = c.at(10);
+    W.become('human'); W.teleport(at.x, at.z); W.settle(); W.look(c.inYaw, 0.3); W.step(30); o.out = { dark: S().dark, hemi: S().hemi, fog: S().fogFar, biome: S().biome };
+    W.input({ y: -1 }); W.step(170); W.input({}); W.step(60); const s = S(), [lx, lz] = W.caveLocal(W.caveAt(s.x, s.z), s.x, s.z);
+    o.in = { dark: s.dark, hemi: s.hemi, fog: s.fogFar, biome: s.biome, lx, lz, centipedes: W.animalsNear(14).filter((a) => a.type === 'centipede' && a.biome === 'cave').length };
+    const cam = s.camera, [cx, cz] = W.caveLocal(W.caveAt(s.x, s.z), cam.x, cam.z); o.cam = { lx: cx, lz: cz, y: cam.y - c.y };
+    // the side wall: walk sideways into it
+    W.look(c.ry + Math.PI / 2, 0.3); W.input({ y: -1 }); W.step(180); W.input({}); { const q = S(); o.wall = W.caveLocal(W.caveAt(q.x, q.z), q.x, q.z)[0]; o.wallIn = W.inCave(q.x, q.z); }
+    // the cat's pounce (5 m up in the open) stays under the roof
+    W.become('cat'); W.step(2); W.input({ powerP: true }); let top = 0; for (let i = 0; i < 90; i++) { W.step(1); W.input({}); top = Math.max(top, S().y - c.y); } o.roofTop = top; W.become('human');
+    // out again (by day), then by night: the light outside is the day's or the night's own
+    W.look(c.ry, 0.3); W.teleport(c.at(-6).x, c.at(-6).z); W.input({ y: -1 }); W.step(240); W.input({}); W.step(60); o.back = { dark: S().dark, hemi: S().hemi, fog: S().fogFar, biome: S().biome };
+    W.become('wolf'); W.input({ powerP: true }); W.step(1); W.input({}); W.step(200); W.become('human'); const night = S().hemi; W.teleport(c.at(-7).x, c.at(-7).z); W.step(60); const inNight = S().hemi; W.teleport(at.x, at.z); W.step(60); o.night = { out: night, in: inNight, back: S().hemi };
+    W.become('wolf'); W.input({ powerP: true }); W.step(1); W.input({}); W.step(200); W.become('human');
+    // the hill from outside: walking at its side, you're stopped (not let into the rock)
+    const side = c.at(-10, 22), mid = c.at(-10, 0); W.teleport(side.x, side.z); W.look(Math.atan2(mid.x - side.x, mid.z - side.z), 0.3); W.input({ y: -1 }); W.step(300); W.input({}); { const q = S(), cv = W.caveAt(q.x, q.z), [hx, hz] = W.caveLocal(cv, q.x, q.z); o.hill = { hx, hz, d: Math.hypot(hx, hz + 10) }; }
+    return o;`);
+  ok(`walking into a cave with the stick (${r.c?.d?.toFixed(0)} m from spawn): it gets dark inside (light ${r.out?.hemi} -> ${r.in?.hemi}, fog ${r.out?.fog} -> ${r.in?.fog} m; ${r.in?.biome}, ${(-r.in?.lz).toFixed(1)} m in)`, r.c && r.out.dark === 0 && r.in.dark === 1 && r.in.hemi < r.out.hemi * 0.4 && r.in.fog < 40 && r.in.biome === 'cave', r);
+  ok(`a centipede is live in the hall (${r.in?.centipedes})`, r.in?.centipedes > 0, r);
+  ok(`the camera stays in the hall with you (${r.cam?.lx.toFixed(2)}, ${r.cam?.lz.toFixed(2)} in the cave's frame, ${r.cam?.y.toFixed(2)} m up under a ${5} m roof)`, r.cam && Math.abs(r.cam.lx) < 3 && r.cam.lz > -14 && r.cam.y < 5, r);
+  ok(`the side wall stops you (${r.wall?.toFixed(2)} m from the middle of a 3 m half-width hall, still inside: ${r.wallIn}); the cat's pounce stays under the roof (top ${r.roofTop?.toFixed(2)} m of 5)`, Math.abs(r.wall) < 3 && Math.abs(r.wall) > 2 && r.wallIn && r.roofTop < 5 && r.roofTop > 3, r);
+  ok(`out again it's light (${r.back?.hemi}, fog ${r.back?.fog} m, on the ${r.back?.biome}); at night the cave dims the night (${r.night?.out} -> ${r.night?.in}) and outside is the night's own light again (${r.night?.back})`, r.back && r.back.dark === 0 && r.back.hemi === r.out.hemi && r.back.fog === r.out.fog && r.night.in < r.night.out && Math.abs(r.night.back - r.night.out) < 0.01, r);
+  ok(`the hill is solid from outside: walking at its side you stop at its edge (${r.hill?.d?.toFixed(2)} m from its middle, radius 13)`, r.hill && r.hill.d > 12.5, r);
+  await C.shot('w4-cave-end');
   return out;
 }
 
@@ -775,13 +907,14 @@ async function runSize(C, size) {
   await sleep(300); await C.shot(`size-${size}-play`);
   await C.ev(`window.__ww.openWheel()`); await sleep(300);
   r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; const slots = [...document.querySelectorAll('#ring .wslot')].map(L.box), x = L.box(document.getElementById('wheelX')), nm = L.box(document.getElementById('wname'));
-    return { n: slots.length, size: Math.round(slots[0].r - slots[0].l), off: [...slots, x, nm].filter((q) => !L.on(q)).map((q) => q.n), hits: L.pairs([...slots, x, nm]), scroll: L.scroll }; })()`);
-  ok(`the wheel fits: ${r.n} slots of ${r.size} px, all on screen, none overlapping each other, the close button or the name`, r.n === 19 && r.size >= 44 && !r.off.length && !r.hits.length && r.scroll.x <= 0 && r.scroll.y <= 0, r);
+    window.__ww.closeOverlay(); window.__ww.meet('polarbear'); window.__ww.openWheel(); const wn = document.querySelector('#ring .wslot[data-id="polarbear"]'); wn.dispatchEvent(new Event('pointerenter')); const nm2 = L.box(document.getElementById('wname'));   // the longest name showing
+    return { n: slots.length, size: Math.round(slots[0].r - slots[0].l), grid: Math.abs(slots[1].t - slots[2].t) < 1, off: [...slots, x, nm, nm2].filter((q) => !L.on(q)).map((q) => q.n), hits: [...L.pairs([...slots, x, nm]), ...L.pairs([...slots, x, nm2])], scroll: L.scroll }; })()`);
+  ok(`the wheel fits: ${r.n} slots of ${r.size} px${r.grid ? ' (a grid: no room for the rings)' : ''}, all on screen, none overlapping each other, the close button or the name`, r.n === N_ANIMALS + 1 && r.size >= 44 && !r.off.length && !r.hits.length && r.scroll.x <= 0 && r.scroll.y <= 0, r);
   await C.shot(`size-${size}-wheel`);
   await C.ev(`window.__ww.closeOverlay(); window.__ww.openBook()`); await sleep(300);
   r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; const cards = [...document.querySelectorAll('#grid .card')].map(L.box), x = L.box(document.getElementById('bookX')), hd = L.box(document.getElementById('bookHead').querySelector('span'));
     return { n: cards.length, size: Math.round(cards[0].r - cards[0].l), off: [...cards, x, hd].filter((q) => !L.on(q)).map((q) => q.n), hits: L.pairs([...cards, x, hd]), scroll: L.scroll }; })()`);
-  ok(`the book fits: ${r.n} cards of ${r.size} px, all on screen, none overlapping each other, the close button or the title`, r.n === 18 && r.size >= 44 && !r.off.length && !r.hits.length && r.scroll.x <= 0 && r.scroll.y <= 0, r);
+  ok(`the book fits: ${r.n} cards of ${r.size} px, all on screen, none overlapping each other, the close button or the title`, r.n === N_ANIMALS && r.size >= 44 && !r.off.length && !r.hits.length && r.scroll.x <= 0 && r.scroll.y <= 0, r);
   await C.shot(`size-${size}-book`);
   await C.ev(`window.__ww.closeOverlay(); window.__ww.openPause()`); await sleep(300);
   r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; const b = [...document.querySelectorAll('#pause .big')].filter(L.vis).map(L.box); return { n: b.length, off: b.filter((q) => !L.on(q)).map((q) => q.n), hits: L.pairs(b), minH: Math.min(...b.map((q) => q.b - q.t)) }; })()`);
@@ -807,7 +940,7 @@ async function main() {
     const S = launch(); const t0 = Date.now(); let timer;
     try {
       const C = await connect(S);
-      const job = run === 'smoke' ? runSmoke(C) : run === 'walk' ? runWalk(C) : run === 'frames' ? runFrames(C) : run === 'biomes' ? runBiomes(C) : run === 'forms' ? runForms(C) : run === 'touch' ? runTouch(C) : run === 'keys' ? runKeys(C) : run === 'gamepad' ? runGamepad(C) : run === 'anatomy' ? runAnatomy(C) : run === 'tails' ? runTails(C) : runSize(C, run);
+      const job = run === 'smoke' ? runSmoke(C) : run === 'walk' ? runWalk(C) : run === 'frames' ? runFrames(C) : run === 'biomes' ? runBiomes(C) : run === 'forms' ? runForms(C) : run === 'touch' ? runTouch(C) : run === 'keys' ? runKeys(C) : run === 'gamepad' ? runGamepad(C) : run === 'anatomy' ? runAnatomy(C) : run === 'tails' ? runTails(C) : run === 'w4' ? runW4(C) : runSize(C, run);
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       res.push({ name: run + ': no page errors', pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);
