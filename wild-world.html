@@ -1221,7 +1221,7 @@ for (const id of Object.keys(MODELS)) { const m = MODELS[id](); MODEL_GEO[id] = 
 function makeModel(id) {
   const g = new THREE.Group(), M = MODEL_GEO[id];
   g.add(new THREE.Mesh(M.body, MAT));
-  g.userData.limbs = M.limbs.map((l) => { const m = new THREE.Mesh(l.geo, MAT); m.position.set(...l.at); if (l.ry != null) { m.rotation.order = 'YXZ'; m.rotation.y = l.ry; } m.userData = l; g.add(m); return m; });
+  g.userData.limbs = M.limbs.map((l) => { const m = new THREE.Mesh(l.geo, MAT); m.position.set(...l.at); if (l.ry != null) { m.rotation.order = 'YXZ'; m.rotation.y = l.ry; } if (l.kind === 'mem') m.visible = false; m.userData = l; g.add(m); return m; });
   return g;
 }
 // swing the limbs: phase advances with speed; mode 'fly' flaps wings, 'fold' tucks them
@@ -3440,7 +3440,7 @@ window.__ww = {
   biomeAt, heightAt: groundAt, heightRaw,
   // ---- W4 (#166): the caves. nearestCave: the closest cave's door (x, z, floor y), its turn ry and the spot w m out of its door
   // (lz > 0) or into its hall (lz < 0), facing in
-  CAVE, BIOMES, WORLD_V, LOOK, caveAt, caveLocal, caveWorld, inCave: (x, z) => !!caveInside(x, z),
+  CAVE, BIOMES, WORLD_V, LOOK, caveAt, caveLocal, caveWorld, inCave: (x, z) => !!caveInside(x, z), inRock: (x, z, r = 0) => { const c = caveAt(x, z); return !!c && caveRock(c, ...caveLocal(c, x, z), r); },
   nearestCave(x0 = P.x, z0 = P.z, R = 40) {
     let best = null; const cx0 = Math.floor(x0 / CHUNK), cz0 = Math.floor(z0 / CHUNK);
     for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) { const c = chunkCave(cx0 + dx, cz0 + dz); if (c) { const d = Math.hypot(c.x - x0, c.z - z0); if (!best || d < best.d) best = { d, c }; } }

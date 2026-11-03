@@ -4,7 +4,7 @@
 // The same harness and Chrome hygiene as ww-world.mjs: the page is served over http by this script; each run is its own headless
 // Chrome (muted, never detached, killed with its profile deleted on every way out, and killed if the run takes over 5 minutes);
 // the server is closed on every way out too. The logic runs drive window.__ww on a manual clock.
-//   words    - the WORDS table: all 18 animals, a level 1 and a level 2 list of 5 to 8 words each, every word letters only
+//   words    - the WORDS table: all 29 animals, a level 1 and a level 2 list of 5 to 8 words each, every word letters only
 //              (lowercase-safe: no spaces, digits or marks), no word twice in one animal's lists, a clue for each, a fact for
 //              each animal; the page parses every entry; the page has no emoji.
 //   gate     - you can't change into an animal you haven't met; changing into a met one asks for a word (its name the first
@@ -26,12 +26,20 @@
 //              writes Guest's book to wildworld.book.guest (v:2) while wildworld.save stays byte for byte as W1 left it. Then the
 //              maker's last page offers Guest's animals to every new profile: yes copies every one (a second profile can too), no
 //              starts empty, and wildworld.save is still unchanged.
+//   names    - W4 (#166): a two-word name, polar bear: at level 1 its 9 letters are the tiles (no tile for the space: the gap is
+//              filled in) and tapping them in order changes you; at level 2 it's typed as 9 letters on the game's keyboard; a miss
+//              shows the spelling with its gap; the long names' tiles (centipede 9, octopus 7) are one per letter; the word's
+//              progress ("polar bear") survives a save to a file and back.
+//   w4save   - W4 (#166): a real W3 save: main's W3 page (pinned at 231d8e5) makes a profile, meets animals, spells a change and
+//              misses a word; this page then loads that profile with every met animal, its changed-into marks, its form and its word
+//              progress, writing nothing on load; after meeting a new animal (a crab) all the old progress is still there, and a
+//              reload keeps it. wildworld.save is never written.
 //   touch    - a tap-only round with CDP Input.dispatchTouchEvent at 568x320: make a level 2 profile in the maker (yes to Guest's
 //              animals), play as it,
 //              open the wheel with the CHANGE button, pick an animal, spell its name on the on-screen keyboard, then miss a word
 //              (the spelling shows), tap NEW WORD and get the next one right.
 //   WxH      - at that size in touch mode: the title (player tiles, PLAY, the parent button), the spelling panel at level 1 (tiles)
-//              and level 2 (keyboard open), the maker's three pages and the parent view: every control on screen, none
+//              and level 2 (keyboard open), W4's long names at level 1 (centipede, octopus, polar bear) and polar bear typed, the maker's three pages and the parent view: every control on screen, none
 //              overlapping, every target at least 44 px both ways, no page scroll; then with 6 profiles every title tile and parent
 //              tab can be reached (its row scrolls on a short screen).
 // Every run also checks there were no page errors.
@@ -51,6 +59,7 @@ import { fileURLToPath } from 'node:url';
 
 const SIZES = ['360x740', '568x320', '740x360', '844x390', '667x375', '768x1024', '820x1180'];
 const W1_SHA = '1c0204e';   // main's W1 (#159 merged): the page whose saves W2 must keep
+const W3_SHA = '231d8e5';   // main's W3 (#163 merged): the page whose saves W4 (#166) must keep
 const RUN_TIMEOUT_MS = 5 * 60 * 1000;
 const args = process.argv.slice(2);
 let json = false, target = null, shots = null; const picked = [];
@@ -61,7 +70,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['words', 'gate', 'learning', 'profiles', 'speech', 'migrate', 'touch', ...SIZES];
+const runs = picked.length ? picked : ['words', 'gate', 'learning', 'profiles', 'speech', 'migrate', 'names', 'w4save', 'touch', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const page = path.resolve(target ?? path.join(repo, 'wild-world.html'));
 if (shots) fs.mkdirSync(shots, { recursive: true });
@@ -75,6 +84,14 @@ function w1Page() {
   fs.writeFileSync(w1File, execFileSync('git', ['-C', repo, 'show', W1_SHA + ':wild-world.html']));
   return w1File;
 }
+let w3File = null;
+function w3Page() {   // main's W3 page, the same way (served at /w3.html)
+  if (w3File) return w3File;
+  w1Dir ||= fs.mkdtempSync(path.join(os.tmpdir(), 'ww-w1-'));
+  w3File = path.join(w1Dir, 'w3.html');
+  fs.writeFileSync(w3File, execFileSync('git', ['-C', repo, 'show', W3_SHA + ':wild-world.html']));
+  return w3File;
+}
 const cleanW1 = () => { try { if (w1Dir) fs.rmSync(w1Dir, { recursive: true, force: true }); } catch {} w1Dir = null; };
 
 // ---- the server: the page at /wild-world.html, W1 at /w1.html, everything else from the repo
@@ -82,8 +99,8 @@ let server = null, base = null;
 async function serve() {
   server = http.createServer((req, res) => {
     const u = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-    let f = u === '/wild-world.html' ? page : u === '/w1.html' ? w1Page() : path.join(repo, path.normalize(u).replace(/^(\.\.[/\\])+/, ''));
-    if (!f.startsWith(repo) && f !== page && f !== w1File) f = null;
+    let f = u === '/wild-world.html' ? page : u === '/w1.html' ? w1Page() : u === '/w3.html' ? w3Page() : path.join(repo, path.normalize(u).replace(/^(\.\.[/\\])+/, ''));
+    if (!f.startsWith(repo) && f !== page && f !== w1File && f !== w3File) f = null;
     let body = null; try { body = f && fs.readFileSync(f); } catch { body = null; }
     if (!body) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'content-type': f.endsWith('.html') ? 'text/html' : 'application/octet-stream', 'cache-control': 'no-store' }); res.end(body);
@@ -226,7 +243,7 @@ async function runWords(C) {
     }
   }
   const extra = Object.keys(r.raw).filter((id) => !r.animals.includes(id));
-  ok(`all 18 animals have a fact and a level 1 and a level 2 list of 5 to 8 words (${Math.min(...counts)} to ${Math.max(...counts)}), every word letters only, none twice, each with a clue`, r.animals.length === 18 && !bad.length && !extra.length, { bad, extra });
+  ok(`all 29 animals have a fact and a level 1 and a level 2 list of 5 to 8 words (${Math.min(...counts)} to ${Math.max(...counts)}), every word letters only, none twice, each with a clue`, r.animals.length === 29 && !bad.length && !extra.length, { bad, extra });
   const lv1 = r.animals.flatMap((id) => r.raw[id].level1.map((s) => s.split(':')[0])), lv2 = r.animals.flatMap((id) => r.raw[id].level2.map((s) => s.split(':')[0]));
   const avg = (a) => a.reduce((s, w) => s + w.length, 0) / a.length;
   ok(`level 1 words are short (average ${avg(lv1).toFixed(1)} letters, longest ${Math.max(...lv1.map((w) => w.length))}), level 2 longer (average ${avg(lv2).toFixed(1)})`, avg(lv1) <= 4.5 && Math.max(...lv1.map((w) => w.length)) <= 6 && avg(lv2) >= 6, { lv1: avg(lv1), lv2: avg(lv2) });
@@ -470,6 +487,74 @@ async function runMigrate(C) {
   return out;
 }
 
+// ---- names (W4, #166): polar bear, a name with a space, at both levels; the long names' tiles; a save to a file and back
+async function runNames(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  await C.open(1280, 800, false);
+  // level 1: tap the tiles in order (each tile through its own tap handler)
+  let r = await C.ev(String.raw`(() => { ${H} const p = W.addProfile('Max', 'star', '#ffd23f', 1); W.profile(p.id); W.manual(true); W.start(); W.meet('polarbear'); W.requestChange('polarbear'); const q = Q();
+    const shown0 = q.shown, clue = document.getElementById('spClue').textContent;
+    for (const ch of 'polarbear') { const st = Q(); const i = st.tiles.findIndex((t, k) => t === ch && !st.used.includes(k)); document.querySelector('.sp-tile[data-i="' + i + '"]')._tap(); }
+    return { q, shown0, clue, after: Q(), form: S().form, id: p.id, prog: W.progress().words['polar bear'] }; })()`);
+  ok(`level 1: polar bear's first change asks its name, "${r.q.word}", with ${r.q.tiles.length} letter tiles (${r.q.tiles.join('')}: no space tile) and the gap filled in ("${r.shown0}")`, r.q.kind === 'name' && r.q.word === 'polar bear' && r.q.mode === 'tiles' && r.q.tiles.length === 9 && !r.q.tiles.includes(' ') && r.shown0 === '_____ ____', r);
+  ok(`tapping p-o-l-a-r-b-e-a-r changes you into the polar bear (${r.form}); the word "polar bear" is learning (${r.prog?.s})`, r.form === 'polarbear' && r.prog?.s === 'learning' && r.prog.right === 1, r);
+  const maxId = r.id;
+  // level 2: typed on the game's keyboard, 9 letters (the gap fills itself); then a miss shows the spelling with its gap
+  r = await C.ev(String.raw`(() => { ${H} const p = W.addProfile('Sam', 'rocket', '#5cc8ff', 2); W.profile(p.id); W.manual(true); W.start(); W.meet('polarbear'); W.requestChange('polarbear'); const q = Q(), clue = document.getElementById('spClue').textContent;
+    for (const ch of 'polarbear') document.querySelector('.sp-key[data-k="' + ch + '"]')._tap();
+    const typed = Q(), okOn = !document.querySelector('.sp-key.go').disabled; document.querySelector('.sp-key.go')._tap();
+    const form = S().form; W.requestChange('human'); W.reset(); W.meet('polarbear'); W.requestChange('polarbear'); const miss = W.answer('polarbaer');
+    return { q, clue, typed: typed.shown, okOn, form, miss: { right: miss.right, shown: miss.prompt.shown, form: miss.form } }; })()`);
+  ok(`level 2: polar bear is typed ("${r.clue}"); 9 letters fill it ("${r.typed}") and OK changes you (${r.form})`, r.q.mode === 'type' && /P _ _ _ _ .+_ _ _ _/.test(r.clue) && r.typed === 'polar bear' && r.okOn && r.form === 'polarbear', r);
+  ok(`a miss ("polarbaer") shows the right spelling with its gap ("${r.miss.shown}") and leaves you as you were (${r.miss.form})`, r.miss.right === false && r.miss.shown === 'polar bear' && r.miss.form === 'human', r);
+  // the other long names: a tile a letter
+  r = await C.ev(String.raw`(() => { ${H} W.profile('${maxId}'); W.manual(true); W.start(); const o = {};
+    for (const a of ['centipede', 'octopus', 'camel', 'penguin']) { W.requestChange('human'); W.meet(a); W.requestChange(a); const q = Q(); o[a] = { word: q.word, tiles: q.tiles.length, kind: q.kind }; W.answer(q.word); }
+    return o; })()`);
+  ok(`the other long names are a tile a letter at level 1: ${Object.values(r).map((x) => x.word + ' ' + x.tiles).join(', ')} (9 at most)`, Object.values(r).every((x) => x.kind === 'name' && x.tiles === x.word.length && x.tiles <= 9), r);
+  // a save to a file and back keeps "polar bear"'s progress (the word has a space)
+  r = await C.ev(String.raw`(() => { const W = window.__ww, data = W.backup(); localStorage.clear(); return { data: JSON.stringify(data), has: !!data.words['${maxId}']?.words['polar bear'] }; })()`);
+  const data = r.data, had = r.has;
+  await C.reload();
+  r = await C.ev(String.raw`(() => { const W = window.__ww, before = W.profiles().length, res = W.restore(${JSON.stringify(data)}); const max = W.profiles().find((p) => p.name === 'Max'); W.profile(max.id);
+    return { before, res, word: W.progress().words['polar bear'], met: W.state().met }; })()`);
+  ok(`a save to a file and back (into an empty page) keeps the word "polar bear" (${r.word?.s}, right ${r.word?.right}) and the polar bear (${r.met.includes('polarbear')})`, had && r.before === 1 && r.res.ok && r.word?.s === 'learning' && r.word.right === 1 && r.met.includes('polarbear'), r);
+  return out;
+}
+
+// ---- w4save (W4, #166): a real W3 save (main's W3 page) loads intact
+async function runW4Save(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const MET = ['horse', 'cow', 'lion', 'fish', 'eagle', 'giraffe', 'dolphin'];
+  await C.open(1280, 800, false, '', false, 'w3.html');
+  let r = await C.ev(String.raw`(() => { ${H} const p = W.addProfile('Max', 'star', '#ffd23f', 1); W.profile(p.id); W.manual(true); W.start(); W.seed(3);
+    for (const a of ${JSON.stringify(MET)}) W.meet(a);
+    W.requestChange('lion'); W.answer(right()); W.requestChange('giraffe'); W.answer(right()); W.requestChange('cow'); W.answer(wrong()); W.toggleView();
+    W.profile('guest'); W.meet('pig'); W.meet('dog');
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith('wildworld.')).sort(), raw = Object.fromEntries(keys.map((k) => [k, localStorage.getItem(k)]));
+    return { id: p.id, n: W.ANIMALS.length, keys, raw, form: JSON.parse(raw['wildworld.book.' + p.id]).form }; })()`);
+  const w3 = r, id = r.id, book3 = JSON.parse(w3.raw['wildworld.book.' + id]), words3 = JSON.parse(w3.raw['wildworld.words.' + id]);
+  ok(`main's W3 (${W3_SHA}, ${w3.n} animals) saved a profile's book (${book3.met.length} animals, changed into ${book3.changed.join(', ')}, as a ${book3.form}) and words (${Object.keys(words3.words).length}), and Guest's book`,
+    w3.n === 18 && book3.v === 2 && book3.met.length === MET.length && book3.changed.length === 2 && book3.form === 'giraffe' && Object.keys(words3.words).length === 3 && !!w3.raw['wildworld.book.guest'] && !w3.raw['wildworld.save'], w3);
+  await C.open(1280, 800, false, '', true);
+  r = await C.ev(String.raw`(() => { const W = window.__ww, keys = Object.keys(localStorage).filter((k) => k.startsWith('wildworld.')).sort(), raw = Object.fromEntries(keys.map((k) => [k, localStorage.getItem(k)]));
+    const p = W.profile('${id}'), s = W.state(); return { keys, raw, n: W.ANIMALS.length, met: s.met, form: s.form, fp: s.fp, changed: p.changed, words: W.progress().words, profiles: W.profiles().map((q) => q.name) }; })()`);
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  ok(`this page (${r.n} animals) loads the W3 profile intact: every met animal (${r.met.length}), changed into ${r.changed.join(', ')}, the ${r.form} in first person, and its word progress`,
+    r.n === 29 && same([...r.met].sort(), [...book3.met].sort()) && same([...r.changed].sort(), [...book3.changed].sort()) && r.form === book3.form && r.fp === true && same(r.words, words3.words) && same(r.profiles, ['Max', 'Guest']), r);
+  ok(`and writes nothing on load: every wildworld key byte for byte as W3 left it (${r.keys.length} keys), no wildworld.save`, same(r.keys, w3.keys) && w3.keys.every((k) => k === 'wildworld.who' || r.raw[k] === w3.raw[k]) && !r.raw['wildworld.save'], { keys: r.keys, w3: w3.keys });
+  r = await C.ev(String.raw`(() => { ${H} W.profile('${id}'); W.manual(true); W.start(); W.meet('crab'); W.requestChange('crab'); W.answer(right());
+    const book = JSON.parse(localStorage.getItem('wildworld.book.${id}')), words = JSON.parse(localStorage.getItem('wildworld.words.${id}'));
+    return { book, words, save: localStorage.getItem('wildworld.save'), guest: JSON.parse(localStorage.getItem('wildworld.book.guest')) }; })()`);
+  const kept = Object.entries(words3.words).every(([k, e]) => same(r.words.words[k], e));
+  ok(`after meeting a crab and changing into it, the book has the ${MET.length} old animals and the crab (${r.book.met.length}), the old marks (${r.book.changed.join(', ')}), every old word as it was (${kept}) plus "crab"; Guest's book untouched; no wildworld.save`,
+    MET.every((a) => r.book.met.includes(a)) && r.book.met.includes('crab') && ['lion', 'giraffe', 'crab'].every((a) => r.book.changed.includes(a)) && kept && r.words.words.crab?.s === 'learning' && same(r.guest, JSON.parse(w3.raw['wildworld.book.guest'])) && r.save === null, r);
+  await C.reload();
+  r = await C.ev(String.raw`(() => { const W = window.__ww; W.profile('${id}'); return { met: W.state().met, changed: W.profile().changed, n: Object.keys(W.progress().words).length, save: localStorage.getItem('wildworld.save') }; })()`);
+  ok(`a reload keeps it all (${r.met.length} animals, ${r.changed.length} changed into, ${r.n} words), still no wildworld.save`, r.met.length === MET.length + 1 && r.changed.length === 3 && r.n === 4 && r.save === null, r);
+  return out;
+}
+
 // ---- a tap-only round at level 2 (CDP touch), at 568x320
 async function runTouch(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
@@ -555,6 +640,17 @@ async function runSize(C, size) {
     if (lv === 2) await C.shot(`ww2-${size}-spell-miss`);
     await C.ev('window.__ww.closeOverlay(); window.__ww.openTitle()');
   }
+  // W4 (#166): the long names at level 1 (a tile a letter; polar bear's space is a filled-in gap, not a tile), and polar bear typed
+  for (const [lv, animal] of [[1, 'centipede'], [1, 'octopus'], [1, 'polarbear'], [2, 'polarbear']]) {
+    r = await C.ev(String.raw`(() => { const W = window.__ww; W.profile('guest'); W.manual(true); W.start(); W.reset(); W.level(${lv}); W.meet('${animal}'); W.requestChange('human'); W.requestChange('${animal}'); const L = ${LAYOUT};
+      const c = L.check('#spell button', ['#spSlots', '#spClue']), sl = [...document.querySelectorAll('#spSlots .sp-slot')].map((e) => e.getBoundingClientRect());
+      return { ...c, q: W.prompt(), slots: sl.length, gaps: document.querySelectorAll('#spSlots .sp-gap').length, slotMin: Math.round(Math.min(...sl.map((b) => Math.min(b.width, b.height)))), slotsOn: sl.every((b) => b.left >= 0 && b.right <= innerWidth && b.top >= 0 && b.bottom <= innerHeight) }; })()`);
+    const letters = r.q.word.replace(/ /g, '').length;
+    ok(`W4: "${r.q.word}" at level ${lv} (${r.q.mode}): ${r.slots} letter slots (${r.slotMin} px)${r.gaps ? ' and a filled-in gap' : ''}, ${r.n} buttons on screen, none overlapping, each at least 44 px (smallest ${r.min})`,
+      r.q.open && r.q.kind === 'name' && r.slots === letters && r.gaps === (r.q.word.includes(' ') ? 1 : 0) && r.slotsOn && r.slotMin >= 18 && r.n === (lv === 1 ? letters + 3 : 30) && (lv === 2 || r.q.tiles.length === letters) && good(r), r);
+    await C.shot(`ww4-${size}-spell-${animal}-${lv}`);
+    await C.ev('window.__ww.closeOverlay(); window.__ww.openTitle()');
+  }
   // the maker's three pages
   await C.ev(`window.__ww.profile('guest'); window.__ww.openTitle(); window.__ww.openMaker()`);
   r = await C.ev(String.raw`(() => { const L = ${LAYOUT}; window.__ww.Maker.type('m'); window.__ww.Maker.type('o'); return L.check('#maker button', ['#mkName']); })()`);
@@ -593,7 +689,7 @@ async function main() {
     const S = launch(); const t0 = Date.now(); let timer;
     try {
       const C = await connect(S);
-      const job = run === 'words' ? runWords(C) : run === 'gate' ? runGate(C) : run === 'learning' ? runLearning(C) : run === 'profiles' ? runProfiles(C) : run === 'speech' ? runSpeech(C) : run === 'migrate' ? runMigrate(C) : run === 'touch' ? runTouch(C) : runSize(C, run);
+      const job = run === 'words' ? runWords(C) : run === 'gate' ? runGate(C) : run === 'learning' ? runLearning(C) : run === 'profiles' ? runProfiles(C) : run === 'speech' ? runSpeech(C) : run === 'migrate' ? runMigrate(C) : run === 'names' ? runNames(C) : run === 'w4save' ? runW4Save(C) : run === 'touch' ? runTouch(C) : runSize(C, run);
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       res.push({ name: run + ': no page errors', pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);
