@@ -1,25 +1,25 @@
 #!/usr/bin/env node
-// Family Knockout (#169): every save lives under the 'familyknockout.' prefix. The pre-#169 prefix is dropped with no carry-over
-// (existing saves reset, by Dad's choice); the page must never read or write a key under it.
+// Family Knockout (#169): every save lives under the 'familyknockout.' prefix, and the page reads and writes no other key
+// (saves made before #169 reset, by Dad's choice; there is no carry-over).
 //
 // The page is served over http on 127.0.0.1 by this script. Each run is its own headless Chrome (muted, never detached, killed
 // with its profile deleted on every way out, and killed if the run takes over 5 minutes); the server is closed on every way out.
 // Saves are seeded on a blank page of the same origin before the game page loads. A script added to every new document wraps
 // Storage.prototype (getItem, setItem, removeItem, key, clear) and logs each call the page makes, so a run can check every key the
 // page touched; the test reads storage through the unwrapped originals, so its own reads are not logged.
-// The old prefix is built from char codes (OLD below), so its name is not spelled anywhere in this repo.
+// Foreign keys are made-up names without the prefix: the bare save names ('music', ...) and the same under 'zzz.'.
 //   saves       - from a fresh profile, every save the menu can make (music with M, players count, beans, skill, a player's name)
 //                 is written under 'familyknockout.' and nowhere else, and after a reload the game reads each one back.
 //   reads       - all six saves (music, mode, beans, players, crowns, skill) seeded under 'familyknockout.', with different values
-//                 under the old prefix: the game reads the new ones (window.__fg.Game), and the old keys are untouched.
-//   old-ignored - only old-prefix saves: the game loads to the menu with the defaults, writes nothing, and leaves them untouched.
+//                 under the foreign keys: the game reads the prefixed ones (window.__fg.Game), and the foreign keys are untouched.
+//   foreign     - only foreign keys: the game loads to the menu with the defaults, writes nothing, and leaves them untouched.
 //   fresh       - a profile with no saves loads to the menu with the defaults, and no key appears by itself.
 // Every run checks that every key the page read or wrote starts with 'familyknockout.', that it never enumerated or cleared
 // storage, and that there were no page errors.
 //
 // Usage:
 //   node scripts/fk-saves.mjs                 # every run
-//   node scripts/fk-saves.mjs --run saves     # one run (repeatable): saves | reads | old-ignored | fresh
+//   node scripts/fk-saves.mjs --run saves     # one run (repeatable): saves | reads | foreign | fresh
 //   node scripts/fk-saves.mjs path.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
@@ -30,7 +30,8 @@ import path from 'node:path';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 
-const OLD = String.fromCharCode(102, 103, 99, 108, 111, 110, 101, 46), NEW = 'familyknockout.';   // OLD: the pre-#169 prefix, never spelled out
+const NEW = 'familyknockout.';
+const FOREIGN = ['', 'zzz.'];   // made-up prefixes for keys the page must never read: the bare save names, and under 'zzz.'
 const RUN_TIMEOUT_MS = 5 * 60 * 1000;
 const args = process.argv.slice(2);
 let json = false, target = null; const picked = [];
@@ -40,7 +41,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['saves', 'reads', 'old-ignored', 'fresh'];
+const runs = picked.length ? picked : ['saves', 'reads', 'foreign', 'fresh'];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const page = path.resolve(target ?? path.join(repo, 'family-knockout.html'));
 
@@ -162,19 +163,21 @@ const PLAYERS = [
   { name: 'Wobble Bean', color: '#ff9b3f', color2: '#3f5bff', pattern: 'stripes', hat: 'cap' },
 ];
 const SAVES = { music: false, mode: 2, beans: 30, players: PLAYERS, crowns: 7, skill: 'hard' };
-const OTHER = { music: true, mode: 1, beans: 12, players: [{ ...PLAYERS[0], name: 'Old Save' }, PLAYERS[1]], crowns: 99, skill: 'easy' };
+const OTHER = { music: true, mode: 1, beans: 12, players: [{ ...PLAYERS[0], name: 'Other Save' }, PLAYERS[1]], crowns: 99, skill: 'easy' };
 const seedOf = (prefix, saves) => Object.fromEntries(Object.entries(saves).map(([k, v]) => [prefix + k, JSON.stringify(v)]));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const DEFAULTS = (g) => g.mode === 1 && g.beanCount === 20 && g.crowns === 0 && g.skill === 'normal' && g.players[0]?.name === 'Player 1' && g.players[1]?.name === 'Player 2';
 
 function checker() { const out = []; const ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; }; return { out, ok }; }
-// every storage call the page made since it loaded: each key under the new prefix, none under the old, no key() or clear()
+// every storage call the page made since it loaded: each key under the prefix, no key() or clear()
 function checkLog(ok, log, when) {
-  const bad = log.filter(([m, k]) => m === 'key' || m === 'clear' || !k || !k.startsWith(NEW) || k.startsWith(OLD));
-  const old = log.filter(([, k]) => k && k.startsWith(OLD)).length, enumerate = log.filter(([m]) => m === 'key' || m === 'clear').length;
-  ok(`${when}: all ${log.length} storage calls use '${NEW}' keys (${old} touch the old prefix, ${enumerate} enumerate or clear)`, log.length > 0 && bad.length === 0, bad.slice(0, 20));
+  const enumerates = (m) => m === 'key' || m === 'clear';
+  const bad = log.filter(([m, k]) => enumerates(m) || !k || !k.startsWith(NEW));
+  const other = log.filter(([m, k]) => !enumerates(m) && !(k && k.startsWith(NEW))).length, listed = log.filter(([m]) => enumerates(m)).length;
+  ok(`${when}: all ${log.length} storage calls use '${NEW}' keys (${other} touch another key, ${listed} list or clear storage)`, log.length > 0 && bad.length === 0, bad.slice(0, 20));
 }
-const unchanged = (st, seed) => Object.keys(seed).filter((k) => k.startsWith(OLD)).every((k) => st[k] === seed[k]);
+const foreignSeed = (saves) => Object.assign({}, ...FOREIGN.map((p) => seedOf(p, saves)));
+const unchanged = (st, seed) => Object.keys(seed).filter((k) => !k.startsWith(NEW)).every((k) => st[k] === seed[k]);
 
 async function runSaves(C) {
   const { out, ok } = checker();
@@ -202,25 +205,25 @@ async function runSaves(C) {
 
 async function runReads(C) {
   const { out, ok } = checker();
-  const seed = { ...seedOf(OLD, OTHER), ...seedOf(NEW, SAVES) };
+  const seed = { ...foreignSeed(OTHER), ...seedOf(NEW, SAVES) };
   await C.open(seed);
   const st = await C.storage(), g = await C.game(), log = await C.log();
-  ok('the game reads the six new-prefix saves: mode 2, 30 beans, 7 crowns, skill hard, the customised players',
+  ok('the game reads the six prefixed saves, not the foreign keys: mode 2, 30 beans, 7 crowns, skill hard, the customised players',
     g.mode === 2 && g.beanCount === 30 && g.crowns === 7 && g.skill === 'hard' && same(g.players, PLAYERS), g);
   const reads = new Set(log.filter(([m]) => m === 'getItem').map(([, k]) => k));
   ok(`it read each of them: ${[...reads].join(', ')}`, Object.keys(SAVES).every((k) => reads.has(NEW + k)), [...reads]);
-  ok('the old-prefix keys are untouched', unchanged(st, seed), st);
+  ok(`the ${Object.keys(seed).length - 6} foreign keys (${Object.keys(seed).filter((k) => !k.startsWith(NEW)).slice(0, 3).join(', ')}, ...) are untouched`, unchanged(st, seed), st);
   checkLog(ok, log, 'load');
   return out;
 }
 
-async function runOldIgnored(C) {
+async function runForeign(C) {
   const { out, ok } = checker();
-  const seed = seedOf(OLD, SAVES);
+  const seed = foreignSeed(SAVES);
   await C.open(seed);
   const st = await C.storage(), g = await C.game(), log = await C.log();
-  ok(`with only old-prefix saves the game loads to the menu with the defaults (mode ${g.mode}, ${g.beanCount} beans, ${g.crowns} crowns, skill ${g.skill})`, g.state === 'menu' && DEFAULTS(g), g);
-  ok(`nothing is written (${Object.keys(st).length} keys: the ${Object.keys(seed).length} seeded) and the old keys are untouched`, Object.keys(st).length === Object.keys(seed).length && unchanged(st, seed), st);
+  ok(`with only foreign keys (${Object.keys(seed).length}) the game loads to the menu with the defaults (mode ${g.mode}, ${g.beanCount} beans, ${g.crowns} crowns, skill ${g.skill})`, g.state === 'menu' && DEFAULTS(g), g);
+  ok(`nothing is written (${Object.keys(st).length} keys: the ${Object.keys(seed).length} seeded) and the foreign keys are untouched`, Object.keys(st).length === Object.keys(seed).length && unchanged(st, seed), st);
   checkLog(ok, log, 'load');
   return out;
 }
@@ -244,7 +247,7 @@ async function main() {
     const S = launch(); const t0 = Date.now(); let timer;
     try {
       const C = await connect(S);
-      const job = run === 'saves' ? runSaves(C) : run === 'reads' ? runReads(C) : run === 'old-ignored' ? runOldIgnored(C) : run === 'fresh' ? runFresh(C) : Promise.reject(new Error('unknown run ' + run));
+      const job = run === 'saves' ? runSaves(C) : run === 'reads' ? runReads(C) : run === 'foreign' ? runForeign(C) : run === 'fresh' ? runFresh(C) : Promise.reject(new Error('unknown run ' + run));
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       res.push({ name: run + ': no page errors', pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);
