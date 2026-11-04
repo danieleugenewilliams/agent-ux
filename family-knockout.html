@@ -458,9 +458,22 @@ const damp = (a, b, k, dt) => lerp(a, b, 1 - Math.exp(-k * dt));
 const wrapAngle = (a) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const $ = (id) => document.getElementById(id);
+const STORE_PREFIX = 'familyknockout.';
+// Carry saves over from the pre-#169 save key prefix, kept here only so existing saves carry over (#169). Runs before the
+// first read. An old key is copied, raw string as-is, only when its new key is missing; the old keys are left in place.
+(() => {
+  const OLD_PREFIX = 'fgclone.';
+  try {
+    const old = [];
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(OLD_PREFIX)) old.push(k); }
+    for (const k of old) {
+      try { const nk = STORE_PREFIX + k.slice(OLD_PREFIX.length); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); } catch (e) {}
+    }
+  } catch (e) {}
+})();
 const store = {
-  get(k, d) { try { const v = localStorage.getItem('fgclone.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('fgclone.' + k, JSON.stringify(v)); } catch (e) {} },
+  get(k, d) { try { const v = localStorage.getItem(STORE_PREFIX + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(STORE_PREFIX + k, JSON.stringify(v)); } catch (e) {} },
 };
 
 // ===========================================================================
