@@ -34,7 +34,8 @@
 //   w4       - W4 (#166): the eleven new powers measured (crab, shark, octopus, whale, worm, beetle, centipede, polar bear, penguin,
 //              snake, camel), desert sand slowing all but its own animals, and a cave walked into with the stick: it gets dark (and
 //              light again outside, whatever the time of day), a centipede is live in its hall, its side wall stops you, the camera
-//              stays inside with you, and the hill is solid from outside.
+//              stays inside with you, and the hill is solid from outside. Over it: an eagle flies across high up (no dark, no drop), lands
+//              on top, a walk off the top never drops into the hall, a centipede climbs up and over; a slithering snake passes a big rock.
 //   keys     - keyboard only at 1280x800 in real time (CDP key events; PLAY clicked with a real mouse first, then Space must jump):
 //              move, jump, power, Q wheel + arrows + Enter, B book + Enter on a card, V view, H human, Esc pause + Tab + Enter.
 //   gamepad  - gamepad only, a stand-in navigator.getGamepads driven by the script: A starts, the sticks move and look, A jumps,
@@ -760,6 +761,26 @@ async function runW4(C) {
   ok(`out again it's light (${r.back?.hemi}, fog ${r.back?.fog} m, on the ${r.back?.biome}); at night the cave dims the night (${r.night?.out} -> ${r.night?.in}) and outside is the night's own light again (${r.night?.back})`, r.back && r.back.dark === 0 && r.back.hemi === r.out.hemi && r.back.fog === r.out.fog && r.night.in < r.night.out && Math.abs(r.night.back - r.night.out) < 0.01, r);
   ok(`the hill is solid from outside: walking at its side you stop at its edge (${r.hill?.d?.toFixed(2)} m from its middle, radius 13)`, r.hill && r.hill.d > 12.5, r);
   await C.shot('w4-cave-end');
+  // ---- over the cave: the hall is only under its roof. An eagle flies over at height; the hill is ground to land and walk on, over the hall too
+  r = await ev(String.raw`const c = W.nearestCave(W.SPAWN.x, W.SPAWN.z), o = {}, a = c.at(26), top = c.at(-9);
+    W.become('human'); W.become('eagle'); W.teleport(a.x, a.z, c.y + 25); W.settle(); W.look(c.inYaw, 0.3); W.step(2);
+    W.input({ y: -1, jump: true }); W.step(90); W.input({ y: -1 }); let low = 1e9, dark = 0; for (let i = 0; i < 240; i++) { W.step(1); low = Math.min(low, S().y - c.y); dark = Math.max(dark, S().dark); } W.input({}); o.over = { low, dark };
+    W.become('human'); W.become('eagle'); W.teleport(top.x, top.z, c.y + 20); W.step(300); o.land = { y: S().y - c.y, grounded: S().grounded, inCave: W.inCave(S().x, S().z), dark: S().dark };
+    W.become('human'); W.teleport(top.x, top.z, c.y + 20); W.step(120); o.walks = [];
+    for (let k = 0; k < 4; k++) { W.teleport(top.x, top.z, c.y + 20); W.step(120); W.look(k * Math.PI / 2, 0.3); W.input({ y: -1 }); let jump = 0, fell = 0, p = S(); for (let i = 0; i < 200; i++) { W.step(1); const q = S(); jump = Math.max(jump, Math.hypot(q.x - p.x, q.z - p.z)); if (W.inCave(q.x, q.z) && q.y - c.y < 5) fell++; p = q; } W.input({}); o.walks.push({ jump, fell }); }
+    const m = c.at(-10, -16), s = c.at(-10, 16); W.become('human'); W.become('centipede'); W.teleport(s.x, s.z); W.settle(); W.look(Math.atan2(m.x - s.x, m.z - s.z), 0.3); W.step(3); W.input({ powerP: true }); W.step(1); W.input({ y: -1 });
+    let over = 0, cross = 0; for (let i = 0; i < 480; i++) { W.step(1); const q = S(), l = W.caveLocal(W.caveAt(c.x, c.z), q.x, q.z); if (Math.abs(l[0]) < 2) over = Math.max(over, q.y - c.y); cross = Math.min(cross, l[0]); } W.input({}); o.climb = { over, cross };
+    W.become('human'); return o;`);
+  ok(`an eagle flies over the cave at height (lowest ${r.over.low.toFixed(1)} m above its floor) and it doesn't get dark (${r.over.dark})`, r.over.low > 15 && r.over.dark === 0, r);
+  ok(`it lands on top of the hill (${r.land.y.toFixed(1)} m up), not in the hall under it`, r.land.grounded && r.land.y > 6 && r.land.dark === 0, r);
+  ok(`a walk off the hill's top, four ways, never drops into the hall or jumps along (${r.walks.map((w) => w.fell + '/' + w.jump.toFixed(2)).join(', ')})`, r.walks.every((w) => w.fell === 0 && w.jump < 2.5), r);
+  ok(`the centipede climbs the hill and walks over the hall (${r.climb.over.toFixed(1)} m up over its middle) and on across (to ${r.climb.cross.toFixed(1)} m the far side)`, r.climb.over > 6 && r.climb.cross < -3, r);
+  // ---- a big rock doesn't stop a slithering snake either
+  r = await ev(String.raw`const o = {}; for (let t = 0; t < 300 && !o.big; t++) { const x = W.SPAWN.x + (t % 20 - 10) * 60, z = W.SPAWN.z + (Math.floor(t / 20) - 7) * 60; if (W.heightAt(x, z) < 1) continue; W.become('human'); W.teleport(x, z); W.settle();
+      const p = W.propsNear(40).find((q) => q.t === 'rock' && !q.fallen && q.col > 1.3 && W.heightAt(q.x - 4, q.z) > 1 && W.heightAt(q.x + 4, q.z) > 1); if (!p) continue;
+      W.teleport(p.x - 4, p.z); W.become('snake'); W.look(Math.PI / 2, 0.3); W.step(3); W.input({ powerP: true }); W.step(1); W.input({ y: -1 }); W.step(150); W.input({}); o.big = { col: p.col, past: S().x - p.x }; }
+    W.become('human'); return o;`);
+  ok(`a slithering snake slips past a big rock too (${r.big?.past.toFixed(2)} m past the middle of one ${r.big?.col.toFixed(2)} m wide)`, r.big && r.big.past > 1, r);
   return out;
 }
 

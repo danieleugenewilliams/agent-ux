@@ -1156,7 +1156,7 @@ const ANIMALS = [
   { id: 'fish', name: 'Fish', biome: 'water', beh: 'swim', speed: 1.5, swim: 6, cruise: 2.2, r: 0.4, camH: 1.0, camD: 3.6, eye: 0.38, jump: 3 },
   { id: 'dolphin', name: 'Dolphin', biome: 'water', beh: 'swim', speed: 1.5, swim: 10, cruise: 1.3, r: 0.9, camH: 1.4, camD: 5.5, eye: 0.5, jump: 3 },
   // W4 (#166)
-  { id: 'crab', name: 'Crab', biome: 'water', zone: 'shore', where: 'a beach', beh: 'flee', flee: 3, speed: 4, r: 0.45, camH: 0.9, camD: 3.2, eye: 0.55, jump: 6 },
+  { id: 'crab', name: 'Crab', biome: 'water', zone: 'shore', where: 'the shallows', beh: 'flee', flee: 3, speed: 4, r: 0.45, camH: 0.9, camD: 3.2, eye: 0.55, jump: 6 },
   { id: 'shark', name: 'Shark', biome: 'water', where: 'the sea', beh: 'swim', speed: 1.5, swim: 9, cruise: 1.6, r: 1.0, camH: 1.4, camD: 6, eye: 0.55, jump: 3 },
   { id: 'octopus', name: 'Octopus', biome: 'water', where: 'the sea', beh: 'floor', speed: 1.5, swim: 5, cruise: 'floor', r: 0.6, camH: 1.1, camD: 4, eye: 0.7, jump: 3 },
   { id: 'whale', name: 'Whale', biome: 'water', deep: -5.5, where: 'the deep sea', beh: 'swim', speed: 1, swim: 7, cruise: 3, r: 2.2, camH: 3, camD: 12, eye: 1.1, jump: 2 },
@@ -1796,7 +1796,7 @@ function usePower() {
     case 'shark': if (!P.swimming) return false; P.dash = 1.5; P.cd = 3; break;
     case 'octopus': P.ink = 5; P.cd = 6; doPuff(P.x, P.y + 0.3, P.z, 0x2a1f3d, 1.6); break;
     case 'whale': if (!P.swimming || P.y < SEA - 4.2) return false; P.leap = true; P.vy = 19; P.vx = fx * 6; P.vz = fz * 6; P.cd = 2; doPuff(P.x, SEA + 0.4, P.z, 0xffffff, 1.6); break;
-    case 'worm': if (!P.grounded || groundAt(P.x, P.z) < SEA + 0.3) return false; P.burrowing = true; P.burrow = 6; doPuff(P.x, P.y - 0.4, P.z, 0x8a5a2b); break;
+    case 'worm': if (!P.grounded || groundAt(P.x, P.z) < SEA + 0.3 || P.y > groundAt(P.x, P.z) + 0.5) return false; P.burrowing = true; P.burrow = 6; doPuff(P.x, P.y - 0.4, P.z, 0x8a5a2b); break;
     case 'beetle': P.buzz = 3; P.buzzing = true; if (P.grounded) { P.vy = 5; P.grounded = false; } P.cd = 3.5; break;
     case 'centipede': P.climb = !P.climb; P.cd = 0.3; break;
     case 'polarbear': smash(6, true, true, true); P.cd = 0.8; break;
@@ -1813,13 +1813,22 @@ function caveBump(c, x0, z0, r) {   // push the player out of the hill's rock (s
   let [lx, lz] = caveLocal(c, P.x, P.z);
   if (!caveRock(c, lx, lz, r)) return false;
   const [plx, plz] = caveLocal(c, x0, z0);
-  if (Math.abs(plx) < CAVE.hw - r + 0.01 && plz > -CAVE.back + r - 0.01) { lx = clamp(lx, -CAVE.hw + r, CAVE.hw - r); lz = Math.max(lz, -CAVE.back + r); }
+  if (Math.abs(plx) < CAVE.hw - r + 0.01 && plz > -CAVE.back + r - 0.01 && P.y < c.y + CAVE.roof) { lx = clamp(lx, -CAVE.hw + r, CAVE.hw - r); lz = Math.max(lz, -CAVE.back + r); }
+  else if (plz <= r && Math.hypot(plx - CAVE.hx, plz - CAVE.hz) < CAVE.R + r - 0.05 && P.y >= c.y + caveTop(plx, plz) - 1.5) { P.x = x0; P.z = z0; return true; }   // up on the hill a higher rock stops you where you are
   else {
     const dx = lx - CAVE.hx, dz = lz - CAVE.hz, d = Math.hypot(dx, dz) || 1, out = CAVE.R + r - d, front = r - lz;
     if (front < out) lz = r; else { lx = CAVE.hx + dx / d * (CAVE.R + r); lz = CAVE.hz + dz / d * (CAVE.R + r); }
   }
   [P.x, P.z] = caveWorld(c, lx, lz); return true;
 }
+// the hill to stand on under (x, z), for the player at P.y (it's only ground to what's on or above it, or a centipede climbing)
+function hillFloor(x, z, climbing = false) {
+  const c = caveAt(x, z); if (!c) return -Infinity;
+  const [lx, lz] = caveLocal(c, x, z), top = caveTop(lx, lz);
+  return top > 0 && (P.y >= c.y + top - 0.35 || (climbing && !inHall(lx, lz, -0.3))) ? c.y + top : -Infinity;
+}
+// the hall the player is really in: under its roof, not over it on the hill or flying over the cave
+function hallNow(m) { const h = caveInside(P.x, P.z, m); return h && P.y < h.c.y + CAVE.roof + 0.5 ? h : null; }
 function caveTop(lx, lz) {   // the hill's height above the cave floor at a spot of its frame (0: off the hill)
   if (lz > 0) return 0;
   let t = 0;
@@ -1887,7 +1896,7 @@ function tickPlayer(dt, inp) {
     // W4: the beetle flies with its shell open: hold jump to climb while the buzz lasts (3 s), then it glides down
     if (inp.jump && P.buzz > 0) P.vy = Math.min(4, P.vy + 16 * dt); else P.vy = Math.max(P.buzz > 0 ? -1.2 : -2.2, P.vy - 6 * dt);
     P.x += mx * 7 * dt; P.z += mz * 7 * dt; P.y += P.vy * dt;
-    const floor = Math.max(groundAt(P.x, P.z), SEA - 0.2);
+    const floor = Math.max(groundAt(P.x, P.z), SEA - 0.2, hillFloor(P.x, P.z));
     P.y = Math.min(P.y, floor + 25);
     if (P.y <= floor && P.vy <= 0) { P.y = floor; P.vy = 0; P.grounded = true; P.buzzing = false; P.buzz = 0; }
   } else if (f === 'eagle' && !P.grounded) {
@@ -1896,7 +1905,7 @@ function tickPlayer(dt, inp) {
     let sp = 10, vx = mx * sp, vz = mz * sp;
     if (P.swoop > 0) { vx = Math.sin(P.yaw) * 20; vz = Math.cos(P.yaw) * 20; P.vy = -1.5; }
     P.x += vx * dt; P.z += vz * dt; P.y += P.vy * dt;
-    const floor = Math.max(groundAt(P.x, P.z), SEA - 0.2);
+    const floor = Math.max(groundAt(P.x, P.z), SEA - 0.2, hillFloor(P.x, P.z));
     P.y = Math.min(P.y, floor + 80);
     if (P.y <= floor) { P.y = floor; P.vy = 0; P.grounded = true; }
   } else {
@@ -1922,9 +1931,9 @@ function tickPlayer(dt, inp) {
     }
     const gNow = groundAt(P.x, P.z), dNow = SEA - gNow;
     let floor = gNow;
-    // W4: the cave's hill is ground to stand on (landed on from above, or climbed by the centipede); its hall is not
-    const cv = caveAt(P.x, P.z), climbing = f === 'centipede' && P.climb;
-    if (cv) { const [lx, lz] = caveLocal(cv, P.x, P.z); if (!inHall(lx, lz, -0.3)) { const top = caveTop(lx, lz); if (top > 0 && (climbing || P.y >= cv.y + top - 0.35)) floor = Math.max(floor, cv.y + top); } }
+    // W4: the cave's hill is ground to stand on (landed on from above, or climbed by the centipede), the roof over its hall too
+    const climbing = f === 'centipede' && P.climb;
+    floor = Math.max(floor, hillFloor(P.x, P.z, climbing));
     if (climbing) floor = Math.max(floor, climbTop(P.x, P.z, F.r));
     const paddle = dNow > 1.25 && !isSwimmer(f) && !P.hop;   // the guy (and land animals) paddle at the top
     if (paddle) floor = SEA - (f === 'eagle' ? 0.2 : Math.min(1.3, FORMS[f].eye * 0.75));
@@ -1950,7 +1959,7 @@ function tickPlayer(dt, inp) {
   if (!P.swimming && !(f === 'centipede' && P.climb)) {
     for (const p of propsNear(P.x, P.z, 4)) {
       const d0 = PROP_DEFS[p.t]; if (!d0.col || p.fallen) continue;
-      if (P.slither > 0 && d0.col * p.s <= 1.2) continue;   // the slithering snake slips past trunks, rocks and cacti (a barn still stops it)
+      if (P.slither > 0 && p.t !== 'barn') continue;   // the slithering snake slips past trunks, rocks and cacti, big ones too (a barn still stops it)
       if (P.y > p.y + d0.h * p.s) continue;
       const r = d0.col * p.s + F.r * 0.7, dx = P.x - p.x, dz = P.z - p.z, d = Math.hypot(dx, dz);
       if (d < r && d > 1e-4) { P.x = p.x + dx / d * r; P.z = p.z + dz / d * r; if (P.roll > 0 || P.slide > 0) { P.vx *= 0.3; P.vz *= 0.3; } }
@@ -1959,10 +1968,13 @@ function tickPlayer(dt, inp) {
   // W4: the cave's hill is solid (you walk in by the door; over it, or climbing, you're on top); its hall has a roof
   const cv = caveAt(P.x, P.z);
   if (cv) {
-    const [lx, lz] = caveLocal(cv, P.x, P.z), [plx, plz] = caveLocal(cv, x0, z0), wasHall = inHall(plx, plz, -0.3);
+    const [lx, lz] = caveLocal(cv, P.x, P.z), [plx, plz] = caveLocal(cv, x0, z0), wasHall = inHall(plx, plz, -0.3) && P.y < cv.y + CAVE.roof + 0.5;
     if (wasHall || !((f === 'centipede' && P.climb) || P.y >= cv.y + caveTop(lx, lz) - 0.4)) caveBump(cv, x0, z0, F.r * 0.8);
     const h = caveInside(P.x, P.z, -0.2);
-    if (h) { const ceil = cv.y + CAVE.roof - Math.min(1.2, F.camH * 0.45); if (P.y > ceil) { P.y = ceil; if (P.vy > 0) P.vy = 0; } }
+    if (h && P.y < cv.y + caveTop(h.lx, h.lz) - 0.4) {
+      const ceil = cv.y + CAVE.roof - Math.min(1.2, F.camH * 0.45);
+      if (P.y > ceil) { if (wasHall) { P.y = ceil; if (P.vy > 0) P.vy = 0; } else { P.x = x0; P.z = z0; } }   // flying in over the door's top: the rock stops you
+    }
   }
   const mvx = P.x - x0, mvz = P.z - z0, mv = Math.hypot(mvx, mvz);
   P.speed = mv / dt;
@@ -2328,7 +2340,7 @@ function tick() {
   checkMeets();
   day += clamp(dayTarget - day, -DT * 0.6, DT * 0.6);
   // W4: dark in a cave's hall, darker the further in (half a second to get used to it)
-  const hall = caveInside(P.x, P.z, -0.2), darkTo = hall ? clamp(-hall.lz / 5, 0, 1) : 0; P.dark += clamp(darkTo - P.dark, -DT * 2, DT * 2);
+  const hall = hallNow(-0.2), darkTo = hall ? clamp(-hall.lz / 5, 0, 1) : 0; P.dark += clamp(darkTo - P.dark, -DT * 2, DT * 2);
   ticks++; time += DT;
 }
 function toggleView() { P.fp = !P.fp; P.views++; if (!P.fp) cam.pitch = clamp(cam.pitch, -0.25, 1.25); save(); }
@@ -2368,7 +2380,7 @@ function updateView() {
     const cg = groundAt(camera.position.x, camera.position.z) + 0.5;
     if (camera.position.y < cg) camera.position.y = cg;
     // W4: in a cave's hall the camera stays inside it with you (under the roof, between the walls)
-    const hall = caveInside(P.x, P.z, -0.5);
+    const hall = hallNow(-0.5);
     if (hall) {
       const c = hall.c; let [lx, lz] = caveLocal(c, camera.position.x, camera.position.z);
       lx = clamp(lx, -CAVE.hw + 0.35, CAVE.hw - 0.35); lz = Math.max(lz, -CAVE.back + 0.35);
