@@ -131,7 +131,7 @@ For tests, `window.__nd` exposes `start`, `step`, `frames`, `autoplay` and `solv
 
 ## Wild World (wild-world.html)
 
-Walk an endless low-poly world, meet 18 animals, and change into any animal you've met by spelling a word. Each player has their own profile, animal book and spelling level.
+Walk an endless low-poly world, meet 29 animals, and change into any animal you've met by spelling a word. Each player has their own profile, animal book and spelling level.
 
 ### How to play two players
 

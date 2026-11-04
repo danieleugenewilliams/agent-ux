@@ -28,6 +28,11 @@
 //   books    - Dad's (y): together, each changes into their own animals plus the friend's (lent); an animal met together
 //              is saved in both books; lent ones never are; after a leave and after a drop each is back to their own book, and
 //              a player who is a lent animal right then turns back into the guy; a lent change leaves no changed-into mark.
+//   w4       - W4 (#166): the new animals over the relay: each one's own new animals are lent to the friend; one met together is
+//              in both books; the octopus's ink hides it from the friend (no model, no face, no arrow) until it clears, in tag too;
+//              the snake's slither takes away its face and arrow but not its model; the camel can't be ridden; a race's flag never
+//              lands inside a cave's hill; a friend from a page before W4 (no world version) is told it's a different world; and a
+//              hi with all 29 animals passes the relay.
 //   keys     - one device by keyboard only (Esc, Tab, Enter: 2 PLAYERS, HOST; R rides, Space hops off; RACE), the other by gamepad
 //              only (Start, the d-pad, A: 2 PLAYERS, JOIN, the 4 pictures; X rides, A hops off; TAG).
 //   WxH      - at that size in touch mode (with a stand-in friend on a Node socket): the pause menu alone and together, the
@@ -58,7 +63,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '--shots') shots = path.resolve(args[++i]);
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
 }
-const runs = picked.length ? picked : ['relay', 'together', 'pages', 'touch', 'books', 'keys', ...SIZES];
+const runs = picked.length ? picked : ['relay', 'together', 'pages', 'touch', 'books', 'w4', 'keys', ...SIZES];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (shots) fs.mkdirSync(shots, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -687,6 +692,81 @@ async function runBooks(CA, CB) {
 }
 
 // ===========================================================================
+// w4 (#166): the new animals and places over the relay
+async function runW4(CA, CB) {
+  const out = [], ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const R = await startRelay({ ttl: 30 });
+  await CA.open(R.base, 480, 360, false); await CB.open(R.base, 480, 360, false);
+  const idA = await setup(CA, 'Max', 1), idB = await setup(CB, 'Sam', 2);
+  await CA.ev(`['octopus', 'snake', 'camel', 'crab'].forEach((a) => window.__ww.meet(a)); true`); await CB.ev(`['polarbear', 'worm'].forEach((a) => window.__ww.meet(a)); true`);
+  const pair = async () => {
+    await CA.ev('window.__ww.host()'); const code = await CA.until('(() => { const n = window.__ww.net(); return n.state === "waiting" && n.code ? n.code : null; })()');
+    await CB.ev(`window.__ww.join(${JSON.stringify(code)})`);
+    return await CB.until('window.__ww.net().state === "together" && window.__ww.peer() && window.__ww.peer().av', 4000) && await CA.until('window.__ww.net().state === "together" && window.__ww.peer() && window.__ww.peer().av', 4000) ? code : null;
+  };
+  const code = await pair(); await sleep(300);
+  let bA = await CA.ev('window.__ww.book()'), bB = await CB.ev('window.__ww.book()');
+  ok(`together, each one's new animals are lent to the friend: the host gets ${bA.lent.join(',')}, the joiner ${bB.lent.join(',')}`, code && bA.lent.sort().join() === 'polarbear,worm' && bB.lent.sort().join() === 'camel,crab,octopus,snake', { bA, bB });
+  await CB.ev(`window.__ww.meet('penguin')`); await CA.until('window.__ww.state().met.includes("penguin")', 2000);
+  const sv = (C, id) => C.ev(`(JSON.parse(localStorage.getItem('wildworld.book.${id}')) || { met: [] }).met`);
+  const svA = await sv(CA, idA), svB = await sv(CB, idB);
+  ok(`a penguin met by the joiner is in both saved books (${svA.includes('penguin')}, ${svB.includes('penguin')}); the borrowed ones aren't (${svA.includes('polarbear')}, ${svB.includes('octopus')})`, svA.includes('penguin') && svB.includes('penguin') && !svA.includes('polarbear') && !svB.includes('octopus'), { svA, svB });
+  const lent = await inPage(CB, `const g = W.requestChange('octopus'), q = W.prompt(); W.answer(q.word); const r = { form: S().form, mode: q.mode }; const b = JSON.parse(localStorage.getItem('wildworld.book.${idB}')); W.requestChange('human'); return { ...r, g, saved: b.met.includes('octopus') || (b.changed || []).includes('octopus') };`);
+  ok(`the joiner changes into the borrowed octopus (${lent.form}, spelled at level 2: ${lent.mode}), and it isn't saved as theirs (${lent.saved})`, lent.form === 'octopus' && lent.mode === 'type' && !lent.saved, lent);
+  // the friend side by side: the host 6 m in front of the joiner's camera
+  const near = async () => { await inPage(CB, `W.look(0, 0.3); W.step(1); return true;`); const s = await CB.ev('window.__ww.state()'); await CA.ev(`(() => { window.__ww.teleport(${s.x} + Math.sin(${s.camYaw}) * 6, ${s.z} + Math.cos(${s.camYaw}) * 6); window.__ww.step(1); return true; })()`); await sleep(200); };
+  const seen = () => CB.ev('(() => { const p = window.__ww.peer(); return { form: p.form, visible: p.model?.visible, tag: p.tagOn, arrow: p.arrowOn, hidden: !!(p.mark && p.mark.hidden) }; })()');
+  // the octopus's ink
+  await inPage(CA, `return become('octopus');`); await near();
+  const before = await CB.until('(() => { const p = window.__ww.peer(); return p && p.form === "octopus" && p.model?.visible && (p.tagOn || p.arrowOn) ? p : null; })()', 2000);
+  await inPage(CA, `W.input({ powerP: true }); W.step(1); W.input({}); W.step(2); return S().look;`);
+  const inked = await CB.until('(() => { const p = window.__ww.peer(); return p && p.model && !p.model.visible && !p.tagOn && !p.arrowOn ? p : null; })()', 2000);
+  ok(`the octopus's ink: the friend sees it (${!!before}), then not at all: no model, no face, no arrow (${!!inked})`, before && inked, { before, inked: await seen() });
+  await inPage(CA, `W.step(400); return S().ink;`);   // (and its 6 s rest)
+  const back = await CB.until('(() => { const p = window.__ww.peer(); return p && p.model?.visible && (p.tagOn || p.arrowOn) ? p : null; })()', 2000);
+  ok(`when the ink clears the friend sees it again (${!!back})`, !!back, await seen());
+  // in tag
+  await CA.ev('window.__ww.startGame("tag", 30)'); await CB.until('window.__ww.game() && window.__ww.game().kind === "tag"', 2000);
+  await CA.until('window.__ww.game() && !window.__ww.game().frozen', 5000);   // the countdown (real time) holds every move and power
+  await inPage(CA, `W.input({ powerP: true }); W.step(1); W.input({}); W.step(2); return true;`);
+  const tagInk = await CB.until('(() => { const p = window.__ww.peer(), g = window.__ww.game(); return g && g.kind === "tag" && !g.result && p.model && !p.model.visible && !p.tagOn && !p.arrowOn ? { g, p } : null; })()', 2000);
+  ok(`in tag, the inked octopus can't be seen by the friend who is chasing (${!!tagInk}: tag ${tagInk?.g.chip ?? ''})`, !!tagInk, await seen());
+  await inPage(CA, `W.step(400); return true;`);
+  // the snake's slither: model there, but no face or arrow
+  await inPage(CA, `return become('snake');`); await near();
+  await inPage(CA, `W.input({ powerP: true }); W.step(1); W.input({}); W.step(2); return S().look;`);
+  const quiet = await CB.until('(() => { const p = window.__ww.peer(); return p && p.form === "snake" && p.model?.visible && !p.tagOn && !p.arrowOn && p.mark?.hidden ? p : null; })()', 2000);
+  ok(`the snake's slither: the friend still sees the snake (${quiet?.model?.visible}) but no face and no arrow (${quiet ? !quiet.tagOn && !quiet.arrowOn : null})`, !!quiet, await seen());
+  await inPage(CA, `W.step(500); return true;`);
+  const loud = await CB.until('(() => { const p = window.__ww.peer(); return p && (p.tagOn || p.arrowOn) ? p : null; })()', 2000);
+  ok(`after the slither, its face is back (${!!loud})`, !!loud, await seen());
+  // the camel can't be ridden (riders stay horse, elephant and dolphin: Dad's (x))
+  await inPage(CA, `return become('camel');`);
+  const s = await CB.ev('window.__ww.state()'); await CA.ev(`(() => { window.__ww.teleport(${s.x} + 2.2, ${s.z}); window.__ww.step(1); return true; })()`); await sleep(300); await inPage(CB, 'W.step(1); return true;');
+  const ride = await CB.ev('({ r: window.__ww.ride(), m: window.__ww.mount(), form: window.__ww.peer().form })');
+  ok(`a camel can't be ridden: next to it the joiner gets no RIDE (${ride.r.can}) and mounting does nothing (${ride.m})`, ride.form === 'camel' && ride.r.can === false && ride.m === false, ride);
+  // a race's flag never lands inside a cave's hill: the host 40 m out from a cave's door, facing in (60 m ahead is deep in the hill)
+  const flag = await inPage(CA, `become('human'); const c = W.nearestCave(); const o = c.at(40); W.teleport(o.x, o.z); W.look(c.inYaw, 0.3); W.step(1); W.startGame('race', 30); const g = W.game();
+    const straight = c.at(-20); return { m: g.marker, rock: W.inRock(g.marker.x, g.marker.z, 1), straightRock: W.inRock(straight.x, straight.z, 1) };`);
+  ok(`a race's flag never lands inside a cave's hill (60 m ahead was rock: ${flag.straightRock}; the flag is in rock: ${flag.rock})`, flag.m && flag.straightRock && !flag.rock, flag);
+  // a page from before W4 (it sends no world version) is a different world, even with the same seed
+  await CA.ev('window.__ww.leave()'); await CB.ev('window.__ww.leave()'); await sleep(200);
+  await CA.ev('window.__ww.host()'); const code2 = await CA.until('(() => { const n = window.__ww.net(); return n.state === "waiting" && n.code ? n.code : null; })()');
+  const f = await nodeClient(R); f.put({ t: 'join', code: code2 }); await f.next('room');
+  f.put({ t: 'hi', v: 1, seed: 157, av: { icon: 'rocket', color: '#5cc8ff' }, x: 0, y: 2, z: 0, form: 'horse', met: [] });
+  const old = await CA.until('(() => { const n = window.__ww.net(); return n.state === "off" ? { n, toast: document.getElementById("toastText").textContent } : null; })()', 3000);
+  ok(`a friend on a page from before W4 (no world version, the same seed) is told it's a different world ("${old?.toast}") and the game stops (${old?.n.state})`, old && /different world/.test(old.toast), old);
+  try { f.close(); } catch {}
+  // all 29 animals in a hi: the relay passes it
+  await CA.ev(`window.__ww.ANIMALS.forEach((a) => window.__ww.meet(a.id)); true`);
+  const code3 = await pair(); await sleep(300); bB = await CB.ev('window.__ww.book()');
+  const all = await CA.ev('window.__ww.ANIMALS.length');
+  ok(`with every animal met (${all}), the host's hi passes the relay: the joiner can use all ${bB.canUse.length}`, code3 && all === 29 && bB.canUse.length === 29, { bB });
+  await killRelayWait(R);
+  return out;
+}
+
+// ===========================================================================
 // keys: one device by keyboard only, the other by gamepad only (a stand-in navigator.getGamepads, as ww-world.mjs)
 // ===========================================================================
 const KEYS = { Space: [' ', 32], Enter: ['Enter', 13], Tab: ['Tab', 9], Escape: ['Escape', 27], KeyR: ['r', 82] };
@@ -797,7 +877,7 @@ async function runSize(C, size) {
   const f = await nodeClient(R); f.put({ t: 'join', code }); await f.next('room');
   const s = await C.ev('(() => { const s = window.__ww.state(); return { x: s.x, y: s.y, z: s.z, yaw: s.camYaw }; })()');
   const at = { x: +(s.x - Math.sin(s.yaw) * 15).toFixed(2), z: +(s.z - Math.cos(s.yaw) * 15).toFixed(2) };
-  f.put({ t: 'hi', v: 1, seed: 157, av: { icon: 'rocket', color: '#5cc8ff' }, x: at.x, y: s.y, z: at.z, form: 'elephant' });
+  f.put({ t: 'hi', v: 1, w: 4, seed: 157, av: { icon: 'rocket', color: '#5cc8ff' }, x: at.x, y: s.y, z: at.z, form: 'elephant' });
   const pulse = setInterval(() => { try { f.put({ t: 'st', x: at.x, y: s.y, z: at.z, yaw: 0, f: 'elephant', s: 0, g: 1, rd: 0 }); } catch {} }, 50);
   try {
     const tog = await C.until('window.__ww.net().state === "together" && window.__ww.peer() && window.__ww.peer().av', 3000);
@@ -830,11 +910,11 @@ async function runSize(C, size) {
 async function main() {
   const all = []; const unfinished = [];
   for (const run of runs) {
-    const two = run === 'together' || run === 'touch' || run === 'keys' || run === 'books', S = run === 'relay' ? [] : two ? [launch(), launch()] : [launch()];
+    const two = run === 'together' || run === 'touch' || run === 'keys' || run === 'books' || run === 'w4', S = run === 'relay' ? [] : two ? [launch(), launch()] : [launch()];
     const t0 = Date.now(); let timer, Cs = [];
     try {
       for (let i = 0; i < S.length; i++) Cs.push(await connect(S[i], i ? 'B' : 'A'));
-      const job = run === 'relay' ? runRelay() : run === 'together' ? runTogether(...Cs) : run === 'pages' ? runPages(Cs[0]) : run === 'touch' ? runTouch(...Cs) : run === 'keys' ? runKeys(...Cs) : run === 'books' ? runBooks(...Cs) : runSize(Cs[0], run);
+      const job = run === 'relay' ? runRelay() : run === 'together' ? runTogether(...Cs) : run === 'pages' ? runPages(Cs[0]) : run === 'touch' ? runTouch(...Cs) : run === 'keys' ? runKeys(...Cs) : run === 'books' ? runBooks(...Cs) : run === 'w4' ? runW4(...Cs) : runSize(Cs[0], run);
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       for (const C of Cs) res.push({ name: `${run}: no page errors (${C.tag})`, pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);
