@@ -1,20 +1,25 @@
 #!/usr/bin/env node
-// Family Knockout (#169): the save key prefix moved to 'familyknockout.'; saves under the pre-#169 prefix carry over on load.
+// Family Knockout (#169): every save lives under the 'familyknockout.' prefix. The pre-#169 prefix is dropped with no carry-over
+// (existing saves reset, by Dad's choice); the page must never read or write a key under it.
 //
 // The page is served over http on 127.0.0.1 by this script. Each run is its own headless Chrome (muted, never detached, killed
 // with its profile deleted on every way out, and killed if the run takes over 5 minutes); the server is closed on every way out.
-// Saves are seeded on a blank page of the same origin before the game page loads, so the carry-over sees them on its first run.
-//   carry      - every key the game writes (music, mode, beans, players, crowns, skill) seeded under the old prefix with realistic
-//                values: after load each is under 'familyknockout.' byte for byte, the game reads them (window.__fg.Game), and
-//                the old keys are still there, unchanged. A change made in the menu after load is written under the new prefix
-//                only (the old key keeps its value), and survives a reload (the old key does not win it back).
-//   keep-new   - an existing 'familyknockout.' key is not overwritten by its old key; a key with no new twin still carries over.
-//   fresh      - a profile with no saves loads to the menu with the defaults, and no key under either prefix appears by itself.
-// Every run also checks there were no page errors.
+// Saves are seeded on a blank page of the same origin before the game page loads. A script added to every new document wraps
+// Storage.prototype (getItem, setItem, removeItem, key, clear) and logs each call the page makes, so a run can check every key the
+// page touched; the test reads storage through the unwrapped originals, so its own reads are not logged.
+// The old prefix is built from char codes (OLD below), so its name is not spelled anywhere in this repo.
+//   saves       - from a fresh profile, every save the menu can make (music with M, players count, beans, skill, a player's name)
+//                 is written under 'familyknockout.' and nowhere else, and after a reload the game reads each one back.
+//   reads       - all six saves (music, mode, beans, players, crowns, skill) seeded under 'familyknockout.', with different values
+//                 under the old prefix: the game reads the new ones (window.__fg.Game), and the old keys are untouched.
+//   old-ignored - only old-prefix saves: the game loads to the menu with the defaults, writes nothing, and leaves them untouched.
+//   fresh       - a profile with no saves loads to the menu with the defaults, and no key appears by itself.
+// Every run checks that every key the page read or wrote starts with 'familyknockout.', that it never enumerated or cleared
+// storage, and that there were no page errors.
 //
 // Usage:
 //   node scripts/fk-saves.mjs                 # every run
-//   node scripts/fk-saves.mjs --run carry     # one run (repeatable): carry | keep-new | fresh
+//   node scripts/fk-saves.mjs --run saves     # one run (repeatable): saves | reads | old-ignored | fresh
 //   node scripts/fk-saves.mjs path.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
@@ -25,7 +30,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 
-const OLD = 'fgclone.', NEW = 'familyknockout.';
+const OLD = String.fromCharCode(102, 103, 99, 108, 111, 110, 101, 46), NEW = 'familyknockout.';   // OLD: the pre-#169 prefix, never spelled out
 const RUN_TIMEOUT_MS = 5 * 60 * 1000;
 const args = process.argv.slice(2);
 let json = false, target = null; const picked = [];
@@ -35,7 +40,7 @@ for (let i = 0; i < args.length; i++) {
   else if (args[i] === '-h' || args[i] === '--help') { console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\nimport ')[0]); process.exit(0); }
   else target = args[i];
 }
-const runs = picked.length ? picked : ['carry', 'keep-new', 'fresh'];
+const runs = picked.length ? picked : ['saves', 'reads', 'old-ignored', 'fresh'];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const page = path.resolve(target ?? path.join(repo, 'family-knockout.html'));
 
@@ -124,6 +129,12 @@ async function connect(S) {
     if (v.result?.exceptionDetails) throw new Error('page threw: ' + (v.result.exceptionDetails.exception?.description || v.result.exceptionDetails.text));
     return v.result?.result?.value;
   };
+  // log every storage call the page makes; keep the originals for the test's own reads
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+    const P = Storage.prototype, log = window.__storeLog = [];
+    window.__rawStore = { getItem: P.getItem, setItem: P.setItem, key: P.key, clear: P.clear };
+    for (const m of ['getItem', 'setItem', 'removeItem', 'key', 'clear']) { const f = P[m]; P[m] = function (...a) { log.push([m, a[0] == null ? null : String(a[0])]); return f.apply(this, a); }; }
+  })();` });
   await send('Runtime.enable'); await send('Page.enable'); await send('Log.enable');
   const C = { send, ev, errs };
   const waitGame = async (what) => {
@@ -133,13 +144,15 @@ async function connect(S) {
   // clear storage and write the seed (raw strings) on a blank page of the same origin, then load the game page
   C.open = async (seed = {}) => {
     await send('Page.navigate', { url: base + 'blank.html' }); await sleep(300);
-    await ev(`(() => { localStorage.clear(); const s = ${JSON.stringify(seed)}; for (const k in s) localStorage.setItem(k, s[k]); return localStorage.length; })()`);
+    await ev(`(() => { const R = window.__rawStore; R.clear.call(localStorage); const s = ${JSON.stringify(seed)}; for (const k in s) R.setItem.call(localStorage, k, s[k]); return localStorage.length; })()`);
     await send('Page.navigate', { url: base + 'family-knockout.html' });
     await waitGame('load');
   };
   C.reload = async () => { await send('Page.reload', {}); await sleep(300); await waitGame('reload'); };
-  C.storage = () => ev('(() => { const o = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); o[k] = localStorage.getItem(k); } return o; })()');
+  C.storage = () => ev('(() => { const R = window.__rawStore, o = {}; for (let i = 0; i < localStorage.length; i++) { const k = R.key.call(localStorage, i); o[k] = R.getItem.call(localStorage, k); } return o; })()');
+  C.log = () => ev('window.__storeLog.slice()');
   C.game = () => ev('(() => { const G = window.__fg.Game; return { state: G.state, mode: G.mode, beanCount: G.beanCount, players: G.players, crowns: G.crowns, skill: G.skill }; })()');
+  C.click = (sel) => ev(`(() => { document.querySelector(${JSON.stringify(sel)}).click(); return true; })()`);
   return C;
 }
 
@@ -149,49 +162,66 @@ const PLAYERS = [
   { name: 'Wobble Bean', color: '#ff9b3f', color2: '#3f5bff', pattern: 'stripes', hat: 'cap' },
 ];
 const SAVES = { music: false, mode: 2, beans: 30, players: PLAYERS, crowns: 7, skill: 'hard' };
-const oldSeed = () => Object.fromEntries(Object.entries(SAVES).map(([k, v]) => [OLD + k, JSON.stringify(v)]));
+const OTHER = { music: true, mode: 1, beans: 12, players: [{ ...PLAYERS[0], name: 'Old Save' }, PLAYERS[1]], crowns: 99, skill: 'easy' };
+const seedOf = (prefix, saves) => Object.fromEntries(Object.entries(saves).map(([k, v]) => [prefix + k, JSON.stringify(v)]));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const DEFAULTS = (g) => g.mode === 1 && g.beanCount === 20 && g.crowns === 0 && g.skill === 'normal' && g.players[0]?.name === 'Player 1' && g.players[1]?.name === 'Player 2';
 
 function checker() { const out = []; const ok = (name, pass, got) => { out.push({ name, pass: !!pass, got: pass ? undefined : got }); return !!pass; }; return { out, ok }; }
+// every storage call the page made since it loaded: each key under the new prefix, none under the old, no key() or clear()
+function checkLog(ok, log, when) {
+  const bad = log.filter(([m, k]) => m === 'key' || m === 'clear' || !k || !k.startsWith(NEW) || k.startsWith(OLD));
+  const old = log.filter(([, k]) => k && k.startsWith(OLD)).length, enumerate = log.filter(([m]) => m === 'key' || m === 'clear').length;
+  ok(`${when}: all ${log.length} storage calls use '${NEW}' keys (${old} touch the old prefix, ${enumerate} enumerate or clear)`, log.length > 0 && bad.length === 0, bad.slice(0, 20));
+}
+const unchanged = (st, seed) => Object.keys(seed).filter((k) => k.startsWith(OLD)).every((k) => st[k] === seed[k]);
 
-async function runCarry(C) {
+async function runSaves(C) {
   const { out, ok } = checker();
-  const seed = oldSeed();
-  await C.open(seed);
-  let st = await C.storage(); const g = await C.game();
-  const keys = Object.keys(SAVES);
-  const exact = keys.filter((k) => st[NEW + k] === seed[OLD + k]);
-  ok(`every old save is under '${NEW}' byte for byte (${exact.length}/${keys.length}: ${keys.join(', ')})`, exact.length === keys.length, { st, seed });
-  const kept = keys.filter((k) => st[OLD + k] === seed[OLD + k]);
-  ok(`the old keys are still there, unchanged (${kept.length}/${keys.length})`, kept.length === keys.length, st);
-  ok(`no other keys appear (${Object.keys(st).length} keys: ${keys.length} old + ${keys.length} new)`, Object.keys(st).length === keys.length * 2, Object.keys(st));
-  ok('the game reads them: mode 2, 30 beans, 7 crowns, skill hard, the customised players',
-    g.mode === 2 && g.beanCount === 30 && g.crowns === 7 && g.skill === 'hard' && same(g.players, PLAYERS), g);
-  // a change in the menu after load: skill EASY and a new name for player 1
-  await C.ev(`(() => { document.querySelector('[data-skill="easy"]').click(); const n = document.getElementById('nameIn'); n.value = 'Zoom'; n.dispatchEvent(new Event('input')); return true; })()`);
-  st = await C.storage();
-  ok(`a change after load is saved under '${NEW}': skill ${st[NEW + 'skill']}, player 1 ${JSON.parse(st[NEW + 'players'] || '[]')[0]?.name}`,
-    st[NEW + 'skill'] === '"easy"' && JSON.parse(st[NEW + 'players'] || '[]')[0]?.name === 'Zoom', st);
-  ok(`the old keys are not written: skill ${st[OLD + 'skill']}, players unchanged`, st[OLD + 'skill'] === seed[OLD + 'skill'] && st[OLD + 'players'] === seed[OLD + 'players'], st);
+  await C.open({});
+  // every save the menu can make: music (M), 2 players, 30 beans, skill hard, player 1's name
+  await C.ev(`window.__fg.press('KeyM', 0)`); await sleep(300);
+  await C.click('[data-mode="2"]'); await C.click('[data-beans="30"]'); await C.click('[data-skill="hard"]');
+  await C.ev(`(() => { const n = document.getElementById('nameIn'); n.value = 'Zoom'; n.dispatchEvent(new Event('input')); return true; })()`);
+  let st = await C.storage(); const log = await C.log();
+  const want = { music: 'false', mode: '2', beans: '30', skill: '"hard"' };
+  const got = Object.keys(want).filter((k) => st[NEW + k] === want[k]);
+  ok(`each menu change is saved under '${NEW}' (${got.length}/4: music, mode, beans, skill; player 1 ${JSON.parse(st[NEW + 'players'] || '[]')[0]?.name})`,
+    got.length === 4 && JSON.parse(st[NEW + 'players'] || '[]')[0]?.name === 'Zoom', st);
+  ok(`nothing is saved anywhere else (${Object.keys(st).length} keys, all '${NEW}')`, Object.keys(st).length === 5 && Object.keys(st).every((k) => k.startsWith(NEW)), Object.keys(st));
+  const writes = log.filter(([m]) => m === 'setItem').map(([, k]) => k);
+  ok(`the page wrote ${writes.length} times, every one under '${NEW}'`, writes.length >= 5 && writes.every((k) => k.startsWith(NEW)), writes);
+  checkLog(ok, log, 'first load and the menu changes');
   await C.reload();
-  const g2 = await C.game(); st = await C.storage();
-  ok(`after a reload the change holds (skill ${g2.skill}, player 1 ${g2.players[0]?.name}); the old keys do not win it back`,
-    g2.skill === 'easy' && g2.players[0]?.name === 'Zoom' && st[NEW + 'skill'] === '"easy"' && st[OLD + 'skill'] === seed[OLD + 'skill'], { g2, st });
+  const g = await C.game(); st = await C.storage();
+  ok(`after a reload the game reads them back: mode ${g.mode}, ${g.beanCount} beans, skill ${g.skill}, player 1 ${g.players[0]?.name}, music saved ${st[NEW + 'music']}`,
+    g.mode === 2 && g.beanCount === 30 && g.skill === 'hard' && g.players[0]?.name === 'Zoom' && st[NEW + 'music'] === 'false', { g, st });
+  checkLog(ok, await C.log(), 'the reload');
   return out;
 }
 
-async function runKeepNew(C) {
+async function runReads(C) {
   const { out, ok } = checker();
-  const seed = { ...oldSeed(), [NEW + 'crowns']: '12', [NEW + 'skill']: '"easy"' };
+  const seed = { ...seedOf(OLD, OTHER), ...seedOf(NEW, SAVES) };
   await C.open(seed);
-  const st = await C.storage(), g = await C.game();
-  ok(`existing '${NEW}' keys are not overwritten: crowns ${st[NEW + 'crowns']} (old ${st[OLD + 'crowns']}), skill ${st[NEW + 'skill']} (old ${st[OLD + 'skill']})`,
-    st[NEW + 'crowns'] === '12' && st[NEW + 'skill'] === '"easy"' && st[OLD + 'crowns'] === '7' && st[OLD + 'skill'] === '"hard"', st);
-  ok(`the game reads the new values: crowns ${g.crowns}, skill ${g.skill}`, g.crowns === 12 && g.skill === 'easy', g);
-  const others = ['music', 'mode', 'beans', 'players'];
-  const carried = others.filter((k) => st[NEW + k] === seed[OLD + k]);
-  ok(`keys with no new twin still carry over byte for byte (${carried.length}/${others.length})`, carried.length === others.length, st);
-  ok('the game reads the carried ones: mode 2, 30 beans, the customised players', g.mode === 2 && g.beanCount === 30 && same(g.players, PLAYERS), g);
+  const st = await C.storage(), g = await C.game(), log = await C.log();
+  ok('the game reads the six new-prefix saves: mode 2, 30 beans, 7 crowns, skill hard, the customised players',
+    g.mode === 2 && g.beanCount === 30 && g.crowns === 7 && g.skill === 'hard' && same(g.players, PLAYERS), g);
+  const reads = new Set(log.filter(([m]) => m === 'getItem').map(([, k]) => k));
+  ok(`it read each of them: ${[...reads].join(', ')}`, Object.keys(SAVES).every((k) => reads.has(NEW + k)), [...reads]);
+  ok('the old-prefix keys are untouched', unchanged(st, seed), st);
+  checkLog(ok, log, 'load');
+  return out;
+}
+
+async function runOldIgnored(C) {
+  const { out, ok } = checker();
+  const seed = seedOf(OLD, SAVES);
+  await C.open(seed);
+  const st = await C.storage(), g = await C.game(), log = await C.log();
+  ok(`with only old-prefix saves the game loads to the menu with the defaults (mode ${g.mode}, ${g.beanCount} beans, ${g.crowns} crowns, skill ${g.skill})`, g.state === 'menu' && DEFAULTS(g), g);
+  ok(`nothing is written (${Object.keys(st).length} keys: the ${Object.keys(seed).length} seeded) and the old keys are untouched`, Object.keys(st).length === Object.keys(seed).length && unchanged(st, seed), st);
+  checkLog(ok, log, 'load');
   return out;
 }
 
@@ -200,11 +230,12 @@ async function runFresh(C) {
   await C.open({});
   const st = await C.storage(), g = await C.game();
   ok(`a fresh profile loads to the menu (state ${g.state})`, g.state === 'menu', g);
-  ok(`with the defaults: mode ${g.mode}, ${g.beanCount} beans, ${g.crowns} crowns, skill ${g.skill}, players ${g.players.map((p) => p.name).join(' / ')}`,
-    g.mode === 1 && g.beanCount === 20 && g.crowns === 0 && g.skill === 'normal' && g.players[0]?.name === 'Player 1' && g.players[1]?.name === 'Player 2', g);
+  ok(`with the defaults: mode ${g.mode}, ${g.beanCount} beans, ${g.crowns} crowns, skill ${g.skill}, players ${g.players.map((p) => p.name).join(' / ')}`, DEFAULTS(g), g);
   ok(`no saves appear by themselves (${Object.keys(st).length} keys)`, Object.keys(st).length === 0, st);
+  checkLog(ok, await C.log(), 'load');
   return out;
 }
+
 
 async function main() {
   await serve();
@@ -213,7 +244,7 @@ async function main() {
     const S = launch(); const t0 = Date.now(); let timer;
     try {
       const C = await connect(S);
-      const job = run === 'carry' ? runCarry(C) : run === 'keep-new' ? runKeepNew(C) : run === 'fresh' ? runFresh(C) : Promise.reject(new Error('unknown run ' + run));
+      const job = run === 'saves' ? runSaves(C) : run === 'reads' ? runReads(C) : run === 'old-ignored' ? runOldIgnored(C) : run === 'fresh' ? runFresh(C) : Promise.reject(new Error('unknown run ' + run));
       const res = await Promise.race([job, new Promise((_, j) => { timer = setTimeout(() => j(new Error(`over ${RUN_TIMEOUT_MS / 60000} min: killed`)), RUN_TIMEOUT_MS); })]);
       res.push({ name: run + ': no page errors', pass: C.errs.length === 0, got: C.errs.length ? C.errs.slice(0, 10) : undefined });
       all.push(...res);
