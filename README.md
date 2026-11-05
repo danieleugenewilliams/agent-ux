@@ -4,7 +4,7 @@ Single-file browser games and scenes. Each one is a self-contained HTML page: op
 
 | File | What it is |
 | --- | --- |
-| `family-knockout.html` | **Family Knockout**, a family party game: race and survive through five rounds. 1 player, or 2 players split-screen, against AI beans. |
+| `family-knockout.html` | **Family Knockout**, a family party game: race and survive round by round to win the crown. 1 player, or 2 players split-screen, against AI beans. |
 | `cowboy-duel.html` | **Quick Draw**, a pixel-art cowboy duel. |
 | `ocean.html` | **Open Water**, a sailing and fishing game on a realistic 3D ocean. |
 | `ocean-scene-v1.html` | The earlier ocean scenery, with no gameplay. |
