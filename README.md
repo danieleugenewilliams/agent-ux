@@ -35,7 +35,7 @@ It runs `node --check` over each page's inline `<script>` blocks and exits non-z
 
 A show of 12, 20 or 30 beans plays through race and survival rounds to a final, and the last bean standing wins the crown.
 
-- **Rounds:** Door Dash, Hit Parade (race); Jump Club, Block Party (survival); Hex-A-Gone (final).
+- **Rounds:** Knock Knock, Hammer Run (race); Skip Rope, Wall Rush (survival); Tile Drop (final).
 - **Show flow:** lobby, bean customiser, matchmaking, round roulette, level flyover, 3-2-1-GO, qualified/eliminated banners, results, then the winner.
 - **Settings:** bot skill (Easy / Normal / Hard), plus spectating after you're eliminated.
 
