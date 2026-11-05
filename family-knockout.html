@@ -214,7 +214,7 @@
 
 <div id="rtitle" class="screen"><div class="box slidein" id="rtbox">
   <div class="type" id="rtType">RACE</div>
-  <div class="name fg-title" id="rtName">Door Dash</div>
+  <div class="name fg-title" id="rtName">Knock Knock</div>
   <div class="desc" id="rtDesc"></div>
   <div class="goal" id="rtGoal"></div>
 </div></div>
@@ -1280,9 +1280,9 @@ function raceAI(b, w, wps, dt, extra) {
 // ===========================================================================
 const LEVELS = {};
 
-// ---------- DOOR DASH (race) ----------
-LEVELS.doordash = {
-  id: 'doordash', name: 'Door Dash', type: 'race', icon: '🚪', desc: 'Find the fake doors and smash through them to reach the finish line!',
+// ---------- KNOCK KNOCK (race) ----------
+LEVELS.knockknock = {
+  id: 'knockknock', name: 'Knock Knock', type: 'race', icon: '🚪', desc: 'Find the fake doors and smash through them to reach the finish line!',
   time: 150,
   build(w, n) {
     const W = 24, len = 118;
@@ -1354,9 +1354,9 @@ LEVELS.doordash = {
   preview: [{ p: [18, 22, -125], l: [0, 0, -80] }, { p: [16, 12, -60], l: [0, 0, -30] }, { p: [0, 6, 16], l: [0, 1, -10] }],
 };
 
-// ---------- HIT PARADE (race) ----------
-LEVELS.hitparade = {
-  id: 'hitparade', name: 'Hit Parade', type: 'race', icon: '🔨', desc: 'Dodge the spinners, swinging hammers and bouncers on the way to the finish!',
+// ---------- HAMMER RUN (race) ----------
+LEVELS.hammerrun = {
+  id: 'hammerrun', name: 'Hammer Run', type: 'race', icon: '🔨', desc: 'Dodge the spinners, swinging hammers and bouncers on the way to the finish!',
   time: 150,
   build(w, n) {
     const W = 20;
@@ -1429,9 +1429,9 @@ LEVELS.hitparade = {
   preview: [{ p: [16, 20, -115], l: [0, 2, -90] }, { p: [14, 12, -55], l: [0, 2, -42] }, { p: [0, 6, 16], l: [0, 1, -10] }],
 };
 
-// ---------- JUMP CLUB (survival) ----------
-LEVELS.jumpclub = {
-  id: 'jumpclub', name: 'Jump Club', type: 'survival', icon: '🌀', desc: 'Jump over the spinning bar - and watch out for the one above! Survive to qualify.',
+// ---------- SKIP ROPE (survival) ----------
+LEVELS.skiprope = {
+  id: 'skiprope', name: 'Skip Rope', type: 'survival', icon: '🌀', desc: 'Jump over the spinning bar - and watch out for the one above! Survive to qualify.',
   time: 75,
   build(w, n) {
     const R = 10;
@@ -1486,9 +1486,9 @@ LEVELS.jumpclub = {
   radialCam: true,
 };
 
-// ---------- BLOCK PARTY (survival) ----------
-LEVELS.blockparty = {
-  id: 'blockparty', name: 'Block Party', type: 'survival', icon: '🧱', desc: 'Walls are coming! Find the gaps or jump the low blocks to stay on the platform.',
+// ---------- WALL RUSH (survival) ----------
+LEVELS.wallrush = {
+  id: 'wallrush', name: 'Wall Rush', type: 'survival', icon: '🧱', desc: 'Walls are coming! Find the gaps or jump the low blocks to stay on the platform.',
   time: 70,
   build(w, n) {
     const W = 18, D = 22;
@@ -1547,9 +1547,9 @@ LEVELS.blockparty = {
   camYaw: 0,
 };
 
-// ---------- HEX-A-GONE (final) ----------
-LEVELS.hexagone = {
-  id: 'hexagone', name: 'Hex-A-Gone', type: 'final', icon: '⬢', desc: 'Tiles vanish once you step on them! Be the last bean standing to win the crown!',
+// ---------- TILE DROP (final) ----------
+LEVELS.tiledrop = {
+  id: 'tiledrop', name: 'Tile Drop', type: 'final', icon: '⬢', desc: 'Tiles vanish once you step on them! Be the last bean standing to win the crown!',
   time: 240,
   build(w, n) {
     const s = 1.2, ringR = 7, GAP = 8;
@@ -1627,9 +1627,9 @@ LEVELS.hexagone = {
   radialCam: true,
 };
 
-const RACES = ['doordash', 'hitparade'];
-const SURVIVALS = ['jumpclub', 'blockparty'];
-const FINALS = ['hexagone'];
+const RACES = ['knockknock', 'hammerrun'];
+const SURVIVALS = ['skiprope', 'wallrush'];
+const FINALS = ['tiledrop'];
 // ===========================================================================
 // Cameras
 // ===========================================================================
@@ -2133,12 +2133,12 @@ window.__fg = {
   manual(on = true) { Game.manual = on; },
   render() { render(1 / 60); },
   // Jump straight into a round for testing
-  test(id = 'doordash', mode = Game.mode, beans = 12) {
+  test(id = 'knockknock', mode = Game.mode, beans = 12) {
     Game.mode = mode; Game.beanCount = beans;
     Game.roster = []; for (let i = 0; i < mode; i++) Game.roster.push({ ...Game.players[i], human: i, alive: true });
     for (let i = mode; i < beans; i++) Game.roster.push(randomBot(i));
     Game.humans = []; for (let i = 0; i < mode; i++) Game.humans.push({ idx: i, rig: new CamRig(i), bean: null, ci: { camX: 0, camY: 0 } });
-    Game.rounds = [id, 'hexagone']; Game.targets = [Math.ceil(beans * 0.6), 1]; Game.round = 0; Game.timers = [];
+    Game.rounds = [id, 'tiledrop']; Game.targets = [Math.ceil(beans * 0.6), 1]; Game.round = 0; Game.timers = [];
     loadRound(id); return 'ok';
   },
   skipPreview() { Game.previewT = 5.6; },
