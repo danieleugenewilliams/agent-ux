@@ -4,12 +4,13 @@ Single-file browser games and scenes. Each one is a self-contained HTML page: op
 
 | File | What it is |
 | --- | --- |
-| `family-knockout.html` | **Family Knockout**, a fan-made party game in the style of Fall Guys. 1 player, or 2 players split-screen, against AI beans. |
+| `family-knockout.html` | **Family Knockout**, a family party game: race and survive through five rounds. 1 player, or 2 players split-screen, against AI beans. |
 | `cowboy-duel.html` | **Quick Draw**, a pixel-art cowboy duel. |
 | `ocean.html` | **Open Water**, a sailing and fishing game on a realistic 3D ocean. |
 | `ocean-scene-v1.html` | The earlier ocean scenery, with no gameplay. |
-| `neon-dash.html` | **Neon Dash**, a 2.5D rhythm runner built from the boys' own Geometry Dash clone. 1 player, or a 2-player split-screen race. |
-| `wild-world.html` | **Wild World**, an endless 3D world full of animals. Meet an animal, then turn into it and use its power. |
+| `neon-dash.html` | **Neon Dash**, a 2.5D rhythm runner built from the boys' own runner game. 1 player, or a 2-player split-screen race. |
+| `robot-battle.html` | **Robot Battle**, a mech fight-and-fix game. Beat glitched robots and bosses, fix them into your squad with multiplication and division facts and wiring puzzles, and build your mech in the garage and body shop. Each player has their own profile, and a parent view shows their progress. |
+| `wild-world.html` | **Wild World**, an endless 3D world full of animals. Meet an animal, then spell its name to change into it and use its power. 29 animals across 8 places (farm, forest, savanna, water, snowy peaks, jungle, desert and cave), and two players can explore together on two iPads over the home Wi-Fi (`node scripts/ww-relay.mjs`). |
 
 ## Running
 
@@ -89,7 +90,7 @@ L opens the catch log, M toggles sound and H hides the conditions panel. Sound i
 
 ## Neon Dash (neon-dash.html)
 
-The boys designed this game in their "Coding with Dad" class, starting from their own Canvas2D Geometry Dash clone. Neon Dash keeps all of their ideas and rebuilds them with glowing 3D graphics and music that drives the level.
+The boys designed this game in their "Coding with Dad" class, starting from their own Canvas2D runner game. Neon Dash keeps all of their ideas and rebuilds them with glowing 3D graphics and music that drives the level.
 
 **The four modes, each with its own world and music**
 
