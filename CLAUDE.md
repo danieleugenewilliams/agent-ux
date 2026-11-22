@@ -1,1 +1,1 @@
-- Builder–reviewer loop: see `docs/review-loop.md` (roles, labels, merge predicate). Sessions named builder/reviewer run `/builder-watch` and `/reviewer-watch`.
+This repo runs the loop-team review loop. A session here takes no loop role and acts on no loop labels unless Daniel runs /loop-builder, /loop-reviewer, /loop-coordinator or bin/start. Startup and rules: https://github.com/danieleugenewilliams/loop-team/blob/main/START.md
