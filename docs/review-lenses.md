@@ -2,7 +2,7 @@
 
 *The reviewer's crew reads each pull request through
 these lenses. Every finding names its lens and carries evidence: a measurement, a
-reproduction through the `__rb` test hooks, or a failing check. A finding without evidence
+reproduction through the game's test hooks, or a failing check. A finding without evidence
 is a question, not a hand-back.*
 
 These lenses apply to every game. Evidence comes from that game's own test hooks
