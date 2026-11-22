@@ -293,6 +293,12 @@
   #modeB .mbars i:nth-child(1) { height: 13px; } #modeB .mbars i:nth-child(2) { height: 21px; } #modeB .mbars i:nth-child(3) { height: 30px; }
   #modeB .mbars i.on { background: var(--c); box-shadow: 0 0 7px var(--c); }
   #modeB small { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center; text-shadow: none; }
+  /* #167: the world chip: the wave (waves) or a snowy mountain (the endless world), on the pilot pick only */
+  #worldB { --c: var(--cyan); display: none; position: relative; padding: 0 16px 0 12px; }
+  #start.title #worldB { display: flex; }
+  #worldB .wv, #worldB .ww { display: inline-flex; pointer-events: none; } #worldB .ww, #worldB[data-w="world"] .wv { display: none; } #worldB[data-w="world"] .ww { display: inline-flex; }
+  #worldB[data-w="world"] { --c: #7cff6b; }
+  #worldB small { position: absolute; right: -8px; bottom: -8px; width: 22px; height: 22px; border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; display: flex; align-items: center; justify-content: center; text-shadow: none; }
   #start .wpick { display: none; position: absolute; inset: 0; z-index: 5; align-items: center; justify-content: center; padding: 12px; pointer-events: auto; background: rgba(12,14,28,.72); }
   #start .wpick.on { display: flex; }
   /* (while it's up, the HUD behind it and the parent button hide, as on who's playing: nothing sits over its panel) */
@@ -1571,7 +1577,9 @@
       --><button class="chip" id="waveB" aria-label="Start wave"><span class="wi"><i data-ic="wave"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveBN">1</b><small><i data-ic="up"></i></small></button><!--
       #132: Easy, Normal or Hard, whoever is playing's own: 1, 2 or 3 bars lit in green, yellow or red; a tap, ▼ / S or the
       d-pad's down picks the next one (on the pilot pick only: a run keeps the mode it started with)
-      --><button class="chip" id="modeB" data-m="normal" aria-label="Mode: Normal"><span class="mbars"><i></i><i></i><i></i></span><small><i data-ic="down"></i></small></button></div>
+      --><button class="chip" id="modeB" data-m="normal" aria-label="Mode: Normal"><span class="mbars"><i></i><i></i><i></i></span><small><i data-ic="down"></i></small></button><!--
+      #167: waves or the endless world: a tap, E or the pad's X swaps them (on the pilot pick only)
+      --><button class="chip" id="worldB" data-w="waves" aria-label="Play: waves"><span class="wv"><i data-ic="wave"></i></span><span class="ww"><i data-ic="world"></i></span><small>E</small></button></div>
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
@@ -2935,6 +2943,7 @@ const ICONS = {
   aim: ['aim', ['🎯'], ci(12, 12, 9.4, G('red')) + cn(12, 12, 6.2, '#fff') + cn(12, 12, 3.2, '#ff4d5e') + ln('M12 1.6 L12 6.6 M12 17.4 L12 22.4 M1.6 12 L6.6 12 M17.4 12 L22.4 12', '#fff', 1.4, 'butt')],
   bolt: ['bolt', ['🔩'], rot(40, pa('M9.4 10 L14.6 10 L14.6 19.4 Q14.6 20.8 12 20.8 Q9.4 20.8 9.4 19.4 Z', G('steel')) + `<path d="M9.4 13.6 L14.6 12.6 M9.4 17 L14.6 16" fill="none"/>`
     + pa('M4.8 6 L8 4 L16 4 L19.2 6 L19.2 8.6 Q19.2 10.4 17.4 10.4 L6.6 10.4 Q4.8 10.4 4.8 8.6 Z', G('steel')) + hl('M7.6 6.4 L16.4 6.4'))],
+  world: ['world', [], pa('M1.6 20.6 L8.6 8.4 L11.6 12.6 L15.4 5.4 L22.4 20.6 Z', G('steel')) + pa('M12.9 10.4 L15.4 5.4 L18.2 11.4 L16.6 10.4 L15.2 12 L14 10.6 Z', '#ffffff') + pa('M6.6 11.8 L8.6 8.4 L10.3 10.8 L9 10.4 L7.8 11.6 Z', '#ffffff') + hl('M9.6 16.6 L12.4 12.8')],
   search: ['search', ['🔍'], ln('M15.6 15.6 L20.4 20.4', G('orange'), 3.4) + ci(10, 10, 7.6, G('steel')) + ci(10, 10, 4.8, '#bff3ff') + hl('M7.4 8.6 C7.8 7.6 8.6 7 9.6 6.8')],
   bag: ['bag', ['🎒'], ln('M8.8 6.4 L8.8 5 Q8.8 2.6 12 2.6 Q15.2 2.6 15.2 5 L15.2 6.4', G('dark'), 1.6) + re(4.6, 6, 14.8, 15.4, 4, G('blue')) + re(7.4, 13.4, 9.2, 6, 2, '#2f62c8') + re(10.4, 11.2, 3.2, 3.6, 0.8, G('steel')) + hl('M6.8 9 L6.8 13')],
   family: ['parents', ['👪'], ci(16.4, 6.6, 3.2, G('pink')) + pa('M11.2 21.4 L11.2 15.8 Q11.2 11.4 16.4 11.4 Q21.6 11.4 21.6 15.8 L21.6 21.4 Z', G('pink')) + ci(7.6, 6.6, 3.2, G('blue')) + pa('M2.4 21.4 L2.4 15.8 Q2.4 11.4 7.6 11.4 Q12.8 11.4 12.8 15.8 L12.8 21.4 Z', G('blue')) + hl('M4.6 14.6 L4.6 18')],
@@ -4826,7 +4835,11 @@ addEventListener('pointerdown', (e) => { if (WpnPick.on && !e.target.closest?.('
 // ===========================================================================
 // The meadow: rolling ground, wind-blown grass, rocks and trees
 // ===========================================================================
-function groundH(x, z) {
+// #167: the ground under a spot: the meadow's in waves, the endless world's (World.h) in the world
+function groundH(x, z) { return Game.world ? World.h(x, z) : meadowH(x, z); }
+// #167: how far from the middle anything may go: the meadow's rim in waves, no rim in the endless world
+const rimR = () => Game.world ? Infinity : WORLD_R;
+function meadowH(x, z) {
   const r = Math.hypot(x, z);
   const hills = 0.9 * Math.sin(x * 0.045) * Math.cos(z * 0.038) + 0.45 * Math.sin(x * 0.11 + z * 0.07) + 0.3 * Math.cos(z * 0.13 - x * 0.05);
   const rim = r > 90 ? Math.min(1, Math.pow((r - 90) / 35, 2)) * 12 : 0;   // the meadow rises into hills at the edge
@@ -4870,7 +4883,7 @@ const Meadow = {
     }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
     const ground = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
-    ground.receiveShadow = true; scene.add(ground);
+    ground.receiveShadow = true; scene.add(ground); this.ground = ground;   // (#167: kept, so the endless world can put the meadow away)
 
     this.buildGrass();
     this.buildFlowers();
@@ -4915,7 +4928,7 @@ const Meadow = {
       im.setMatrixAt(i, o.matrix);
       c.setHSL(srange(0.22, 0.3), srange(0.5, 0.7), srange(0.3, 0.45)); im.setColorAt(i, c);
     }
-    im.frustumCulled = false; scene.add(im);
+    im.frustumCulled = false; scene.add(im); this.grass = im;
   },
   buildFlowers() {
     const geo = new THREE.IcosahedronGeometry(0.12, 0);
@@ -4927,7 +4940,7 @@ const Meadow = {
       o.position.set(x, groundH(x, z) + srange(0.35, 0.6), z); o.updateMatrix(); im.setMatrixAt(i, o.matrix);
       im.setColorAt(i, c.set(hues[Math.floor(srand() * hues.length)]));
     }
-    scene.add(im);
+    scene.add(im); this.flowers = im;
   },
   // A tree: a stump, and on a pivot at the stump's top the rest of the trunk and the leaves, which
   // topple over when it's smashed (Props). The same random draws as ever, so the meadow doesn't move.
@@ -4952,6 +4965,7 @@ const Meadow = {
     const r = new THREE.Mesh(geo, mat(srand() < 0.5 ? '#8a8f99' : '#a3a39a', { roughness: 0.95, metalness: 0, flatShading: true }));
     r.scale.setScalar(s); r.rotation.y = srange(0, 6); r.position.set(x, groundH(x, z) + s * 0.25, z);
     r.castShadow = true; r.receiveShadow = true; scene.add(r);
+    if (small) (this.pebbles ||= []).push(r);
     if (!small) Props.add('rock', x, z, [{ x, z, r: s * 0.95, h: s * 1.1 }], { root: r, s, col: r.material.color.getStyle() });
   },
   // Fences: straight runs of FENCE.len-metre sections, each its own smashable (two posts and two
@@ -7395,7 +7409,7 @@ function mechTick(m, dt) {
   if (m.over) for (const p of m.over) if (!near?.has(p)) m.over.delete(p);   // clear of its walking reach now
   if (touched) pushProps(m, touched, dt);
   const r = Math.hypot(m.pos.x, m.pos.z);
-  if (r > WORLD_R) { m.pos.x *= WORLD_R / r; m.pos.z *= WORLD_R / r; }
+  if (r > rimR()) { m.pos.x *= WORLD_R / r; m.pos.z *= WORLD_R / r; }
   m.pos.y = groundH(m.pos.x, m.pos.z);
   // G2 spring legs: a player's jump rises off the ground and drops back under gravity
   const J = m.hop;
@@ -7522,7 +7536,7 @@ class CamRig {
 // child = who's playing (a CHILDREN entry), null until picked; their record is Facts.rec
 // wave = the wave in the meadow (0 until the first one comes out); cleared = no glitched or powered-down
 // robot is left in it (#59: a powered-down squadmate doesn't count: its rescue clock runs on); waveStats = this wave's robots fixed and taken apart, and where its counts began
-const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null, mode: null,   // (#132: mode: the run's mode, latched by startGame; null before a run)
+const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], bag: {}, swarms: {}, unlocked: new Set(WEAPONS.filter((w) => !WEAPON[w].locked)), lastRail: null, get parts() { return Object.values(this.bag).reduce((a, n) => a + n, 0); }, nextId: 1, manual: false, paused: false, acc: 0, ticks: 0, hurtFlash: 0, pilot: null, child: null, mode: null, world: false,   // (#132: mode: the run's mode, latched by startGame; null before a run)
   wave: 0, cleared: false, waveStats: { fixed: 0, taken: 0, found0: 0, downs0: 0, robots: 0, fast: 0 },
   // P3-1: every fix this session (board open to reboot, with its slot counts), and the last one
   fixes: [], lastFix: null,
@@ -7588,6 +7602,7 @@ const Title = {
     drawPauseMenu();
     WavePick.draw();   // #129: the wave chip (and the picker, while it's open)
     ModePick.draw();   // #132: the mode chip
+    WorldPick.draw();  // #167: the world chip
     $('parentB').classList.toggle('on', this.on && !Maker.on);   // the parent button: title / pause screen only (#49: not over the maker)
   },
   // scroll the tiles so the cursor's tile shows whole
@@ -7632,6 +7647,7 @@ const Title = {
       if (kp('Escape', 'Backspace') || pad?.bP) { pickChild(null); Sfx.click(); return; }
       if ((kp('ArrowUp', 'KeyW') || pad?.upP) && WavePick.shown) { WavePick.open(); return; }   // #129: ▲ / the d-pad's up: the wave picker
       if (kp('ArrowDown', 'KeyS') || pad?.downP) { ModePick.cycle(); return; }                  // #132: ▼ / the d-pad's down: the next mode
+      if (kp('KeyE') || pad?.xP) { WorldPick.toggle(); return; }                               // #167: E / pad X: waves or the endless world
       if (d) { this.cur = (this.cur + d + n) % n; this.draw(); Sfx.click(); }
       if (kp('Enter', 'Space') || pad?.aP) startGame(PILOTS[this.cur].id);
     } else if (kp('KeyT') || pad?.yP) Progress.openGrid('pause');      // ⭐ my facts
@@ -7806,7 +7822,7 @@ const WavePick = {
   best() { return WAVE_JUMP ? 0 : Facts.waveBest(); },
   top() { return Math.min(WAVES_MAX, this.best() + 1); },
   offer() { return Array.from({ length: this.top() }, (_, i) => i + 1); },
-  get shown() { return !!Game.child && !Game.pilot && Title.on && !Maker.on && this.best() >= 1; },
+  get shown() { return !!Game.child && !Game.pilot && Title.on && !Maker.on && this.best() >= 1 && !WorldPick.on; },   // (#167: no waves in the world)
   // the wave the run starts at: the pick, if whoever is playing can start there (else wave 1)
   wave() { const n = this.pick; return Number.isInteger(n) && n >= 1 && n <= this.top() ? n : 1; },
   reset() { this.pick = 1; if (this.on) this.close(true); else this.draw(); },
@@ -7932,6 +7948,25 @@ const ModePick = {
     return { pick: this.pick(), run: Game.mode, shown: this.shown, saved: sv?.mode ?? null, order: [...MODES.order] };
   },
 };
+// #167: the world chip on the pilot pick: Waves (the meadow, as ever) or the endless world. A tap on it, E or the pad's X
+// swaps them. Only before a run (once a pilot is picked the run keeps it). Not saved: every page load starts on Waves
+const WorldPick = {
+  on: false, drawn: null,
+  get shown() { return !!Game.child && !Game.pilot && Title.on && !Maker.on; },
+  init() { $('worldB').addEventListener('click', (e) => { e.stopPropagation(); if (e.detail === 0 && !e.pointerType) return; this.toggle(); }); },   // (a key's click: E does it)
+  set(on) {
+    if (Game.pilot) return { ok: false, why: 'playing', ...this.status() };
+    this.on = !!on; if (this.on && WavePick.on) WavePick.close(true); else WavePick.draw();   // (the wave chip and picker go while the world is picked)
+    this.draw();
+    return { ok: true, ...this.status() };
+  },
+  toggle() { const res = this.set(!this.on); if (res.ok && !Game.manual) { Sfx.unlock(); Sfx.click(); } return res; },
+  draw() {
+    const k = this.on ? 'world' : 'waves', el = $('worldB');
+    if (this.drawn !== k) { this.drawn = el.dataset.w = k; el.setAttribute('aria-label', this.on ? 'Play: the endless world' : 'Play: waves'); }
+  },
+  status() { return { on: this.on, shown: this.shown, run: !!Game.world }; },
+};
 // #129: the wave the run's first wave out is: ?wave=N's (#122), else the wave picker's pick (1 unless a saved child picked one)
 function firstWave() { return WAVE_JUMP ? START_WAVE : WavePick.wave(); }
 // Who's playing: load child `c`'s record (an id, a name or an index into CHILDREN) and go on to the
@@ -7969,6 +8004,7 @@ function startGame(p) {
   if (!P || !h) return { ok: false, why: 'no such pilot' };
   if (!Game.child) pickChild('guest');
   if (!Game.pilot) Game.mode = ModePick.pick();   // #132: the run's mode, latched as it starts (it can't change mid-run)
+  if (!Game.pilot && WorldPick.on) World.enter();  // #167: the endless world, picked on the pilot pick (for this run)
   Game.pilot = P; setPilot(h, P); store.set('pilot', P.id); Title.cur = PILOTS.indexOf(P);
   startPlay();
   return { ok: true, pilot: P.id };
@@ -9716,11 +9752,15 @@ function steer(r, x, z, pace = 1, slowR = 0) {
 // or for anyone at all for ROBOT.alert seconds after it's been hit. Otherwise it roams.
 function engaged(r, tgt) { return !!tgt && (flatDist(r, tgt) < ROBOT_TYPES[r.type].notice || r.ai.alert > 0); }
 const meadowSpot = (rMax = 92) => { const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * rMax; return { x: Math.cos(a) * d, z: Math.sin(a) * d }; };
+// #167: the wave a beaten robot's fix board is set for: the wave in waves; in the endless world, wave 1's (math and facts as ever)
+const fixWave = () => Game.world ? 1 : Game.wave;
+// #167: where a roaming robot heads next: anywhere in the meadow in waves; in the endless world, near its own home (World.roamSpot)
+const roamSpot = (home) => Game.world ? World.roamSpot(home) : meadowSpot();
 // Roaming: amble to a random spot in the meadow, then pick another (giving up on one after 25 s)
 function roam(r, dt, pace = 0.45) {
   const ai = r.ai;
   ai.wpT = (ai.wpT || 0) - dt;
-  if (!ai.wp || ai.wpT <= 0 || Math.hypot(ai.wp.x - r.pos.x, ai.wp.z - r.pos.z) < 6) { ai.wp = meadowSpot(); ai.wpT = 25; }
+  if (!ai.wp || ai.wpT <= 0 || Math.hypot(ai.wp.x - r.pos.x, ai.wp.z - r.pos.z) < 6) { ai.wp = roamSpot(r.home); ai.wpT = 25; }
   steer(r, ai.wp.x, ai.wp.z, pace);
   r.input.boost = false; r.input.aimYaw = r.legHeading;
   ai.mode = 'roam';
@@ -9824,7 +9864,7 @@ function sniperAI(r, dt) {
   if (dist < T.keep[0]) {
     let ax = -dx / dist, az = -dz / dist;
     const R = Math.hypot(r.pos.x, r.pos.z);
-    if (R > 80) {
+    if (R > 80 && !Game.world) {
       // backed up against the rim: run round it (the way that's more "away"), edging back in
       const ox = r.pos.x / R, oz = r.pos.z / R, s = (-oz * ax + ox * az) >= 0 ? 1 : -1;
       ax = -oz * s - ox * 0.35; az = ox * s - oz * 0.35;
@@ -9891,7 +9931,7 @@ function droneAI(r, dt) {
   const mates = Game.robots.filter((q) => q.swarm === r.swarm && q.state === 'glitched');
   if (!tgt || Game.ticks - sw.seen > 4 * SIM_HZ) {
     let cx = 0, cz = 0; for (const q of mates) { cx += q.pos.x; cz += q.pos.z; } cx /= mates.length; cz /= mates.length;
-    if (!sw.wp || Math.hypot(sw.wp.x - cx, sw.wp.z - cz) < 8 || Game.ticks > sw.wpUntil) { sw.wp = meadowSpot(); sw.wpUntil = Game.ticks + 25 * SIM_HZ; }
+    if (!sw.wp || Math.hypot(sw.wp.x - cx, sw.wp.z - cz) < 8 || Game.ticks > sw.wpUntil) { sw.wp = roamSpot(r.home); sw.wpUntil = Game.ticks + 25 * SIM_HZ; }
     ai.mode = 'roam';
     steer(r, sw.wp.x + Math.cos(r.orbitA) * 4, sw.wp.z + Math.sin(r.orbitA) * 4, 0.5, 4);
     return;
@@ -10024,7 +10064,7 @@ function hop(r, target, plan) {
     }
   }
   // never off the edge of the meadow
-  const R = Math.hypot(x + off.x, z + off.z), lim = WORLD_R - 4;
+  const R = Math.hypot(x + off.x, z + off.z), lim = rimR() - 4;
   if (R > lim) { const k = lim / R; off.x = (x + off.x) * k - x; off.z = (z + off.z) * k - z; }
   const to = new V3(x + off.x, 0, z + off.z); to.y = landY(target.body, to);
   const dist = Math.hypot(to.x - from.x, to.z - from.z);
@@ -10187,7 +10227,7 @@ function ninjaMove(r, dt) {
     const dx = r.pos.x - o.x, dz = r.pos.z - o.z, d = Math.hypot(dx, dz), min = o.r + r.spec.radius;
     if (d < min && d > 1e-6) { r.pos.x = o.x + dx / d * min; r.pos.z = o.z + dz / d * min; }
   }
-  const R = Math.hypot(r.pos.x, r.pos.z); if (R > WORLD_R) { r.pos.x *= WORLD_R / R; r.pos.z *= WORLD_R / R; }
+  const R = Math.hypot(r.pos.x, r.pos.z); if (R > rimR()) { r.pos.x *= WORLD_R / R; r.pos.z *= WORLD_R / R; }
   r.pos.y = groundH(r.pos.x, r.pos.z); r.lift = 0;
   r.speed = v; r.torsoYaw = h; r.phase += (v * dt / r.spec.stride) * Math.PI;
   D.t -= dt;
@@ -10636,7 +10676,7 @@ const Copier = {
   dropSpot(p) {
     for (let t = 0; t < 24; t++) {
       const a = p.legHeading + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * 0.35 : 0), x = p.pos.x - Math.sin(a) * COPIER.drop, z = p.pos.z - Math.cos(a) * COPIER.drop;
-      if (Math.hypot(x, z) > WORLD_R - 8) continue;
+      if (Math.hypot(x, z) > rimR() - 8) continue;
       if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + MECH.radius + 1)) continue;
       if (Game.robots.some((r) => !ROBOT_TYPES[r.type].flies && Math.hypot(r.pos.x - x, r.pos.z - z) < r.spec.radius + MECH.radius + 1)) continue;
       return { x: r3(x), z: r3(z) };
@@ -10680,7 +10720,7 @@ const Copier = {
         }
       } else if (c.phase === 'print') {
         this.fly(c, c.drop.x, over(c.drop.x, c.drop.z), c.drop.z, dt, 1.5);
-        if (c.t <= 0) { c.phase = 'out'; const a = Math.atan2(c.pos.z, c.pos.x); c.away = { x: Math.cos(a) * (WORLD_R + 60), z: Math.sin(a) * (WORLD_R + 60) }; }
+        if (c.t <= 0) { c.phase = 'out'; const a = Math.atan2(c.pos.z, c.pos.x), o = Game.world ? Math.hypot(c.pos.x, c.pos.z) : 0; c.away = { x: Math.cos(a) * (WORLD_R + 60 + o), z: Math.sin(a) * (WORLD_R + 60 + o) }; }
       } else if (c.phase === 'out') {
         if (this.fly(c, c.away.x, c.pos.y + 1, c.away.z, dt, 1.3) < 1) { this.remove(c); continue; }
       }
@@ -10945,7 +10985,7 @@ function centSpot(r) {
   if (!b) return { x: r.pos.x, z: r.pos.z };
   let dx = b.pos.x - r.pos.x, dz = b.pos.z - r.pos.z; const d = Math.hypot(dx, dz), K = CENTIPEDE.dig.max;
   if (d > K) { dx *= K / d; dz *= K / d; }
-  let x = r.pos.x + dx, z = r.pos.z + dz; const o = Math.hypot(x, z), M = WORLD_R - 6; if (o > M) { x *= M / o; z *= M / o; }
+  let x = r.pos.x + dx, z = r.pos.z + dz; const o = Math.hypot(x, z), M = rimR() - 6; if (o > M) { x *= M / o; z *= M / o; }
   return { x, z };
 }
 // the dig's tunnel: under the ground straight to its spot at dig.speed m/s, a moving dirt trail over it, then it pops up.
@@ -11147,7 +11187,7 @@ const Axes = {
         this.end(a, 'hit', best); continue;
       }
       if (obstacles.some((o) => Math.hypot(o.x - a.x, o.z - a.z) < o.r + K.r)) { this.end(a, 'tree'); continue; }
-      if (a.went >= K.range || Math.hypot(a.x, a.z) > WORLD_R) this.end(a, 'far');
+      if (a.went >= K.range || Math.hypot(a.x, a.z) > rimR()) this.end(a, 'far');
     }
   },
   clear() { for (const a of [...this.list]) this.end(a, 'gone'); },
@@ -11297,8 +11337,8 @@ function powerDown(r, how) {
   // P3-1: from wave 1 the wave sets the board (fixPlan): its math wires, none burnt (a burnt wire is 🔥's charred
   // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
   // (#122: a Knight's board is bigger, bossPlan: from any wave, wave 0 too)
-  const P = ROBOT_TYPES[r.type].boss ? bossPlan(Game.wave, r.beatenBy, r.type) : Game.wave >= 1 ? fixPlan(Game.wave, r.beatenBy) : null;   // (#141: the boss's own)
-  r.board = P && { wave: Game.wave, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
+  const fw = fixWave(), P = ROBOT_TYPES[r.type].boss ? bossPlan(fw, r.beatenBy, r.type) : fw >= 1 ? fixPlan(fw, r.beatenBy) : null;   // (#141: the boss's own)
+  r.board = P && { wave: fw, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
   r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
   r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
@@ -12200,6 +12240,466 @@ const Hidden = {
 };
 
 // ===========================================================================
+// #167 slice 1: the endless world, a mode next to the waves (WorldPick on the pilot pick). The mech drives through
+// seeded chunks that never end: six places (mountains, a city, a junkyard, a desert, snowy mountains and caves), parts
+// lying on the ground and glitched robots roaming. No waves: a beaten robot is fixed into the squad (cap 3) or taken
+// apart as ever, its board set for wave 1 (fixWave). Every chunk's random numbers come from (seed, cx, cz), never from a
+// shared stream, so a chunk is the same whatever order the chunks load in (Wild World's way). Nothing here is saved:
+// the parts found go in the bag and the trophies as a meadow find does (Garage.collect(part, 'meadow')).
+// ===========================================================================
+const WORLD = {
+  seed: 167, chunk: 96, seg: 24,               // 96 m chunks on a 4 m grid
+  load: 2, keep: 3,                            // chunks within 2 of a player load (5 x 5); past 3 they go
+  cell: 260, blend: 80,                        // place cells (m) and the blend at their borders
+  start: 28, startBlend: 30, startClear: 50,   // the start: flat out to 28 m, blended by 58 m, nothing standing within 50 m
+  fog: [50, 175],                              // (the meadow's is 60-210: the loaded edge is at least 192 m off)
+  robots: { chance: 0.5, cap: 8, types: ['charger', 'sniper', 'bouncer', 'drone'], away: 75, roam: 40 },
+  parts: { n: 1, junkyard: 2 },
+  city: { block: 48, street: 14 },
+  cave: { chance: 0.75, hw: 7, back: 28, roof: 12, wall: 6, top: 18, flat: 30, blend: 8 },
+};
+const PLACES = ['mountains', 'city', 'junkyard', 'desert', 'snow', 'cave'];
+const PL = Object.fromEntries(PLACES.map((p, i) => [p, i]));
+
+// ---- seeded noise (Wild World's) ----
+function wHash(a, b, c) {
+  let h = (Math.imul(a | 0, 0x27d4eb2d) + Math.imul(b | 0, 0x165667b1) + Math.imul(c | 0, 0x9e3779b1) + Math.imul(WORLD.seed, 0x85ebca77)) | 0;
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b); h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35); h ^= h >>> 16;
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d); h ^= h >>> 12;
+  return h >>> 0;
+}
+const wHash3 = (a, b, c) => wHash(a, b, c) / 4294967296;
+function wRng(s0) { let s = s0 >>> 0; return () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const wSmooth = (t) => t * t * (3 - 2 * t);
+function wNoise(x, z, salt) {
+  const ix = Math.floor(x), iz = Math.floor(z), fx = wSmooth(x - ix), fz = wSmooth(z - iz);
+  const a = wHash3(ix, iz, salt), b = wHash3(ix + 1, iz, salt), c = wHash3(ix, iz + 1, salt), d = wHash3(ix + 1, iz + 1, salt);
+  return lerp(lerp(a, b, fx), lerp(c, d, fx), fz);
+}
+function wFbm(x, z, salt, oct = 3) { let s = 0, amp = 0.5, f = 1, n = 0; for (let o = 0; o < oct; o++) { s += amp * wNoise(x * f, z * f, salt + o * 17); n += amp; amp *= 0.5; f *= 2.03; } return s / n; }
+
+const World = {
+  chunks: new Map(),          // 'cx,cz' -> the loaded chunk
+  broken: new Set(),          // the props smashed (their keys): a chunk loaded again leaves them out
+  taken: new Set(),           // the ground parts picked up (their keys): never back
+  gone: new Set(),            // the robots beaten and fixed or taken apart (their keys): never back
+  live: new Map(),            // key -> the robots out from that chunk (a drone swarm is one entry)
+  vh: new Map(), caves: new Map(), blocks: new Map(),
+  sweepT: 0, ghosts: [],
+  // ---- places: jittered cells; every 2 x 3 block of cells holds all six, in a seeded order, warped so borders wander ----
+  block(si, sj) {
+    const k = si * 65536 + sj; let o = this.blocks.get(k);
+    if (!o) { o = [0, 1, 2, 3, 4, 5]; for (let i = 5; i > 0; i--) { const j = Math.floor(wHash3(si * 7 + i, sj, 13) * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } if (this.blocks.size > 4096) this.blocks.clear(); this.blocks.set(k, o); }
+    return o;
+  },
+  cellPlace(i, j) { const si = Math.floor(i / 2), sj = Math.floor(j / 3); return this.block(si, sj)[(i - si * 2) * 3 + (j - sj * 3)]; },
+  // { b: the place, b2: the nearest other place, e: 0 at the border .. 1 well inside }
+  placeRaw(x, z) {
+    const C = WORLD.cell, wx = x + 80 * (wNoise(x / 100, z / 100, 21) - 0.5), wz = z + 80 * (wNoise(x / 100, z / 100, 22) - 0.5);
+    const i0 = Math.floor(wx / C), j0 = Math.floor(wz / C);
+    let d1 = 1e9, b1 = 0, d2 = 1e9, b2 = -1; const cand = [];
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+      const i = i0 + di, j = j0 + dj, px = (i + 0.2 + 0.6 * wHash3(i, j, 11)) * C, pz = (j + 0.2 + 0.6 * wHash3(i, j, 12)) * C;
+      const d = Math.hypot(wx - px, wz - pz), b = this.cellPlace(i, j); cand.push(d, b);
+      if (d < d1) { d1 = d; b1 = b; }
+    }
+    for (let k = 0; k < cand.length; k += 2) if (cand[k + 1] !== b1 && cand[k] < d2) { d2 = cand[k]; b2 = cand[k + 1]; }
+    if (b2 < 0) return { b: b1, b2: b1, e: 1 };
+    return { b: b1, b2, e: clamp((d2 - d1) / WORLD.blend, 0, 1) };
+  },
+  place(x, z) { return this.inCave(x, z) ? 'cave' : PLACES[this.placeRaw(x, z).b]; },
+  // each place's own ground
+  placeH(b, x, z) {
+    if (b === PL.mountains) return 2 + 95 * Math.max(0, wFbm(x / 130, z / 130, 41, 4) - 0.4);
+    if (b === PL.city) return 0.8 + 0.5 * wFbm(x / 220, z / 220, 42);
+    if (b === PL.junkyard) return 1 + 3.2 * wFbm(x / 22, z / 22, 43, 2);
+    if (b === PL.desert) { const n = wFbm(x / 70, z / 95, 44), r = 1 - Math.abs(2 * n - 1); return 1.4 + 6 * r * r; }
+    if (b === PL.snow) return 3 + 130 * Math.max(0, wFbm(x / 140, z / 140, 45, 4) - 0.38);
+    return 1.5 + 9 * wFbm(x / 45, z / 45, 46, 3);   // cave country: rocky hills
+  },
+  baseH(x, z) {
+    const { b, b2, e } = this.placeRaw(x, z);
+    let h = lerp(this.placeH(b, x, z), this.placeH(b2, x, z), 0.5 * (1 - wSmooth(e)));
+    const r = Math.hypot(x, z);
+    if (r < WORLD.start + WORLD.startBlend) h = lerp(1, h, wSmooth(clamp((r - WORLD.start) / WORLD.startBlend, 0, 1)));
+    return h;
+  },
+  // ---- caves: a walk-in rock hall, at most one per cave-country chunk. In its own frame (origin: the middle of the
+  // doorway, +lz out of the door) the hall is |lx| < hw from the door (lz 0) back to lz = -back, under a roof; the
+  // ground round it is flattened to its floor (the shell is built, the terrain can't be carved) ----
+  cave(cx, cz) {
+    const key = cx * 65536 + cz; if (this.caves.has(key)) return this.caves.get(key);
+    let c = null; const R = wRng(wHash(cx, cz, 404)), K = WORLD.cave;
+    if (R() < K.chance) {
+      const edge = K.flat + K.blend + 1, C = WORLD.chunk, mx = cx * C + edge + R() * (C - 2 * edge), mz = cz * C + edge + R() * (C - 2 * edge), ry = R() * Math.PI * 2;
+      const pl = this.placeRaw(mx, mz);
+      if (pl.b === PL.cave && pl.e > 0.45 && Math.hypot(mx, mz) > WORLD.startClear + K.flat + K.blend) {
+        // (mx, mz): the hall's middle; the door is back/2 in front of it, along the cave's +lz
+        const cs = Math.cos(ry), sn = Math.sin(ry), y = this.baseH(mx, mz), off = K.back / 2;
+        c = { cx, cz, ry, cs, sn, y, mx, mz, x: mx + off * sn, z: mz + off * cs };
+      }
+    }
+    if (this.caves.size > 8192) this.caves.clear();
+    this.caves.set(key, c); return c;
+  },
+  caveAt(x, z) { return this.cave(Math.floor(x / WORLD.chunk), Math.floor(z / WORLD.chunk)); },
+  local(c, x, z) { const dx = x - c.x, dz = z - c.z; return [dx * c.cs - dz * c.sn, dx * c.sn + dz * c.cs]; },
+  toWorld(c, lx, lz) { return [c.x + lx * c.cs + lz * c.sn, c.z - lx * c.sn + lz * c.cs]; },
+  inCave(x, z, m = 0) { const c = this.caveAt(x, z); if (!c) return null; const [lx, lz] = this.local(c, x, z); return Math.abs(lx) < WORLD.cave.hw - m && lz > -WORLD.cave.back + m && lz < 0.5 ? c : null; },
+  rawH(x, z) {
+    const h = this.baseH(x, z), c = this.caveAt(x, z); if (!c) return h;
+    const K = WORLD.cave, d = Math.hypot(x - c.mx, z - c.mz); if (d >= K.flat + K.blend) return h;
+    return lerp(c.y, h, wSmooth(clamp((d - K.flat) / K.blend, 0, 1)));
+  },
+  // the vertex heights, cached; the ground exactly as the chunk's mesh draws it (the same two triangles a grid cell)
+  vert(i, j) { const k = i * 1048576 + j; let v = this.vh.get(k); if (v === undefined) { if (this.vh.size > 400000) this.vh.clear(); v = this.rawH(i * 4, j * 4); this.vh.set(k, v); } return v; },
+  h(x, z) {
+    const gx = x / 4, gz = z / 4, i = Math.floor(gx), j = Math.floor(gz), fx = gx - i, fz = gz - j;
+    if (fx + fz <= 1) { const a = this.vert(i, j); return a + (this.vert(i + 1, j) - a) * fx + (this.vert(i, j + 1) - a) * fz; }
+    const d = this.vert(i + 1, j + 1); return d + (this.vert(i, j + 1) - d) * (1 - fx) + (this.vert(i + 1, j) - d) * (1 - fz);
+  },
+  // where a roaming robot heads next: somewhere near its home (the spot it came out at)
+  roamSpot(home) {
+    const o = home || Game.humans[0]?.mech.pos || { x: 0, z: 0 }, a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * WORLD.robots.roam;
+    return { x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d };
+  },
+
+  // ---- going in: the meadow is put away (its ground, grass, props, kits and hidden parts), the fog drawn in, and the
+  // chunks round the start loaded at once ----
+  enter() {
+    if (Game.world) return;
+    Game.world = true;
+    for (const o of [Meadow.ground, Meadow.grass, Meadow.flowers, ...(Meadow.pebbles || [])]) if (o) scene.remove(o);
+    for (const p of Props.list) { scene.remove(p.root); if (p.debris) scene.remove(p.debris); }
+    Props.list.length = 0; obstacles.length = 0;
+    for (const k of Kits.list) scene.remove(k.g); Kits.list.length = 0;
+    for (const q of Hidden.list) scene.remove(q.g); Hidden.list.length = 0;
+    scene.fog.near = WORLD.fog[0]; scene.fog.far = WORLD.fog[1];
+    this.update(true);
+    for (const m of Game.mechs) m.pos.y = groundH(m.pos.x, m.pos.z);
+    for (const r of Game.robots) r.pos.y = groundH(r.pos.x, r.pos.z) + (r.lift || 0);
+  },
+  // ---- chunks ----
+  key: (cx, cz) => cx + ',' + cz,
+  // the chunks wanted (within WORLD.load of a player), loading the nearest first: all at once (now) or one a tick
+  update(now = false) {
+    const C = WORLD.chunk, at = Game.humans.map((h) => [Math.floor(h.mech.pos.x / C), Math.floor(h.mech.pos.z / C)]);
+    if (!at.length) return;
+    const want = [];
+    for (const [ax, az] of at) for (let dx = -WORLD.load; dx <= WORLD.load; dx++) for (let dz = -WORLD.load; dz <= WORLD.load; dz++) {
+      const cx = ax + dx, cz = az + dz; if (!this.chunks.has(this.key(cx, cz))) want.push([cx, cz, dx * dx + dz * dz]);
+    }
+    want.sort((a, b) => a[2] - b[2]);
+    for (const [cx, cz] of now ? want : want.slice(0, 1)) if (!this.chunks.has(this.key(cx, cz))) this.load(cx, cz);
+    for (const [k, ch] of this.chunks) if (at.every(([ax, az]) => Math.max(Math.abs(ch.cx - ax), Math.abs(ch.cz - az)) > WORLD.keep)) this.unload(k);
+  },
+  load(cx, cz) {
+    const ch = { cx, cz, key: this.key(cx, cz), group: new THREE.Group(), props: [], obs: [], parts: [], towers: [], caves: [] };
+    this.chunks.set(ch.key, ch);
+    ch.ground = this.groundMesh(cx, cz); ch.group.add(ch.ground);
+    this.fill(ch);
+    scene.add(ch.group);
+    this.robotsFor(ch);
+    return ch;
+  },
+  unload(k) {
+    const ch = this.chunks.get(k); if (!ch) return;
+    for (const p of ch.props) {
+      if (p.broken) this.broken.add(p.wkey);
+      for (const o of p.obs) { const i = obstacles.indexOf(o); if (i >= 0) obstacles.splice(i, 1); }
+      const i = Props.list.indexOf(p); if (i >= 0) Props.list.splice(i, 1);
+      scene.remove(p.root); if (p.debris) scene.remove(p.debris);
+    }
+    for (const o of ch.obs) { const i = obstacles.indexOf(o); if (i >= 0) obstacles.splice(i, 1); }
+    for (const q of ch.parts) {
+      if (q.found) this.taken.add(q.wkey);
+      scene.remove(q.g); q.mark.material.dispose();
+      const i = Hidden.list.indexOf(q); if (i >= 0) Hidden.list.splice(i, 1);
+    }
+    scene.remove(ch.group); ch.ground.geometry.dispose();
+    this.ghosts = this.ghosts.filter((g) => g.ch !== ch);
+    this.chunks.delete(k);
+  },
+  // the ground: a vertex-coloured grid (each place its own colours; the city's streets)
+  groundMesh(cx, cz) {
+    const C = WORLD.chunk, S = WORLD.seg, n = S + 1, pos = new Float32Array(n * n * 3), col = new Float32Array(n * n * 3), idx = [];
+    const c1 = new THREE.Color(), c2 = new THREE.Color(), i0 = cx * S, j0 = cz * S;
+    for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
+      const i = i0 + a, j = j0 + b, x = i * 4, z = j * 4, y = this.vert(i, j), v = (a * n + b) * 3;
+      pos[v] = x - cx * C; pos[v + 1] = y; pos[v + 2] = z - cz * C;
+      const P = this.placeRaw(x, z);
+      this.tint(P.b, x, y, z, c1); this.tint(P.b2, x, y, z, c2); c1.lerp(c2, 0.5 * (1 - wSmooth(P.e)));
+      if (Math.hypot(x, z) < WORLD.start + WORLD.startBlend) c1.lerp(c2.set('#9a9a86'), 0.5 * (1 - wSmooth(clamp((Math.hypot(x, z) - WORLD.start) / WORLD.startBlend, 0, 1))));
+      col[v] = c1.r; col[v + 1] = c1.g; col[v + 2] = c1.b;
+    }
+    for (let a = 0; a < S; a++) for (let b = 0; b < S; b++) {
+      // the same triangles World.h reads: (i, j) (i+1, j) (i, j+1) and (i+1, j+1) (i, j+1) (i+1, j)
+      const p00 = a * n + b, p10 = (a + 1) * n + b, p01 = a * n + b + 1, p11 = (a + 1) * n + b + 1;
+      idx.push(p00, p01, p10, p11, p10, p01);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, this.mats().ground); m.position.set(cx * C, 0, cz * C); m.receiveShadow = true;
+    return m;
+  },
+  tint(b, x, y, z, c) {
+    const n = wNoise(x / 9, z / 9, 61);
+    if (b === PL.mountains) { c.set('#5f9a3e').lerp(W_COL.dirt, clamp((y - 6) / 14, 0, 1)).lerp(W_COL.rock, clamp((y - 16) / 14, 0, 1)); }
+    else if (b === PL.city) {
+      const B = WORLD.city.block, st = WORLD.city.street, mx = ((x % B) + B) % B, mz = ((z % B) + B) % B;
+      if (mx < st || mz < st) c.set((mx > st / 2 - 1 && mx < st / 2 + 1) || (mz > st / 2 - 1 && mz < st / 2 + 1) ? '#c9b24a' : '#4a4d55');   // a street (a yellow line down its middle)
+      else c.set('#9a9890');                                                                                                            // a pavement
+      return;
+    } else if (b === PL.junkyard) c.set('#7d5a3c').lerp(W_COL.rust, n * 0.7);
+    else if (b === PL.desert) c.set('#e3c47e').lerp(W_COL.sandDark, n * 0.45);
+    else if (b === PL.snow) { c.set('#7d8a92').lerp(W_COL.snow, clamp((y - 6) / 10, 0, 1)); }
+    else c.set('#5a5560').lerp(W_COL.cave, n * 0.6);
+    c.offsetHSL(0, 0, (n - 0.5) * 0.06);
+  },
+  // shared materials and geometries (built once: a chunk's props reuse them, so loading and unloading leaks nothing)
+  mats() {
+    if (this.M) return this.M;
+    const winTex = (wall, lit, dark) => {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d');
+      x.fillStyle = wall; x.fillRect(0, 0, 64, 64);
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { x.fillStyle = (i + j * 3) % 4 === 1 ? dark : lit; x.fillRect(4 + i * 32, 6 + j * 32, 22, 20); }
+      const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t;
+    };
+    const tower = (wall, lit, dark) => { const t = winTex(wall, lit, dark); return new THREE.MeshStandardMaterial({ map: t, emissiveMap: t, emissive: '#ffffff', emissiveIntensity: 0.18, roughness: 0.5, metalness: 0.3 }); };
+    const towers = [tower('#5d6878', '#bfe6ff', '#26354a'), tower('#8a7f72', '#ffe2a0', '#3a3530'), tower('#3d4656', '#7fd8ff', '#1c2433')];
+    const ghost = (m) => { const g = m.clone(); g.transparent = true; g.opacity = 0.28; g.depthWrite = false; return g; };
+    const rockM = mat('#6a6470', { roughness: 0.95, metalness: 0, flatShading: true });
+    this.M = { ground: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }), towers, towerGhosts: towers.map(ghost), caveRock: rockM, caveGhost: ghost(rockM) };
+    const rock = (k) => { const g = new THREE.DodecahedronGeometry(1, 1), p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) { const f = 0.78 + 0.35 * Math.abs(Math.sin(p.getX(i) * 3.1 + p.getY(i) * 5.3 + p.getZ(i) * 2.7 + k)); p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.7, p.getZ(i) * f); }
+      g.computeVertexNormals(); return g; };
+    this.G = { box: new THREE.BoxGeometry(1, 1, 1), rocks: [rock(1.3), rock(4.1), rock(7.7)],
+      stump: new THREE.CylinderGeometry(0.544, 0.6, 1, 7), trunk: new THREE.CylinderGeometry(0.3, 0.5, 1, 7), cone: new THREE.ConeGeometry(1, 1, 8),
+      cyl: new THREE.CylinderGeometry(1, 1, 1, 8), ball: new THREE.IcosahedronGeometry(1, 1), tyre: new THREE.TorusGeometry(0.8, 0.32, 6, 12), towers: new Map() };
+    for (const g of [this.G.box, ...this.G.rocks, this.G.stump, this.G.trunk, this.G.cone, this.G.cyl, this.G.ball, this.G.tyre]) g.userData.shared = true;
+    return this.M;
+  },
+  // a tower's box, its windows one to every 4 m (a size is built once and shared)
+  towerGeo(w, hgt) {
+    const k = w + 'x' + hgt; let g = this.G.towers.get(k);
+    if (!g) {
+      g = new THREE.BoxGeometry(w, hgt, w); const uv = g.attributes.uv;
+      for (let i = 0; i < uv.count; i++) { const face = Math.floor(i / 4); if (face === 2 || face === 3) uv.setXY(i, 0.02, 0.02); else uv.setXY(i, uv.getX(i) * w / 8, uv.getY(i) * hgt / 8); }
+      g.translate(0, hgt / 2, 0); this.G.towers.set(k, g);
+    }
+    return g;
+  },
+  mesh(geo, m, x, y, z, sx, sy, sz, parent) { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.scale.set(sx, sy ?? sx, sz ?? sx); o.castShadow = true; parent.add(o); return o; },
+
+  // ---- what stands in a chunk: the props by place, the city's towers, a cave, then the parts on the ground ----
+  fill(ch) {
+    this.mats();
+    const C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 101)), x0 = ch.cx * C, z0 = ch.cz * C;
+    const cave = this.cave(ch.cx, ch.cz);
+    if (cave) this.addCave(ch, cave);
+    const clear = (x, z, r) => Math.hypot(x, z) > WORLD.startClear && (!cave || Math.hypot(x - cave.mx, z - cave.mz) > WORLD.cave.flat + 2 + r)
+      && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + r + 1.5);
+    this.city(ch, clear);
+    for (let k = 0; k < 26; k++) {
+      const x = x0 + R() * C, z = z0 + R() * C, pick = R(), s = 0.8 + R() * 0.7, wkey = ch.key + ':' + k;
+      const P = this.placeRaw(x, z); if (P.e < 0.15 && R() < 0.5) continue;
+      const b = P.b;
+      if (this.broken.has(wkey)) continue;
+      if (b === PL.city) { if (pick < 0.12 && clear(x, z, 2)) this.addRock(ch, wkey, x, z, 0.6 + s * 0.4, '#8e8b84'); continue; }
+      if (b === PL.mountains) { if (pick < 0.5 && clear(x, z, 2)) this.addPine(ch, wkey, x, z, s, false); else if (pick < 0.7 && clear(x, z, 3)) this.addRock(ch, wkey, x, z, 1 + s * 1.3, '#8a8f99'); }
+      else if (b === PL.snow) { if (pick < 0.45 && clear(x, z, 2)) this.addPine(ch, wkey, x, z, s, true); else if (pick < 0.65 && clear(x, z, 3)) this.addRock(ch, wkey, x, z, 1 + s * 1.3, '#c9d3dc'); }
+      else if (b === PL.junkyard) { if (pick < 0.55 && clear(x, z, 3)) this.addJunk(ch, wkey, x, z, s, R); else if (pick < 0.7 && clear(x, z, 2)) this.addRock(ch, wkey, x, z, 0.8 + s, '#8a5a3a'); }
+      else if (b === PL.desert) { if (pick < 0.3 && clear(x, z, 2)) this.addCactus(ch, wkey, x, z, s, R); else if (pick < 0.42 && clear(x, z, 3)) this.addRock(ch, wkey, x, z, 1 + s * 1.2, '#c98d5a'); }
+      else if (pick < 0.4 && clear(x, z, 3)) this.addRock(ch, wkey, x, z, 1 + s * 1.5, '#6c6672');
+    }
+    // parts on the ground: one a chunk (two in a junkyard), each at a seeded spot a mech can stand on, never twice
+    const RP = wRng(wHash(ch.cx, ch.cz, 202));
+    const n = this.placeRaw(x0 + C / 2, z0 + C / 2).b === PL.junkyard ? WORLD.parts.junkyard : WORLD.parts.n;
+    for (let k = 0; k < n; k++) {
+      const wkey = ch.key + ':p' + k, part = HIDDEN.kinds[Math.floor(RP() * HIDDEN.kinds.length)];
+      let at = null;
+      for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }
+      if (!at || this.taken.has(wkey)) continue;
+      const q = Hidden.add(at[0], at[1], part); q.wkey = wkey; ch.parts.push(q);
+    }
+  },
+  addPine(ch, wkey, x, z, s, snowy) {
+    const G = this.G, t = new THREE.Group(); t.position.set(x, this.h(x, z) - 0.2, z);
+    const bark = mat('#6a4528', { roughness: 0.9, metalness: 0 });
+    this.mesh(G.stump, bark, 0, 0.5 * s, 0, s, s, s, t);
+    const top = new THREE.Group(); top.position.y = s; t.add(top);
+    this.mesh(G.trunk, bark, 0, 1.5 * s, 0, s, 3 * s, s, top);
+    const greens = snowy ? ['#2c5a3a', '#e8f2f8', '#f4fbff'] : ['#2c6e34', '#35803c', '#41923f'];
+    for (let k = 0; k < 3; k++) this.mesh(G.cone, mat(greens[k], { roughness: 0.85, metalness: 0, flatShading: true }), 0, (2.2 + k * 1.6) * s, 0, (2.6 - k * 0.7) * s, 3 * s, (2.6 - k * 0.7) * s, top);
+    ch.group.add(t);
+    const p = Props.add('tree', x, z, [{ x, z, r: 0.8 * s, h: 5 }], { root: t, top, s }); p.wkey = wkey; ch.props.push(p);
+  },
+  addCactus(ch, wkey, x, z, s, R) {
+    const G = this.G, t = new THREE.Group(); t.position.set(x, this.h(x, z) - 0.2, z);
+    const green = mat('#3f8f4a', { roughness: 0.8, metalness: 0, flatShading: true });
+    this.mesh(G.cyl, green, 0, 0.5 * s, 0, 0.55 * s, s, 0.55 * s, t);
+    const top = new THREE.Group(); top.position.y = s; t.add(top);
+    this.mesh(G.cyl, green, 0, 1.6 * s, 0, 0.5 * s, 3.2 * s, 0.5 * s, top);
+    this.mesh(G.ball, green, 0, 3.2 * s, 0, 0.5 * s, 0.5 * s, 0.5 * s, top);
+    for (const side of [-1, 1]) if (R() < 0.8) {
+      const y = (1.2 + R() * 1.2) * s;
+      this.mesh(G.cyl, green, side * 0.8 * s, y, 0, 0.32 * s, 0.32 * s, 0.32 * s, top).rotation.z = Math.PI / 2;
+      this.mesh(G.cyl, green, side * 1.05 * s, y + 0.6 * s, 0, 0.3 * s, 1.3 * s, 0.3 * s, top);
+    }
+    ch.group.add(t);
+    const p = Props.add('tree', x, z, [{ x, z, r: 0.7 * s, h: 4 }], { root: t, top, s }); p.wkey = wkey; ch.props.push(p);
+  },
+  addRock(ch, wkey, x, z, s, col) {
+    const r = new THREE.Mesh(this.G.rocks[Math.floor(wHash3(Math.round(x), Math.round(z), 5) * 3)], mat(col, { roughness: 0.95, metalness: 0, flatShading: true }));
+    r.scale.setScalar(s); r.rotation.y = wHash3(Math.round(x), Math.round(z), 6) * 6; r.position.set(x, this.h(x, z) + s * 0.25, z); r.castShadow = r.receiveShadow = true;
+    ch.group.add(r);
+    const p = Props.add('rock', x, z, [{ x, z, r: s * 0.95, h: s * 1.1 }], { root: r, s, col }); p.wkey = wkey; ch.props.push(p);
+  },
+  // a junk pile: scrap boxes and a tyre or two in a heap (it crumbles to rust-coloured rubble, as a rock does)
+  addJunk(ch, wkey, x, z, s, R) {
+    const G = this.G, g = new THREE.Group(); g.position.set(x, this.h(x, z), z);
+    const cols = ['#8a5a3a', '#6f7a84', '#a8673a', '#5a6470', '#b8a04a'];
+    for (let k = 0; k < 5; k++) {
+      const b = this.mesh(G.box, mat(cols[k], { roughness: 0.8, metalness: 0.5 }), (R() - 0.5) * 2.4 * s, (0.4 + k * 0.35) * s, (R() - 0.5) * 2.4 * s, (0.8 + R() * 1.2) * s, (0.5 + R() * 0.7) * s, (0.8 + R()) * s, g);
+      b.rotation.set((R() - 0.5) * 0.6, R() * 3, (R() - 0.5) * 0.6);
+    }
+    for (let k = 0; k < 2; k++) { const t = this.mesh(G.tyre, mat('#22252b', { roughness: 0.9, metalness: 0 }), (R() - 0.5) * 3 * s, 0.35 * s, (R() - 0.5) * 3 * s, s, s, s, g); t.rotation.x = Math.PI / 2 + (R() - 0.5) * 0.5; }
+    ch.group.add(g);
+    const p = Props.add('rock', x, z, [{ x, z, r: 1.7 * s, h: 2.2 * s }], { root: g, s: 1.6 * s, col: '#8a5a3a' }); p.wkey = wkey; ch.props.push(p);
+  },
+  // the city: a tower in each block, tall with lots of windows, signs or screens on poles on the roofs, and an antenna
+  // on the chunk's tallest tower. A tower can't be smashed; it blocks as a ring of circles (kind 'rock')
+  city(ch, clear) {
+    const C = WORLD.chunk, B = WORLD.city.block, st = WORLD.city.street, R = wRng(wHash(ch.cx, ch.cz, 505)), M = this.M, G = this.G;
+    const built = [];
+    for (let bi = 0; bi < C / B; bi++) for (let bj = 0; bj < C / B; bj++) {
+      const cx = ch.cx * C + bi * B + (B + st) / 2, cz = ch.cz * C + bj * B + (B + st) / 2, roll = R(), w = 12 + Math.floor(R() * 3) * 4, hgt = 20 + Math.floor(R() * 6) * 8, m = Math.floor(R() * 3), sign = R();
+      const P = this.placeRaw(cx, cz);
+      if (P.b !== PL.city || P.e < 0.4 || roll > 0.9 || !clear(cx, cz, w * 0.75)) continue;
+      const y = Math.min(this.h(cx - w / 2, cz - w / 2), this.h(cx + w / 2, cz - w / 2), this.h(cx - w / 2, cz + w / 2), this.h(cx + w / 2, cz + w / 2)) - 2;
+      const t = new THREE.Mesh(this.towerGeo(w, hgt + 2), M.towers[m]); t.position.set(cx, y, cz); t.castShadow = t.receiveShadow = true; ch.group.add(t);
+      const top = y + hgt + 2, tw = { ch, mesh: t, m, x: cx, z: cz, r: w * 0.72, top, extra: [] };
+      // a sign or a screen on poles on the roof
+      if (sign < 0.75) {
+        const hex = ['#ff3d6e', '#3ff0ff', '#ffd21f', '#7cff6b'][Math.floor(sign * 16) % 4], pole = mat('#3a3f4a', { roughness: 0.6, metalness: 0.6 });
+        const sw = w * 0.7, ph = 3;
+        for (const s of [-1, 1]) this.mesh(G.cyl, pole, cx + s * sw * 0.4, top + ph / 2, cz, 0.18, ph, 0.18, ch.group);
+        tw.extra.push(this.mesh(G.box, mat('#1a1d26', { roughness: 0.5 }), cx, top + ph + 1.4, cz, sw, 2.8, 0.4, ch.group));
+        tw.extra.push(this.mesh(G.box, glowMat(hex, 1.6), cx, top + ph + 1.4, cz + 0.22, sw * 0.9, 2.3, 0.05, ch.group));
+      }
+      for (const [ox, oz, r] of [[0, 0, w * 0.5], [-w * 0.3, -w * 0.3, w * 0.3], [w * 0.3, -w * 0.3, w * 0.3], [-w * 0.3, w * 0.3, w * 0.3], [w * 0.3, w * 0.3, w * 0.3]]) {
+        const o = { x: cx + ox, z: cz + oz, r, h: hgt + 2, kind: 'rock', prop: null }; obstacles.push(o); ch.obs.push(o);
+      }
+      ch.towers.push(tw); built.push(tw);
+    }
+    // the antenna on the tallest
+    const tall = built.reduce((a, t) => (!a || t.top > a.top ? t : a), null);
+    if (tall) {
+      const steel = mat('#c8ccd4', { roughness: 0.4, metalness: 0.8 });
+      this.mesh(G.cyl, steel, tall.x + 2, tall.top + 6, tall.z - 2, 0.22, 12, 0.22, ch.group);
+      this.mesh(G.cyl, steel, tall.x + 2, tall.top + 3, tall.z - 2, 0.9, 0.25, 0.9, ch.group);
+      this.mesh(G.ball, glowMat('#ff2a2a', 3), tall.x + 2, tall.top + 12.3, tall.z - 2, 0.4, 0.4, 0.4, ch.group);
+      tall.antenna = true;
+    }
+  },
+  // a cave: rock walls each side and at the back, a roof over the hall; normally lit (the dark is a later slice)
+  addCave(ch, c) {
+    const K = WORLD.cave, G = this.G, M = this.M, g = new THREE.Group(), y = c.y - 1;
+    g.position.set(c.x, y, c.z); g.rotation.y = c.ry;
+    const T = K.wall, D = K.back + T, H = K.top;
+    const parts = [
+      this.mesh(G.box, M.caveRock, -(K.hw + T / 2), H / 2, -D / 2, T, H, D, g),
+      this.mesh(G.box, M.caveRock, K.hw + T / 2, H / 2, -D / 2, T, H, D, g),
+      this.mesh(G.box, M.caveRock, 0, H / 2, -(K.back + T / 2), 2 * K.hw, H, T, g),
+      this.mesh(G.box, M.caveRock, 0, K.roof + (H - K.roof) / 2, -K.back / 2, 2 * K.hw, H - K.roof, K.back, g),
+    ];
+    // rough rock heaped over the shell, so it reads as a hill
+    for (let k = 0; k < 5; k++) { const r = this.mesh(G.rocks[k % 3], M.caveRock, (k - 2) * 5, H + 1, -D / 2 + ((k * 7) % 5 - 2) * 3, 7, 5, 7, g); parts.push(r); }
+    for (const p of parts) p.receiveShadow = true;
+    ch.group.add(g);
+    // the walls block as lines of circles (3 m apart, overlapping)
+    const add = (lx, lz) => { const [x, z] = this.toWorld(c, lx, lz), o = { x, z, r: T / 2, h: H, kind: 'rock', prop: null }; obstacles.push(o); ch.obs.push(o); };
+    for (let lz = -T / 2; lz >= -D; lz -= 3) { add(-(K.hw + T / 2), lz); add(K.hw + T / 2, lz); }
+    for (let lx = -K.hw; lx <= K.hw; lx += 3) add(lx, -(K.back + T / 2));
+    ch.caves.push({ ch, c, parts, D, W: K.hw + T });
+  },
+  // ---- robots: about half the chunks away from the start have one (a drone swarm counts as one), of a seeded type,
+  // roaming near where it came out; at most WORLD.robots.cap out at once. One that's beaten and fixed or taken apart never
+  // comes back; one left glitched far behind goes, and comes again when its chunk loads again ----
+  robotsFor(ch) {
+    const RW = WORLD.robots, C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 303)), key = ch.key + ':r';
+    const roll = R(), type = RW.types[Math.floor(R() * RW.types.length)];
+    if (roll >= RW.chance || this.gone.has(key) || this.live.has(key) || this.live.size >= RW.cap || !Game.humans[0]) return;
+    let at = null;
+    for (let t = 0; t < 10 && !at; t++) {
+      const x = ch.cx * C + 10 + R() * (C - 20), z = ch.cz * C + 10 + R() * (C - 20);
+      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
+      if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + 4)) continue;
+      at = [x, z];
+    }
+    if (!at) return;
+    const list = [].concat(spawn(type, at[0], at[1]) || []), hp = Waves.health();
+    for (const r of list) { r.home = { x: at[0], z: at[1] }; r.wkey = key; r.pos.y = groundH(r.pos.x, r.pos.z) + (r.lift || 0); if (hp !== 1) r.health = r.maxHealth = Math.round(r.maxHealth * hp); }
+    this.live.set(key, list);
+  },
+  // every 2 s: a robot fixed or taken apart is gone for good; a group still glitched far past the loaded chunks goes
+  sweep() {
+    const far = (WORLD.keep + 0.5) * WORLD.chunk;
+    for (const [key, list] of this.live) {
+      const left = list.filter((r) => Game.robots.includes(r) && r.state !== 'ally' && !Game.squad.includes(r));
+      if (!left.length) { this.gone.add(key); this.live.delete(key); continue; }
+      if (left.every((r) => r.state === 'glitched' && !r.repairBy && Game.humans.every((h) => Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z) > far))) {
+        for (const r of left) removeRobot(r);
+        const sw = list[0].swarm; if (sw != null && !Game.robots.some((r) => r.swarm === sw)) delete Game.swarms[sw];
+        if (left.length < list.length) this.gone.add(key);   // (some of it beaten: what's left doesn't come back whole)
+        this.live.delete(key);
+      }
+    }
+  },
+  // the ground parts found so far (those picked up in the loaded chunks counted in at once)
+  foundN() { for (const ch of this.chunks.values()) for (const q of ch.parts) if (q.found) this.taken.add(q.wkey); return this.taken.size; },
+  tick(dt) {
+    this.update(false);
+    this.foundN();
+    this.sweepT -= dt; if (this.sweepT <= 0) { this.sweepT = 2; this.sweep(); }
+  },
+  // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through, and a cave's roof
+  // while a mech is inside its hall
+  sync() {
+    const h = Game.humans[0]; if (!h) return;
+    const c = h.rig.cam.position, p = h.mech.pos, M = this.M; if (!M) return;
+    const cuts = (x, z, r) => {
+      if (Math.hypot(c.x - x, c.z - z) < r) return true;
+      const sx = p.x - c.x, sz = p.z - c.z, L2 = sx * sx + sz * sz || 1, t = clamp(((x - c.x) * sx + (z - c.z) * sz) / L2, 0, 1);
+      return Math.hypot(c.x + sx * t - x, c.z + sz * t - z) < r;
+    };
+    for (const ch of this.chunks.values()) {
+      for (const t of ch.towers) { const ghost = c.y < t.top + 2 && cuts(t.x, t.z, t.r + 1); t.mesh.material = ghost ? M.towerGhosts[t.m] : M.towers[t.m]; }
+      for (const cv of ch.caves) {
+        const inside = Game.humans.some((q) => this.inCave(q.mech.pos.x, q.mech.pos.z) === cv.c);
+        const ghost = inside || cuts(cv.c.mx, cv.c.mz, cv.W + 2);
+        for (const m of cv.parts) m.material = ghost ? M.caveGhost : M.caveRock;
+      }
+    }
+  },
+  // what the hooks see
+  status() {
+    const glitched = Game.robots.filter((r) => r.wkey && r.state === 'glitched').length, p = Game.humans[0]?.mech.pos;
+    return { on: !!Game.world, pick: WorldPick.on, shown: WorldPick.shown, chunks: this.chunks.size, live: this.live.size, glitched, worldRobots: Game.robots.filter((r) => r.wkey).length,
+      robots: Game.robots.length, found: this.foundN(), broken: this.broken.size, gone: this.gone.size, obstacles: obstacles.length, props: Props.list.length, hidden: Hidden.list.length,
+      parts: Hidden.list.filter((q) => q.wkey && !q.found).map((q) => ({ x: r3(q.x), z: r3(q.z), part: q.part })),
+      towers: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.length, 0), antennas: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.filter((t) => t.antenna).length, 0),
+      caves: [...this.chunks.values()].reduce((n, ch) => n + ch.caves.length, 0),
+      geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, place: p ? this.place(p.x, p.z) : null, at: p ? { x: r3(p.x), z: r3(p.z) } : null,
+      fog: [scene.fog.near, scene.fog.far], meadow: !!Meadow.ground?.parent };
+  },
+};
+const W_COL = { dirt: new THREE.Color('#7a6a4a'), rock: new THREE.Color('#8a8a8e'), rust: new THREE.Color('#a8673a'), sandDark: new THREE.Color('#c9a35e'), snow: new THREE.Color('#f4f8fb'), cave: new THREE.Color('#3e3a44') };
+// the found count (the HUD's and the pause menu's): found / all in the meadow; in the endless world, how many found
+const foundText = () => Game.world ? String(World.foundN()) : `${Hidden.list.filter((q) => q.found).length}/${Hidden.list.length}`;
+
+// ===========================================================================
 // A squadmate mends its leader: a steady cyan beam from its core to the mech,
 // with green sparks where it lands. Slow, and only while no glitched robot is
 // within HEAL.safeRange (a powered-down mech is mended regardless).
@@ -12522,6 +13022,7 @@ function tick(dt) {
   RailFx.tick(dt);
   Props.tick(dt);
   Hidden.tick(dt);
+  if (Game.world) World.tick(dt);                        // #167: chunks in and out, robots swept
   Game.hurtFlash = Math.max(0, Game.hurtFlash - dt * 2.5);
   Waves.check();
 }
@@ -13805,7 +14306,7 @@ function updateHud() {
   }
   // parts count (and the bag, if it's open), hidden parts found, and squad name tags
   $('partsN').textContent = Game.parts;
-  $('foundN').textContent = `${Hidden.list.filter((q) => q.found).length}/${Hidden.list.length}`;
+  $('foundN').textContent = foundText();
   // a hidden part just picked up: +1 and its icon drop out of the 🔩 count
   for (const id of updateHud.partPop || []) {
     const pop = document.createElement('span'); pop.className = 'pop'; pop.innerHTML = `+1 ${icon(PARTS[id].ic)}`;
@@ -15391,6 +15892,7 @@ function render(dt) {
   const s = Meadow.sun, p = h.mech.pos;
   s.position.set(p.x + 30, p.y + 55, p.z + 18); s.target.position.copy(p); s.target.updateMatrixWorld();
   Meadow.sky.position.copy(c.position);
+  if (Game.world) World.sync();                          // #167: towers and caves in the way go see-through
   renderPass.camera = c;
   composer.render(dt);
   if (!Game.manual && Sfx.ctx) Sfx.setHum(Math.min(1, Math.abs(h.mech.speed) / MECH.topSpeed));
@@ -15415,7 +15917,7 @@ function startPlay() {
   // the first start (a pilot picked on the title screen) brings out wave 1; resuming from pause never
   // spawns again, even with the meadow empty (manual mode waits for __rb.nextWave())
   // (#122: wave START_WAVE, 1 unless the page has ?wave=N; #129: or the wave picker's pick: firstWave)
-  if (Game.wave === 0 && Game.humans[0] && !Game.manual) Waves.spawn(firstWave());
+  if (Game.wave === 0 && Game.humans[0] && !Game.manual && !Game.world) Waves.spawn(firstWave());   // (#167: the endless world has no waves)
   // (a pad's A or a hook isn't a user gesture, so the lock can be refused: the mouse just isn't captured yet)
   if (Game.humans.length === 1 && !touch.state.touchMode) canvas.requestPointerLock?.()?.catch?.(() => {});   // (#94: never on a touch screen)
 }
@@ -15426,7 +15928,7 @@ $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
 function drawPauseMenu() {
   $('tmBagN').textContent = Game.parts;
   $('tmFacts').classList.toggle('off', !$('gridB').classList.contains('on')); $('tmFactsN').textContent = $('gridN').textContent;
-  $('tmFoundN').textContent = `${Hidden.list.filter((q) => q.found).length}/${Hidden.list.length}`;
+  $('tmFoundN').textContent = foundText();
   const k = Sfx.muted ? 'mute' : 'sound', el = $('tmSound').querySelector('.snd');
   if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = icon(k); }
   $('tmSound').classList.toggle('muted', Sfx.muted); $('tmSound').setAttribute('aria-pressed', String(!Sfx.muted));
@@ -15610,6 +16112,7 @@ const Waves = {
 // (manual mode, where start() doesn't spawn) it brings out wave 1.
 function nextWave() {
   if (!Game.humans[0]) return { ok: false, why: 'no player' };
+  if (Game.world) return { ok: false, why: 'world' };   // (#167: the endless world has no waves)
   if (Game.wave > 0 && !Game.cleared) return { ok: false, why: 'not cleared', wave: Game.wave };
   const fresh = Waves.spawn(Game.wave === 0 ? firstWave() : Game.wave + 1);   // (#122: from wave 0, START_WAVE; #129: or the picker's pick)
   if (!Game.manual) { Sfx.unlock(); Sfx.waveIn(); }
@@ -15805,6 +16308,16 @@ window.__rb = {
   // #132: the mode chip: no argument: its state (ModePick.status: pick, run, shown, saved); 'next': the next mode, as a tap
   // does; 'easy' | 'normal' | 'hard': that one (refused mid-run: { ok: false, why: 'playing' })
   mode(m) { return m == null ? ModePick.status() : m === 'next' ? ModePick.cycle() : ModePick.set(m); },
+  // #167: the endless world. world(): its state (World.status); world(true | false | 'toggle'): the world chip, before a run
+  // (refused mid-run); worldAt(x, z): the place at a spot; worldGo(x, z): player 1 there, the chunks round it loaded at once
+  World, WORLD, PLACES, WorldPick,
+  world(on) { if (on == null) return World.status(); const r = on === 'toggle' ? WorldPick.toggle() : WorldPick.set(!!on); return { ...r, ...World.status() }; },
+  worldAt(x, z) { return { place: World.place(x, z), h: r3(World.h(x, z)), cave: !!World.inCave(x, z) }; },
+  worldGo(x, z) {
+    if (!Game.world) return { ok: false, why: 'not in the world' };
+    const h = Game.humans[0], m = h.mech; m.pos.set(x, 0, z); World.update(true); m.pos.y = groundH(x, z); m.speed = 0; m.turnVel = 0; m.push.set(0, 0, 0); h.rig.snap = true;
+    return { ok: true, ...World.status() };
+  },
   // #129: the waves child (whoever is playing if left out) has cleared and can start at: { child, best (0: none; always 0 for
   // Guest), offer: the picker's waves (1..best + 1; only 1 on a ?wave=N page), boss: those that are boss waves, pick: the wave
   // a run would start at now (firstWave), jumped: the page has ?wave=N, saved: best as this device's storage holds it }
@@ -16518,6 +17031,7 @@ window.__rb = {
       // waves: the wave out now (0 before the first); cleared = no glitched or powered-down robot left in it;
       // clear = this wave's counts (fixed, taken apart, hidden parts found, robots it brought, left to beat,
       // player power-downs, stars once cleared); clearScreen = the clear screen is up
+      world: Game.world ? World.status() : null,   // #167
       wave: Game.wave, cleared: Game.cleared, clear: Waves.stats(), clearScreen: Waves.showing,
       // #129: whoever is playing's best wave cleared, and the wave picker (WavePick.status)
       waveBest: Facts.waveBest(), wavePick: WavePick.status(),
@@ -16561,6 +17075,7 @@ Garage.init();
 Maker.init();             // #49: the profile maker's board, icons and colours
 WavePick.init();          // #129: the wave chip and the wave picker
 ModePick.init();          // #132: the mode chip
+WorldPick.init();         // #167: the world chip
 applyUpgrades();          // G2: nobody picked yet, so a bare mech (levels all 0)
 onResize();
 Title.build();
