@@ -2,6 +2,6 @@
   "test": "./scripts/check-html.sh",
   "merge": "merge",
   "merger": "builder",
-  "protected": [],
+  "protected": ["docs/robot-battle/"],
   "autocompact": "200k"
 }
