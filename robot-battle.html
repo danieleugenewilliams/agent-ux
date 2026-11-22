@@ -436,6 +436,8 @@
   #hud .wave .bw { display: none; }
   #hud .wave.boss .bw { display: inline-flex; } #hud .wave.boss .wi { display: none; }
   #hud .wave.boss { box-shadow: inset 0 0 0 3px #ffd21f, 0 0 12px rgba(255,210,31,.6); color: #ffe46b; }
+  /* #167 slice 2: in the endless world the chip is the level, by the world's mountain (the ⚔️ from the level bosses come on) */
+  #hud .wave .wl { display: none; } #hud .wave.lvl .wi { display: none; } #hud .wave.lvl:not(.boss) .wl { display: inline-flex; }
   /* #122: the boss bar (the boys' sword: a long blade, a hilt and a point at each end, a sword standing across the middle), in
      the top-right group where the squad chips are: while a boss is up (.boss-on) it takes their place. It grows to fill the
      room the chips had, up to 460 px, never under 150 */
@@ -1645,7 +1647,7 @@
   <div class="weapons" id="weapons"></div>
   <div class="speed" id="speed"><span class="ico"><i data-ic="legs"></i></span></div>
   <button class="mastery" id="masteryB" aria-label="My facts: mastered of the goal"><i data-ic="star"></i><b id="masteryN"></b><small>T</small></button>
-  <div class="wave" id="waveHud" aria-label="Wave"><span class="wi"><i data-ic="wave"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveN">0</b></div>
+  <div class="wave" id="waveHud" aria-label="Wave"><span class="wi"><i data-ic="wave"></i></span><span class="wl"><i data-ic="world"></i></span><span class="bw"><i data-ic="sword"></i></span><b id="waveN">0</b></div>
   <div class="compass">
     <div class="arm legs" id="cLegs"><b><i data-ic="boot"></i></b></div>
     <div class="arm torso" id="cTorso"><b><i data-ic="aim"></i></b></div>
@@ -11241,7 +11243,8 @@ function bossFixed(h, r) {
 function satelliteAI(r, dt) {
   const S = SATELLITE, inp = r.input, ai = r.ai;
   inp.boost = false; inp.aimYaw = r.legHeading;
-  const mine = Game.robots.filter((q) => q.state === 'glitched' && !ROBOT_TYPES[q.type].high);
+  let mine = Game.robots.filter((q) => q.state === 'glitched' && !ROBOT_TYPES[q.type].high);
+  if (Game.world && r.wkey) { const own = mine.filter((q) => q.wkey === r.wkey); if (own.length) mine = own; }   // (#167 slice 2: a world satellite stays with its own group)
   let at = mine.find((q) => ROBOT_TYPES[q.type].boss) || null;
   if (!at && mine.length) at = mine.reduce((b, q) => (flatDist(q, r) < flatDist(b, r) ? q : b));
   if (!at) { ai.mode = 'roam'; ai.at = null; roam(r, dt, 0.5); return; }
@@ -12257,6 +12260,24 @@ const WORLD = {
   parts: { n: 1, junkyard: 2 },
   city: { block: 48, street: 14 },
   cave: { chance: 0.75, hw: 7, back: 28, roof: 12, wall: 6, top: 18, flat: 30, blend: 8 },
+  // #167 slice 2 (Q2: "robot toughness and bosses scale with distance"; the boys' "the farther out you go in the world the
+  // harder it gets", and their drawing 3: a small building, a bigger one with a few robots, then a huge satellite boss linked
+  // to a crowd of robots). Every number here is a starting value, tuned at the playtest. Distance from the start stands in
+  // for the wave, for toughness and bosses only (World.level; nothing of it is saved):
+  //   step:    a level every `step` m out: level 1 within `step` m of the start, level 2 out to 2 × step, and so on
+  //   tough:   × a world robot's health: 1 + tough × (level - 1), at most toughMax (level 21, 3 km out, at 150 m a level);
+  //            × the mode's health on top (Waves.health: Hard's 1.25), as a wave's robots are. Its own curve, not the
+  //            waves' (Waves.tough tops out at 1.4 by wave 6), so it keeps getting harder for 3 km
+  //   boss:    from level `from` (BOSS_WAVE.every: where the waves' first boss comes) a chunk may be a boss's in place of its
+  //            roaming robot: a seeded roll per chunk (World.bossAt: the same chunks after a reload) under chance + more ×
+  //            (level - from), at most max. The boss, the Knight or the Centipede (seeded), is as tough as its level. With it,
+  //            from the level the mode's satellite comes on (Normal's SATELLITE.from, wave 5; Easy's 7), a satellite that links
+  //            to it, and from level from + escorts.every, escorts round it (one more each escorts.every levels, at most
+  //            escorts.max): the drawing's crowd. At most `cap` boss groups out at once (inside robots.cap)
+  //   bar:     m: the boss bar shows for a world boss this near player 1 (a far one in a loaded chunk doesn't keep it up)
+  harder: { step: 150, tough: 0.1, toughMax: 3, bar: 110,
+    boss: { from: BOSS_WAVE.every, chance: 0.12, more: 0.03, max: 0.35, cap: 2, types: ['knight', 'centipede'], clear: 9,
+      escorts: { every: 2, max: 3, types: ['charger', 'sniper', 'bouncer'], ring: 10 } } },
 };
 const PLACES = ['mountains', 'city', 'junkyard', 'desert', 'snow', 'cave'];
 const PL = Object.fromEntries(PLACES.map((p, i) => [p, i]));
@@ -12286,6 +12307,7 @@ const World = {
   live: new Map(),            // key -> the robots out from that chunk (a drone swarm is one entry)
   vh: new Map(), caves: new Map(), blocks: new Map(),
   sweepT: 0, ghosts: [],
+  lvl: 0,                     // #167 slice 2: player 1's level (World.level), as the HUD shows it
   // ---- places: jittered cells; every 2 x 3 block of cells holds all six, in a seeded order, warped so borders wander ----
   block(si, sj) {
     const k = si * 65536 + sj; let o = this.blocks.get(k);
@@ -12373,6 +12395,7 @@ const World = {
     for (const p of Props.list) { scene.remove(p.root); if (p.debris) scene.remove(p.debris); }
     Props.list.length = 0; obstacles.length = 0;
     for (const k of Kits.list) scene.remove(k.g); Kits.list.length = 0;
+    this.lvl = 0;
     for (const q of Hidden.list) scene.remove(q.g); Hidden.list.length = 0;
     scene.fog.near = WORLD.fog[0]; scene.fog.far = WORLD.fog[1];
     this.update(true);
@@ -12626,22 +12649,52 @@ const World = {
   },
   // ---- robots: about half the chunks away from the start have one (a drone swarm counts as one), of a seeded type,
   // roaming near where it came out; at most WORLD.robots.cap out at once. One that's beaten and fixed or taken apart never
-  // comes back; one left glitched far behind goes, and comes again when its chunk loads again ----
+  // comes back; one left glitched far behind goes, and comes again when its chunk loads again.
+  // #167 slice 2: each is as tough as the level where it comes out (World.level), and from WORLD.harder.boss.from a chunk may
+  // be a boss's (World.bossAt): its boss group in place of the roaming robot ----
   robotsFor(ch) {
-    const RW = WORLD.robots, C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 303)), key = ch.key + ':r';
+    const RW = WORLD.robots, C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 303)), key = ch.key + ':r', B = this.bossAt(ch.cx, ch.cz);
     const roll = R(), type = RW.types[Math.floor(R() * RW.types.length)];
-    if (roll >= RW.chance || this.gone.has(key) || this.live.has(key) || this.live.size >= RW.cap || !Game.humans[0]) return;
+    if ((!B && roll >= RW.chance) || this.gone.has(key) || this.live.has(key) || this.live.size >= RW.cap || !Game.humans[0]) return;
+    if (B && [...this.live.values()].filter((l) => l.boss).length >= WORLD.harder.boss.cap) return;
+    const room = B ? WORLD.harder.boss.clear : 4;
     let at = null;
     for (let t = 0; t < 10 && !at; t++) {
       const x = ch.cx * C + 10 + R() * (C - 20), z = ch.cz * C + 10 + R() * (C - 20);
-      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
-      if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + 4)) continue;
+      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4 - (B ? room : 0)) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
+      if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + room)) continue;
       at = [x, z];
     }
     if (!at) return;
-    const list = [].concat(spawn(type, at[0], at[1]) || []), hp = Waves.health();
-    for (const r of list) { r.home = { x: at[0], z: at[1] }; r.wkey = key; r.pos.y = groundH(r.pos.x, r.pos.z) + (r.lift || 0); if (hp !== 1) r.health = r.maxHealth = Math.round(r.maxHealth * hp); }
+    const lv = this.level(at[0], at[1]), k = this.tough(lv) * Waves.health();
+    const list = B ? this.bossGroup(ch, B, at[0], at[1]) : [].concat(spawn(type, at[0], at[1]) || []);
+    for (const r of list) { r.home = { x: at[0], z: at[1] }; r.wkey = key; r.wlevel = lv; r.pos.y = groundH(r.pos.x, r.pos.z) + (r.lift || 0); if (k !== 1) r.health = r.maxHealth = Math.round(r.maxHealth * k); }
+    if (B) list.boss = B.type;
     this.live.set(key, list);
+  },
+  // #167 slice 2: the level at a spot (1 at the start, one more every WORLD.harder.step m out) and the toughness it gives
+  level(x, z) { return 1 + Math.floor(Math.hypot(x, z) / WORLD.harder.step); },
+  tough(lv) { const H = WORLD.harder; return Math.min(H.toughMax, 1 + H.tough * (Math.max(1, lv) - 1)); },
+  // is chunk (cx, cz) a boss's? Its own seeded roll (never the load order or how many are out), under the chance at the level
+  // of its middle: { type, level } or null
+  bossAt(cx, cz) {
+    const H = WORLD.harder.boss, C = WORLD.chunk, lv = this.level((cx + 0.5) * C, (cz + 0.5) * C);
+    if (lv < H.from) return null;
+    const R = wRng(wHash(cx, cz, 606)), roll = R(), pick = R();
+    if (roll >= Math.min(H.max, H.chance + H.more * (lv - H.from))) return null;
+    return { type: H.types[Math.floor(pick * H.types.length)], level: lv };
+  },
+  // a boss group at (x, z): the boss; its satellite from the mode's satellite level (it links to the boss); its escorts
+  bossGroup(ch, B, x, z) {
+    const E = WORLD.harder.boss.escorts, R = wRng(wHash(ch.cx, ch.cz, 607)), out = [], M = MODES[Waves.mode()];
+    const boss = spawn(B.type, x, z); if (boss) out.push(boss);
+    if (B.level >= (M.satellite ?? SATELLITE.from)) { const a = R() * Math.PI * 2, s = spawn('satellite', x + Math.cos(a) * 8, z + Math.sin(a) * 8); if (s) out.push(s); }
+    const n = Math.min(E.max, Math.max(0, Math.floor((B.level - WORLD.harder.boss.from) / E.every)));
+    for (let i = 0; i < n; i++) {
+      const t = E.types[Math.floor(R() * E.types.length)], a = (i / n) * Math.PI * 2 + R();
+      out.push(...[].concat(spawn(t, x + Math.cos(a) * E.ring, z + Math.sin(a) * E.ring) || []));
+    }
+    return out;
   },
   // every 2 s: a robot fixed or taken apart is gone for good; a group still glitched far past the loaded chunks goes
   sweep() {
@@ -12662,6 +12715,9 @@ const World = {
   tick(dt) {
     this.update(false);
     this.foundN();
+    // #167 slice 2: player 1's level, on the HUD's wave chip (Waves.draw); it pulses on the way out to a higher one
+    const p = Game.humans[0]?.mech.pos;
+    if (p) { const lv = this.level(p.x, p.z); if (lv !== this.lvl) { if (this.lvl && lv > this.lvl) updateHud.newWave = true; this.lvl = lv; Waves.draw(); } }
     this.sweepT -= dt; if (this.sweepT <= 0) { this.sweepT = 2; this.sweep(); }
   },
   // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through, and a cave's roof
@@ -12692,7 +12748,10 @@ const World = {
       towers: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.length, 0), antennas: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.filter((t) => t.antenna).length, 0),
       caves: [...this.chunks.values()].reduce((n, ch) => n + ch.caves.length, 0),
       geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, place: p ? this.place(p.x, p.z) : null, at: p ? { x: r3(p.x), z: r3(p.z) } : null,
-      fog: [scene.fog.near, scene.fog.far], meadow: !!Meadow.ground?.parent };
+      fog: [scene.fog.near, scene.fog.far], meadow: !!Meadow.ground?.parent,
+      // #167 slice 2: player 1's level and its toughness; the boss groups out
+      level: p ? this.level(p.x, p.z) : null, tough: p ? r3(this.tough(this.level(p.x, p.z)) * Waves.health()) : null,
+      bosses: [...this.live.entries()].filter(([, l]) => l.boss).map(([key, l]) => ({ key, type: l.boss, n: l.length, ids: l.map((r) => r.id) })) };
   },
 };
 const W_COL = { dirt: new THREE.Color('#7a6a4a'), rock: new THREE.Color('#8a8a8e'), rust: new THREE.Color('#a8673a'), sandDark: new THREE.Color('#c9a35e'), snow: new THREE.Color('#f4f8fb'), cave: new THREE.Color('#3e3a44') };
@@ -14279,7 +14338,8 @@ function buildHud() {
   WEAPONS.forEach((w, i) => { const d = document.createElement('button'); d.className = 'wpn'; d.dataset.w = w; d.setAttribute('aria-label', w); d.innerHTML = `${icon(WEAPON[w].ic)}<small>${i + 1}</small>${WEAPON[w].locked ? `<span class="lk">${icon('lock')}</span>` : ''}${w === 'rail' ? '<span class="chg"></span>' : ''}`; $('weapons').appendChild(d); });
 }
 // #122: the boss in the meadow, if one is up (not yet fixed, taken apart or gone): the boss bar shows it
-const bossUp = () => Game.robots.find((r) => ROBOT_TYPES[r.type].boss && r.state !== 'ally') || null;
+// (#167 slice 2: in the endless world, only a boss within WORLD.harder.bar m of player 1: a far one in a loaded chunk doesn't keep it up)
+const bossUp = () => { const p = Game.world && Game.humans[0]?.mech.pos; return Game.robots.find((r) => ROBOT_TYPES[r.type].boss && r.state !== 'ally' && (!p || Math.hypot(r.pos.x - p.x, r.pos.z - p.z) <= WORLD.harder.bar)) || null; };
 function updateHud() {
   const h = Game.humans[0]; if (!h) return;
   const m = h.mech, f = Math.abs(m.speed) / MECH.topSpeed, on = Math.round(f * SPEED_BARS);
@@ -16094,9 +16154,14 @@ const Waves = {
       // (#129: the moment the clear's ⭐s show is the moment the wave counts as cleared: whoever is playing's best is latched)
       if (this.party !== Game.wave) { this.party = Game.wave; if (this.counts) Facts.clearedWave(Game.wave); this.celebrate(); }
     }
-    const wv = $('waveHud'); wv.classList.toggle('on', Game.wave > 0); $('waveN').textContent = Game.wave;
-    wv.classList.toggle('boss', Game.wave > 0 && this.boss(Game.wave));   // #122: a boss wave's chip: the ⚔️ for the 🌊, edged gold
-    wv.classList.toggle('w2', Game.wave >= 10);           // (#122: two digits: on a narrow touch screen it slims, clear of the health bar)
+    // #167 slice 2: in the endless world the chip shows player 1's level (World.lvl) by the world's mountain, and from the level
+    // bosses come on (WORLD.harder.boss.from) the ⚔️, edged gold, as a boss wave's
+    const wv = $('waveHud'), lv = Game.world ? World.lvl : 0, n = Game.world ? lv : Game.wave;
+    wv.classList.toggle('on', n > 0); $('waveN').textContent = n;
+    wv.classList.toggle('lvl', !!Game.world);
+    if (wv.getAttribute('aria-label') !== (Game.world ? 'Level' : 'Wave')) wv.setAttribute('aria-label', Game.world ? 'Level' : 'Wave');
+    wv.classList.toggle('boss', Game.world ? lv >= WORLD.harder.boss.from : Game.wave > 0 && this.boss(Game.wave));   // #122: a boss wave's chip: the ⚔️ for the 🌊, edged gold
+    wv.classList.toggle('w2', n >= 10);                   // (#122: two digits: on a narrow touch screen it slims, clear of the health bar)
     if (updateHud.newWave) { wv.classList.remove('new'); void wv.offsetWidth; wv.classList.add('new'); updateHud.newWave = false; }
   },
   // confetti over the screen, fireworks of sparks round the mech, a fanfare; and the mouse is let go,
@@ -16312,7 +16377,9 @@ window.__rb = {
   // (refused mid-run); worldAt(x, z): the place at a spot; worldGo(x, z): player 1 there, the chunks round it loaded at once
   World, WORLD, PLACES, WorldPick,
   world(on) { if (on == null) return World.status(); const r = on === 'toggle' ? WorldPick.toggle() : WorldPick.set(!!on); return { ...r, ...World.status() }; },
-  worldAt(x, z) { return { place: World.place(x, z), h: r3(World.h(x, z)), cave: !!World.inCave(x, z) }; },
+  worldAt(x, z) { return { place: World.place(x, z), h: r3(World.h(x, z)), cave: !!World.inCave(x, z), level: World.level(x, z), tough: r3(World.tough(World.level(x, z))) }; },   // (#167 slice 2: level, tough)
+  // #167 slice 2: the boss chunks (World.bossAt) in a square of chunks out to rad m: [{ cx, cz, type, level }]
+  worldBosses(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const b = World.bossAt(cx, cz); if (b) out.push({ cx, cz, ...b }); } return out; },
   worldGo(x, z) {
     if (!Game.world) return { ok: false, why: 'not in the world' };
     const h = Game.humans[0], m = h.mech; m.pos.set(x, 0, z); World.update(true); m.pos.y = groundH(x, z); m.speed = 0; m.turnVel = 0; m.push.set(0, 0, 0); h.rig.snap = true;
