@@ -1,0 +1,7 @@
+{
+  "test": "./scripts/check-html.sh",
+  "merge": "merge",
+  "merger": "builder",
+  "protected": [],
+  "autocompact": "200k"
+}
