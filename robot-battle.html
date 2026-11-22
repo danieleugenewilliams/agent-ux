@@ -3591,6 +3591,16 @@ function fillWaves(r) {
   r.waves.best = best;
   return r;
 }
+// #189: the world parts a saved child has picked up, in their record: world = { taken: [each part's key, 'cx,cz:pk'] }, so
+// a part picked up in the endless world never comes back, after a reload or a restore (it went in their trophies). Added
+// only at the child's first world pickup (World.take): a record from before #189, or one that has never been in the world,
+// has no field and loads exactly as it is. Read through worldTaken: strings only, each once, the last WORLD_SAVE.takenMax
+// (a generous bound, about 120 kB, so the record can never fill the browser's storage). Any other field in it (a later
+// slice's) is kept as it is. Guest's record never gets one.
+const WORLD_SAVE = { takenMax: 10000 };
+const worldTaken = (r) => { const t = isObj(r?.world) && Array.isArray(r.world.taken) ? r.world.taken : []; return [...new Set(t.filter((k) => typeof k === 'string' && k.length <= 40))].slice(-WORLD_SAVE.takenMax); };
+// both records' lists as one (a's, then b's that a hasn't), for a backup's restore
+const worldUnion = (a, b) => [...new Set([...worldTaken(a), ...worldTaken(b)])].slice(-WORLD_SAVE.takenMax);
 // G4 / #72: latch into garage g what Mastered count n has earned: every advanced part whose milestone n has reached, then
 // every metal its part (and, for Carbon Alloy, the leg shapes) has earned. Never takes one away. The new ones also go in
 // g.fresh, for the garage's cheer; a new metal is the one shown (g.metal back to the best). Returns the ids newly latched.
@@ -4095,8 +4105,10 @@ const Facts = {
 // A backup file: { app: 'robot-battle', format: 2, exported: ISO time, device: a short label, data: { key: value } }.
 // data holds every robotbattle.* key in storage (the key without the prefix, the value parsed). On main today that's
 // facts.<child> (each child's record: the fact tracker, the garage with its trophies, upgrades, paint, unlocks and body,
-// and #58's saved squad: squad and squadGone) and the settings child (who played last) and pilot (the last pilot). The
-// bag and the meadow aren't saved by the game, so they aren't in a backup. Guest is never in one: facts.guest is
+// #58's saved squad: squad and squadGone, and #189's world parts picked up: world.taken) and the settings child (who
+// played last) and pilot (the last pilot). The bag and the meadow aren't saved by the game, so they aren't in a backup.
+// (#189: world.taken rides inside the record, not in a key of its own, because validate restores only records and the two
+// settings: a key of its own would be skipped, and a restore would bring the parts farm back. The format stays 2.) Guest is never in one: facts.guest is
 // dropped, and so is child = 'guest'.
 // #58 (#80 answer 3): format 2 is the format with the saved squad in it. A format-1 file (made before #58) still
 // restores: its records just have no squad, so Keep the best keeps this device's squad as it is.
@@ -4213,6 +4225,7 @@ const Backup = {
   //   #129 waves  best: the higher (a record without the field counts as 0)
   //   #132 mode  this device's (a record without the field: Normal): it's a setting, not progress, as wiring is
   //   #142 division  this device's (no field: on), as wiring; the ÷ facts are facts (above); divPlay: this device's
+//   #189 world  taken: every world part either side has picked up (worldUnion); only when either side has the field
   //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
   //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
   //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
@@ -4264,6 +4277,8 @@ const Backup = {
     if (dev.created != null && bak.created != null) out.created = Math.min(num(dev.created), num(bak.created));
     // #129: the waves cleared: the higher best (its other fields: this device's, the backup's where this device has none)
     if (dev.waves != null || bak.waves != null) out.waves = { ...(isObj(bak.waves) ? clone(bak.waves) : {}), ...(isObj(dev.waves) ? clone(dev.waves) : {}), best: Math.max(waveBest(dev), waveBest(bak)) };
+    // #189: the world parts picked up: both sides' (a part picked up on either device stays picked up)
+    if (isObj(dev.world) || isObj(bak.world)) out.world = { ...(isObj(bak.world) ? clone(bak.world) : {}), ...(isObj(dev.world) ? clone(dev.world) : {}), taken: worldUnion(dev, bak) };
     // #132: the mode: this device's (not the backup's where this device has none: no field there is Normal)
     if (dev.mode != null || bak.mode != null) out.mode = modeOf(dev.mode);
     // #142: division: this device's setting (a setting, as wiring; no field here is on, so not the backup's off over it)
@@ -4373,6 +4388,15 @@ const Backup = {
     out.waves = { ...(isObj(out.waves) ? out.waves : {}), best: waveBest(here) };
     return out;
   },
+  // #189: Use the backup's record r, but a world part once picked up stays picked up (as keepWaves keeps the best wave):
+  // this device's keys that r hasn't are added to r's list. Pure: a new record (or r itself when nothing changes)
+  keepTaken(r, here) {
+    if (!isObj(r) || !isObj(here)) return r;
+    const have = new Set(worldTaken(r)); if (worldTaken(here).every((k) => have.has(k))) return r;
+    const out = clone(r);
+    out.world = { ...(isObj(out.world) ? out.world : {}), taken: worldUnion(r, here) };
+    return out;
+  },
   // #132: Use the backup's record r, but this device's mode (a setting, not progress: no field here is Normal). Pure
   keepMode(r, here) {
     if (!isObj(r) || !isObj(here) || (r.mode == null && here.mode == null) || r.mode === modeOf(here.mode)) return r;
@@ -4424,8 +4448,9 @@ const Backup = {
       const choice = this.choiceFor(choices, C.id);
       if (!choice) return { ok: false, why: `no such choice for ${C.name}: ${JSON.stringify(isObj(choices) ? choices[C.id] : choices)}` };
       // (#58: Use the backup still keeps this device's destroyed squadbots gone: keepGone; #115: and its ⭐s: keepMastered;
-      // #129: and its best wave cleared: keepWaves; #132: and its mode: keepMode; #152: and its Quick Fix wiring: keepWiring)
-      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepWiring(this.keepMode(this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here), here), here) : this.merge(here, bak);
+      // #129: and its best wave cleared: keepWaves; #132: and its mode: keepMode; #152: and its Quick Fix wiring: keepWiring;
+      // #189: and the world parts it has picked up: keepTaken)
+      const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepTaken(this.keepWiring(this.keepMode(this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here), here), here), here) : this.merge(here, bak);
       const write = !!bak && canon(res) !== canon(here);
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
@@ -12221,6 +12246,7 @@ const Hidden = {
     const m = h.mech; if (m.state === 'down') return null;
     const q = this.list.find((k) => !k.found && Math.hypot(k.x - m.pos.x, k.z - m.pos.z) < HIDDEN.reach); if (!q) return null;
     q.found = true; q.foundBy = h.idx; scene.remove(q.g);
+    if (q.wkey) World.take(q.wkey);   // #189: a world part: kept in the record (Garage.collect saves it), never back
     Game.bag[q.part] = (Game.bag[q.part] || 0) + 1; Garage.collect(q.part, 'meadow');
     if (h.idx === 0) updateHud.partPop = (updateHud.partPop || []).concat(q.part);   // +1 and its icon drop out of the 🔩 count
     const y = groundH(q.x, q.z) + 1;
@@ -12244,8 +12270,9 @@ const Hidden = {
 // seeded chunks that never end: six places (mountains, a city, a junkyard, a desert, snowy mountains and caves), parts
 // lying on the ground and glitched robots roaming. No waves: a beaten robot is fixed into the squad (cap 3) or taken
 // apart as ever, its board set for wave 1 (fixWave). Every chunk's random numbers come from (seed, cx, cz), never from a
-// shared stream, so a chunk is the same whatever order the chunks load in (Wild World's way). Nothing here is saved:
-// the parts found go in the bag and the trophies as a meadow find does (Garage.collect(part, 'meadow')).
+// shared stream, so a chunk is the same whatever order the chunks load in (Wild World's way). The parts found go in the
+// bag and the trophies as a meadow find does (Garage.collect(part, 'meadow')). #189: and each one's key goes in a saved
+// child's record (world.taken, World.take), so it never comes back after a reload. Nothing else here is saved.
 // ===========================================================================
 const WORLD = {
   seed: 167, chunk: 96, seg: 24,               // 96 m chunks on a 4 m grid
@@ -12281,7 +12308,8 @@ function wFbm(x, z, salt, oct = 3) { let s = 0, amp = 0.5, f = 1, n = 0; for (le
 const World = {
   chunks: new Map(),          // 'cx,cz' -> the loaded chunk
   broken: new Set(),          // the props smashed (their keys): a chunk loaded again leaves them out
-  taken: new Set(),           // the ground parts picked up (their keys): never back
+  taken: new Set(),           // the ground parts picked up this session (their keys): never back (#189: and the saved ones)
+  saved: null,                // #189: { rec, arr, set }: whoever is playing's world.taken as a set, made again when it changes
   gone: new Set(),            // the robots beaten and fixed or taken apart (their keys): never back
   live: new Map(),            // key -> the robots out from that chunk (a drone swarm is one entry)
   vh: new Map(), caves: new Map(), blocks: new Map(),
@@ -12520,7 +12548,7 @@ const World = {
       const wkey = ch.key + ':p' + k, part = HIDDEN.kinds[Math.floor(RP() * HIDDEN.kinds.length)];
       let at = null;
       for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }
-      if (!at || this.taken.has(wkey)) continue;
+      if (!at || this.isTaken(wkey)) continue;
       const q = Hidden.add(at[0], at[1], part); q.wkey = wkey; ch.parts.push(q);
     }
   },
@@ -12657,6 +12685,22 @@ const World = {
       }
     }
   },
+  // #189: whoever is playing's saved world parts (worldTaken of their record) as a set, made again when the list changes
+  savedSet() {
+    const r = Facts.rec, arr = isObj(r?.world) ? r.world.taken : null;
+    if (!this.saved || this.saved.rec !== r || this.saved.arr !== arr) this.saved = { rec: r, arr, set: new Set(worldTaken(r)) };
+    return this.saved.set;
+  },
+  // a ground part already picked up: this session (by anyone, Guest too) or, saved, by whoever is playing
+  isTaken(wkey) { return this.taken.has(wkey) || this.savedSet().has(wkey); },
+  // #189: a ground part picked up: never back this session, and for a saved child never back after a reload either: its
+  // key goes in their record's world.taken (a new list each time, so savedSet sees it). The caller saves (Garage.collect)
+  take(wkey) {
+    this.taken.add(wkey);
+    const C = Facts.child, r = Facts.rec; if (!r || !C || C.guest) return;
+    const t = worldTaken(r); if (t.includes(wkey)) return;
+    t.push(wkey); r.world = { ...(isObj(r.world) ? r.world : {}), taken: t.slice(-WORLD_SAVE.takenMax) };
+  },
   // the ground parts found so far (those picked up in the loaded chunks counted in at once)
   foundN() { for (const ch of this.chunks.values()) for (const q of ch.parts) if (q.found) this.taken.add(q.wkey); return this.taken.size; },
   tick(dt) {
@@ -12688,7 +12732,8 @@ const World = {
     const glitched = Game.robots.filter((r) => r.wkey && r.state === 'glitched').length, p = Game.humans[0]?.mech.pos;
     return { on: !!Game.world, pick: WorldPick.on, shown: WorldPick.shown, chunks: this.chunks.size, live: this.live.size, glitched, worldRobots: Game.robots.filter((r) => r.wkey).length,
       robots: Game.robots.length, found: this.foundN(), broken: this.broken.size, gone: this.gone.size, obstacles: obstacles.length, props: Props.list.length, hidden: Hidden.list.length,
-      parts: Hidden.list.filter((q) => q.wkey && !q.found).map((q) => ({ x: r3(q.x), z: r3(q.z), part: q.part })),
+      parts: Hidden.list.filter((q) => q.wkey && !q.found).map((q) => ({ x: r3(q.x), z: r3(q.z), part: q.part, wkey: q.wkey })),
+      saved: worldTaken(Facts.rec).length,   // #189: the world parts whoever is playing has picked up, saved in their record
       towers: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.length, 0), antennas: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.filter((t) => t.antenna).length, 0),
       caves: [...this.chunks.values()].reduce((n, ch) => n + ch.caves.length, 0),
       geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, place: p ? this.place(p.x, p.z) : null, at: p ? { x: r3(p.x), z: r3(p.z) } : null,
