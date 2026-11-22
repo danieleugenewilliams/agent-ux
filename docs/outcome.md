@@ -1,7 +1,6 @@
 # agent-ux: the outcome
 
-*Draft by Claude for Daniel to rewrite in his own words. The loop reads this file; only
-Daniel edits it.*
+*The loop reads this file; only Daniel edits it.*
 
 agent-ux is a set of browser games for our family, made with and for the boys. Each game is
 one HTML page that opens on a phone, an iPad or a computer and works from GitHub Pages. They
