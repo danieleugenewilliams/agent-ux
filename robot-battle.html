@@ -12184,13 +12184,18 @@ const Kits = {
     return k;
   },
   // a beaten robot drops its kit beside it, on its right
-  drop(r) { const h = r.legHeading; return this.add(r.pos.x + Math.cos(h) * 4, r.pos.z - Math.sin(h) * 4, 'robot'); },
+  // (#191: in the endless world it mends by the level the robot came out at, as a chunk's kit there does)
+  drop(r) {
+    const h = r.legHeading, k = this.add(r.pos.x + Math.cos(h) * 4, r.pos.z - Math.sin(h) * 4, 'robot');
+    if (Game.world) { k.level = r.wlevel || World.level(r.pos.x, r.pos.z); k.mend = Math.round(HEAL.kit * World.tough(k.level)); }
+    return k;
+  },
   // player h walks onto a kit: mend it and use the kit up. Returns what it mended
   // (0 = nothing here, or nothing to mend, and the kit stays).
   check(h) {
     const m = h.mech; if (m.state === 'down' || m.health >= m.maxHealth) return 0;
     const k = this.list.find((q) => Math.hypot(q.x - m.pos.x, q.z - m.pos.z) < HEAL.kitReach); if (!k) return 0;
-    const got = healMech(m, HEAL.kit, 'kit');
+    const got = healMech(m, k.mend ?? HEAL.kit, 'kit');   // (#191: a world kit's own mend; the meadow's HEAL.kit)
     this.list.splice(this.list.indexOf(k), 1); scene.remove(k.g);
     Sparks.burst(k.x, groundH(k.x, k.z) + 1.2, k.z, 40, SPARK_MEND, 8);
     if (!Game.manual) Sfx.kit();
@@ -12293,6 +12298,18 @@ const WORLD = {
   fog: [50, 175],                              // (the meadow's is 60-210: the loaded edge is at least 192 m off)
   robots: { chance: 0.5, cap: 8, types: ['charger', 'sniper', 'bouncer', 'drone'], away: 75, roam: 40 },
   parts: { n: 1, junkyard: 2 },
+  // #191 (Daniel's A then v): repair kits out in the world. One kit in every chunk, at a seeded spot a mech can stand on (as
+  // its part is), and both more kits and stronger kits farther out, by the level (World.level). Starting values, tuned at
+  // the playtest:
+  //   n:     the kits every chunk has (A: one in every chunk)
+  //   more:  on top of those, one extra kit by a seeded roll per chunk (World.kitsAt: the same chunks after a reload) under
+  //          more × (level − 1) at the chunk's middle, at most max: the chance rises with the level, the way the boss chance
+  //          does (0 at level 1, max by level 21, 3 km out, where robot toughness tops out too)
+  //   mend:  a world kit mends HEAL.kit × World.tough(level at the kit): it grows with the level the way robot toughness does
+  //          (75 at level 1, +10% a level, 3x by 3 km). A kit a world robot drops mends by the level that robot came out at
+  //   tries: random spots tried before a scan of the chunk, so every chunk gets its kit
+  // A kit picked up isn't saved: it comes back when its chunk loads again (the parts as they were before #189)
+  kits: { n: 1, more: 0.03, max: 0.6, tries: 40 },
   city: { block: 48, street: 14 },
   cave: { chance: 0.75, hw: 7, back: 28, roof: 12, wall: 6, top: 18, flat: 30, blend: 8 },
   // #167 slice 2 (Q2: "robot toughness and bosses scale with distance"; the boys' "the farther out you go in the world the
@@ -12474,7 +12491,7 @@ const World = {
     for (const [k, ch] of this.chunks) if (at.every(([ax, az]) => Math.max(Math.abs(ch.cx - ax), Math.abs(ch.cz - az)) > WORLD.keep)) this.unload(k);
   },
   load(cx, cz) {
-    const ch = { cx, cz, key: this.key(cx, cz), group: new THREE.Group(), props: [], obs: [], parts: [], towers: [], caves: [] };
+    const ch = { cx, cz, key: this.key(cx, cz), group: new THREE.Group(), props: [], obs: [], parts: [], kits: [], towers: [], caves: [] };
     this.chunks.set(ch.key, ch);
     ch.ground = this.groundMesh(cx, cz); ch.group.add(ch.ground);
     this.fill(ch);
@@ -12497,6 +12514,10 @@ const World = {
       if (q.found) this.taken.add(q.wkey);
       scene.remove(q.g); q.mark.material.dispose();
       const i = Hidden.list.indexOf(q); if (i >= 0) Hidden.list.splice(i, 1);
+    }
+    for (const k of ch.kits) {   // #191: its kits go (one picked up is gone already); they come again when it loads again
+      const i = Kits.list.indexOf(k); if (i >= 0) Kits.list.splice(i, 1);
+      scene.remove(k.g); k.mark.material.dispose();
     }
     scene.remove(ch.group); ch.ground.geometry.dispose();
     this.ghosts = this.ghosts.filter((g) => g.ch !== ch);
@@ -12605,6 +12626,34 @@ const World = {
       for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }
       if (!at || this.isTaken(wkey)) continue;
       const q = Hidden.add(at[0], at[1], part); q.wkey = wkey; ch.parts.push(q);
+    }
+    this.kitsFor(ch);   // #191: its repair kits (after the parts, on their own random numbers: the parts' placing is as before)
+  },
+  // #191: how many repair kits chunk (cx, cz) has: WORLD.kits.n, and one more under the chance at the level of its middle.
+  // Its own seeded roll (never the load order): { n, level, chance }
+  kitsAt(cx, cz) {
+    const K = WORLD.kits, C = WORLD.chunk, level = this.level((cx + 0.5) * C, (cz + 0.5) * C);
+    const chance = Math.min(K.max, K.more * (level - 1)), R = wRng(wHash(cx, cz, 909));
+    return { n: K.n + (R() < chance ? 1 : 0), level, chance };
+  },
+  // #191: what a world kit at (x, z) mends: HEAL.kit grown with the level there, as robot toughness grows
+  kitMend(x, z) { return Math.round(HEAL.kit * this.tough(this.level(x, z))); },
+  // #191: the chunk's kits, each at a seeded spot a mech can stand on (as a part's, off a ring's floor and away from the parts)
+  kitsFor(ch) {
+    const C = WORLD.chunk, x0 = ch.cx * C, z0 = ch.cz * C, R = wRng(wHash(ch.cx, ch.cz, 910)), ring = this.ringAt(ch.cx, ch.cz);
+    const ok = (x, z) => Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat)
+      && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 1.5)
+      && ch.parts.every((q) => Math.hypot(q.x - x, q.z - z) > 8) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > 20);
+    const { n } = this.kitsAt(ch.cx, ch.cz);
+    for (let i = 0; i < n; i++) {
+      let at = null;
+      for (let t = 0; t < WORLD.kits.tries && !at; t++) { const x = x0 + 6 + R() * (C - 12), z = z0 + 6 + R() * (C - 12); if (ok(x, z)) at = [x, z]; }
+      // (none found: the chunk scanned on a 6 m grid from a seeded corner, so a crowded chunk still gets its kit)
+      const o = Math.floor(R() * 16);
+      for (let j = 0; j < 256 && !at; j++) { const g = (j + o) % 256, x = x0 + 3 + (g % 16) * 6, z = z0 + 3 + Math.floor(g / 16) * 6; if (ok(x, z)) at = [x, z]; }
+      if (!at) continue;
+      const k = Kits.add(at[0], at[1], 'world'); k.wkey = ch.key + ':k' + i; k.level = this.level(at[0], at[1]); k.mend = this.kitMend(at[0], at[1]);
+      ch.kits.push(k);
     }
   },
   addPine(ch, wkey, x, z, s, snowy) {
@@ -12948,6 +12997,7 @@ const World = {
     return { on: !!Game.world, pick: WorldPick.on, shown: WorldPick.shown, chunks: this.chunks.size, live: this.live.size, glitched, worldRobots: Game.robots.filter((r) => r.wkey).length,
       robots: Game.robots.length, found: this.foundN(), broken: this.broken.size, gone: this.gone.size, obstacles: obstacles.length, props: Props.list.length, hidden: Hidden.list.length,
       parts: Hidden.list.filter((q) => q.wkey && !q.found).map((q) => ({ x: r3(q.x), z: r3(q.z), part: q.part, wkey: q.wkey })),
+      kits: [...this.chunks.values()].flatMap((ch) => ch.kits.filter((k) => Kits.list.includes(k)).map((k) => ({ x: r3(k.x), z: r3(k.z), wkey: k.wkey, level: k.level, mend: k.mend }))),   // #191
       saved: worldTaken(Facts.rec).length,   // #189: the world parts whoever is playing has picked up, saved in their record
       towers: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.length, 0), antennas: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.filter((t) => t.antenna).length, 0),
       caves: [...this.chunks.values()].reduce((n, ch) => n + ch.caves.length, 0),
@@ -16587,6 +16637,8 @@ window.__rb = {
   worldAt(x, z) { return { place: World.place(x, z), h: r3(World.h(x, z)), cave: !!World.inCave(x, z), level: World.level(x, z), tough: r3(World.tough(World.level(x, z))) }; },   // (#167 slice 2: level, tough)
   // #167 slice 2: the boss chunks (World.bossAt) in a square of chunks out to rad m: [{ cx, cz, type, level }]
   worldRings(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const g = World.ringAt(cx, cz); if (g) out.push({ cx, cz, x: r3(g.x), z: r3(g.z), level: g.level, pay: g.pay.slice() }); } return out; },   // #167 slice 3
+  // #191: the kits each chunk has (World.kitsAt) in a square of chunks out to rad m: [{ cx, cz, n, level, chance }]
+  worldKits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) out.push({ cx, cz, ...World.kitsAt(cx, cz) }); return out; },
   worldBosses(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const b = World.bossAt(cx, cz); if (b) out.push({ cx, cz, ...b }); } return out; },
   worldGo(x, z) {
     if (!Game.world) return { ok: false, why: 'not in the world' };
@@ -17249,7 +17301,7 @@ window.__rb = {
       parts: Game.parts,                                  // total parts collected (the HUD's 🔩)
       bag: { ...Game.bag },                               // parts collected, by kind: { armour: 2, ram: 1 }
       takeMax: REPAIR.takeMax,
-      kits: Kits.list.map((k) => ({ id: k.id, x: r3(k.x), z: r3(k.z), from: k.from, spotted: k.spotted })),   // repair kits lying in the meadow ('meadow' | 'robot'); spotted = a squadmate drone has marked it
+      kits: Kits.list.map((k) => ({ id: k.id, x: r3(k.x), z: r3(k.z), from: k.from, spotted: k.spotted, mend: k.mend ?? HEAL.kit, wkey: k.wkey ?? null })),   // repair kits lying in the meadow ('meadow' | 'robot' | #191 'world'; mend: what it mends); spotted = a squadmate drone has marked it
       swarms: Object.values(Game.swarms).map((sw) => ({ id: sw.id, n: sw.n, drones: Game.robots.filter((r) => r.swarm === sw.id).map((r) => r.id), kit: sw.kit })),   // kit: its one kit has dropped
       rules: { heal: { ...HEAL }, player: { ...PLAYER } },
       prompt: h0 && !h0.repair ? promptRobot(h0)?.id ?? null : null,   // the downed robot the prompt is beside
