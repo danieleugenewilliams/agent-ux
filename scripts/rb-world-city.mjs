@@ -15,6 +15,8 @@
 //            * the people: not robots (never in the robots, props or obstacles); they turn to a mech near them and wave,
 //              step out of its way and walk home after;
 //            * no world robot starts, or roams to, inside a tower; no hidden part, and no repair kit (#191), inside one;
+//            * #208: on the most sloped tower's block, the ground inside is its floor and a mech driven in stands on it,
+//              level with its people;
 //            * the storage keys the same, nothing new in the record.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
@@ -283,6 +285,32 @@ async function runLogic(C) {
   ok('no hidden part is put inside a tower', r.parts.length === 0, r);
   ok(`no repair kit (#191) is put inside a tower (${r.kitsSeen} kits looked at in the cities)`, r.kitsSeen > 0 && r.kits.length === 0, { kits: r.kits.slice(0, 3), kitsSeen: r.kitsSeen });
   ok('a minute of play in the city: no roaming robot inside a tower', r.inPlay === 0, r);
+
+  // ---- #208: on a sloped city block the mech stands on the floor the people stand on (no floating, no sinking). The
+  // tower with the most slope under it (its hillside before flattening, World.baseH, over its walls) of the cities near
+  // the start; the ground the mech walks on (World.h) across its inside against its floor; then a drive in on held keys
+  r = await C.ev(String.raw`(() => { ${H} let best = null;
+    for (let k = 0; k < 12; k++) { if (!goCity(k)) break;
+      for (const t of [...W.chunks.values()].flatMap((ch) => ch.towers)) {
+        const h = t.w / 2; let lo = 1e9, hi = -1e9;
+        for (let a = -h; a <= h + 1e-6; a += h / 5) for (let b = -h; b <= h + 1e-6; b += h / 5) { const y = W.baseH(t.x + a, t.z + b); lo = Math.min(lo, y); hi = Math.max(hi, y); }
+        if (!best || hi - lo > best.spread) best = { k, key: t.key, w: t.w, spread: hi - lo };
+      } }
+    if (!best) return { none: true };
+    goCity(best.k); calm(); const T = real(best.key), t = tw(best.key), h = t.w / 2, m = m0();
+    const floor = T.inner.position.y + 0.05;   // (the floor's top: its slab's middle 0.15 down, 0.4 thick)
+    // the ground across the inside, against the floor
+    let off = 0; for (let a = -h; a <= h + 1e-6; a += h / 8) for (let b = -h; b <= h + 1e-6; b += h / 8) off = Math.max(off, Math.abs(W.h(t.x + a, t.z + b) - floor));
+    // drive in through the door
+    pose(t.door.x + t.door.nx * 12, t.door.z + t.door.nz * 12, -t.door.nx, -t.door.nz); R.step(2);
+    let inTicks = 0, mOff = 0; R.hold('KeyW', true);
+    for (let i = 0; i < 600; i++) { R.step(1); calm(); if (W.inTower(m.pos.x, m.pos.z, 2.5)?.key === best.key) { inTicks++; mOff = Math.max(mOff, Math.abs(m.pos.y - floor)); if (inTicks > 40) break; } }
+    R.hold('KeyW', false); R.step(5);
+    // the people's feet on the floor too (from where they're drawn: a waving one bobs up to 6 cm)
+    const feet = T.people.map((q) => +(q.g.position.y - floor).toFixed(3));
+    return { key: best.key, w: best.w, spread: +best.spread.toFixed(2), off: +off.toFixed(3), feet, inTicks, mOff: +mOff.toFixed(3) }; })()`);
+  ok(`#208: a tower on a sloped block (${r.spread} m of hillside across its ${r.w} m): the ground inside is its floor (${r.off} m off at most)`, !r.none && r.spread > 1 && r.off <= 0.06, r);
+  ok(`#208: driven in, the mech stands on the floor its people stand on (${r.mOff} m off over ${r.inTicks} ticks inside)`, !r.none && r.inTicks > 20 && r.mOff <= 0.06 && r.feet.length && r.feet.every((f) => f >= -0.06 && f <= 0.12), r);
 
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);

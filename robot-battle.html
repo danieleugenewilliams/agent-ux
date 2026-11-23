@@ -12429,7 +12429,9 @@ const WORLD = {
   //   door / doorH: the doorway's width (m, between the wall circles each side of it: a mech is 4.6 m across) and height
   //   wallR / wallGap: the wall circles' radius and the most m between their middles (overlapping: no gap anywhere)
   //   people: [fewest, most] in a tower; wave: m: a person waves at a mech this near; edge: m they keep off the walls
-  inside: { door: 7, doorH: 9, wallR: 1.1, wallGap: 2, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3 },
+  //   pad / padBlend (#208): the ground under a tower is flattened to its floor, out pad m past its walls (a whole 4 m grid
+  //   cell, so no cell along a wall still slopes inside), then blended back to the hillside over padBlend m
+  inside: { door: 7, doorH: 9, wallR: 1.1, wallGap: 2, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3, pad: 4, padBlend: 8 },
   // #167 slice 5: climbing the mountains (the boys' "make it so that you can climb the mountain"; their drawing 5: a tall
   // mountain, a player at its foot saying "Wow!"). A player's mech climbs any slope: it is never stopped, only slowed, and
   // on a steep one it leans in and clambers (its own footfall sound). Down a slope it goes a little faster. The ground's
@@ -12477,6 +12479,7 @@ const World = {
   gone: new Set(),            // the robots beaten and fixed or taken apart (their keys): never back
   live: new Map(),            // key -> the robots out from that chunk (a drone swarm is one entry)
   vh: new Map(), caves: new Map(), blocks: new Map(),
+  plans: new Map(),           // #208: the seeded tower spots of each chunk looked at (cityPlan)
   sweepT: 0, ghosts: [],
   lvl: 0,                     // #167 slice 2: player 1's level (World.level), as the HUD shows it
   rings: new Map(),           // #167 slice 3: 'cx,cz' -> the loaded chunk's ring (ringFor)
@@ -12547,9 +12550,39 @@ const World = {
   toWorld(c, lx, lz) { return [c.x + lx * c.cs + lz * c.sn, c.z - lx * c.sn + lz * c.cs]; },
   inCave(x, z, m = 0) { const c = this.caveAt(x, z); if (!c) return null; const [lx, lz] = this.local(c, x, z); return Math.abs(lx) < WORLD.cave.hw - m && lz > -WORLD.cave.back + m && lz < 0.5 ? c : null; },
   rawH(x, z) {
-    const h = this.baseH(x, z), c = this.caveAt(x, z); if (!c) return this.ringH(x, z, h);   // (#167 slice 3: a ring's floor; a cave chunk has none)
+    const h = this.towerPad(x, z, this.baseH(x, z)), c = this.caveAt(x, z); if (!c) return this.ringH(x, z, h);   // (#208: a tower's floor; #167 slice 3: a ring's floor, and a cave chunk has none)
     const K = WORLD.cave, d = Math.hypot(x - c.mx, z - c.mz); if (d >= K.flat + K.blend) return h;
     return lerp(c.y, h, wSmooth(clamp((d - K.flat) / K.blend, 0, 1)));
+  },
+  // #208: chunk (cx, cz)'s city blocks, from its own seeded numbers (never the load order), in the order city() builds
+  // them: each block's tower middle, width, height, colour and sign roll; pad: a tower can stand there (the place, the roll,
+  // clear of the start, the chunk's cave and its ring; only what's already standing near can still put it off, in city()),
+  // and y: its floor, the ground at its middle
+  cityPlan(cx, cz) {
+    const k = cx * 65536 + cz; let P = this.plans.get(k); if (P) return P;
+    const C = WORLD.chunk, B = WORLD.city.block, st = WORLD.city.street, R = wRng(wHash(cx, cz, 505)), cave = this.cave(cx, cz), ring = this.ringAt(cx, cz);
+    P = [];
+    for (let bi = 0; bi < C / B; bi++) for (let bj = 0; bj < C / B; bj++) {
+      const x = cx * C + bi * B + (B + st) / 2, z = cz * C + bj * B + (B + st) / 2, roll = R(), w = 12 + Math.floor(R() * 3) * 4, hgt = 20 + Math.floor(R() * 6) * 8, m = Math.floor(R() * 3), sign = R();
+      const pl = this.placeRaw(x, z), r = w * 0.75;
+      const pad = pl.b === PL.city && pl.e >= 0.4 && roll <= 0.9 && Math.hypot(x, z) > WORLD.startClear
+        && (!cave || Math.hypot(x - cave.mx, z - cave.mz) > WORLD.cave.flat + 2 + r) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat + r);
+      P.push({ x, z, w, hgt, m, sign, pad, y: pad ? this.baseH(x, z) : 0 });
+    }
+    if (this.plans.size > 8192) this.plans.clear();
+    this.plans.set(k, P); return P;
+  },
+  // #208: the ground h at (x, z) flattened to the floor of a tower spot near (its block or one round it), so the mech
+  // inside stands on the floor its people stand on: flat out to WORLD.inside.pad past its walls, then blended back
+  towerPad(x, z, h) {
+    const I = WORLD.inside, B = WORLD.city.block, n = WORLD.chunk / B, bx = Math.floor(x / B), bz = Math.floor(z / B);
+    for (let i = bx - 1; i <= bx + 1; i++) for (let j = bz - 1; j <= bz + 1; j++) {
+      const ci = Math.floor(i / n), cj = Math.floor(j / n), p = this.cityPlan(ci, cj)[(i - ci * n) * n + (j - cj * n)];
+      if (!p.pad) continue;
+      const d = Math.max(Math.abs(x - p.x), Math.abs(z - p.z)) - p.w / 2 - I.pad;
+      if (d < I.padBlend) return d <= 0 ? p.y : lerp(p.y, h, wSmooth(d / I.padBlend));
+    }
+    return h;
   },
   // the vertex heights, cached; the ground exactly as the chunk's mesh draws it (the same two triangles a grid cell)
   vert(i, j) { const k = i * 1048576 + j; let v = this.vh.get(k); if (v === undefined) { if (this.vh.size > 400000) this.vh.clear(); v = this.rawH(i * 4, j * 4); this.vh.set(k, v); } return v; },
@@ -12820,12 +12853,10 @@ const World = {
   // on the chunk's tallest tower. A tower can't be smashed. #167 slice 4: its walls block (kind 'rock') but its doorway
   // doesn't: a mech drives in, to the people inside (towerInside)
   city(ch, clear) {
-    const C = WORLD.chunk, B = WORLD.city.block, st = WORLD.city.street, R = wRng(wHash(ch.cx, ch.cz, 505)), M = this.M, G = this.G;
+    const B = WORLD.city.block, M = this.M, G = this.G;
     const built = [];
-    for (let bi = 0; bi < C / B; bi++) for (let bj = 0; bj < C / B; bj++) {
-      const cx = ch.cx * C + bi * B + (B + st) / 2, cz = ch.cz * C + bj * B + (B + st) / 2, roll = R(), w = 12 + Math.floor(R() * 3) * 4, hgt = 20 + Math.floor(R() * 6) * 8, m = Math.floor(R() * 3), sign = R();
-      const P = this.placeRaw(cx, cz);
-      if (P.b !== PL.city || P.e < 0.4 || roll > 0.9 || !clear(cx, cz, w * 0.75)) continue;
+    for (const { x: cx, z: cz, w, hgt, m, sign, pad } of this.cityPlan(ch.cx, ch.cz)) {   // (#208: the seeded spots; the ground under each flattened)
+      if (!pad || !clear(cx, cz, w * 0.75)) continue;
       const y = Math.min(this.h(cx - w / 2, cz - w / 2), this.h(cx + w / 2, cz - w / 2), this.h(cx - w / 2, cz + w / 2), this.h(cx + w / 2, cz + w / 2)) - 2;
       const t = new THREE.Mesh(this.towerGeo(w, hgt + 2), M.towers[m]); t.position.set(cx, y, cz); t.castShadow = t.receiveShadow = true; ch.group.add(t);
       const top = y + hgt + 2, tw = { ch, mesh: t, m, x: cx, z: cz, r: w * 0.72, top, extra: [] };
