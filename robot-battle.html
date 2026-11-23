@@ -10790,6 +10790,7 @@ const Copier = {
     for (let t = 0; t < 24; t++) {
       const a = p.legHeading + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * 0.35 : 0), x = p.pos.x - Math.sin(a) * COPIER.drop, z = p.pos.z - Math.cos(a) * COPIER.drop;
       if (Math.hypot(x, z) > rimR() - 8) continue;
+      if (Game.world && World.inTower(x, z, -4)) continue;   // (#194: no clone printed inside a tower)
       if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + MECH.radius + 1)) continue;
       if (Game.robots.some((r) => !ROBOT_TYPES[r.type].flies && Math.hypot(r.pos.x - x, r.pos.z - z) < r.spec.radius + MECH.radius + 1)) continue;
       return { x: r3(x), z: r3(z) };
@@ -10811,7 +10812,9 @@ const Copier = {
         if (c.t > 0) continue;
         // in from the meadow's edge, off to one side of the player (from the middle side if the player is near the edge)
         const R = Math.hypot(p.pos.x, p.pos.z), a = (R > 10 ? Math.atan2(-p.pos.z, -p.pos.x) : Math.random() * Math.PI * 2) + (Math.random() - 0.5);
-        c.pos.set(Math.cos(a) * WAVE.edge, groundH(Math.cos(a) * WAVE.edge, Math.sin(a) * WAVE.edge) + COPIER.fly, Math.sin(a) * WAVE.edge);
+        // (#194: in the endless world, from WAVE.edge m off player 1, wherever they are, not the start's edge)
+        const ox = Game.world ? p.pos.x : 0, oz = Game.world ? p.pos.z : 0, a2 = Game.world ? Math.random() * Math.PI * 2 : a, sx = ox + Math.cos(a2) * WAVE.edge, sz = oz + Math.sin(a2) * WAVE.edge;
+        c.pos.set(sx, groundH(sx, sz) + COPIER.fly, sz);
         c.phase = 'in'; c.md = buildSaucer();
         if (!Game.manual) Sfx.tone(300, 1.2, 'sine', 0.06, 900);
       }
@@ -10869,7 +10872,7 @@ const Copier = {
   // for the hooks
   state(c) {
     const p = Game.humans[0]?.mech, up = c.phase !== 'wait';
-    return { id: c.id, wave: c.wave, phase: c.phase, t: r3(c.t), x: r3(c.pos.x), y: r3(c.pos.y), z: r3(c.pos.z), over: p && up ? r3(Math.hypot(c.pos.x - p.pos.x, c.pos.z - p.pos.z)) : null,
+    return { id: c.id, wave: c.wave, level: c.level ?? null, phase: c.phase, t: r3(c.t), x: r3(c.pos.x), y: r3(c.pos.y), z: r3(c.pos.z), over: p && up ? r3(Math.hypot(c.pos.x - p.pos.x, c.pos.z - p.pos.z)) : null,
       alt: p && up ? r3(c.pos.y - p.pos.y) : null, scanned: r3(c.scanned), beam: c.phase === 'scan' || c.phase === 'print', blocked: c.blocked, clone: c.clone, drop: c.drop ? { ...c.drop } : null };
   },
 };
@@ -12407,7 +12410,12 @@ const WORLD = {
   cell: 260, blend: 80,                        // place cells (m) and the blend at their borders
   start: 28, startBlend: 30, startClear: 50,   // the start: flat out to 28 m, blended by 58 m, nothing standing within 50 m
   fog: [50, 175],                              // (the meadow's is 60-210: the loaded edge is at least 192 m off)
-  robots: { chance: 0.5, cap: 8, types: ['charger', 'sniper', 'bouncer', 'drone'], away: 75, roam: 40 },
+  // #194 (Daniel's 1A): from the mode's Ninja level (NINJA.from, level 3 at 300 m; Easy's MODES.easy.ninja, level 6 at 750 m)
+  // a Ninja crew is one more type in a chunk's seeded pick (World.robotTypes), so about 1 in 5 robot chunks out there: the
+  // waves' minions (minionsFor the level: 2, then 3 from NINJA.more, level 5 at 600 m). The pick is made by the level of
+  // the spot the robot comes out at, so no crew stands nearer. `crewRoom`: m kept clear round the spot in a chunk that
+  // reaches that level (World.crewMay; its minions stand 4 m behind the Ninja), as a boss's `clear`
+  robots: { chance: 0.5, cap: 8, types: ['charger', 'sniper', 'bouncer', 'drone'], away: 75, roam: 40, crewRoom: 8 },
   parts: { n: 1, junkyard: 2 },
   // #191 (Daniel's A then v): repair kits out in the world. One kit in every chunk, at a seeded spot a mech can stand on (as
   // its part is), and both more kits and stronger kits farther out, by the level (World.level). Starting values, tuned at
@@ -12530,6 +12538,7 @@ const World = {
   plans: new Map(),           // #208: the seeded tower spots of each chunk looked at (cityPlan)
   sweepT: 0, ghosts: [],
   lvl: 0,                     // #167 slice 2: player 1's level (World.level), as the HUD shows it
+  copied: new Set(),          // #194: the levels the Copier has come for this run (copierCheck); never saved
   rings: new Map(),           // #167 slice 3: 'cx,cz' -> the loaded chunk's ring (ringFor)
   ringSpots: new Map(),       // the seeded ring of each chunk looked at (ringAt; null: none)
   ringsWon: new Set(),        // the rings won this run (their keys): each pays once and its champion never comes back (#200: and the saved ones)
@@ -12665,7 +12674,7 @@ const World = {
     for (const p of Props.list) { scene.remove(p.root); if (p.debris) scene.remove(p.debris); }
     Props.list.length = 0; obstacles.length = 0;
     for (const k of Kits.list) scene.remove(k.g); Kits.list.length = 0;
-    this.lvl = 0;
+    this.lvl = 0; this.copied.clear();   // (#194: the Copier's levels: this run's)
     for (const q of Hidden.list) scene.remove(q.g); Hidden.list.length = 0;
     scene.fog.near = WORLD.fog[0]; scene.fog.far = WORLD.fog[1];
     this.update(true);
@@ -13101,20 +13110,21 @@ const World = {
   // be a boss's (World.bossAt): its boss group in place of the roaming robot ----
   robotsFor(ch) {
     const RW = WORLD.robots, C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 303)), key = ch.key + ':r', B = this.bossAt(ch.cx, ch.cz);
-    const roll = R(), type = RW.types[Math.floor(R() * RW.types.length)];
+    // (#194: the pick is drawn as before, and mapped over the types the spot's level has (robotTypes) once the spot is found)
+    const roll = R(), pick = R(), may = !B && this.crewMay(ch.cx, ch.cz);
     if ((!B && roll >= RW.chance) || ch.ring || this.gone.has(key) || this.live.has(key) || this.live.size >= RW.cap || !Game.humans[0]) return;
     if (B && [...this.live.values()].filter((l) => l.boss).length >= WORLD.harder.boss.cap) return;
-    const room = B ? WORLD.harder.boss.clear : 4;
+    const room = B ? WORLD.harder.boss.clear : may ? RW.crewRoom : 4;
     let at = null;
     for (let t = 0; t < 10 && !at; t++) {
       const x = ch.cx * C + 10 + R() * (C - 20), z = ch.cz * C + 10 + R() * (C - 20);
-      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4 - (B ? room : 0)) || this.inTower(x, z, -4 - (B ? room + WORLD.harder.boss.escorts.ring : 0)) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
+      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4 - (B || may ? room : 0)) || this.inTower(x, z, -4 - (B ? room + WORLD.harder.boss.escorts.ring : may ? room : 0)) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
       if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + room)) continue;
       at = [x, z];
     }
     if (!at) return;
-    const lv = this.level(at[0], at[1]), k = this.tough(lv) * Waves.health();
-    const list = B ? this.bossGroup(ch, B, at[0], at[1]) : [].concat(spawn(type, at[0], at[1]) || []);
+    const lv = this.level(at[0], at[1]), k = this.tough(lv) * Waves.health(), types = this.robotTypes(lv), type = types[Math.floor(pick * types.length)], crew = type === 'ninja';
+    const list = B ? this.bossGroup(ch, B, at[0], at[1]) : [].concat(spawn(type, at[0], at[1], crew ? minionsFor(lv) : undefined) || []);   // (#194: a crew's minions by its level)
     for (const r of list) { r.home = { x: at[0], z: at[1] }; r.wkey = key; r.wlevel = lv; r.pos.y = groundH(r.pos.x, r.pos.z) + (r.lift || 0); if (k !== 1) r.health = r.maxHealth = Math.round(r.maxHealth * k); }
     if (B) list.boss = B.type;
     this.live.set(key, list);
@@ -13145,6 +13155,30 @@ const World = {
     }
     return out;
   },
+  // #194 (1A): the first level a Ninja crew can come out at in the mode the run follows (Normal and Hard: NINJA.from, 3; Easy 6)
+  crewFrom() { return MODES[Waves.mode()].ninja ?? NINJA.from; },
+  // can chunk (cx, cz) have a Ninja crew? If its farthest point from the start is at crewFrom or past it (its robot's spot
+  // then keeps WORLD.robots.crewRoom clear)
+  crewMay(cx, cz) {
+    const C = WORLD.chunk, far = (c) => Math.max(Math.abs(c * C), Math.abs((c + 1) * C));
+    return this.level(far(cx), far(cz)) >= this.crewFrom();
+  },
+  // the types a roaming robot coming out at level lv is picked from: WORLD.robots.types, and the Ninja crew as one more from
+  // crewFrom (about 1 in 5 there)
+  robotTypes(lv) { const T = WORLD.robots.types; return lv >= this.crewFrom() ? T.concat('ninja') : T; },
+  // #194 (2A / 3A): does reaching level lv send the Copier? From COPIER.wave.from (4, at 450 m; Easy's MODES.easy.copier, 6,
+  // at 750 m) every COPIER.wave.every levels (4, 6, 8 …), as the waves have it. Its own rule (Waves.copier's written-out
+  // waves and boss waves are the waves')
+  copierAt(lv) { const W = COPIER.wave, M = MODES[Waves.mode()]; return Number.isInteger(lv) && lv >= W.from && lv >= (M.copier ?? W.from) && (lv - W.from) % W.every === 0; },
+  // player 1 has reached level lv: the first time this run on a copier level, the Copier flies in to them (as on a copier
+  // wave, COPIER.arrive s on). Once a level a run: back over a level line it doesn't come again. Nothing is saved: after a
+  // reload it can come again
+  copierCheck(lv) {
+    if (this.copied.has(lv) || !this.copierAt(lv)) return null;
+    this.copied.add(lv);
+    const c = Copier.launch(); c.level = lv;
+    return c;
+  },
   // every 2 s: a robot fixed or taken apart is gone for good; a group still glitched far past the loaded chunks goes
   sweep() {
     const far = (WORLD.keep + 0.5) * WORLD.chunk;
@@ -13158,6 +13192,8 @@ const World = {
         this.live.delete(key);
       }
     }
+    // #194: a Copier's clone left glitched far behind goes too, as a roaming robot does (it isn't a chunk's: it never comes back)
+    for (const r of Game.robots.filter((q) => q.clone && !q.wkey && q.state === 'glitched' && !q.repairBy)) if (Game.humans.every((h) => Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z) > far)) removeRobot(r);
   },
   // #189: whoever is playing's saved world parts (worldTaken of their record) as a set, made again when the list changes
   savedSet() {
@@ -13233,7 +13269,7 @@ const World = {
     this.foundN();
     // #167 slice 2: player 1's level, on the HUD's wave chip (Waves.draw); it pulses on the way out to a higher one
     const p = Game.humans[0]?.mech.pos;
-    if (p) { const lv = this.level(p.x, p.z); if (lv !== this.lvl) { if (this.lvl && lv > this.lvl) updateHud.newWave = true; this.lvl = lv; Waves.draw(); } }
+    if (p) { const lv = this.level(p.x, p.z); if (lv !== this.lvl) { if (this.lvl && lv > this.lvl) updateHud.newWave = true; this.lvl = lv; Waves.draw(); this.copierCheck(lv); } }   // (#194: the Copier)
     this.sweepT -= dt; if (this.sweepT <= 0) { this.sweepT = 2; this.sweep(); }
     this.ringTick(dt);   // #167 slice 3
     this.summitTick(dt);   // #167 slice 5
@@ -13482,6 +13518,9 @@ const World = {
       // #167 slice 2: player 1's level and its toughness; the boss groups out
       level: p ? this.level(p.x, p.z) : null, tough: p ? r3(this.tough(this.level(p.x, p.z)) * Waves.health()) : null,
       bosses: [...this.live.entries()].filter(([, l]) => l.boss).map(([key, l]) => ({ key, type: l.boss, n: l.length, ids: l.map((r) => r.id) })),
+      // #194: the Ninja crews out (the Ninja, its minions, the level it came out at); the levels the Copier has come for this run
+      crews: [...this.live.entries()].filter(([, l]) => l[0]?.type === 'ninja').map(([key, l]) => ({ key, level: l[0].wlevel, minions: l.filter((r) => r.type === 'minion').length, ids: l.map((r) => r.id) })),
+      copied: [...this.copied].sort((a, b) => a - b),
       // #167 slice 3: the rings loaded, and how many won this run
       rings: [...this.rings.values()].map((g) => this.ringState(g)), ringsWon: this.ringsWon.size,
       ringsSaved: worldRings(Facts.rec).length,   // #200: the rings whoever is playing has won, saved in their record
