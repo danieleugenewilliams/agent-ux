@@ -2946,6 +2946,8 @@ const ICONS = {
   bolt: ['bolt', ['🔩'], rot(40, pa('M9.4 10 L14.6 10 L14.6 19.4 Q14.6 20.8 12 20.8 Q9.4 20.8 9.4 19.4 Z', G('steel')) + `<path d="M9.4 13.6 L14.6 12.6 M9.4 17 L14.6 16" fill="none"/>`
     + pa('M4.8 6 L8 4 L16 4 L19.2 6 L19.2 8.6 Q19.2 10.4 17.4 10.4 L6.6 10.4 Q4.8 10.4 4.8 8.6 Z', G('steel')) + hl('M7.6 6.4 L16.4 6.4'))],
   world: ['world', [], pa('M1.6 20.6 L8.6 8.4 L11.6 12.6 L15.4 5.4 L22.4 20.6 Z', G('steel')) + pa('M12.9 10.4 L15.4 5.4 L18.2 11.4 L16.6 10.4 L15.2 12 L14 10.6 Z', '#ffffff') + pa('M6.6 11.8 L8.6 8.4 L10.3 10.8 L9 10.4 L7.8 11.6 Z', '#ffffff') + hl('M9.6 16.6 L12.4 12.8')],
+  // #167 slice 5: a summit: a snowy mountain with a flag on its top
+  summit: ['summit', [], pa('M1.6 21.4 L9.6 9.6 L12.4 13 L15.2 8.8 L22.4 21.4 Z', G('steel')) + pa('M12.9 11.6 L15.2 8.8 L17.6 12.8 L16.2 12 L15 13.2 L13.9 12.2 Z', '#ffffff') + ln('M15.2 8.8 L15.2 1.8', '#e8ecf2', 1.2, 'butt') + pa('M15.6 2 L21.4 3.6 L15.6 5.4 Z', G('red'))],
   // #167 slice 3: a boxing / battle ring (the boys' page 1): its corner posts, three ropes and the canvas floor
   ring: ['ring', [], re(1.6, 17, 20.8, 4.6, 1.4, G('blue')) + re(2, 4, 2.8, 14.4, 1.2, G('red')) + re(19.2, 4, 2.8, 14.4, 1.2, G('blue')) + ln('M4.8 7.4 L19.2 7.4 M4.8 10.6 L19.2 10.6 M4.8 13.8 L19.2 13.8', '#ffffff', 1.3, 'butt')],
   search: ['search', ['🔍'], ln('M15.6 15.6 L20.4 20.4', G('orange'), 3.4) + ci(10, 10, 7.6, G('steel')) + ci(10, 10, 4.8, '#bff3ff') + hl('M7.4 8.6 C7.8 7.6 8.6 7 9.6 6.8')],
@@ -4616,6 +4618,9 @@ const Sfx = {
     this.noise(0.18, 0.05 * k, 4200, 0.06, 2, 'highpass');
   },
   servo() { this.tone(180, 0.12, 'sawtooth', 0.025, 240); },
+  // #167 slice 5: a foot gripping the rock on a climb: a gritty scrape and a claw's clank; a summit reached: a rising horn
+  clamber() { this.noise(0.16, 0.14, 1800, 0, 1.4); this.tone(420, 0.08, 'square', 0.04, 300, 0.03); this.noise(0.1, 0.08, 700, 0.08, 1, 'lowpass'); },
+  summit() { [392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.3, 'sawtooth', 0.06, null, i * 0.12)); this.tone(1047, 1, 'triangle', 0.12, null, 0.5); this.noise(0.3, 0.06, 7500, 0.5, 2, 'highpass'); },
   click() { this.tone(660, 0.06, 'triangle', 0.15, 990); },
   // Combat. `k` is a 0..1 loudness for sounds out in the meadow.
   // The cannon: a sharp crack, a chesty boom under it, and a short ringing tail
@@ -7407,7 +7412,8 @@ function mechTick(m, dt) {
   m.aimPitch = approach(m.aimPitch, clamp(inp.aimPitch, -0.35, 0.5), 1.5 * dt);
   // Walk
   const fx = -Math.sin(m.legHeading), fz = -Math.cos(m.legHeading), x0 = m.pos.x, z0 = m.pos.z;   // (#46: where it stood)
-  m.pos.x += fx * m.speed * dt; m.pos.z += fz * m.speed * dt;
+  const ck = m.human && Game.world ? climbTick(m, fx, fz, dt) : 1;   // #167 slice 5: a player's mech up and down the world's slopes
+  m.pos.x += fx * m.speed * ck * dt; m.pos.z += fz * m.speed * ck * dt;
   // Knockback from rams and kicks slides the mech and fades out
   m.pos.x += m.push.x * dt; m.pos.z += m.push.z * dt; m.push.multiplyScalar(Math.exp(-3.5 * dt));
   let touched = null;    // the props a player's mech is leaning on (smashed after the loop: it changes `obstacles`)
@@ -7464,6 +7470,20 @@ function mechTick(m, dt) {
   if (m.human) m.roll = m.model?.legShape === 'tracks' && !m.hop && m.state !== 'down' && Math.abs(m.speed) > 0.05 ? clamp(Math.abs(m.speed) / MECH.topSpeed, 0.05, 1) : 0;
 }
 
+// #167 slice 5: a player's mech on the endless world's slopes (WORLD.climb). The grade along the way it's going: uphill it
+// slows (never below climb.floor, so it always gets up), downhill it goes a little faster, and up a steep one it clambers
+// (m.climb eases 0..1: syncMechModel leans it in, its footfall is the clamber). In the air (a jump) it isn't on the slope:
+// nothing changes. Returns × the walk this tick. (The meadow, the waves and every robot never come here.)
+function climbTick(m, fx, fz, dt) {
+  const C = WORLD.climb, dir = m.speed < 0 ? -1 : 1, s = C.span, x = m.pos.x, z = m.pos.z;
+  const g = (World.h(x + fx * dir * s, z + fz * dir * s) - World.h(x - fx * dir * s, z - fz * dir * s)) / (2 * s);
+  const moving = Math.abs(m.speed) > 0.05, air = !!m.hop;
+  const k = air || !moving ? 1 : g > 0 ? Math.max(C.floor, 1 / (1 + C.up * g)) : Math.min(C.fast, 1 - C.down * g);
+  m.grade = moving ? g : 0; m.climbK = k;
+  m.climb = approach(m.climb || 0, !air && moving && g > C.steep ? 1 : 0, C.ease * dt);
+  return k;
+}
+
 function syncMechModel(m) {
   const md = m.model; if (!md) return;
   md.root.position.copy(m.pos);
@@ -7476,7 +7496,7 @@ function syncMechModel(m) {
   const bob = K.bob(m, k);
   md.body.position.y = bob;
   md.body.rotation.z = Math.sin(m.phase) * 0.025 * k;           // weight shifts side to side
-  md.body.rotation.x = -m.speed / MECH.topSpeed * 0.04;          // lean into the walk
+  md.body.rotation.x = -m.speed / MECH.topSpeed * 0.04 - (m.climb || 0) * 0.32;   // lean into the walk (#167 slice 5: and into a climb)
   md.torso.rotation.y = wrapAngle(m.torsoYaw - m.legHeading);
   for (const A of md.arms) { A.arm.rotation.x = m.aimPitch; A.fore.position.z = 0; }   // arms pitch with the aim
   // Powered down: the lights go out, the body sags, the torso tips forward and the arms hang
@@ -7517,6 +7537,21 @@ function syncMechModel(m) {
   md.pose = { mode: m.state === 'down' ? 'down' : sw?.w === 'kick' ? 'kick' : m.hop ? 'air' : 'walk', ...K.probe(md) };
 }
 
+// #167 slice 5: the camera on the endless world's mountains. Coming down one, the slope behind the mech can rise between
+// the camera and the mech: the camera lifts till the line from it to the mech clears the ground. Going up one, the point
+// it looks at (10 m ahead at the mech's height) can be inside the hill: it lifts to stay over the ground there, so the
+// view looks up the slope, not into it. (Only in the world: the meadow's camera is as it was.)
+// Returns how far the camera has to lift (m); look is lifted in place.
+function camSlope(cp, tg, look) {
+  let y = cp.y;
+  for (const t of [0.2, 0.4, 0.6, 0.8]) {
+    const x = lerp(cp.x, tg.x, t), z = lerp(cp.z, tg.z, t), need = groundH(x, z) + 1.2;
+    if (lerp(y, tg.y, t) < need) y = (need - tg.y * t) / (1 - t);
+  }
+  const gl = groundH(look.x, look.z) + 3; if (look.y < gl) look.y = gl;
+  return y - cp.y;
+}
+
 // ===========================================================================
 // Camera rig (Family Knockout's CamRig, aimed by the torso)
 // ===========================================================================
@@ -7530,7 +7565,7 @@ class CamRig {
   update(dt, m) {
     if (!m) return;
     this.t += dt;
-    const k = this.snap ? 1 : 1 - Math.exp(-10 * dt);
+    const k = this.snap ? 1 : 1 - Math.exp(-10 * dt), snapped = this.snap;
     this.target.x = lerp(this.target.x, m.pos.x, k); this.target.z = lerp(this.target.z, m.pos.z, k);
     this.target.y = lerp(this.target.y, m.pos.y + 6.2, this.snap ? 1 : 1 - Math.exp(-5 * dt));
     // #103: a phone or tablet held upright (farT = 1): the camera eases back and up, so the mech sits lower and smaller
@@ -7543,6 +7578,11 @@ class CamRig {
     c.position.set(this.target.x + Math.sin(yaw) * cp * dist, this.target.y + Math.sin(el) * dist, this.target.z + Math.cos(yaw) * cp * dist);
     const g = groundH(c.position.x, c.position.z) + 1.5; if (c.position.y < g) c.position.y = g;
     const look = new V3(this.target.x - Math.sin(yaw) * 10, this.target.y + Math.tan(m.aimPitch) * 10 + CAM_FAR.look * F, this.target.z - Math.cos(yaw) * 10);
+    if (Game.world) {   // #167 slice 5: on the world's slopes: lifted at once as far as it needs, let down again gently
+      const dy = camSlope(c.position, this.target, look);
+      this.slope = dy >= (this.slope || 0) || snapped ? dy : lerp(this.slope, dy, 1 - Math.exp(-3 * dt));
+      c.position.y += this.slope;
+    }
     if (this.shake > 0.001) {
       const s = this.shake * this.shake * 0.35, t = this.t * 40;
       c.position.y += Math.sin(t * 1.3) * s; c.position.x += Math.sin(t * 0.9 + 1) * s * 0.6;
@@ -8061,6 +8101,8 @@ function spawnPlayer(i, x, z, heading) {
     const k = 0.4 + 0.6 * Math.min(1, Math.abs(mm.speed) / MECH.topSpeed);
     // B2: tracks roll rather than stamp: a light shake and a little dust, no thud (#70: their rolling loop is the sound)
     if (mm.model?.legShape === 'tracks') { mm.feet.roll++; h.rig.kick(0.1 * k); Dust.puff(mm, 0.5 * k); return; }
+    // #167 slice 5: clambering up a steep slope: a grip on the rock (a scrape and a clank) with the thud, and more dust
+    if ((mm.climb || 0) > 0.5) { mm.feet.climb = (mm.feet.climb || 0) + 1; h.rig.kick(0.3 + 0.3 * k); mm.feet.thud++; if (!Game.manual) { Sfx.thud(0.8 * k); Sfx.clamber(); } Dust.puff(mm, 1); return; }
     h.rig.kick(0.35 + 0.45 * k); mm.feet.thud++;
     if (!Game.manual) { Sfx.thud(k); Sfx.servo(); }
     Dust.puff(mm, k);
@@ -12360,6 +12402,23 @@ const WORLD = {
   //   wallR / wallGap: the wall circles' radius and the most m between their middles (overlapping: no gap anywhere)
   //   people: [fewest, most] in a tower; wave: m: a person waves at a mech this near; edge: m they keep off the walls
   inside: { door: 7, doorH: 9, wallR: 1.1, wallGap: 2, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3 },
+  // #167 slice 5: climbing the mountains (the boys' "make it so that you can climb the mountain"; their drawing 5: a tall
+  // mountain, a player at its foot saying "Wow!"). A player's mech climbs any slope: it is never stopped, only slowed, and
+  // on a steep one it leans in and clambers (its own footfall sound). Down a slope it goes a little faster. The ground's
+  // heights are as they were (nothing moved: parts, kits, rings and caves stand where they stood). The robots move as
+  // before. Every mountain or snowy-mountain top high enough has a summit flag with a beacon over it; climb to it and the
+  // flag goes up gold, with sparks and a fanfare. A summit reached is kept for the run only, as a ring won is: nothing here
+  // is saved. Starting values, tuned at the playtest:
+  //   grade:   the slope along the way the mech is going, read over `span` m each side of it (rise / run)
+  //   up:      uphill, the walk × 1 / (1 + up × grade), never less than `floor` (so no slope ever holds a mech still)
+  //   down:    downhill, the walk × 1 + down × fall, at most `fast`
+  //   steep:   uphill steeper than this grade (about 27°): the mech clambers (leans in, the clamber footfall); `ease`: how
+  //            fast it goes into and out of that pose (per s)
+  //   summit:  min: m: a top lower than this has no flag; place: only a mountains or snow chunk's; reach: m: a mech this
+  //            near its flag (and no more than `below` m under it) has climbed it; edge: grid cells: a chunk's highest
+  //            point must be this far inside it (a top on the chunk's edge is no summit: it slopes up into the next chunk)
+  climb: { span: 2, up: 0.85, floor: 0.45, down: 0.25, fast: 1.15, steep: 0.5, ease: 6,
+    summit: { min: 24, reach: 6, below: 3, edge: 1, pole: 7 } },
 };
 const PLACES = ['mountains', 'city', 'junkyard', 'desert', 'snow', 'cave'];
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // #167 slice 4: a tower's four faces' outward normals (its door is on one)
@@ -12395,6 +12454,9 @@ const World = {
   rings: new Map(),           // #167 slice 3: 'cx,cz' -> the loaded chunk's ring (ringFor)
   ringSpots: new Map(),       // the seeded ring of each chunk looked at (ringAt; null: none)
   ringsWon: new Set(),        // the rings won this run (their keys): each pays once and its champion never comes back
+  summits: new Map(),         // #167 slice 5: 'cx,cz' -> the loaded chunk's summit flag (summitFor)
+  summitSpots: new Map(),     // the seeded summit of each chunk looked at (summitAt; null: none)
+  summitsUp: new Set(),       // the summits climbed this run (their keys): the flag stays up gold
   // ---- places: jittered cells; every 2 x 3 block of cells holds all six, in a seeded order, warped so borders wander ----
   block(si, sj) {
     const k = si * 65536 + sj; let o = this.blocks.get(k);
@@ -12516,6 +12578,7 @@ const World = {
     ch.ground = this.groundMesh(cx, cz); ch.group.add(ch.ground);
     this.fill(ch);
     this.ringFor(ch);   // #167 slice 3: its boxing ring and champion, if it has one (after the parts: their placing is as before)
+    this.summitFor(ch);   // #167 slice 5: its summit flag, if its top is one (nothing else moves: it's on no random numbers)
     scene.add(ch.group);
     this.robotsFor(ch);
     return ch;
@@ -12523,6 +12586,7 @@ const World = {
   unload(k) {
     const ch = this.chunks.get(k); if (!ch) return;
     this.ringGone(ch);   // #167 slice 3
+    if (ch.summit) { ch.summit.mark.material.dispose(); this.summits.delete(ch.summit.s.key); }   // #167 slice 5
     for (const p of ch.props) {
       if (p.broken) this.broken.add(p.wkey);
       for (const o of p.obs) { const i = obstacles.indexOf(o); if (i >= 0) obstacles.splice(i, 1); }
@@ -12999,6 +13063,7 @@ const World = {
     if (p) { const lv = this.level(p.x, p.z); if (lv !== this.lvl) { if (this.lvl && lv > this.lvl) updateHud.newWave = true; this.lvl = lv; Waves.draw(); } }
     this.sweepT -= dt; if (this.sweepT <= 0) { this.sweepT = 2; this.sweep(); }
     this.ringTick(dt);   // #167 slice 3
+    this.summitTick(dt);   // #167 slice 5
     this.peopleTick(dt);   // #167 slice 4
   },
   // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through, and a cave's roof
@@ -13152,6 +13217,74 @@ const World = {
       champ: there ? { id: r.id, type: r.type, state: r.state, wait: !!r.ringWait, health: r3(r.health), max: r.maxHealth, x: r3(r.pos.x), z: r3(r.pos.z) } : null,
       beacon: !!ring.beacon.visible, ropes: ring.ropes[0].m.material === this.ringMats().fight ? 'fight' : ring.ropes[0].m.material === this.ringMats().won ? 'won' : 'idle' };
   },
+  // ---- #167 slice 5: summits (WORLD.climb.summit). A mountains or snowy-mountains chunk whose highest ground point is
+  // well inside it (so it's a real top, not a slope climbing on into the next chunk) and at least summit.min high has a
+  // summit: a cairn, a pole and a red flag, a beacon over it. It comes from the ground's heights only (never the load
+  // order, and no random numbers: nothing else in the chunk moves). Climb to it and the flag goes up the pole, gold, with
+  // sparks and a fanfare. Nothing is saved: a summit climbed stays climbed for the run, as a ring won does ----
+  // chunk (cx, cz)'s summit: { cx, cz, key, x, z, y, place, level } or null
+  summitAt(cx, cz) {
+    const k = cx * 65536 + cz; if (this.summitSpots.has(k)) return this.summitSpots.get(k);
+    const S = WORLD.climb.summit, n = WORLD.seg, i0 = cx * n, j0 = cz * n;
+    let top = -Infinity, ti = 0, tj = 0, edge = -Infinity;
+    for (let a = 0; a <= n; a++) for (let b = 0; b <= n; b++) {
+      const y = this.vert(i0 + a, j0 + b), inside = a >= S.edge && a <= n - S.edge && b >= S.edge && b <= n - S.edge;
+      if (!inside) edge = Math.max(edge, y); else if (y > top) { top = y; ti = i0 + a; tj = j0 + b; }
+    }
+    let s = null;
+    const x = ti * 4, z = tj * 4, b = this.placeRaw(x, z).b;
+    if (top > edge && top >= S.min && (b === PL.mountains || b === PL.snow) && !this.ringAt(cx, cz) && !this.cave(cx, cz))
+      s = { cx, cz, key: this.key(cx, cz), x, z, y: top, place: PLACES[b], level: this.level(x, z) };
+    if (this.summitSpots.size > 8192) this.summitSpots.clear();
+    this.summitSpots.set(k, s); return s;
+  },
+  // shared summit materials: the pole, the cairn's stones, the flag red till it's climbed, then gold
+  summitMats() {
+    if (this.SM) return this.SM;
+    this.SM = { pole: mat('#c9ced6', { roughness: 0.4, metalness: 0.7 }), stone: mat('#7c7a80', { roughness: 0.95, metalness: 0, flatShading: true }),
+      flag: glowMat('#ff3d4e', 0.6), up: glowMat('#ffd21f', 1.6) };
+    return this.SM;
+  },
+  // build chunk ch's summit (if it has one): a cairn, the pole, the flag (low on the pole till it's climbed) and the beacon
+  summitFor(ch) {
+    const s = this.summitAt(ch.cx, ch.cz); if (!s) return;
+    const S = WORLD.climb.summit, M = this.summitMats(), G = this.G, grp = new THREE.Group();
+    grp.position.set(s.x, s.y, s.z); ch.group.add(grp);
+    for (let i = 0; i < 5; i++) { const a = i * 1.26; this.mesh(G.rocks[i % 3], M.stone, Math.cos(a) * 0.9, 0.25, Math.sin(a) * 0.9, 0.7, 0.7, 0.7, grp); }
+    this.mesh(G.rocks[1], M.stone, 0, 0.8, 0, 0.6, 0.6, 0.6, grp);
+    this.mesh(G.cyl, M.pole, 0, S.pole / 2, 0, 0.12, S.pole, 0.12, grp);
+    this.mesh(G.ball, M.up, 0, S.pole + 0.15, 0, 0.25, 0.25, 0.25, grp);
+    const flag = new THREE.Group(); grp.add(flag); flag.userData.cloth = this.mesh(G.box, M.flag, 1.2, 0, 0, 2.3, 1.4, 0.08, flag);   // (it turns on the pole)
+    const { beam, mark } = Beacon.add(grp, '#ffd21f', 'summit', 15); beam.scale.set(3, 1.1, 3); mark.scale.set(3.2, 3.2, 1);
+    const sm = { s, ch, grp, flag, beacon: beam, mark, t: 0, up: this.summitsUp.has(s.key), lift: this.summitsUp.has(s.key) ? 1 : 0 };
+    ch.summit = sm; this.summits.set(s.key, sm);
+    this.summitLook(sm);
+  },
+  // the flag: low on the pole and red till it's climbed; then up the pole (lift 0..1) and gold
+  summitLook(sm) {
+    const S = WORLD.climb.summit; sm.flag.userData.cloth.material = sm.up ? this.summitMats().up : this.summitMats().flag;
+    sm.flag.position.y = lerp(1.6, S.pole - 0.8, sm.lift);
+  },
+  // a player's mech at a summit (within reach of its flag, and not far under it): the flag goes up, once a run
+  summitTick(dt) {
+    const S = WORLD.climb.summit;
+    for (const sm of this.summits.values()) {
+      const s = sm.s; sm.t += dt;
+      Beacon.show(sm, !sm.up, sm.t);
+      sm.flag.rotation.y = Math.sin(sm.t * 2.2) * 0.25;   // it flaps
+      if (!sm.up && Game.humans.some((h) => h.mech.state !== 'down' && Math.hypot(h.mech.pos.x - s.x, h.mech.pos.z - s.z) < S.reach && h.mech.pos.y > s.y - S.below)) this.summitUp(sm);
+      if (sm.up && sm.lift < 1) { sm.lift = Math.min(1, sm.lift + dt / 1.2); this.summitLook(sm); }
+    }
+  },
+  summitUp(sm) {
+    const s = sm.s; sm.up = true; this.summitsUp.add(s.key); this.summitLook(sm);
+    for (let k = 0; k < 5; k++) Sparks.burst(s.x + (Math.random() - 0.5) * 8, s.y + 2 + Math.random() * 5, s.z + (Math.random() - 0.5) * 8, 22, SPARK_GLINT, 6);
+    Impacts.flash(new V3(s.x, s.y + 5, s.z), 5);
+    if (!Game.manual) Sfx.summit();
+  },
+  summitState(sm) {
+    const s = sm.s; return { key: s.key, x: r3(s.x), z: r3(s.z), y: r3(s.y), place: s.place, level: s.level, up: sm.up, lift: r3(sm.lift), beacon: !!sm.beacon.visible, flagY: r3(sm.flag.position.y) };
+  },
   // what the hooks see
   status() {
     const glitched = Game.robots.filter((r) => r.wkey && r.state === 'glitched').length, p = Game.humans[0]?.mech.pos;
@@ -13171,7 +13304,11 @@ const World = {
       level: p ? this.level(p.x, p.z) : null, tough: p ? r3(this.tough(this.level(p.x, p.z)) * Waves.health()) : null,
       bosses: [...this.live.entries()].filter(([, l]) => l.boss).map(([key, l]) => ({ key, type: l.boss, n: l.length, ids: l.map((r) => r.id) })),
       // #167 slice 3: the rings loaded, and how many won this run
-      rings: [...this.rings.values()].map((g) => this.ringState(g)), ringsWon: this.ringsWon.size };
+      rings: [...this.rings.values()].map((g) => this.ringState(g)), ringsWon: this.ringsWon.size,
+      // #167 slice 5: the summits loaded and how many climbed this run; player 1 on the slopes (grade along its way, × its
+      // walk, clambering 0..1)
+      summits: [...this.summits.values()].map((sm) => this.summitState(sm)), summitsUp: this.summitsUp.size,
+      climb: Game.humans[0] ? { grade: r3(Game.humans[0].mech.grade || 0), k: r3(Game.humans[0].mech.climbK ?? 1), on: r3(Game.humans[0].mech.climb || 0), y: r3(Game.humans[0].mech.pos.y) } : null };
   },
 };
 const W_COL = { dirt: new THREE.Color('#7a6a4a'), rock: new THREE.Color('#8a8a8e'), rust: new THREE.Color('#a8673a'), sandDark: new THREE.Color('#c9a35e'), snow: new THREE.Color('#f4f8fb'), cave: new THREE.Color('#3e3a44') };
@@ -16802,6 +16939,8 @@ window.__rb = {
   // #167 slice 2: the boss chunks (World.bossAt) in a square of chunks out to rad m: [{ cx, cz, type, level }]
   worldRings(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const g = World.ringAt(cx, cz); if (g) out.push({ cx, cz, x: r3(g.x), z: r3(g.z), level: g.level, pay: g.pay.slice() }); } return out; },   // #167 slice 3
   // #191: the kits each chunk has (World.kitsAt) in a square of chunks out to rad m: [{ cx, cz, n, level, chance }]
+  // #167 slice 5: the summits (World.summitAt) in a square of chunks out to rad m: [{ cx, cz, x, z, y, place, level }]
+  worldSummits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const t = World.summitAt(cx, cz); if (t) out.push({ cx, cz, x: t.x, z: t.z, y: r3(t.y), place: t.place, level: t.level }); } return out; },
   worldKits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) out.push({ cx, cz, ...World.kitsAt(cx, cz) }); return out; },
   worldBosses(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const b = World.bossAt(cx, cz); if (b) out.push({ cx, cz, ...b }); } return out; },
   worldGo(x, z) {
