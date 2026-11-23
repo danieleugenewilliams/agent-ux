@@ -9851,7 +9851,9 @@ const roamSpot = (home) => Game.world ? World.roamSpot(home) : meadowSpot();
 function roam(r, dt, pace = 0.45) {
   const ai = r.ai;
   ai.wpT = (ai.wpT || 0) - dt;
-  if (!ai.wp || ai.wpT <= 0 || Math.hypot(ai.wp.x - r.pos.x, ai.wp.z - r.pos.z) < 6) { ai.wp = roamSpot(r.home); ai.wpT = 25; }
+  const out = Game.world && World.wayOut(r.pos.x, r.pos.z, r.spec.radius);   // #217: one inside a tower heads out of its door first
+  if (out) { ai.wp = out; ai.wpT = 25; }
+  else if (!ai.wp || ai.wpT <= 0 || Math.hypot(ai.wp.x - r.pos.x, ai.wp.z - r.pos.z) < 6) { ai.wp = roamSpot(r.home); ai.wpT = 25; }
   steer(r, ai.wp.x, ai.wp.z, pace);
   r.input.boost = false; r.input.aimYaw = r.legHeading;
   ai.mode = 'roam';
@@ -10024,7 +10026,8 @@ function droneAI(r, dt) {
     let cx = 0, cz = 0; for (const q of mates) { cx += q.pos.x; cz += q.pos.z; } cx /= mates.length; cz /= mates.length;
     if (!sw.wp || Math.hypot(sw.wp.x - cx, sw.wp.z - cz) < 8 || Game.ticks > sw.wpUntil) { sw.wp = roamSpot(r.home); sw.wpUntil = Game.ticks + 25 * SIM_HZ; }
     ai.mode = 'roam';
-    steer(r, sw.wp.x + Math.cos(r.orbitA) * 4, sw.wp.z + Math.sin(r.orbitA) * 4, 0.5, 4);
+    const out = Game.world && World.wayOut(r.pos.x, r.pos.z, r.spec.radius);   // #217: out of a tower's door first
+    if (out) steer(r, out.x, out.z, 0.5); else steer(r, sw.wp.x + Math.cos(r.orbitA) * 4, sw.wp.z + Math.sin(r.orbitA) * 4, 0.5, 4);
     return;
   }
   ai.diveT = (ai.diveT ?? 1 + Math.random() * 3) - dt;
@@ -12167,7 +12170,9 @@ function robotTick(r, dt) {
   }
   // a Bouncer mid-hop moves itself along its arc; everything else walks (or flies) like a mech
   if (!T.move?.(r, dt)) {
+    const x0 = r.pos.x, z0 = r.pos.z;
     mechTick(r, dt);
+    if (Game.world) World.keepOut(r, x0, z0);   // #217: a roaming robot doesn't wander in through a tower's door
     if (T.tick) T.tick(r, dt); else r.lift = Math.max(0, r.lift - 14 * dt);   // drones hold their height; anything else drops to the ground
     r.pos.y += r.lift;
   }
@@ -12636,6 +12641,25 @@ const World = {
       if (!this.inTower(s.x, s.z, -4)) return s;
     }
     return { x: o.x, z: o.z };
+  },
+  // #217: robots leave the towers alone. A roaming robot's step that would take it in past a tower's walls (in through its
+  // door: the walls stop it anywhere else) is undone, and it picks somewhere else to go. Chasing a player it still follows
+  // them in; once it gives up it comes back out (wayOut)
+  keepOut(r, x0, z0) {
+    if (r.state !== 'glitched' || r.ai?.mode !== 'roam' || !this.inTower(r.pos.x, r.pos.z, 0) || this.inTower(x0, z0, 0)) return false;
+    r.pos.x = x0; r.pos.z = z0; r.pos.y = groundH(x0, z0); r.speed = 0;
+    r.ai.wp = null; if (r.swarm != null && Game.swarms[r.swarm]) Game.swarms[r.swarm].wp = null;
+    return true;
+  },
+  // #217: the way out for a robot inside a tower (its chunk loaded round it, a chase that ended in there, a hop that came
+  // down in there): first to the middle of the doorway from inside, then out through it into the street; null if it's not
+  // in one. (Heading straight for somewhere outside, it would only push on a wall)
+  wayOut(x, z, rad = 2) {
+    const t = this.inTower(x, z, 0); if (!t) return null;
+    const half = t.w / 2, a = (x - t.x) * -t.nz + (z - t.z) * t.nx, b = (x - t.x) * t.nx + (z - t.z) * t.nz;
+    const lined = Math.abs(a) < Math.max(0.5, WORLD.inside.door / 2 - rad - 0.5) && b > half - 4;
+    const ob = lined ? half + 6 : half - 2.5;
+    return { x: t.x + t.nx * ob, z: t.z + t.nz * ob };
   },
 
   // ---- going in: the meadow is put away (its ground, grass, props, kits and hidden parts), the fog drawn in, and the
