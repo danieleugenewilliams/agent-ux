@@ -335,3 +335,5 @@ async function main() {
 let code = 2;
 try { code = await main(); }
 catch (e) { console.error('check failed: ' + (e?.stack || e?.message || e)); }
+finally { await kill(shared); }
+process.exit(code);
