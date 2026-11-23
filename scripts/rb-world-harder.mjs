@@ -215,7 +215,8 @@ async function runLogic(C) {
 
   // every world robot: its type's health × the toughness where it came out (× the mode's: Normal 1)
   r = await C.ev(String.raw`(() => { ${H} const seen = [];
-    const look = () => { for (const q of G.robots) if (q.wkey && q.state === 'glitched' && q.wlevel && !seen.some((s) => s.id === q.id)) seen.push({ id: q.id, type: q.type, lv: q.wlevel, hp: q.maxHealth }); };
+    // (#167 slice 3: a ring's champion has its own toughness, WORLD.rings.tough: scripts/rb-world-rings.mjs checks it)
+    const look = () => { for (const q of G.robots) if (q.wkey && q.state === 'glitched' && q.wlevel && !q.ring && !seen.some((s) => s.id === q.id)) seen.push({ id: q.id, type: q.type, lv: q.wlevel, hp: q.maxHealth }); };
     look(); for (const d of [300, 700, 1100, 1500, 1900]) { R.worldGo(d, 37); reload(); look(); }
     const bad = seen.filter((q) => q.hp !== Math.round(baseOf(q.type) * R.World.tough(q.lv)));
     const byType = {}; for (const q of seen) { (byType[q.type] ||= []).push(q); }
