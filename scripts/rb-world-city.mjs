@@ -24,6 +24,8 @@
 //              tower and 9.8 m on a 12 m one, with no wall circle outside the tower; the biggest world robot (the
 //              Knight, 7.8 m across) fits through it; and a mech driven straight in 2 m off the door's middle, on held
 //              keys, goes in on every size of tower without touching the wall;
+//            * #217: a Charger and a Bouncer inside a tower that notice a player behind its back wall come out of its
+//              door rather than push on the wall;
 //            * #217 with #208's door widths: on a 12 m tower (9.8 m door) wayOut sends a robot straight out only when
 //              its body clears the real doorway; a Bouncer and a Charger put beside the door by a side wall come out
 //              through it and stay out, never touching the doorway's corner wall circles;
@@ -396,6 +398,26 @@ async function runLogic(C) {
     ok(`#208: the biggest world robot (${r.big?.[0]}, ${r.big ? 2 * r.big[1] : '?'} m across) fits through a ${q.w} m tower's door (${q.gap} m)`, !q.none && r.big && q.gap > 2 * r.big[1], { q, big: r.big });
     ok(`#208: a mech driven straight in 2 m off the door's middle gets into a ${q.w} m tower untouched (in after ${q.inAt} ticks, pushed ${q.drift} m sideways)`, !q.none && q.inAt >= 0 && q.inside && q.drift < 0.05, q);
   }
+
+  // ---- #217 (review of d53d014): a robot that notices a player while it's still inside a tower. A Charger (the one the
+  // come-out check twice caught stuck in stalk) and a Bouncer, each put by the back wall of the nearest tower with player 1
+  // 25 m behind that wall (well inside their notice: they engage at once, from inside): each comes out of the door within
+  // 30 s instead of pushing on the back wall towards the player
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0], half = t.w / 2, nx = t.door.nx, nz = t.door.nz;
+    const at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), me = at(-(half + 25));
+    pose(me.x, me.z, nx, nz); R.step(2);
+    const res = { key: t.key, w: t.w, runs: [] };
+    for (const type of ['charger', 'bouncer']) {
+      const p = at(-(half - 3)), s = R.spawn(type, p.x + 30, p.z + 30), q = G.robots.find((o) => o.id === s.id);
+      q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'stalk'; q.ai.t = 0.6; q.ai.alert = 0;
+      let outAt = null, engagedT = 0, minB = Infinity;
+      for (let k = 0; k < 360 && outAt == null; k++) { R.step(5); const m = m0(); m.health = m.maxHealth || 100; if (q.ai.mode !== 'roam') engagedT++;
+        minB = Math.min(minB, (q.pos.x - t.x) * nx + (q.pos.z - t.z) * nz); if (!W.inTower(q.pos.x, q.pos.z, 0)) outAt = +((k + 1) * 5 / 60).toFixed(1); }
+      const e = loc(t, q.pos.x, q.pos.z);
+      res.runs.push({ type, outAt, engagedT, mode: q.ai.mode, minB: +minB.toFixed(2), end: { a: +e.a.toFixed(2), b: +e.b.toFixed(2) }, loaded: !!real(t.key) }); q.pos.x += 5000;
+    }
+    return res; })()`);
+  ok(`#217: a Charger and a Bouncer that notice a player behind a tower's back wall while inside it come out of its door (${(r.runs || []).map((q) => q.type + ' out at ' + q.outAt + ' s').join(', ')})`, r.runs.length === 2 && r.runs.every((q) => q.outAt != null && q.outAt <= 30 && q.engagedT > 0 && q.loaded && Math.abs(q.end.a) < r.w / 2 + 1), r);
 
   // ---- #217 with #208's door widths: a 12 m tower's doorway is 9.8 m (World.doorW), not WORLD.inside.door's 11, and the
   // way out has to use it. (1) The hook: for each world robot kind, across the inside by the door (b from half - 3.9 to
