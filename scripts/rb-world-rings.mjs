@@ -190,13 +190,17 @@ const H = String.raw`
   const put = (s) => { localStorage.clear(); for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); };
   const canon = (v) => (Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v) ?? 'null');
   const without = (r, ...f) => { const o = JSON.parse(JSON.stringify(r)); for (const k of f) delete o[k]; return o; };
-  const enter = (id) => { R.player(id); R.world(true); const s = R.start(0); R.manual(true); R.step(2); return s.ok; };
+  // #194: the Copier flies in the first time a run reaches level 4, 6, 8...; these checks jump thousands of metres at a time,
+  // so mark every level as come for (World.enter clears the list; main's page has none) and keep its clone out of the ring checks
+  const noCopier = () => { for (let l = 1; l <= 200; l++) W.copied?.add(l); };
+  const enter = (id) => { R.player(id); R.world(true); const s = R.start(0); noCopier(); R.manual(true); R.step(2); return s.ok; };
   // an empty device (nobody playing first: Backup.restore saves whoever is playing before it reads this device)
   const empty = () => { R.Facts.rec = null; R.Facts.child = null; G.child = null; localStorage.clear(); R.Profiles.load(); };
   // step into ring g and beat its champion: { s0, s } (the ring's state before and after)
   const win = (g) => { R.teleport(0, g.x - WR.half + 3, g.z); R.step(3); const s0 = ringOf(g); if (s0?.champ) R.damage(s0.champ.id, 1e6, 'gun'); R.step(3); return { s0, s: ringOf(g) }; };
   const champs = (g) => G.robots.filter((q) => q.ring === g.cx + ',' + g.cz && q.state !== 'ally').length;
   const trophies = () => { const r = rec(), t = r?.garage?.trophies || r?.trophies || {}; const o = {}; for (const [k, v] of Object.entries(t)) o[k] = { n: v.n, meadow: v.from?.meadow || 0 }; return o; };
+  noCopier();
 `;
 
 async function runLogic(C) {
@@ -225,7 +229,7 @@ async function runLogic(C) {
 
   // ---- a world run, by the nearest ring (a fresh page, as a run starts)
   await C.ev(`localStorage.clear()`); await C.open(1280, 800, false);
-  r = await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); window.__k0 = keys(); window.__t0 = trophies();
+  r = await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); noCopier(); R.manual(true); R.step(2); window.__k0 = keys(); window.__t0 = trophies();
     const g = near()[0], ring = goNear(g); window.__g = g; if (!ring) return { none: true, g };
     R.step(120);
     const s = ringOf(g), RW = R.WORLD.robots, lv = g.level;
