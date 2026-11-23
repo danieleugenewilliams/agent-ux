@@ -14,7 +14,10 @@
 //            * stepping in starts the fight (ropes red, the champion awake); hitting it from outside does too; it can't
 //              leave the ring;
 //            * beating it pays its parts into the bag and the trophies (from the meadow) at once, the ropes go gold, the
-//              beacon off; once only: never again, not after the chunk goes and comes back (no champion then);
+//              beacon off; once only: never again, not after the chunk goes and comes back (no fresh champion then);
+//            * #201: a fight left unfinished starts again with a fresh champion; a champion beaten and left behind stays
+//              where it fell, down, its clock held while its ring is unloaded (away past its down time), and is there to
+//              fix (its Quick Fix opens) or salvage when the player comes back; salvaged, the ring is empty after that;
 //            * the storage keys the same; the record's one new field is world.rings, holding that ring's key (#200).
 //   touch  - at 844 x 390 with touch: a world run, a ring's champion downed: at most 4 touch buttons, FIX opens its board.
 //   saved  - #200, a ring pays once even after a reload. At 1280 x 800, through window.__rb, with main's page from before
@@ -252,7 +255,7 @@ async function runLogic(C) {
     const want = {}; for (const p of g.pay) want[p] = (want[p] || 0) + 1;
     const bagOk = Object.entries(want).every(([p, n]) => (bag1[p] || 0) - (bag0[p] || 0) === n), trOk = Object.entries(want).every(([p, n]) => (t1[p]?.n || 0) - (t0[p]?.n || 0) === n && (t1[p]?.meadow || 0) - (t0[p]?.meadow || 0) === n);
     const extra = Object.keys(bag1).filter((p) => !want[p] && (bag1[p] || 0) !== (bag0[p] || 0));
-    // more time, then the chunk away and back: no second payout, no champion back
+    // more time, then the chunk away and back: no second payout, no fresh champion (#201: the beaten one is still there, down)
     R.step(60); const bag2 = { ...G.bag };
     const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.worldGo(px, pz); reload(); R.step(30);
     const s3 = ringOf(g), bag3 = { ...G.bag };
@@ -262,13 +265,45 @@ async function runLogic(C) {
   ok(`beaten: the ring pays its ${r.pay.length} parts into the bag at once (${r.pay.join(', ')})`, r.s.state === 'won' && r.s.paid === r.pay.length && r.bagOk && r.extra.length === 0, r);
   ok('... and into the trophies, as parts from the meadow', r.trOk, r);
   ok('... the ropes go gold and the beacon off', r.s.ropes === 'won' && !r.s.beacon, r.s);
-  ok('once only: no second payout later or after the chunk goes and comes back, and no champion then', !r.again && r.s3 && r.s3.state === 'won' && !r.s3.champ && r.champs === 0 && r.won === 1, r);
+  ok('once only: no second payout later or after the chunk goes and comes back, and no fresh champion then (#201: the one beaten is still there, down)', !r.again && r.s3 && r.s3.state === 'won' && r.s3.champ?.state === 'down' && r.s3.champ.id === r.s.champ?.id && r.champs === 1 && r.won === 1, r);
   ok('the save keys the same; the record\'s one new field is world.rings = [that ring\'s key] (#200)', JSON.stringify(r.k0) === JSON.stringify(r.k1) && JSON.stringify(r.recRing) === '["world"]' && JSON.stringify(r.rings) === JSON.stringify([r.key]) && r.saved === 1, r);
 
   // ---- hit from outside the ropes: the fight starts too
   r = await C.ev(String.raw`(() => { ${H} const g = near()[0], ring = goNear(g); if (!ring) return { none: true, g }; R.step(5); const s0 = ringOf(g);
     R.damage(s0.champ.id, 5, 'gun'); R.step(3); const s = ringOf(g), p = G.humans[0].mech.pos; return { s0: s0.state, s, inside: W.inRing(ring.g, p.x, p.z) }; })()`);
   ok('a champion hit from outside the ropes starts its fight too', !r.none && r.s0 === 'wait' && r.s.state === 'fight' && !r.inside, r);
+
+  // ---- #201: a champion beaten and left behind is still there, down, when the player comes back (the same session)
+  // (champsOf: ring g's champions in the robots, not fixed; beatIn: step into ring g and beat its champion)
+  const C201 = String.raw`const champsOf = (g) => G.robots.filter((q) => q.ring === g.cx + ',' + g.cz && q.state !== 'ally').length;
+    const beatIn = (g) => { R.teleport(0, g.x - WR.half + 3, g.z); R.step(3); const s0 = ringOf(g); if (s0?.champ) R.damage(s0.champ.id, 1e6, 'gun'); R.step(3); return { s0, s: ringOf(g) }; };`;
+  // a fight left unfinished (the champion up) starts again from the start: a fresh champion, waiting
+  r = await C.ev(String.raw`(() => { ${H} ${C201} const g = near()[0]; window.__g2 = g; const s0 = ringOf(g), p = G.humans[0].mech.pos, px = p.x, pz = p.z;
+    R.worldGo(px + 3000, pz); W.sweep(); R.step(60); const gone = !G.robots.some((q) => q.id === s0.champ.id); R.worldGo(px, pz); reload(); R.step(5);
+    const s = ringOf(g); return { s0, s, gone, champs: champsOf(g) }; })()`);
+  ok('a fight left unfinished: its champion goes with its chunk and a fresh one waits when it comes back', r.s0.state === 'fight' && r.gone && r.s?.state === 'wait' && r.s.champ && r.s.champ.id !== r.s0.champ.id && r.s.champ.wait && r.champs === 1, r);
+  // beaten, then left: away 50 s (past the Knight's 40 s down time), it stays down there, its clock held, and nothing pays again
+  r = await C.ev(String.raw`(() => { ${H} ${C201} const g = window.__g2, w = beatIn(g), id = w.s?.champ?.id, c = G.robots.find((q) => q.id === id);
+    const bag0 = { ...G.bag }, t0 = c?.downT, p = G.humans[0].mech.pos, px = p.x, pz = p.z;
+    R.worldGo(px + 3000, pz); W.sweep(); R.step(60 * 50);
+    const away = { loaded: W.rings.has(g.cx + ',' + g.cz), there: G.robots.includes(c), state: c?.state, downT: c?.downT };
+    R.worldGo(px, pz); reload(); R.step(30); const s = ringOf(g), t1 = c?.downT;
+    const same = Object.keys({ ...bag0, ...G.bag }).every((k) => (bag0[k] || 0) === (G.bag[k] || 0));
+    return { w: w.s?.state, id, t0, away, s, t1, same, champs: champsOf(g), max: R.ROBOT_TYPES[WR.type].downTime }; })()`);
+  ok(`beaten and left 50 s (its down time ${r.max} s): it stays where it fell, down, its clock held while its ring's away (${r.t0?.toFixed?.(2)} s left)`, r.w === 'won' && r.id != null && !r.away.loaded && r.away.there && r.away.state === 'down' && r.away.downT === r.t0 && r.max < 50, r);
+  ok('... back at the ring: the same champion, still down, the ring still won, no fresh champion and no second payout; its clock runs again', r.s?.state === 'won' && r.s.champ?.id === r.id && r.s.champ.state === 'down' && r.champs === 1 && r.same && r.t1 < r.t0, r);
+  // there to fix: its Quick Fix opens (backed out again: it stays down)
+  r = await C.ev(String.raw`(() => { ${H} const g = window.__g2, id = ringOf(g)?.champ?.id, c = G.robots.find((q) => q.id === id); if (!c) return { none: true }; let ch = null;
+    for (const o of [2.5, 5, 7]) { R.teleport(0, c.pos.x + o, c.pos.z); ch = R.choose(id, 'fix'); if (ch.ok) break; }
+    const fixing = G.humans[0].repair?.r === c; R.leaveFix(); R.step(2); return { ok: ch?.ok, why: ch?.why, fixing, state: c.state }; })()`);
+  ok('... there to fix: its Quick Fix opens', r.ok && r.fixing && r.state === 'down', r);
+  // and to salvage: taken apart, it's gone, and after another walk away and back the ring is empty (still won)
+  r = await C.ev(String.raw`(() => { ${H} ${C201} const g = window.__g2, id = ringOf(g)?.champ?.id, c = G.robots.find((q) => q.id === id); if (!c) return { none: true }; const s0 = st(id); let ch = null;
+    for (const o of [2.5, 5, 7]) { R.teleport(0, c.pos.x + o, c.pos.z); ch = R.choose(id, 'parts', undefined, s0?.parts?.length ? [s0.parts[0]] : []); if (ch.ok) break; }
+    const took = !G.robots.includes(c), p = G.humans[0].mech.pos, px = p.x, pz = p.z;
+    R.worldGo(px + 3000, pz); W.sweep(); R.step(60); R.worldGo(px, pz); reload(); R.step(30);
+    const s = ringOf(g); return { ok: ch?.ok, why: ch?.why, took, s, champs: champsOf(g) }; })()`);
+  ok('... or to salvage: taken apart it\'s gone, and the ring empty after a walk away and back (still won)', r.ok && r.took && r.s?.state === 'won' && !r.s.champ && r.champs === 0, r);
 
   // ---- the same ring chunks after a reload
   await C.open(1280, 800, false);
