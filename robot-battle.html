@@ -12348,8 +12348,21 @@ const WORLD = {
   //            that isn't a boss can be taken apart for; a boss's rare part still comes only from fixing the boss)
   rings: { chance: 0.1, away: 160, half: 14, flat: 26, blend: 7, type: 'knight', tough: 0.6, ropes: [1.9, 3.3, 4.7], post: 5.6,
     pay: { n: 6, every: 2, max: 12, pool: ['armour', 'battery', 'motor', 'wiring', 'ram', 'scope', 'rotor', 'spring', 'jetboots', 'solar'] } },
+  // #167 slice 4: city insides (the boys' "make it so that you can go inside the buildings and add some people in every
+  // building"; Q6: "friendly people who just live there (they wave, robots leave them alone)"). Every city tower has a door
+  // on one of its four sides (each side faces a street), seeded per block, and drives in. Its walls block as lines of
+  // overlapping circles along its four faces (none in the doorway), so nothing squeezes through a wall; the tower goes
+  // see-through while a mech is in it or at its door (as a cave's roof does). Inside: a lit floor, lamps, a lift on the back
+  // wall and its people. The people aren't robots, props or obstacles: nothing targets them, nothing hurts them, the aim
+  // never locks onto them; they step out of the way of a mech or a robot, turn to a mech that comes near and wave. No robot
+  // comes out, or roams to, inside a tower. Nothing here is saved. Starting values, tuned at the playtest:
+  //   door / doorH: the doorway's width (m, between the wall circles each side of it: a mech is 4.6 m across) and height
+  //   wallR / wallGap: the wall circles' radius and the most m between their middles (overlapping: no gap anywhere)
+  //   people: [fewest, most] in a tower; wave: m: a person waves at a mech this near; edge: m they keep off the walls
+  inside: { door: 7, doorH: 9, wallR: 1.1, wallGap: 2, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3 },
 };
 const PLACES = ['mountains', 'city', 'junkyard', 'desert', 'snow', 'cave'];
+const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // #167 slice 4: a tower's four faces' outward normals (its door is on one)
 const PL = Object.fromEntries(PLACES.map((p, i) => [p, i]));
 
 // ---- seeded noise (Wild World's) ----
@@ -12455,9 +12468,16 @@ const World = {
     const d = this.vert(i + 1, j + 1); return d + (this.vert(i, j + 1) - d) * (1 - fx) + (this.vert(i + 1, j) - d) * (1 - fz);
   },
   // where a roaming robot heads next: somewhere near its home (the spot it came out at)
+  // (#167 slice 4: never inside a tower: robots leave the people there alone)
   roamSpot(home) {
-    const o = home || Game.humans[0]?.mech.pos || { x: 0, z: 0 }, a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * WORLD.robots.roam;
-    return { x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d };
+    const o = home || Game.humans[0]?.mech.pos || { x: 0, z: 0 };
+    let s = null;
+    for (let t = 0; t < 8; t++) {
+      const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * WORLD.robots.roam;
+      s = { x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d };
+      if (!this.inTower(s.x, s.z, -4)) return s;
+    }
+    return { x: o.x, z: o.z };
   },
 
   // ---- going in: the meadow is put away (its ground, grass, props, kits and hidden parts), the fog drawn in, and the
@@ -12603,7 +12623,7 @@ const World = {
     if (cave) this.addCave(ch, cave);
     const clear = (x, z, r) => Math.hypot(x, z) > WORLD.startClear && (!cave || Math.hypot(x - cave.mx, z - cave.mz) > WORLD.cave.flat + 2 + r)
       && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat + r)
-      && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + r + 1.5);
+      && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + r + 1.5) && !this.inTower(x, z, -(r + 1.5));   // (#167 slice 4: nor in a tower)
     this.city(ch, clear);
     for (let k = 0; k < 26; k++) {
       const x = x0 + R() * C, z = z0 + R() * C, pick = R(), s = 0.8 + R() * 0.7, wkey = ch.key + ':' + k;
@@ -12623,7 +12643,7 @@ const World = {
     for (let k = 0; k < n; k++) {
       const wkey = ch.key + ':p' + k, part = HIDDEN.kinds[Math.floor(RP() * HIDDEN.kinds.length)];
       let at = null;
-      for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }
+      for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }   // (#167 slice 4: not in a tower)
       if (!at || this.isTaken(wkey)) continue;
       const q = Hidden.add(at[0], at[1], part); q.wkey = wkey; ch.parts.push(q);
     }
@@ -12641,7 +12661,7 @@ const World = {
   // #191: the chunk's kits, each at a seeded spot a mech can stand on (as a part's, off a ring's floor and away from the parts)
   kitsFor(ch) {
     const C = WORLD.chunk, x0 = ch.cx * C, z0 = ch.cz * C, R = wRng(wHash(ch.cx, ch.cz, 910)), ring = this.ringAt(ch.cx, ch.cz);
-    const ok = (x, z) => Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat)
+    const ok = (x, z) => Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat)
       && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 1.5)
       && ch.parts.every((q) => Math.hypot(q.x - x, q.z - z) > 8) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > 20);
     const { n } = this.kitsAt(ch.cx, ch.cz);
@@ -12701,7 +12721,8 @@ const World = {
     const p = Props.add('rock', x, z, [{ x, z, r: 1.7 * s, h: 2.2 * s }], { root: g, s: 1.6 * s, col: '#8a5a3a' }); p.wkey = wkey; ch.props.push(p);
   },
   // the city: a tower in each block, tall with lots of windows, signs or screens on poles on the roofs, and an antenna
-  // on the chunk's tallest tower. A tower can't be smashed; it blocks as a ring of circles (kind 'rock')
+  // on the chunk's tallest tower. A tower can't be smashed. #167 slice 4: its walls block (kind 'rock') but its doorway
+  // doesn't: a mech drives in, to the people inside (towerInside)
   city(ch, clear) {
     const C = WORLD.chunk, B = WORLD.city.block, st = WORLD.city.street, R = wRng(wHash(ch.cx, ch.cz, 505)), M = this.M, G = this.G;
     const built = [];
@@ -12720,9 +12741,8 @@ const World = {
         tw.extra.push(this.mesh(G.box, mat('#1a1d26', { roughness: 0.5 }), cx, top + ph + 1.4, cz, sw, 2.8, 0.4, ch.group));
         tw.extra.push(this.mesh(G.box, glowMat(hex, 1.6), cx, top + ph + 1.4, cz + 0.22, sw * 0.9, 2.3, 0.05, ch.group));
       }
-      for (const [ox, oz, r] of [[0, 0, w * 0.5], [-w * 0.3, -w * 0.3, w * 0.3], [w * 0.3, -w * 0.3, w * 0.3], [-w * 0.3, w * 0.3, w * 0.3], [w * 0.3, w * 0.3, w * 0.3]]) {
-        const o = { x: cx + ox, z: cz + oz, r, h: hgt + 2, kind: 'rock', prop: null }; obstacles.push(o); ch.obs.push(o);
-      }
+      tw.w = w; tw.hgt = hgt;
+      this.towerInside(ch, tw, Math.floor(cx / B), Math.floor(cz / B));   // #167 slice 4: its walls, door, inside and people
       ch.towers.push(tw); built.push(tw);
     }
     // the antenna on the tallest
@@ -12734,6 +12754,140 @@ const World = {
       this.mesh(G.ball, glowMat('#ff2a2a', 3), tall.x + 2, tall.top + 12.3, tall.z - 2, 0.4, 0.4, 0.4, ch.group);
       tall.antenna = true;
     }
+  },
+  // ---- #167 slice 4: city insides (WORLD.inside). A tower's door is on one of its four sides (tw.side: its outward
+  // normal SIDES[side]), from its own seeded numbers (block bx, bz: never the load order); its walls block as lines of
+  // overlapping circles along the faces, with none across the doorway; inside are its floor, lamps, a lift on the back wall
+  // (shown only while the tower is see-through) and its people ----
+  towerInside(ch, tw, bx, bz) {
+    const I = WORLD.inside, G = this.G, R = wRng(wHash(bx, bz, 515)), w = tw.w, half = w / 2, D = I.door;
+    const side = Math.floor(R() * 4), [nx, nz] = SIDES[side], tx = -nz, tz = nx, y0 = this.h(tw.x, tw.z);
+    Object.assign(tw, { key: ch.key + ':t' + bx + ',' + bz, side, nx, nz, y0, people: [], inside: false });
+    // the walls: each face a line of circles, from corner to corner, evenly spaced at most wallGap apart; the door's face
+    // in two lines, either side of the doorway (their edges D apart). A face's last corner is the next face's first, so
+    // it's left to that one (end: false)
+    const line = (fx, fz, s0, s1, end = true) => {
+      const n = Math.max(1, Math.ceil((s1 - s0) / I.wallGap));
+      for (let k = 0; k <= (end ? n : n - 1); k++) {
+        const s = s0 + (s1 - s0) * k / n, o = { x: tw.x + fx * half + (-fz) * s, z: tw.z + fz * half + fx * s, r: I.wallR, h: tw.hgt + 2, kind: 'rock', prop: null };
+        obstacles.push(o); ch.obs.push(o);
+      }
+    };
+    SIDES.forEach(([fx, fz], i) => {
+      if (i !== side) line(fx, fz, -half, half, false);
+      else { line(fx, fz, -half, -(D / 2 + I.wallR)); line(fx, fz, D / 2 + I.wallR, half, false); }
+    });
+    // the doorway: a warm lit panel on the face (put away while the tower is see-through), a glowing frame round it and an
+    // awning over it, so it reads as a way in from down the street
+    const M = this.insideMats(), yaw = Math.atan2(nx, nz), fx0 = tw.x + nx * half, fz0 = tw.z + nz * half;
+    const door = new THREE.Group(); door.position.set(fx0, y0, fz0); door.rotation.y = yaw; ch.group.add(door);
+    tw.doorPanel = this.mesh(G.box, M.lobby, 0, I.doorH / 2, 0.06, D, I.doorH, 0.2, door);
+    for (const s of [-1, 1]) this.mesh(G.box, M.frame, s * (D / 2 + 0.2), I.doorH / 2, 0.2, 0.4, I.doorH + 0.4, 0.3, door);
+    this.mesh(G.box, M.frame, 0, I.doorH + 0.2, 0.2, D + 0.8, 0.4, 0.3, door);
+    this.mesh(G.box, M.awning[tw.m], 0, I.doorH + 0.9, 1.2, D + 2, 0.35, 2.4, door);
+    // inside (in the tower's own frame: +z out of the door): the floor, lamps under the next floor up, the lift
+    const inner = new THREE.Group(); inner.position.set(tw.x, y0, tw.z); inner.rotation.y = yaw; inner.visible = false; ch.group.add(inner);
+    this.mesh(G.box, M.floor, 0, -0.15, 0, w - 0.4, 0.4, w - 0.4, inner).castShadow = false;
+    const L = I.doorH + 2;
+    for (const [lx, lz] of [[-w / 4, -w / 4], [w / 4, -w / 4], [-w / 4, w / 4], [w / 4, w / 4]]) this.mesh(G.box, M.lamp, lx, L, lz, 2.2, 0.2, 2.2, inner).castShadow = false;
+    this.mesh(G.box, M.lift, 0, 3.2, -(half - 0.35), 3.4, 6.4, 0.3, inner);
+    this.mesh(G.box, M.liftGap, 0, 3.2, -(half - 0.5), 0.12, 6.2, 0.1, inner);
+    this.mesh(G.box, M.button, 2.3, 3, -(half - 0.45), 0.35, 0.35, 0.12, inner);
+    tw.inner = inner;
+    // its people: fewest to most of them, each at a seeded spot off the walls, out of the way in from the door and apart
+    const n = I.people[0] + Math.floor(R() * (I.people[1] - I.people[0] + 1)), m = half - I.edge, spots = [];
+    for (let t = 0; t < 40 && spots.length < n; t++) {
+      const a = (R() * 2 - 1) * m, b = (R() * 2 - 1) * m;   // a: across the door, b: out towards it
+      if (Math.abs(a) < D / 2 && b > -m * 0.3) continue;   // (the way in from the door is kept clear)
+      if (spots.some(([p, q]) => Math.hypot(p - a, q - b) < 2.2)) continue;
+      spots.push([a, b]);
+    }
+    for (let t = 0; spots.length < n && t < n; t++) spots.push([(t % 2 ? 1 : -1) * m, -m + t]);   // (a crowded tower: along the back)
+    spots.forEach(([a, b], k) => {
+      const x = tw.x + tx * a + nx * b, z = tw.z + tz * a + nz * b;
+      tw.people.push(this.person(ch, x, z, y0, R, yaw, tw.key, k));
+    });
+  },
+  // a friendly person: legs, a shirt, arms that swing from the shoulders (the right one waves), a head with eyes and hair.
+  // All shared geometries and cached materials (nothing to dispose)
+  person(ch, x, z, y, R, yaw, tkey, k) {
+    const G = this.G, P = this.insideMats().people, pick = (a) => a[Math.floor(R() * a.length)];
+    const shirt = pick(P.shirts), skin = pick(P.skins), pants = pick(P.pants), hair = pick(P.hair);
+    const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw; ch.group.add(g);
+    for (const s of [-1, 1]) this.mesh(G.box, pants, s * 0.16, 0.48, 0, 0.26, 0.96, 0.3, g);
+    this.mesh(G.cyl, shirt, 0, 1.36, 0, 0.36, 0.84, 0.27, g);
+    this.mesh(G.ball, skin, 0, 2.02, 0, 0.27, 0.29, 0.27, g);
+    this.mesh(G.ball, hair, 0, 2.16, -0.03, 0.28, 0.17, 0.28, g);
+    for (const s of [-1, 1]) this.mesh(G.ball, P.eye, s * 0.1, 2.06, 0.24, 0.045, 0.045, 0.03, g);
+    const arm = (s) => { const pv = new THREE.Group(); pv.position.set(s * 0.47, 1.72, 0); g.add(pv); this.mesh(G.box, shirt, 0, -0.38, 0, 0.16, 0.78, 0.16, pv); this.mesh(G.ball, skin, 0, -0.82, 0, 0.11, 0.11, 0.11, pv); return pv; };
+    return { g, armR: arm(1), armL: arm(-1), home: { x, z }, x, z, yaw, face: yaw, wave: 0, t: R() * 6, key: tkey + ':' + k };
+  },
+  insideMats() {
+    if (this.IM) return this.IM;
+    const soft = (c, e = 0.12) => mat(c, { roughness: 0.75, metalness: 0, emissive: c, emissiveIntensity: e });
+    this.IM = { lobby: mat('#ffe3a3', { emissive: '#ffd27a', emissiveIntensity: 0.7, roughness: 0.4, metalness: 0 }), frame: glowMat('#7cff6b', 1.4),
+      awning: [soft('#3f8cff', 0.2), soft('#e8473c', 0.2), soft('#ffc21a', 0.2)], floor: soft('#e6d6ae', 0.35), lamp: glowMat('#fff6dd', 2.2),
+      lift: mat('#c8ccd4', { roughness: 0.35, metalness: 0.8 }), liftGap: mat('#2a2e38', { roughness: 0.6 }), button: glowMat('#3ff0ff', 2),
+      people: { shirts: ['#e8473c', '#3f8cff', '#3fbf6a', '#ffc21a', '#b46be0', '#ff8a1f', '#f4f4f4'].map((c) => soft(c)), skins: ['#f1c9a5', '#e0b48f', '#d9a479', '#a8714a', '#7a4e30'].map((c) => soft(c, 0.1)),
+        pants: ['#2d3550', '#4a3a2a', '#22252b', '#56606e'].map((c) => soft(c, 0.05)), hair: ['#2a1d14', '#5a3a1e', '#d9b45a', '#111111', '#9a9a9a'].map((c) => soft(c, 0.05)), eye: mat('#14182a', { roughness: 0.4 }) } };
+    return this.IM;
+  },
+  // the loaded tower at (x, z) (m: that far in from its walls; negative: out past them), or null. The chunk's and its
+  // neighbours' (a wide margin reaches over a chunk's edge)
+  inTower(x, z, m = 0) {
+    const C = WORLD.chunk, cx = Math.floor(x / C), cz = Math.floor(z / C);
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      const ch = this.chunks.get(this.key(cx + dx, cz + dz)); if (!ch) continue;
+      for (const t of ch.towers) { const H = t.w / 2 - m; if (Math.abs(x - t.x) < H && Math.abs(z - t.z) < H) return t; }
+    }
+    return null;
+  },
+  // every tick, the towers near a player: is a mech in it or at its door (it goes see-through: sync), and its people: out of
+  // the way of a mech or a robot, home again when it's clear, turning to a mech that comes near and waving at it
+  peopleTick(dt) {
+    const I = WORLD.inside, hs = Game.humans.filter((h) => h.mech.state !== 'down');
+    const bodies = [...Game.mechs.map((m) => ({ p: m.pos, r: MECH.radius })), ...Game.robots.filter((r) => !r.air && !ROBOT_TYPES[r.type]?.flies).map((r) => ({ p: r.pos, r: r.spec?.radius ?? 2 }))];
+    for (const ch of this.chunks.values()) for (const t of ch.towers) {
+      t.inside = Game.humans.some((h) => this.inTower(h.mech.pos.x, h.mech.pos.z, -I.ghost) === t);
+      if (!Game.humans.some((h) => Math.hypot(h.mech.pos.x - t.x, h.mech.pos.z - t.z) < I.shown)) continue;
+      const lim = t.w / 2 - 0.6;
+      for (const q of t.people) {
+        q.t += dt;
+        // out of the way: pushed clear of any body standing on it (kept inside the walls), else back home at a walk
+        let pushed = false;
+        for (const b of bodies) {
+          const dx = q.x - b.p.x, dz = q.z - b.p.z, d = Math.hypot(dx, dz), need = b.r + 0.8;
+          if (d < need) { const k = d > 1e-3 ? need / d : 1; q.x = b.p.x + (d > 1e-3 ? dx * k : need); q.z = b.p.z + (d > 1e-3 ? dz * k : 0); pushed = true; }
+        }
+        q.x = clamp(q.x, t.x - lim, t.x + lim); q.z = clamp(q.z, t.z - lim, t.z + lim);
+        // (pinned against a wall with a body still on it: out along the wall instead)
+        if (pushed) for (const b of bodies) {
+          const dx = q.x - b.p.x, dz = q.z - b.p.z, need = b.r + 0.8; if (dx * dx + dz * dz >= need * need) continue;
+          if (Math.abs(q.x - t.x) >= lim - 1e-6) q.z = clamp(b.p.z + Math.sign(dz || 1) * Math.sqrt(Math.max(0, need * need - dx * dx)), t.z - lim, t.z + lim);
+          else if (Math.abs(q.z - t.z) >= lim - 1e-6) q.x = clamp(b.p.x + Math.sign(dx || 1) * Math.sqrt(Math.max(0, need * need - dz * dz)), t.x - lim, t.x + lim);
+        }
+        if (!pushed && bodies.every((b) => Math.hypot(q.home.x - b.p.x, q.home.z - b.p.z) > b.r + 2)) {
+          const dx = q.home.x - q.x, dz = q.home.z - q.z, d = Math.hypot(dx, dz), s = Math.min(d, 1.4 * dt);
+          if (d > 1e-3) { q.x += dx / d * s; q.z += dz / d * s; }
+        }
+        // a mech near: turn to it and wave; none: face the door, arms down
+        let near = null, nd = I.wave;
+        for (const h of hs) { const d = Math.hypot(h.mech.pos.x - q.x, h.mech.pos.z - q.z); if (d < nd) { nd = d; near = h.mech; } }
+        const want = near ? Math.atan2(near.pos.x - q.x, near.pos.z - q.z) : Math.atan2(t.nx, t.nz);
+        const da = wrapAngle(want - q.face); q.face = wrapAngle(q.face + clamp(da, -5 * dt, 5 * dt));
+        q.wave = near ? Math.min(1, q.wave + 3 * dt) : Math.max(0, q.wave - 2 * dt);
+        q.g.position.set(q.x, t.y0 + 0.05 + (q.wave > 0 ? Math.abs(Math.sin(q.t * 4.5)) * 0.06 * q.wave : 0), q.z); q.g.rotation.y = q.face;
+        q.armR.rotation.z = q.wave * (2.5 + 0.45 * Math.sin(q.t * 9));
+        q.armL.rotation.z = -0.08 - 0.05 * Math.sin(q.t * 1.3);
+      }
+    }
+  },
+  // what the hooks see of a tower
+  towerState(t) {
+    const M = this.M;
+    return { key: t.key, x: r3(t.x), z: r3(t.z), w: t.w, side: t.side, door: { x: r3(t.x + t.nx * t.w / 2), z: r3(t.z + t.nz * t.w / 2), nx: t.nx, nz: t.nz, width: WORLD.inside.door },
+      inside: t.inside, ghost: t.mesh.material !== M.towers[t.m], innerShown: !!t.inner.visible, panelShown: !!t.doorPanel.visible,
+      people: t.people.map((q) => ({ key: q.key, x: r3(q.x), z: r3(q.z), home: { x: r3(q.home.x), z: r3(q.home.z) }, wave: r3(q.wave), face: r3(q.face), shown: !!q.g.visible })) };
   },
   // a cave: rock walls each side and at the back, a roof over the hall; normally lit (the dark is a later slice)
   addCave(ch, c) {
@@ -12770,7 +12924,7 @@ const World = {
     let at = null;
     for (let t = 0; t < 10 && !at; t++) {
       const x = ch.cx * C + 10 + R() * (C - 20), z = ch.cz * C + 10 + R() * (C - 20);
-      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4 - (B ? room : 0)) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
+      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4 - (B ? room : 0)) || this.inTower(x, z, -4 - (B ? room + WORLD.harder.boss.escorts.ring : 0)) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
       if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + room)) continue;
       at = [x, z];
     }
@@ -12845,6 +12999,7 @@ const World = {
     if (p) { const lv = this.level(p.x, p.z); if (lv !== this.lvl) { if (this.lvl && lv > this.lvl) updateHud.newWave = true; this.lvl = lv; Waves.draw(); } }
     this.sweepT -= dt; if (this.sweepT <= 0) { this.sweepT = 2; this.sweep(); }
     this.ringTick(dt);   // #167 slice 3
+    this.peopleTick(dt);   // #167 slice 4
   },
   // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through, and a cave's roof
   // while a mech is inside its hall
@@ -12857,7 +13012,13 @@ const World = {
       return Math.hypot(c.x + sx * t - x, c.z + sz * t - z) < r;
     };
     for (const ch of this.chunks.values()) {
-      for (const t of ch.towers) { const ghost = c.y < t.top + 2 && cuts(t.x, t.z, t.r + 1); t.mesh.material = ghost ? M.towerGhosts[t.m] : M.towers[t.m]; }
+      for (const t of ch.towers) {
+        // (#167 slice 4: and while a mech is in it or at its door, so its insides and its people show; they're drawn only then)
+        const ghost = t.inside || (c.y < t.top + 2 && cuts(t.x, t.z, t.r + 1));
+        t.mesh.material = ghost ? M.towerGhosts[t.m] : M.towers[t.m];
+        t.inner.visible = ghost; t.doorPanel.visible = !ghost;
+        for (const q of t.people) q.g.visible = ghost;
+      }
       for (const cv of ch.caves) {
         const inside = Game.humans.some((q) => this.inCave(q.mech.pos.x, q.mech.pos.z) === cv.c);
         const ghost = inside || cuts(cv.c.mx, cv.c.mz, cv.W + 2);
@@ -13001,6 +13162,9 @@ const World = {
       saved: worldTaken(Facts.rec).length,   // #189: the world parts whoever is playing has picked up, saved in their record
       towers: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.length, 0), antennas: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.filter((t) => t.antenna).length, 0),
       caves: [...this.chunks.values()].reduce((n, ch) => n + ch.caves.length, 0),
+      // #167 slice 4: the people in the loaded towers, and the tower player 1 is in (or at the door of), if any
+      people: [...this.chunks.values()].reduce((n, ch) => n + ch.towers.reduce((k, t) => k + t.people.length, 0), 0),
+      inTower: p ? this.inTower(p.x, p.z, -WORLD.inside.ghost)?.key ?? null : null,
       geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, place: p ? this.place(p.x, p.z) : null, at: p ? { x: r3(p.x), z: r3(p.z) } : null,
       fog: [scene.fog.near, scene.fog.far], meadow: !!Meadow.ground?.parent,
       // #167 slice 2: player 1's level and its toughness; the boss groups out
@@ -16644,6 +16808,12 @@ window.__rb = {
     if (!Game.world) return { ok: false, why: 'not in the world' };
     const h = Game.humans[0], m = h.mech; m.pos.set(x, 0, z); World.update(true); m.pos.y = groundH(x, z); m.speed = 0; m.turnVel = 0; m.push.set(0, 0, 0); h.rig.snap = true;
     return { ok: true, ...World.status() };
+  },
+  // #167 slice 4: the loaded towers (World.towerState), nearest player 1 first; worldTowers(n): the nearest n
+  worldTowers(n = Infinity) {
+    const p = Game.humans[0]?.mech.pos || { x: 0, z: 0 }, all = [...World.chunks.values()].flatMap((ch) => ch.towers);
+    all.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
+    return all.slice(0, n).map((t) => World.towerState(t));
   },
   // #129: the waves child (whoever is playing if left out) has cleared and can start at: { child, best (0: none; always 0 for
   // Guest), offer: the picker's waves (1..best + 1; only 1 on a ?wave=N page), boss: those that are boss waves, pick: the wave
