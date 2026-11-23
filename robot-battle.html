@@ -12557,16 +12557,20 @@ const World = {
   // #208: chunk (cx, cz)'s city blocks, from its own seeded numbers (never the load order), in the order city() builds
   // them: each block's tower middle, width, height, colour and sign roll; pad: a tower can stand there (the place, the roll,
   // clear of the start, the chunk's cave and its ring; only what's already standing near can still put it off, in city()),
-  // and y: its floor, the ground at its middle
+  // and y: its floor, the ground at its middle. Clear of a cave or ring means its whole flattened square (its walls and
+  // the pad past them, to the square's corners) stays out of that floor's blend, so neither pulls the tower's floor off
+  // level, and the tower's own blend never reaches the cave's or ring's flat floor. (A tower's middle is at least 17 m in
+  // from its chunk's edge and its square reaches at most 14 m, and a cave or ring stays in its own chunk, so only the
+  // chunk's own two matter.)
   cityPlan(cx, cz) {
     const k = cx * 65536 + cz; let P = this.plans.get(k); if (P) return P;
     const C = WORLD.chunk, B = WORLD.city.block, st = WORLD.city.street, R = wRng(wHash(cx, cz, 505)), cave = this.cave(cx, cz), ring = this.ringAt(cx, cz);
     P = [];
     for (let bi = 0; bi < C / B; bi++) for (let bj = 0; bj < C / B; bj++) {
       const x = cx * C + bi * B + (B + st) / 2, z = cz * C + bj * B + (B + st) / 2, roll = R(), w = 12 + Math.floor(R() * 3) * 4, hgt = 20 + Math.floor(R() * 6) * 8, m = Math.floor(R() * 3), sign = R();
-      const pl = this.placeRaw(x, z), r = w * 0.75;
+      const pl = this.placeRaw(x, z), q = (w / 2 + WORLD.inside.pad) * Math.SQRT2, K = WORLD.cave, G = WORLD.rings;
       const pad = pl.b === PL.city && pl.e >= 0.4 && roll <= 0.9 && Math.hypot(x, z) > WORLD.startClear
-        && (!cave || Math.hypot(x - cave.mx, z - cave.mz) > WORLD.cave.flat + 2 + r) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat + r);
+        && (!cave || Math.hypot(x - cave.mx, z - cave.mz) > K.flat + K.blend + q) && (!ring || Math.hypot(x - ring.x, z - ring.z) > G.flat + G.blend + q);
       P.push({ x, z, w, hgt, m, sign, pad, y: pad ? this.baseH(x, z) : 0 });
     }
     if (this.plans.size > 8192) this.plans.clear();

@@ -16,7 +16,8 @@
 //              step out of its way and walk home after;
 //            * no world robot starts, or roams to, inside a tower; no hidden part, and no repair kit (#191), inside one;
 //            * #208: on the most sloped tower's block, the ground inside is its floor and a mech driven in stands on it,
-//              level with its people;
+//              level with its people; every tower spot out to 40 chunks (ring- and cave-side ones too) level inside,
+//              and every ring's floor still flat;
 //            * the storage keys the same, nothing new in the record.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
@@ -311,6 +312,25 @@ async function runLogic(C) {
     return { key: best.key, w: best.w, spread: +best.spread.toFixed(2), off: +off.toFixed(3), feet, inTicks, mOff: +mOff.toFixed(3) }; })()`);
   ok(`#208: a tower on a sloped block (${r.spread} m of hillside across its ${r.w} m): the ground inside is its floor (${r.off} m off at most)`, !r.none && r.spread > 1 && r.off <= 0.06, r);
   ok(`#208: driven in, the mech stands on the floor its people stand on (${r.mOff} m off over ${r.inTicks} ticks inside)`, !r.none && r.inTicks > 20 && r.mOff <= 0.06 && r.feet.length && r.feet.every((f) => f >= -0.06 && f <= 0.12), r);
+
+  // ---- #208: every tower spot out to 40 chunks each way, the ring-side ones too (a ring's or a cave's blend once pulled
+  // the corners of a tower's inside off its floor, by up to 3 m): the ground across the inside (a 13 x 13 grid) against
+  // the ground at its middle, where its floor and people are drawn; and every ring's 26 m floor still flat (the ground's
+  // formula across all of it; the drawn ground, 4 m triangles, inside a grid cell's diagonal of its edge)
+  r = await C.ev(String.raw`(() => { ${H} const N = 40, Gr = R.WORLD.rings, Kc = R.WORLD.cave; let spots = 0, bad = [], worst = 0, nearRing = 0, nearCave = 0, rings = 0, ringOff = 0;
+    for (let cx = -N; cx <= N; cx++) for (let cz = -N; cz <= N; cz++) {
+      const g = W.ringAt(cx, cz), cv = W.cave(cx, cz);
+      if (g) { rings++; for (let a = -Gr.flat; a <= Gr.flat; a += Gr.flat / 6) for (let b = -Gr.flat; b <= Gr.flat; b += Gr.flat / 6) { const d = Math.hypot(a, b); if (d <= Gr.flat) ringOff = Math.max(ringOff, Math.abs(W.rawH(g.x + a, g.z + b) - g.y), d <= Gr.flat - 6 ? Math.abs(W.h(g.x + a, g.z + b) - g.y) : 0); } }
+      for (const p of W.cityPlan(cx, cz)) { if (!p.pad) continue; spots++;
+        if (g && Math.hypot(p.x - g.x, p.z - g.z) < 70) nearRing++;
+        if (cv && Math.hypot(p.x - cv.mx, p.z - cv.mz) < 75) nearCave++;
+        const y0 = W.h(p.x, p.z), h = p.w / 2; let off = 0;
+        for (let a = -h; a <= h + 1e-6; a += h / 6) for (let b = -h; b <= h + 1e-6; b += h / 6) off = Math.max(off, Math.abs(W.h(p.x + a, p.z + b) - y0));
+        worst = Math.max(worst, off); if (off > 0.06) bad.push({ cx, cz, x: +p.x.toFixed(1), z: +p.z.toFixed(1), w: p.w, off: +off.toFixed(2) });
+      } }
+    return { spots, nearRing, nearCave, rings, ringOff: +ringOff.toFixed(3), worst: +worst.toFixed(3), bad: bad.slice(0, 5), nBad: bad.length }; })()`);
+  ok(`#208: every tower spot in 81 x 81 chunks (${r.spots}, ${r.nearRing} within 70 m of a ring, ${r.nearCave} within 75 m of a cave): the ground inside is level with its middle (${r.worst} m off at most)`, r.spots > 1000 && r.nearRing > 0 && r.nBad === 0, r);
+  ok(`#208: every ring's floor in those chunks (${r.rings}) is still flat (${r.ringOff} m off at most)`, r.rings > 0 && r.ringOff <= 0.06, r);
 
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);
