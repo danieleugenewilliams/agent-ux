@@ -275,7 +275,7 @@ async function runLogic(C) {
     const solved = solve(boss.id), won = R.Bosses.won.slice(won0);
     const rec = JSON.parse(localStorage.getItem('robotbattle.facts.tester') || 'null');
     const out = { ch: ch?.ok, why: ch?.why, board, solved, won, bag: (G.bag[rare] || 0) - bag0, squad: G.squad.some((q) => q.id === boss.id), inRobots: G.robots.includes(boss),
-      trophy: !!rec?.garage?.bosses?.[boss.type], saved: rec?.garage?.bosses?.[boss.type] ?? null, lv: boss.wlevel, dist: Math.round(Math.hypot(boss.pos.x, boss.pos.z)), recWorld: rec ? Object.keys(rec).filter((k) => /world|level/i.test(k)) : null };
+      trophy: !!rec?.garage?.bosses?.[boss.type], saved: rec?.garage?.bosses?.[boss.type] ?? null, lv: boss.wlevel, dist: Math.round(Math.hypot(boss.pos.x, boss.pos.z)), recWorld: rec ? Object.keys(rec).filter((k) => /world|level/i.test(k)) : null, worldIn: rec?.world ? Object.keys(rec.world) : null, wgone: rec?.world?.gone ?? null };
     // walk far away and back: the group (partly beaten) is swept as gone, and nothing of it comes out again
     const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.worldGo(px, pz); reload();
     out.gone = W.gone.has(${JSON.stringify(bossKey)}); out.again = G.robots.filter((q) => q.wkey === ${JSON.stringify(bossKey)}).length;
@@ -287,7 +287,9 @@ async function runLogic(C) {
   const where = (t) => t && t.world === true && !('wave' in t) && t.level === r.lv && t.dist === r.dist;
   ok(`... its trophy and its Bosses.won entry record where it was won: level ${r.lv}, ${r.dist} m out, no wave 0`, where(r.saved) && where(r.won[0]) && r.dist > 0, { saved: r.saved, won: r.won, lv: r.lv, dist: r.dist });
   ok('its group never back (swept as gone; nothing of it after a walk away and back)', r.gone && r.again === 0, r);
-  ok('the save keys the same, no world or level field in the record', JSON.stringify(r.k0) === JSON.stringify(r.k1) && Array.isArray(r.recWorld) && r.recWorld.length === 0, { k0: r.k0, k1: r.k1, recWorld: r.recWorld });
+  // #198: beating it saves its group in the record's world.gone list (so it stays gone after a reload); still no level field anywhere
+  ok('the save keys the same, no level field in the record; its world field holds only the beaten group (#198)', JSON.stringify(r.k0) === JSON.stringify(r.k1) && JSON.stringify(r.recWorld) === '["world"]'
+    && JSON.stringify(r.worldIn) === '["gone"]' && JSON.stringify(r.wgone) === JSON.stringify([bossKey]), { k0: r.k0, k1: r.k1, recWorld: r.recWorld, worldIn: r.worldIn, wgone: r.wgone });
 
   // ---- no boss comes out inside the boss level's ring (a walk round it), and the boss chunks are the same after a reload
   r = await C.ev(String.raw`(() => { ${H} const R0 = (WH.boss.from - 1) * WH.step - 2 * R.WORLD.chunk, seen = [];
