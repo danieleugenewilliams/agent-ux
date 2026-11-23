@@ -13,7 +13,8 @@
 //              walls where a cave is;
 //            * parts on the ground: walked onto, into the bag and the found count (HUD and pause menu), not back when the
 //              chunk loads again; a world robot beaten and fixed on a math board into the squad, another salvaged, neither
-//              back; the save keys unchanged (no world key, the record's fields the same);
+//              back; the save keys unchanged (no world key; #189: the record's one new field is world.taken, holding the
+//              part picked up: scripts/rb-world-saved.mjs checks it over a reload and through a backup);
 //            * bounded: a 6 km walk out and back keeps chunks, geometries, obstacles, props and robots bounded.
 //   touch  - at 844 x 390 with touch: the world chip tapped on (at least 44 px, clear of the kidbar's other chips), a pilot
 //            tapped to start, at most 4 touch buttons, a robot downed and FIX tapped opens its board.
@@ -274,14 +275,15 @@ async function runLogic(C) {
     // walk far away and back: neither key spawns again
     const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.worldGo(px, pz); W.sweep();
     out.again = G.robots.filter((q) => q.state === 'glitched' && (q.wkey === a.wkey || q.wkey === b.wkey)).length;
-    out.key = 'robotbattle.facts.tester'; const rec = JSON.parse(localStorage.getItem(out.key) || 'null'); out.recWorld = rec && Object.keys(rec).filter((k) => /world/i.test(k));
+    out.key = 'robotbattle.facts.tester'; const rec = JSON.parse(localStorage.getItem(out.key) || 'null'); out.recWorld = rec && Object.keys(rec).filter((k) => /world/i.test(k)); out.recWorldIn = rec?.world ? Object.keys(rec.world) : null; out.taken = rec?.world?.taken ?? null; out.picked = window.__q?.q?.wkey ?? null;
     out.keys = keys();
     return out; })()`);
   ok('a world robot beaten: its Quick Fix opens on a math board (wave 1\'s plan: a fact per plug)', !r.none && r.fix.ok && r.fix.board && r.fix.board.wave === 1 && r.fix.facts > 0, r);
   ok('... fixed through the board, it joins the squad', r.solved && r.squad, r);
   ok('another beaten and salvaged: taken apart, its part in the bag', r.salvage?.ok && r.salvage.gone && r.salvage.bag >= 1, r);
   ok('both gone for good (swept as gone; not back after a walk away and back)', r.gone?.every(Boolean) && r.again === 0, r);
-  ok('the save untouched: no world key, no world field in the record', r.keys && r.keys.every((k) => !/world/i.test(k)) && Array.isArray(r.recWorld) && r.recWorld.length === 0, r);
+  ok('the save: no world key; the record\'s one world field is world.taken, holding just the part picked up (#189)', r.keys && r.keys.every((k) => !/world/i.test(k)) && JSON.stringify(r.recWorld) === '["world"]'
+    && JSON.stringify(r.recWorldIn) === '["taken"]' && JSON.stringify(r.taken) === JSON.stringify([r.picked]) && !!r.picked, r);
 
   // ---- bounded: three 6 km walks out (east-north-east) and back; the page draws between the steps. Caches that fill
   // once (a tower size built once, the shared props) may grow on the first lap; nothing may grow lap on lap
