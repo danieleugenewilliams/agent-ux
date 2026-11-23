@@ -365,6 +365,8 @@ async function runLogic(C) {
   ok(`its board is a boss's: wave 10's plus 1 math wire and 1 puzzle (${r.board.math} wires + ${r.board.puzzles} puzzles = ${r.board.slots}, against ${r.normal.math} + ${r.normal.puzzles.length})`,
     r.board.math === r.plan.math && r.board.slots === r.plan.slots && r.board.math === Math.min(4, r.normal.math + 1) && r.board.puzzles === Math.min(2, r.normal.puzzles.length + 1), r);
   ok('the fix, done through the hooks, gives the 🪚 saw (bag 1) and the Centipede trophy, and it doesn\'t join the squad', r.solved && r.won.length === 1 && r.won[0].type === 'centipede' && r.won[0].part === 'saw' && r.won[0].trophy === true && r.bag === 1 && r.squad === 0 && !!r.bosses.centipede, r);
+  // #195: won in the waves, its trophy and its Bosses.won entry say the wave, as ever (no world field)
+  ok('... its trophy and its Bosses.won entry record wave 10, as ever (no world field)', r.won[0]?.wave === 10 && !('world' in r.won[0]) && r.bosses.centipede?.wave === 10 && !('world' in r.bosses.centipede), { won: r.won, bosses: r.bosses });
   ok('a second Centipede fixed: a second saw, and the trophy is latched (its first time kept: ||=)', r.solved2 && r.bag2 === 2 && r.same, { b1: r.bosses, b2: r.bosses2 });
   ok('the 🏆 wall: the saw found (x2) and wearing the Centipede trophy; saved in the record', r.wall?.found && r.wall.n === 2 && r.wall.boss === 'centipede' && r.wall.trophyIcon === 'trophy' && !!r.saved?.centipede, { wall: r.wall, saved: r.saved });
 
