@@ -221,11 +221,16 @@ async function runLogic(C) {
     const st0 = W.status().summits.find((q) => q.key === key); R.step(120); const st = W.status().summits.find((q) => q.key === key);
     // it stays climbed: back down and up again changes nothing
     R.teleport(0, f.x, f.z); R.step(5); R.teleport(0, s.x + 2, s.z); R.step(5);
-    return { s, f, upAt, minK, maxOn, steep, stuck, feet: m.feet.climb, thud: m.feet.thud, lean, st0, st, up: W.status().summitsUp - up0, sk: steepK.length ? Math.max(...steepK) : null }; })()`);
+    // and after its chunk goes and comes back: still up and gold, its beacon off, no second fanfare
+    let fan = 0; const sf = R.Sfx.summit; R.Sfx.summit = function () { fan++; return sf.apply(this, arguments); };
+    R.worldGo(s.x + 3000, s.z); calm(); W.sweep(); const gone = !W.summits.has(key); R.worldGo(f.x, f.z); reload(); calm(); R.step(120); R.teleport(0, s.x + 2, s.z); R.step(30);
+    R.Sfx.summit = sf; const back = W.status().summits.find((q) => q.key === key);
+    return { gone, back, fan,  s, f, upAt, minK, maxOn, steep, stuck, feet: m.feet.climb, thud: m.feet.thud, lean, st0, st, up: W.status().summitsUp - up0, sk: steepK.length ? Math.max(...steepK) : null }; })()`);
   ok(`a climb from a mountain's foot (${r.f?.h?.toFixed?.(1)} m) to its summit (${r.s?.y} m), the drive key held: there in ${r.upAt} ticks, never stuck`, r.upAt > 0 && r.stuck <= 2, r);
   ok(`up the slope it's slower, but never below the floor (slowest × ${r.minK?.toFixed?.(2)}; floor ${0.45})`, r.minK < 0.8 && r.minK >= 0.45 - 1e-9 && r.sk < 1, r);
   ok(`on the steep stretches (${r.steep} ticks) it clambers: leaning in (${r.lean?.toFixed?.(2)} rad) with the clamber footfall (${r.feet} of ${r.thud})`, r.steep > 30 && r.maxOn > 0.99 && r.lean < -0.25 && r.feet > 3, r);
   ok('at the top the flag goes up the pole, gold, its beacon off; the summit counted once and stays climbed', r.st0?.up && r.st?.up && r.st.lift === 1 && r.st.flagY > 5 && !r.st.beacon && r.up === 1, { st0: r.st0, st: r.st, up: r.up });
+  ok('after its chunk goes and comes back the summit is still climbed: flag up and gold, beacon off, no second fanfare', r.gone && r.back?.up && r.back.lift === 1 && r.back.flagY > 5 && !r.back.beacon && r.fan === 0 && r.up === 1, { gone: r.gone, back: r.back, fan: r.fan, up: r.up });
 
   // ---- flat ground: the walk as it was; downhill: a little faster
   r = await C.ev(String.raw`(() => { ${H} const m = m0(); pose(0, 0, 0, -100); calm(); R.hold('KeyW', true); R.step(60);
