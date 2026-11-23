@@ -12692,11 +12692,12 @@ const World = {
   },
   // #217: the way out for a robot inside a tower (its chunk loaded round it, a chase that ended in there, a hop that came
   // down in there): first to the middle of the doorway from inside, then out through it into the street; null if it's not
-  // in one. (Heading straight for somewhere outside, it would only push on a wall)
+  // in one. (Heading straight for somewhere outside, it would only push on a wall.) Lined up against this tower's own
+  // doorway (#208: t.doorW, 9.8 m on a 12 m tower), so it never heads out pressed against a corner wall circle
   wayOut(x, z, rad = 2) {
     const t = this.inTower(x, z, 0); if (!t) return null;
     const half = t.w / 2, a = (x - t.x) * -t.nz + (z - t.z) * t.nx, b = (x - t.x) * t.nx + (z - t.z) * t.nz;
-    const lined = Math.abs(a) < Math.max(0.5, WORLD.inside.door / 2 - rad - 0.5) && b > half - 4;
+    const lined = Math.abs(a) < Math.max(0.5, (t.doorW ?? this.doorW(t.w)) / 2 - rad - 0.5) && b > half - 4;
     const ob = lined ? half + 6 : half - 2.5;
     return { x: t.x + t.nx * ob, z: t.z + t.nz * ob };
   },
