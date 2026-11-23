@@ -18,32 +18,58 @@
 //            * #201: a fight left unfinished starts again with a fresh champion; a champion beaten and left behind stays
 //              where it fell, down, its clock held while its ring is unloaded (away past its down time), and is there to
 //              fix (its Quick Fix opens) or salvage when the player comes back; salvaged, the ring is empty after that;
-//            * the storage keys the same, no ring field in the record.
+//            * the storage keys the same; the record's one new field is world.rings, holding that ring's key (#200).
 //   touch  - at 844 x 390 with touch: a world run, a ring's champion downed: at most 4 touch buttons, FIX opens its board.
+//   saved  - #200, a ring pays once even after a reload. At 1280 x 800, through window.__rb, with main's page from before
+//            #200 (MAIN_SHA, by git show) for the old saves:
+//            * an old save: a record made on main with a ring won there (nothing of it saved) loads unchanged in this build
+//              with no ring list; that ring pays once more here (main never saved it), and then the record's one new
+//              field is world.rings = [its key], nothing else changed but the trophies, no new storage key;
+//            * a page reload: that ring is won (ropes gold, beacon off, no champion), stepping in and waiting pays nothing,
+//              not after a walk away and back either; another ring still has its champion waiting;
+//            * Guest: a ring won writes nothing, and its champion is back after a reload;
+//            * backups: main's backup restores onto an empty device unchanged, and onto a device with world.rings under
+//              all three choices without losing the list; this build's backup brings world.rings onto an empty device (the
+//              ring stays won there); two lists are joined by Keep the best and Use the backup, Keep this device keeps its
+//              own; a hand-damaged list still restores; this build's backup restores into main's page and the child loads.
 //
 // Usage:
-//   node scripts/rb-world-rings.mjs                    # ./robot-battle.html: logic, then touch
-//   node scripts/rb-world-rings.mjs --logic            # the logic run only
+//   node scripts/rb-world-rings.mjs                    # ./robot-battle.html: logic, touch, then saved
+//   node scripts/rb-world-rings.mjs --logic            # the logic run only (--saved: the saved run only)
+//   node scripts/rb-world-rings.mjs --main path.html   # main's page for the saved run (default: git show MAIN_SHA:robot-battle.html)
 //   node scripts/rb-world-rings.mjs path/or/url.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
-let target = null, json = false, logicOnly = false;
+let target = null, json = false, only = null, mainPage = null;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--json') json = true;
-  else if (args[i] === '--logic') logicOnly = true;
+  else if (args[i] === '--logic') only = 'logic';
+  else if (args[i] === '--saved') only = 'saved';
+  else if (args[i] === '--main') mainPage = path.resolve(args[++i]);
   else target = args[i];
 }
-const runs = logicOnly ? ['logic'] : ['logic', 'touch'];
+const runs = only ? [only] : ['logic', 'touch', 'saved'];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 target ||= path.join(repo, 'robot-battle.html');
 const url = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve(target)).href;
+// main before #200 (the rings are in it, slice 3; a ring won there isn't saved)
+const MAIN_SHA = 'a2f7742';
+let mainTmp = null;
+function mainUrl() {
+  if (mainPage) return pathToFileURL(mainPage).href;
+  mainTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rb-world-rings-main-'));
+  const f = path.join(mainTmp, 'robot-battle.html');
+  fs.writeFileSync(f, execFileSync('git', ['-C', repo, 'show', MAIN_SHA + ':robot-battle.html'], { maxBuffer: 64e6 }));
+  return pathToFileURL(f).href;
+}
+process.on('exit', () => { if (mainTmp) try { fs.rmSync(mainTmp, { recursive: true, force: true }); } catch {} });
 
 // made-up profiles (#161: no real child's name anywhere)
 const KIDS = [{ id: 'tester', name: 'Tester', icon: 'bow', hex: '#3fb4ff', ladder: 'check', wiring: 'math', created: 1 }, { id: 'robo', name: 'Robo', icon: 'sun', hex: '#ff8a1f', ladder: 'start', wiring: 'math', created: 2 }];
@@ -152,13 +178,24 @@ const H = String.raw`
   const R = window.__rb, G = R.Game, W = R.World, WR = R.WORLD.rings;
   const st = (id) => R.state().robots.find((q) => q.id === id);
   const reload = () => { W.sweep(); for (const k of [...W.chunks.keys()]) W.unload(k); W.update(true); W.sweep(); };
-  // the nearest rings (by their middle) that aren't won yet
-  const near = () => R.worldRings(2600).filter((g) => !W.ringsWon.has(g.cx + ',' + g.cz)).sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z));
+  // the nearest rings (by their middle) that aren't won yet (#200: this run or saved; main's page has only the run's)
+  const won = (k) => (W.ringIsWon ? W.ringIsWon(k) : W.ringsWon.has(k));
+  const near = () => R.worldRings(2600).filter((g) => !won(g.cx + ',' + g.cz)).sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z));
   // stand 60 m short of ring g (on the way out from the start), its chunk loaded
   const goNear = (g) => { const d = Math.hypot(g.x, g.z); R.worldGo(g.x - g.x / d * 60, g.z - g.z / d * 60); reload(); return W.rings.get(g.cx + ',' + g.cz) || null; };
   const ringOf = (g) => W.status().rings.find((q) => q.key === g.cx + ',' + g.cz) || null;
   const keys = () => Object.keys(localStorage).sort();
   const rec = () => JSON.parse(localStorage.getItem('robotbattle.facts.tester') || 'null');
+  const snap = () => Object.fromEntries(keys().filter((k) => k.startsWith('robotbattle.')).map((k) => [k, localStorage.getItem(k)]));
+  const put = (s) => { localStorage.clear(); for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); };
+  const canon = (v) => (Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}' : JSON.stringify(v) ?? 'null');
+  const without = (r, ...f) => { const o = JSON.parse(JSON.stringify(r)); for (const k of f) delete o[k]; return o; };
+  const enter = (id) => { R.player(id); R.world(true); const s = R.start(0); R.manual(true); R.step(2); return s.ok; };
+  // an empty device (nobody playing first: Backup.restore saves whoever is playing before it reads this device)
+  const empty = () => { R.Facts.rec = null; R.Facts.child = null; G.child = null; localStorage.clear(); R.Profiles.load(); };
+  // step into ring g and beat its champion: { s0, s } (the ring's state before and after)
+  const win = (g) => { R.teleport(0, g.x - WR.half + 3, g.z); R.step(3); const s0 = ringOf(g); if (s0?.champ) R.damage(s0.champ.id, 1e6, 'gun'); R.step(3); return { s0, s: ringOf(g) }; };
+  const champs = (g) => G.robots.filter((q) => q.ring === g.cx + ',' + g.cz && q.state !== 'ally').length;
   const trophies = () => { const r = rec(), t = r?.garage?.trophies || r?.trophies || {}; const o = {}; for (const [k, v] of Object.entries(t)) o[k] = { n: v.n, meadow: v.from?.meadow || 0 }; return o; };
 `;
 
@@ -218,18 +255,18 @@ async function runLogic(C) {
     const want = {}; for (const p of g.pay) want[p] = (want[p] || 0) + 1;
     const bagOk = Object.entries(want).every(([p, n]) => (bag1[p] || 0) - (bag0[p] || 0) === n), trOk = Object.entries(want).every(([p, n]) => (t1[p]?.n || 0) - (t0[p]?.n || 0) === n && (t1[p]?.meadow || 0) - (t0[p]?.meadow || 0) === n);
     const extra = Object.keys(bag1).filter((p) => !want[p] && (bag1[p] || 0) !== (bag0[p] || 0));
-    // more time, then the chunk away and back: no second payout, no champion back
+    // more time, then the chunk away and back: no second payout, no fresh champion (#201: the beaten one is still there, down)
     R.step(60); const bag2 = { ...G.bag };
     const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.worldGo(px, pz); reload(); R.step(30);
     const s3 = ringOf(g), bag3 = { ...G.bag };
     const same = (a, b) => Object.keys({ ...a, ...b }).every((k) => (a[k] || 0) === (b[k] || 0));
     return { pay: g.pay, s, bagOk, trOk, extra, again: !same(bag1, bag2) || !same(bag1, bag3), s3, won: W.ringsWon.size, champs: G.robots.filter((q) => q.ring === g.cx + ',' + g.cz && q.state !== 'ally').length,
-      k1: keys(), k0: window.__k0, recRing: Object.keys(rec() || {}).filter((k) => /^rings?([A-Z_]|$)|world/i.test(k)) }; })()`);
+      k1: keys(), k0: window.__k0, recRing: Object.keys(rec() || {}).filter((k) => /^rings?([A-Z_]|$)|world/i.test(k)), rings: rec()?.world?.rings ?? null, key: g.cx + ',' + g.cz, saved: W.status().ringsSaved }; })()`);
   ok(`beaten: the ring pays its ${r.pay.length} parts into the bag at once (${r.pay.join(', ')})`, r.s.state === 'won' && r.s.paid === r.pay.length && r.bagOk && r.extra.length === 0, r);
   ok('... and into the trophies, as parts from the meadow', r.trOk, r);
   ok('... the ropes go gold and the beacon off', r.s.ropes === 'won' && !r.s.beacon, r.s);
   ok('once only: no second payout later or after the chunk goes and comes back, and no fresh champion then (#201: the one beaten is still there, down)', !r.again && r.s3 && r.s3.state === 'won' && r.s3.champ?.state === 'down' && r.s3.champ.id === r.s.champ?.id && r.champs === 1 && r.won === 1, r);
-  ok('the save keys the same, no ring or world field in the record', JSON.stringify(r.k0) === JSON.stringify(r.k1) && r.recRing.length === 0, r);
+  ok('the save keys the same; the record\'s one new field is world.rings = [that ring\'s key] (#200)', JSON.stringify(r.k0) === JSON.stringify(r.k1) && JSON.stringify(r.recRing) === '["world"]' && JSON.stringify(r.rings) === JSON.stringify([r.key]) && r.saved === 1, r);
 
   // ---- hit from outside the ropes: the fight starts too
   r = await C.ev(String.raw`(() => { ${H} const g = near()[0], ring = goNear(g); if (!ring) return { none: true, g }; R.step(5); const s0 = ringOf(g);
@@ -298,6 +335,92 @@ async function runTouch(C) {
   return out;
 }
 
+// #200: a ring pays once, even after a reload; old saves and backups
+async function runSaved(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name: 'saved: ' + name, pass: !!pass, got: pass ? undefined : got }); return !!pass; };
+  const mu = mainUrl();
+  await C.open(1280, 800, false);
+  if (!(await C.ev(`typeof window.__rb.World?.winRing === 'function'`))) { ok('World.winRing exists', false, 'missing'); return out; }
+
+  // ---- an old save: made on main (before #200), with a ring won there
+  await C.ev(CLEAR);
+  await C.open(1280, 800, false, mu);
+  let r = await C.ev(String.raw`(() => { ${H} const entered = enter('tester'); const g = near()[0], ring = goNear(g); if (!ring) return { none: true, g };
+    R.step(5); const w = win(g); R.Facts.save();
+    return { entered, g, w, rec: rec('tester'), snap: snap(), backup: JSON.parse(JSON.stringify(R.backup())), hasWin: typeof W.winRing === 'function' }; })()`);
+  const M = r, g = r.g, K = g ? g.cx + ',' + g.cz : null;
+  ok(`main (${MAIN_SHA}): a ring won there (level ${g?.level}), and nothing of it saved (no ring list in the record)`, !r.none && r.entered && r.w.s0?.state === 'fight' && r.w.s?.state === 'won' && !r.hasWin && r.rec && !Array.isArray(r.rec.world?.rings), r);
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} const raw0 = snap(); R.player('tester'); const r1 = rec('tester'), keys0 = keys();
+    const same = canon(r1) === canon(${JSON.stringify(M.rec)});
+    enter('tester'); const g = ${JSON.stringify(g)}; goNear(g); R.step(5); const s0 = ringOf(g), t0 = trophies(); const w = win(g); const t1 = trophies(), r2 = rec('tester');
+    const want = {}; for (const p of g.pay) want[p] = (want[p] || 0) + 1;
+    return { raw: canon(raw0) === canon(${JSON.stringify(M.snap)}), same, noRings: !Array.isArray(r1.world?.rings), s0, w, paid: Object.entries(want).every(([p, n]) => (t1[p]?.n || 0) - (t0[p]?.n || 0) === n),
+      rings: r2.world?.rings ?? null, worldKeys: Object.keys(r2.world || {}), rest: canon(without(r2, 'world', 'garage')) === canon(without(r1, 'world', 'garage')),
+      takenSame: canon(r2.world?.taken ?? null) === canon(r1.world?.taken ?? null), keys0, keys1: keys(), saved: W.status().ringsSaved }; })()`);
+  ok('main\'s save opens in this build untouched, and the child loads it unchanged with no ring list', r.raw && r.same && r.noRings, r);
+  ok('(main saved nothing of the ring, so here it has its champion waiting and pays once more: expected)', r.s0?.state === 'wait' && !!r.s0.champ && r.w.s?.state === 'won' && r.paid, { s0: r.s0, s: r.w.s, paid: r.paid });
+  ok('won here: the record\'s one new field is world.rings = [its key]; only the trophies changed besides', JSON.stringify(r.rings) === JSON.stringify([K]) && r.rest && r.takenSame && r.saved === 1, r);
+  ok('no new storage key', JSON.stringify(r.keys1) === JSON.stringify(r.keys0), { keys0: r.keys0, keys1: r.keys1 });
+
+  // ---- a page reload
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} const entered = enter('tester'); const g = ${JSON.stringify(g)}; goNear(g); R.step(10);
+    const s = ringOf(g), st0 = W.status(), bag0 = { ...G.bag }, t0 = trophies();
+    R.teleport(0, g.x, g.z); R.step(60); const sIn = ringOf(g);
+    const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.worldGo(px, pz); reload(); R.step(30);
+    const s2 = ringOf(g), t1 = trophies(), bag1 = { ...G.bag };
+    const same = (a, b) => Object.keys({ ...a, ...b }).every((k) => (a[k]?.n ?? a[k] ?? 0) === (b[k]?.n ?? b[k] ?? 0));
+    const o = near()[0], ring2 = goNear(o); R.step(5); const s3 = o ? ringOf(o) : null;
+    return { entered, s, sIn, s2, ringsWon: st0.ringsWon, ringsSaved: st0.ringsSaved, paid: !same(t0, t1) || !same(bag0, bag1), champs: champs(g), other: o && { key: o.cx + ',' + o.cz, s3 } }; })()`);
+  ok('after a page reload the ring is won: ropes gold, beacon off, no champion (0 won this run, 1 saved)', r.entered && r.s?.state === 'won' && r.s.ropes === 'won' && !r.s.beacon && !r.s.champ && r.ringsWon === 0 && r.ringsSaved === 1, r);
+  ok('... stepping in and waiting pays nothing, nor after a walk away and back, and no champion comes', r.sIn?.state === 'won' && r.s2?.state === 'won' && !r.s2.champ && !r.paid && r.champs === 0, r);
+  ok('... another ring still has its champion waiting', r.other && r.other.key !== K && r.other.s3?.state === 'wait' && !!r.other.s3.champ, r.other);
+  const NEW = await C.ev(String.raw`(() => { ${H} R.Facts.save(); return { snap: snap(), backup: JSON.parse(JSON.stringify(R.backup())) }; })()`);
+  ok('this build\'s backup carries world.rings in the record (format 2)', JSON.stringify(NEW.backup.data['facts.tester']?.world?.rings) === JSON.stringify([K]) && NEW.backup.format === 2, NEW.backup.data['facts.tester']?.world);
+
+  // ---- Guest saves nothing
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} R.player('guest'); const k0 = snap(); enter('guest'); const g = ${JSON.stringify(g)}; goNear(g); R.step(5); const s0 = ringOf(g), w = win(g);
+    return { s0, s: w.s, same: canon(snap()) === canon(k0), saved: W.status().ringsSaved }; })()`);
+  ok('Guest: the ring (won by another child) waits with its champion; Guest wins it and nothing is written or saved', r.s0?.state === 'wait' && !!r.s0.champ && r.s?.state === 'won' && r.same && r.saved === 0, r);
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} R.player('guest'); enter('guest'); const g = ${JSON.stringify(g)}; goNear(g); R.step(5); return ringOf(g); })()`);
+  ok('... and after a reload its champion is back for Guest', r?.state === 'wait' && !!r.champ, r);
+
+  // ---- backups
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} const MB = ${JSON.stringify(M.backup)}, NB = ${JSON.stringify(NEW.backup)}, NS = ${JSON.stringify(NEW.snap)}, K = ${JSON.stringify(K)}, out = {};
+    empty(); const a = R.restore(MB, 'best'); out.empty = { ok: a.ok, why: a.why, same: canon(rec('tester')) === canon(MB.data['facts.tester']), rings: rec('tester')?.world?.rings ?? null };
+    out.keep = {};
+    for (const ch of ['device', 'backup', 'best']) { put(NS); R.Profiles.load(); R.player('tester'); const b = R.restore(MB, ch); out.keep[ch] = { ok: b.ok, rings: rec('tester').world?.rings }; }
+    empty(); const c = R.restore(NB, 'best'); out.newEmpty = { ok: c.ok, why: c.why, rings: rec('tester')?.world?.rings };
+    const NB2 = JSON.parse(JSON.stringify(NB)); NB2.data['facts.tester'].world = { ...NB2.data['facts.tester'].world, rings: ['9,-9'] };
+    out.join = {};
+    for (const ch of ['device', 'backup', 'best']) { put(NS); R.Profiles.load(); R.player('tester'); const b = R.restore(NB2, ch); out.join[ch] = { ok: b.ok, rings: (rec('tester').world?.rings || []).slice().sort() }; }
+    const NB3 = JSON.parse(JSON.stringify(NB)); NB3.data['facts.tester'].world = { ...NB3.data['facts.tester'].world, rings: [K, 5, null, K] };
+    empty(); const d = R.restore(NB3, 'backup'); R.player('tester'); out.damaged = { ok: d.ok, why: d.why, saved: W.status().ringsSaved };
+    return out; })()`);
+  ok('main\'s backup onto an empty device: restored, the record exactly as backed up (no ring list added)', r.empty.ok && r.empty.same && r.empty.rings === null, r.empty);
+  ok('main\'s backup onto a device with world.rings: the list kept with Keep this device, Use the backup and Keep the best', Object.values(r.keep).every((q) => q.ok && JSON.stringify(q.rings) === JSON.stringify([K])), r.keep);
+  ok('this build\'s backup onto an empty device brings world.rings', r.newEmpty.ok && JSON.stringify(r.newEmpty.rings) === JSON.stringify([K]), r.newEmpty);
+  const both = JSON.stringify([K, '9,-9'].sort());
+  ok('two lists: Keep the best and Use the backup join them; Keep this device keeps its own', r.join.best.ok && JSON.stringify(r.join.best.rings) === both && r.join.backup.ok && JSON.stringify(r.join.backup.rings) === both && r.join.device.ok && JSON.stringify(r.join.device.rings) === JSON.stringify([K]), r.join);
+  ok('a hand-damaged list still restores, read as its string keys only (1)', r.damaged.ok && r.damaged.saved === 1, r.damaged);
+  await C.ev(String.raw`(() => { ${H} empty(); R.restore(${JSON.stringify(NEW.backup)}, 'best'); return true; })()`);
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} enter('tester'); const g = ${JSON.stringify(g)}; goNear(g); R.step(5); return ringOf(g); })()`);
+  ok('restored onto an empty device: the ring stays won in the world, no champion', r?.state === 'won' && !r.champ, r);
+
+  // ---- this build's backup into main's page
+  await C.ev(`localStorage.clear()`);
+  await C.open(1280, 800, false, mu);
+  r = await C.ev(String.raw`(() => { const R = window.__rb; localStorage.clear(); R.Profiles.load(); const x = R.restore(${JSON.stringify(NEW.backup)}, 'best'); const p = R.player('tester');
+    return { ok: x.ok, why: x.why, player: p.ok, kept: JSON.parse(localStorage.getItem('robotbattle.facts.tester') || 'null')?.world?.rings ?? null }; })()`);
+  ok(`this build's backup restores into main (${MAIN_SHA}) and the child loads (main ${r.kept ? 'keeps' : 'drops'} world.rings)`, r.ok && r.player, r);
+  return out;
+}
+
 const BOX = String.raw`((sel) => {
   const W = innerWidth, H = innerHeight, bad = [];
   for (const el of document.querySelectorAll(sel)) {
@@ -315,7 +438,7 @@ async function main() {
     const S = launch(); const t0 = Date.now();
     try {
       const C = await connect(S);
-      const res = run === 'logic' ? await runLogic(C) : await runTouch(C);
+      const res = run === 'logic' ? await runLogic(C) : run === 'touch' ? await runTouch(C) : await runSaved(C);
       if (C.errs.length) res.push({ name: run + ': no page errors', pass: false, got: C.errs.slice(0, 10) });
       else res.push({ name: run + ': no page errors', pass: true });
       all.push(...res);
