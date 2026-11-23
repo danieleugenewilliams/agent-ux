@@ -9842,7 +9842,8 @@ function steer(r, x, z, pace = 1, slowR = 0) {
 // or for anyone at all for ROBOT.alert seconds after it's been hit. Otherwise it roams.
 function engaged(r, tgt) { return !!tgt && (flatDist(r, tgt) < ROBOT_TYPES[r.type].notice || r.ai.alert > 0); }
 const meadowSpot = (rMax = 92) => { const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * rMax; return { x: Math.cos(a) * d, z: Math.sin(a) * d }; };
-// #167: the wave a beaten robot's fix board is set for: the wave in waves; in the endless world, wave 1's (math and facts as ever)
+// #167: the wave a beaten robot's fix board is set for: the wave in waves; in the endless world, wave 1's board shape
+// (#193: its facts' band steps up with the level instead, World.band in powerDown)
 const fixWave = () => Game.world ? 1 : Game.wave;
 // #167: where a roaming robot heads next: anywhere in the meadow in waves; in the endless world, near its own home (World.roamSpot)
 const roamSpot = (home) => Game.world ? World.roamSpot(home) : meadowSpot();
@@ -11438,7 +11439,9 @@ function powerDown(r, how) {
   // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
   // (#122: a Knight's board is bigger, bossPlan: from any wave, wave 0 too)
   const fw = fixWave(), P = ROBOT_TYPES[r.type].boss ? bossPlan(fw, r.beatenBy, r.type) : fw >= 1 ? fixPlan(fw, r.beatenBy) : null;   // (#141: the boss's own)
-  r.board = P && { wave: fw, band: P.band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
+  // #193: in the endless world a roaming robot's facts follow the level it came out at (World.band); the board stays wave 1's
+  const band = P && Game.world && !ROBOT_TYPES[r.type].boss ? World.band(r.wlevel || World.level(r.pos.x, r.pos.z)) : P?.band;
+  r.board = P && { wave: fw, band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
   r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
   r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
@@ -12397,7 +12400,7 @@ const WORLD = {
   // #167 slice 2 (Q2: "robot toughness and bosses scale with distance"; the boys' "the farther out you go in the world the
   // harder it gets", and their drawing 3: a small building, a bigger one with a few robots, then a huge satellite boss linked
   // to a crowd of robots). Every number here is a starting value, tuned at the playtest. Distance from the start stands in
-  // for the wave, for toughness and bosses only (World.level; nothing of it is saved):
+  // for the wave, for toughness, bosses and the facts asked at a fix (World.level; nothing of it is saved):
   //   step:    a level every `step` m out: level 1 within `step` m of the start, level 2 out to 2 × step, and so on
   //   tough:   × a world robot's health: 1 + tough × (level - 1), at most toughMax (level 21, 3 km out, at 150 m a level);
   //            × the mode's health on top (Waves.health: Hard's 1.25), as a wave's robots are. Its own curve, not the
@@ -12409,7 +12412,13 @@ const WORLD = {
   //            to it, and from level from + escorts.every, escorts round it (one more each escorts.every levels, at most
   //            escorts.max): the drawing's crowd. At most `cap` boss groups out at once (inside robots.cap)
   //   bar:     m: the boss bar shows for a world boss this near player 1 (a far one in a loaded chunk doesn't keep it up)
+  //   facts:   #193 (Daniel's C and (ii)): the band (PACE's warm / mix / stretch) the tracker picks a roaming robot's facts
+  //            by, from the level it came out at (r.wlevel, as its toughness): the last whose `from` it has reached. Warm out
+  //            to 1 km (levels 1-7), mix 1-2 km (levels 8-14), stretch from level 15 (2,100 m) on, spread over toughness's
+  //            3 km. Only the facts step up: the board keeps wave 1's shape (fixWave: 1 math wire + 2 puzzles, small
+  //            puzzles, 15 s) everywhere, and a world boss keeps its own boss board (bossPlan), band and all
   harder: { step: 150, tough: 0.1, toughMax: 3, bar: 110,
+    facts: [{ from: 1, band: 'warm' }, { from: 8, band: 'mix' }, { from: 15, band: 'stretch' }],
     boss: { from: BOSS_WAVE.every, chance: 0.12, more: 0.03, max: 0.35, cap: 2, types: ['knight', 'centipede'], clear: 9,
       escorts: { every: 2, max: 3, types: ['charger', 'sniper', 'bouncer'], ring: 10 } } },
   // #167 slice 3: boxing / battle rings (Q4 (e): "the boxing/battle rings out in the world (page 1)"). The boys' page 1 is a
@@ -13085,6 +13094,8 @@ const World = {
   // #167 slice 2: the level at a spot (1 at the start, one more every WORLD.harder.step m out) and the toughness it gives
   level(x, z) { return 1 + Math.floor(Math.hypot(x, z) / WORLD.harder.step); },
   tough(lv) { const H = WORLD.harder; return Math.min(H.toughMax, 1 + H.tough * (Math.max(1, lv) - 1)); },
+  // #193: the band a roaming robot's facts are picked by at level lv (WORLD.harder.facts)
+  band(lv) { const F = WORLD.harder.facts, l = Math.max(1, Math.floor(Number(lv) || 1)); return (F.filter((b) => l >= b.from).pop() || F[0]).band; },
   // is chunk (cx, cz) a boss's? Its own seeded roll (never the load order or how many are out), under the chance at the level
   // of its middle: { type, level } or null
   bossAt(cx, cz) {
