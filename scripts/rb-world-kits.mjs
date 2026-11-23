@@ -17,6 +17,7 @@
 //   * stronger farther out: a kit mends round(HEAL.kit x World.tough(level at the kit)): 75 near the start, more far out,
 //     and walking onto one mends exactly that; a world robot's dropped kit mends by its level;
 //   * not saved: a kit picked up writes nothing to storage, and is back when its chunk loads again and after a reload;
+//   * #206: a kit a world robot drops goes when its chunk unloads and doesn't come back; a long world run leaves none far off;
 //   * no page errors.
 //
 // Usage:
@@ -245,6 +246,28 @@ async function runKits(C) {
     if (!q) return { none: true }; const before = R.Kits.list.length; R.damage(q.id, 1e6, 'gun'); const k = R.Kits.list.at(-1);
     return { type: q.type, lv: q.wlevel, added: R.Kits.list.length - before, from: k.from, mend: k.mend, want: Math.round(75 * W.tough(q.wlevel)) }; })()`);
   ok('a world robot beaten for the first time drops a kit that mends by its level', !r.none && r.added === 1 && r.from === 'robot' && r.lv > 1 && r.mend === r.want && r.mend > 75, r);
+
+  // ---- #206: a kit a world robot drops goes when its chunk unloads (it isn't one of the chunk's seeded kits, so it doesn't
+  // come back), and a long world run doesn't pile dropped kits up far from the player
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} enter('tester'); const C = WORLD.chunk;
+    const loaded = (k) => W.chunks.has(W.key(Math.floor(k.x / C), Math.floor(k.z / C)));
+    const drops = () => R.Kits.list.filter((k) => k.from === 'robot');
+    const beat = (x, z) => { for (let t = 0; t < 12; t++) { R.worldGo(x + 200 * t, z);
+      const q = G.robots.find((q) => q.wkey && q.state === 'glitched' && !q.swarm && q.swarm !== 0 && !R.ROBOT_TYPES[q.type].noKit && !q.ring && q.downs === 0);
+      if (q) { const n = R.Kits.list.length; R.damage(q.id, 1e6, 'gun'); return R.Kits.list.length > n ? R.Kits.list.at(-1) : null; } } return null; };
+    const k = beat(2400, 900); if (!k) return { none: true };
+    const at = [k.x, k.z], inScene = !!k.g.parent;
+    R.worldGo(at[0] + 5000, at[1] + 5000);
+    const goneAway = !R.Kits.list.includes(k), offScene = !k.g.parent, farDrops = drops().filter((q) => !loaded(q)).length;
+    R.worldGo(at[0], at[1]); const back = drops().filter((q) => Math.hypot(q.x - at[0], q.z - at[1]) < 1).length;
+    // the long run: beat a robot at each of many spots, walking on between them
+    let made = 0, most = 0;
+    for (let i = 0; i < 10; i++) { const a = i * 0.7, d = 1500 + 400 * i; if (beat(Math.cos(a) * d, Math.sin(a) * d)) made++; most = Math.max(most, drops().length); }
+    R.worldGo(-6000, 6000);
+    return { inScene, goneAway, offScene, farDrops, back, made, most, left: drops().length, stray: R.Kits.list.filter((q) => !loaded(q)).length }; })()`);
+  ok('#206: a world robot\'s dropped kit is gone (from the kits and the scene) once its chunk unloads, and isn\'t back when the player returns', !r.none && r.inScene && r.goneAway && r.offScene && r.farDrops === 0 && r.back === 0, r);
+  ok('... a long world run (a robot beaten at spots far apart, at least 3) leaves no dropped kit far from the player, and no kit outside a loaded chunk', !r.none && r.made >= 3 && r.left === 0 && r.stray === 0, r);
   return out;
 }
 

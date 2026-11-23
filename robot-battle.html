@@ -12153,7 +12153,10 @@ function robotTick(r, dt) {
   r.t += dt;
   if (r.state === 'down') {
     r.input.throttle = r.input.turn = 0; r.input.boost = false;
-    if (!r.repairBy) r.downT -= dt;          // the clock holds while someone is fixing it
+    // the clock holds while someone is fixing it, and (#201) while a ring champion's ring is out of the loaded chunks:
+    // a champion beaten and left behind is still down, to fix or salvage, when the player comes back (never a squadmate's:
+    // a fixed champion downed in the squad has its rescue clock as any squadmate has)
+    if (!r.repairBy && !(r.ring && Game.world && !Game.squad.includes(r) && !World.rings.has(r.ring))) r.downT -= dt;
     if (r.downT <= 0) { if (Game.squad.includes(r)) { destroyMate(r, 'time'); return; } reboot(r); }   // (#59: a squadmate nobody rescued is gone)
   }
   // a Bouncer mid-hop moves itself along its arc; everything else walks (or flies) like a mech
@@ -12256,7 +12259,16 @@ const Kits = {
   // (#191: in the endless world it mends by the level the robot came out at, as a chunk's kit there does)
   drop(r) {
     const h = r.legHeading, k = this.add(r.pos.x + Math.cos(h) * 4, r.pos.z - Math.sin(h) * 4, 'robot');
-    if (Game.world) { k.level = r.wlevel || World.level(r.pos.x, r.pos.z); k.mend = Math.round(HEAL.kit * World.tough(k.level)); }
+    if (Game.world) {
+      k.level = r.wlevel || World.level(r.pos.x, r.pos.z); k.mend = Math.round(HEAL.kit * World.tough(k.level));
+      // #206: it belongs to the chunk it lies in (or, if that one isn't loaded, the loaded chunk nearest it: a robot can be
+      // beaten out past the loaded chunks before the sweep takes it), and goes when that chunk unloads. Not one of the
+      // chunk's seeded kits (ch.kits), so it doesn't come back when the chunk loads again.
+      const C = WORLD.chunk, cx = Math.floor(k.x / C), cz = Math.floor(k.z / C);
+      let ch = World.chunks.get(World.key(cx, cz)), bd = Infinity;
+      if (!ch) for (const c of World.chunks.values()) { const d = Math.max(Math.abs(c.cx - cx), Math.abs(c.cz - cz)); if (d < bd) { bd = d; ch = c; } }
+      if (ch) (ch.drops ||= []).push(k);
+    }
     return k;
   },
   // player h walks onto a kit: mend it and use the kit up. Returns what it mended
@@ -12666,6 +12678,10 @@ const World = {
       const i = Hidden.list.indexOf(q); if (i >= 0) Hidden.list.splice(i, 1);
     }
     for (const k of ch.kits) {   // #191: its kits go (one picked up is gone already); they come again when it loads again
+      const i = Kits.list.indexOf(k); if (i >= 0) Kits.list.splice(i, 1);
+      scene.remove(k.g); k.mark.material.dispose();
+    }
+    for (const k of ch.drops || []) {   // #206: kits its robots dropped go too, for good
       const i = Kits.list.indexOf(k); if (i >= 0) Kits.list.splice(i, 1);
       scene.remove(k.g); k.mark.material.dispose();
     }
@@ -13214,7 +13230,7 @@ const World = {
   },
   // build chunk ch's ring (if it has one): the canvas on the flattened ground, a post at each corner (each blocks, as a
   // tree does), three ropes a side (a mech steps through them), a gold beacon over it with the ring's icon until it's won;
-  // then its champion, unless it's been won this run
+  // then its champion, unless it's been won this run (#201: a won ring's champion left down there is its champion again)
   ringFor(ch) {
     const g = this.ringAt(ch.cx, ch.cz); if (!g) return;
     const G = WORLD.rings, M = this.ringMats(), S = this.G, H = G.half, grp = new THREE.Group();
@@ -13236,7 +13252,7 @@ const World = {
     const { beam, mark } = Beacon.add(grp, '#ffd21f', 'ring', 17); beam.scale.set(3, 1.2, 3); mark.scale.set(3.4, 3.4, 1);
     const ring = { g, ch, grp, ropes, beacon: beam, mark, t: 0, state: this.ringIsWon(g.key) ? 'won' : 'wait', champ: null, paid: null };
     ch.ring = ring; this.rings.set(g.key, ring);
-    if (ring.state !== 'won') this.ringChamp(ring);
+    if (ring.state !== 'won') this.ringChamp(ring); else ring.champ = Game.robots.find((r) => r.ring === g.key && r.state === 'down' && !Game.squad.includes(r)) || null;
     this.ringLook(ring);
   },
   // the ring's champion: the robot with the sword in its fist, in the middle of the ring, waiting (ringWait: its brain off,
@@ -13288,10 +13304,12 @@ const World = {
       }
     }
   },
-  // chunk ch going: its champion goes too (a fight left unfinished starts again from the start when the chunk comes back)
+  // chunk ch going: its champion goes too (a fight left unfinished starts again from the start when the chunk comes back).
+  // #201: not a champion beaten and still down: it stays where it fell, its down clock held (robotTick) till its chunk is
+  // back, so it's there to fix or salvage (as a roaming robot left down is) and ringFor picks it up again
   ringGone(ch) {
     const ring = ch.ring; if (!ring) return;
-    const r = ring.champ; if (r && Game.robots.includes(r) && r.state !== 'ally') removeRobot(r);
+    const r = ring.champ; if (r && Game.robots.includes(r) && r.state !== 'ally' && !(r.state === 'down' && ring.state === 'won')) removeRobot(r);
     ring.mark.material.dispose();
     this.rings.delete(ring.g.key);
   },
