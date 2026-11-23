@@ -12690,6 +12690,18 @@ const World = {
     r.ai.wp = null; if (r.swarm != null && Game.swarms[r.swarm]) Game.swarms[r.swarm].wp = null;
     return true;
   },
+  // #217: a glitched robot inside a tower that has noticed a foe outside it (not in this same tower) heads out of the door
+  // first, instead of its brain pushing it on the wall towards them (a Charger by the back wall with a player behind it
+  // stalked there for good); once out, its brain has it again. One with its foe in the tower with it fights on as before
+  leave(r) {
+    if (r.state !== 'glitched') return false;
+    const t = this.inTower(r.pos.x, r.pos.z, 0); if (!t) return false;
+    const f = nearestFoe(r); if (!engaged(r, f) || this.inTower(f.pos.x, f.pos.z, 0) === t) return false;
+    const out = this.wayOut(r.pos.x, r.pos.z, r.spec.radius);
+    steer(r, out.x, out.z, 0.7);
+    r.input.boost = false; r.input.attack = false; r.input.aimYaw = r.legHeading;
+    return true;
+  },
   // #217: the way out for a robot inside a tower (its chunk loaded round it, a chase that ended in there, a hop that came
   // down in there): first to the middle of the doorway from inside, then out through it into the street; null if it's not
   // in one. (Heading straight for somewhere outside, it would only push on a wall.) Lined up against this tower's own
@@ -13888,7 +13900,7 @@ function tick(dt) {
   for (const r of Game.robots) {
     if (r.state === 'down' || r.ringWait) continue;   // (#167 slice 3: a ring's champion stands still till its fight starts)
     r.ai.think -= dt;
-    if (r.ai.think <= 0) { const T = ROBOT_TYPES[r.type]; r.ai.think = 0.05; r.ai.alert = Math.max(0, (r.ai.alert || 0) - 0.05); (r.state === 'ally' ? T.ally : T.ai)(r, 0.05); }
+    if (r.ai.think <= 0) { const T = ROBOT_TYPES[r.type]; r.ai.think = 0.05; r.ai.alert = Math.max(0, (r.ai.alert || 0) - 0.05); if (r.state === 'ally') T.ally(r, 0.05); else if (!(Game.world && World.leave(r))) T.ai(r, 0.05); }   // (#217: out of a tower first)
   }
   // a repair holds only while the player stays by the robot
   for (const h of Game.humans) { const rp = h.repair; if (rp && (rp.r.state !== 'down' || flatDist(rp.r, h.mech) > REPAIR.keepRange)) cancelRepair(h); }
