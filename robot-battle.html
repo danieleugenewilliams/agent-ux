@@ -12661,7 +12661,7 @@ const World = {
   // #191: the chunk's kits, each at a seeded spot a mech can stand on (as a part's, off a ring's floor and away from the parts)
   kitsFor(ch) {
     const C = WORLD.chunk, x0 = ch.cx * C, z0 = ch.cz * C, R = wRng(wHash(ch.cx, ch.cz, 910)), ring = this.ringAt(ch.cx, ch.cz);
-    const ok = (x, z) => Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat)
+    const ok = (x, z) => Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat)
       && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 1.5)
       && ch.parts.every((q) => Math.hypot(q.x - x, q.z - z) > 8) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > 20);
     const { n } = this.kitsAt(ch.cx, ch.cz);

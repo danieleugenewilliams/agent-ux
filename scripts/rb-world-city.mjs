@@ -14,7 +14,7 @@
 //            * in (or at the door): the tower goes see-through, its insides and people show; out and away: solid again;
 //            * the people: not robots (never in the robots, props or obstacles); they turn to a mech near them and wave,
 //              step out of its way and walk home after;
-//            * no world robot starts, or roams to, inside a tower; no hidden part inside one;
+//            * no world robot starts, or roams to, inside a tower; no hidden part, and no repair kit (#191), inside one;
 //            * the storage keys the same, nothing new in the record.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
@@ -267,11 +267,12 @@ async function runLogic(C) {
   ok(`a mech on a person's spot: they step out of its way (${r.pushed} m off its middle), staying inside the walls`, r.pushed >= 2.3 + 0.7 && r.inWalls, r);
   ok(`the mech gone: they walk back home (${r.home} m off) and stop waving`, r.home < 0.05 && r.waveAway.every((v) => v === 0), r);
 
-  // ---- robots leave them alone: no world robot starts or roams inside a tower; no hidden part in one
-  r = await C.ev(String.raw`(() => { ${H} const res = { starts: [], roams: 0, roamBad: [], parts: [] };
+  // ---- robots leave them alone: no world robot starts or roams inside a tower; no hidden part (nor repair kit, #191) in one
+  r = await C.ev(String.raw`(() => { ${H} const res = { starts: [], roams: 0, roamBad: [], parts: [], kits: [], kitsSeen: 0 };
     for (let k = 0; k < 4; k++) { if (!goCity(k)) break; R.step(2);
       for (const q of G.robots) if (q.wkey && W.inTower(q.pos.x, q.pos.z, -1)) res.starts.push({ id: q.id, type: q.type, x: q.pos.x, z: q.pos.z });
       for (const p of W.status().parts) if (W.inTower(p.x, p.z, 0)) res.parts.push(p);
+      for (const q of W.status().kits) { res.kitsSeen++; if (W.inTower(q.x, q.z, 0)) res.kits.push(q); }
       for (const t of R.worldTowers(6)) for (let j = 0; j < 60; j++) { const s = W.roamSpot({ x: t.door.x + t.door.nx * 3, z: t.door.z + t.door.nz * 3 }); res.roams++; if (W.inTower(s.x, s.z, 0)) res.roamBad.push(s); }
     }
     // and in play: a minute of roaming in a city, no robot ends up inside one
@@ -280,6 +281,7 @@ async function runLogic(C) {
     res.inPlay = inside; res.roamBad = res.roamBad.slice(0, 3); return res; })()`);
   ok(`no world robot starts inside a tower, and none roams to a spot in one (${r.roams} roam spots picked next to doors)`, r.starts.length === 0 && r.roamBad.length === 0 && r.roams > 0, r);
   ok('no hidden part is put inside a tower', r.parts.length === 0, r);
+  ok(`no repair kit (#191) is put inside a tower (${r.kitsSeen} kits looked at in the cities)`, r.kitsSeen > 0 && r.kits.length === 0, { kits: r.kits.slice(0, 3), kitsSeen: r.kitsSeen });
   ok('a minute of play in the city: no roaming robot inside a tower', r.inPlay === 0, r);
 
   // ---- saves
