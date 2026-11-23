@@ -12342,7 +12342,7 @@ const WORLD = {
   //   door / doorH: the doorway's width (m, between the wall circles each side of it: a mech is 4.6 m across) and height
   //   wallR / wallGap: the wall circles' radius and the most m between their middles (overlapping: no gap anywhere)
   //   people: [fewest, most] in a tower; wave: m: a person waves at a mech this near; edge: m they keep off the walls
-  inside: { door: 7, doorH: 9, wallR: 1, wallGap: 1.8, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3 },
+  inside: { door: 7, doorH: 9, wallR: 1.1, wallGap: 2, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3 },
 };
 const PLACES = ['mountains', 'city', 'junkyard', 'desert', 'snow', 'cave'];
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // #167 slice 4: a tower's four faces' outward normals (its door is on one)
@@ -12715,17 +12715,18 @@ const World = {
     const side = Math.floor(R() * 4), [nx, nz] = SIDES[side], tx = -nz, tz = nx, y0 = this.h(tw.x, tw.z);
     Object.assign(tw, { key: ch.key + ':t' + bx + ',' + bz, side, nx, nz, y0, people: [], inside: false });
     // the walls: each face a line of circles, from corner to corner, evenly spaced at most wallGap apart; the door's face
-    // in two lines, either side of the doorway (their edges D apart)
-    const line = (fx, fz, s0, s1) => {
+    // in two lines, either side of the doorway (their edges D apart). A face's last corner is the next face's first, so
+    // it's left to that one (end: false)
+    const line = (fx, fz, s0, s1, end = true) => {
       const n = Math.max(1, Math.ceil((s1 - s0) / I.wallGap));
-      for (let k = 0; k <= n; k++) {
+      for (let k = 0; k <= (end ? n : n - 1); k++) {
         const s = s0 + (s1 - s0) * k / n, o = { x: tw.x + fx * half + (-fz) * s, z: tw.z + fz * half + fx * s, r: I.wallR, h: tw.hgt + 2, kind: 'rock', prop: null };
         obstacles.push(o); ch.obs.push(o);
       }
     };
     SIDES.forEach(([fx, fz], i) => {
-      if (i !== side) line(fx, fz, -half, half);
-      else { line(fx, fz, -half, -(D / 2 + I.wallR)); line(fx, fz, D / 2 + I.wallR, half); }
+      if (i !== side) line(fx, fz, -half, half, false);
+      else { line(fx, fz, -half, -(D / 2 + I.wallR)); line(fx, fz, D / 2 + I.wallR, half, false); }
     });
     // the doorway: a warm lit panel on the face (put away while the tower is see-through), a glowing frame round it and an
     // awning over it, so it reads as a way in from down the street
@@ -12810,6 +12811,12 @@ const World = {
           if (d < need) { const k = d > 1e-3 ? need / d : 1; q.x = b.p.x + (d > 1e-3 ? dx * k : need); q.z = b.p.z + (d > 1e-3 ? dz * k : 0); pushed = true; }
         }
         q.x = clamp(q.x, t.x - lim, t.x + lim); q.z = clamp(q.z, t.z - lim, t.z + lim);
+        // (pinned against a wall with a body still on it: out along the wall instead)
+        if (pushed) for (const b of bodies) {
+          const dx = q.x - b.p.x, dz = q.z - b.p.z, need = b.r + 0.8; if (dx * dx + dz * dz >= need * need) continue;
+          if (Math.abs(q.x - t.x) >= lim - 1e-6) q.z = clamp(b.p.z + Math.sign(dz || 1) * Math.sqrt(Math.max(0, need * need - dx * dx)), t.z - lim, t.z + lim);
+          else if (Math.abs(q.z - t.z) >= lim - 1e-6) q.x = clamp(b.p.x + Math.sign(dx || 1) * Math.sqrt(Math.max(0, need * need - dz * dz)), t.x - lim, t.x + lim);
+        }
         if (!pushed && bodies.every((b) => Math.hypot(q.home.x - b.p.x, q.home.z - b.p.z) > b.r + 2)) {
           const dx = q.home.x - q.x, dz = q.home.z - q.z, d = Math.hypot(dx, dz), s = Math.min(d, 1.4 * dt);
           if (d > 1e-3) { q.x += dx / d * s; q.z += dz / d * s; }
