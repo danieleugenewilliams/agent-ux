@@ -12733,10 +12733,12 @@ const World = {
     // parts on the ground: one a chunk (two in a junkyard), each at a seeded spot a mech can stand on, never twice
     const RP = wRng(wHash(ch.cx, ch.cz, 202));
     const n = this.placeRaw(x0 + C / 2, z0 + C / 2).b === PL.junkyard ? WORLD.parts.junkyard : WORLD.parts.n;
+    ch.partSpots = [];   // #205: every part's seeded spot, picked up or not (the kits keep clear of these, so they never move)
     for (let k = 0; k < n; k++) {
       const wkey = ch.key + ':p' + k, part = HIDDEN.kinds[Math.floor(RP() * HIDDEN.kinds.length)];
       let at = null;
       for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }   // (#167 slice 4: not in a tower)
+      if (at) ch.partSpots.push(at);
       if (!at || this.isTaken(wkey)) continue;
       const q = Hidden.add(at[0], at[1], part); q.wkey = wkey; ch.parts.push(q);
     }
@@ -12751,12 +12753,13 @@ const World = {
   },
   // #191: what a world kit at (x, z) mends: HEAL.kit grown with the level there, as robot toughness grows
   kitMend(x, z) { return Math.round(HEAL.kit * this.tough(this.level(x, z))); },
-  // #191: the chunk's kits, each at a seeded spot a mech can stand on (as a part's, off a ring's floor and away from the parts)
+  // #191: the chunk's kits, each at a seeded spot a mech can stand on (as a part's, off a ring's floor and away from the parts).
+  // #205: away from the parts' spots, a part picked up or not, so a kit is at the same spot whether its chunk's part is taken
   kitsFor(ch) {
     const C = WORLD.chunk, x0 = ch.cx * C, z0 = ch.cz * C, R = wRng(wHash(ch.cx, ch.cz, 910)), ring = this.ringAt(ch.cx, ch.cz);
     const ok = (x, z) => Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat)
       && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 1.5)
-      && ch.parts.every((q) => Math.hypot(q.x - x, q.z - z) > 8) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > 20);
+      && ch.partSpots.every(([px, pz]) => Math.hypot(px - x, pz - z) > 8) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > 20);
     const { n } = this.kitsAt(ch.cx, ch.cz);
     for (let i = 0; i < n; i++) {
       let at = null;
