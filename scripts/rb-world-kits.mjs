@@ -10,6 +10,8 @@
 //     mech can stand (off obstacles, out of caves, off a ring's floor);
 //   * seeded: the same kits at the same spots after a walk away and back, and after a reload with the chunks loaded in
 //     another order;
+//   * #205: the same kits at the same spots once their chunks' parts are taken (in the session and, saved, after a
+//     reload): a kit keeps clear of a part's spot whether or not the part is still there;
 //   * more farther out: the extra-kit chance is min(max, more x (level - 1)), 0 at level 1, and far chunks have more kits
 //     on average than near ones;
 //   * stronger farther out: a kit mends round(HEAL.kit x World.tough(level at the kit)): 75 near the start, more far out,
@@ -186,6 +188,28 @@ async function runKits(C) {
   r = await C.ev(String.raw`(() => { ${H} enter('tester'); R.worldGo(96 * 4, 96 * 3); R.worldGo(-96 * 2, -96); R.worldGo(0, 0); const b = byKey(), a = ${JSON.stringify(A)};
     const diff = Object.keys(a).filter((k) => JSON.stringify(a[k]) !== JSON.stringify(b[k])); return { diff, n: Object.keys(b).length }; })()`);
   ok('... and after a reload, with the chunks loaded in another order', r.diff.length === 0 && r.n >= Object.keys(A).length, r);
+
+  // ---- #205: a chunk's kits stay put after its part is taken (the reviewer's probe on #203: chunk 1,0's kit and two
+  // round (2600, -1250) moved once the parts were picked up and the chunks loaded again)
+  await C.open(1280, 800, false);
+  await C.ev(CLEAR);
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} enter('tester'); const spots = [[0, 0], [2600, -1250]], before = {}, took = [];
+    for (const [x, z] of spots) { R.worldGo(x, z); Object.assign(before, byKey());
+      for (const ch of W.chunks.values()) for (const q of ch.parts) if (!took.includes(q.wkey)) { W.take(q.wkey); took.push(q.wkey); } }
+    R.Facts.save();
+    const after = {}; for (const [x, z] of spots) { R.worldGo(x + 5000, z + 5000); R.worldGo(x, z); Object.assign(after, byKey()); }
+    const moved = Object.keys(before).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k])).map((k) => ({ k, was: before[k], now: after[k] ?? null }));
+    const partsLeft = spots.flatMap(([x, z]) => (R.worldGo(x, z), [...W.chunks.values()].flatMap((ch) => ch.parts.map((q) => q.wkey))));
+    return { n: Object.keys(before).length, took: took.length, has10: took.some((k) => k.startsWith('1,0:p')), moved, partsLeft: partsLeft.length, before }; })()`);
+  ok('#205: a chunk\'s kits are at the same spots after its part is taken and it loads again (every part round the start and round (2600, -1250) taken)', r.n >= 50 && r.took >= 50 && r.has10 && r.partsLeft === 0 && r.moved.length === 0, { ...r, before: undefined });
+  const B205 = r.before;
+  await C.open(1280, 800, false);
+  r = await C.ev(String.raw`(() => { ${H} enter('tester'); const b = ${JSON.stringify(B205)}, now = {};
+    for (const [x, z] of [[0, 0], [2600, -1250]]) { R.worldGo(x, z); Object.assign(now, byKey()); }
+    const parts = [...W.chunks.values()].reduce((t, ch) => t + ch.parts.length, 0);
+    return { saved: R.Facts.rec?.world?.taken?.length ?? 0, parts, moved: Object.keys(b).filter((k) => JSON.stringify(b[k]) !== JSON.stringify(now[k])).map((k) => ({ k, was: b[k], now: now[k] ?? null })) }; })()`);
+  ok('... and after a reload, the taken parts saved (world.taken) and still gone', r.saved >= 50 && r.parts === 0 && r.moved.length === 0, r);
 
   // ---- more farther out
   r = await C.ev(String.raw`(() => { ${H} const K = WORLD.kits, all = R.worldKits(3600);
