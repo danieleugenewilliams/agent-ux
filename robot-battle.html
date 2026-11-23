@@ -3603,10 +3603,18 @@ function fillWaves(r) {
 // has no field and loads exactly as it is. Read through worldTaken: strings only, each once, the last WORLD_SAVE.takenMax
 // (a generous bound, about 120 kB, so the record can never fill the browser's storage). Any other field in it (a later
 // slice's) is kept as it is. Guest's record never gets one.
-const WORLD_SAVE = { takenMax: 10000 };
-const worldTaken = (r) => { const t = isObj(r?.world) && Array.isArray(r.world.taken) ? r.world.taken : []; return [...new Set(t.filter((k) => typeof k === 'string' && k.length <= 40))].slice(-WORLD_SAVE.takenMax); };
+// #200: and the boxing rings they have won, in the same field: world.rings = [each ring's key, 'cx,cz'], so a ring won
+// stays won after a reload or a restore and its champion never pays again (its parts went in their trophies). Added only
+// at the child's first ring won (World.ringWin), as world.taken is at the first pickup: a record without it (from before
+// #200, or one that has never won a ring) loads exactly as it is. Read through worldRings, as worldTaken (the last
+// WORLD_SAVE.ringsMax: far more rings than a child could win, about 20 kB)
+const WORLD_SAVE = { takenMax: 10000, ringsMax: 2000 };
+const worldList = (r, f, max) => { const t = isObj(r?.world) && Array.isArray(r.world[f]) ? r.world[f] : []; return [...new Set(t.filter((k) => typeof k === 'string' && k.length <= 40))].slice(-max); };
+const worldTaken = (r) => worldList(r, 'taken', WORLD_SAVE.takenMax);
+const worldRings = (r) => worldList(r, 'rings', WORLD_SAVE.ringsMax);
 // both records' lists as one (a's, then b's that a hasn't), for a backup's restore
 const worldUnion = (a, b) => [...new Set([...worldTaken(a), ...worldTaken(b)])].slice(-WORLD_SAVE.takenMax);
+const worldRingsUnion = (a, b) => [...new Set([...worldRings(a), ...worldRings(b)])].slice(-WORLD_SAVE.ringsMax);
 // G4 / #72: latch into garage g what Mastered count n has earned: every advanced part whose milestone n has reached, then
 // every metal its part (and, for Carbon Alloy, the leg shapes) has earned. Never takes one away. The new ones also go in
 // g.fresh, for the garage's cheer; a new metal is the one shown (g.metal back to the best). Returns the ids newly latched.
@@ -4111,7 +4119,7 @@ const Facts = {
 // A backup file: { app: 'robot-battle', format: 2, exported: ISO time, device: a short label, data: { key: value } }.
 // data holds every robotbattle.* key in storage (the key without the prefix, the value parsed). On main today that's
 // facts.<child> (each child's record: the fact tracker, the garage with its trophies, upgrades, paint, unlocks and body,
-// #58's saved squad: squad and squadGone, and #189's world parts picked up: world.taken) and the settings child (who
+// #58's saved squad: squad and squadGone, #189's world parts picked up: world.taken, and #200's rings won: world.rings) and the settings child (who
 // played last) and pilot (the last pilot). The bag and the meadow aren't saved by the game, so they aren't in a backup.
 // (#189: world.taken rides inside the record, not in a key of its own, because validate restores only records and the two
 // settings: a key of its own would be skipped, and a restore would bring the parts farm back. The format stays 2.) Guest is never in one: facts.guest is
@@ -4232,6 +4240,7 @@ const Backup = {
   //   #132 mode  this device's (a record without the field: Normal): it's a setting, not progress, as wiring is
   //   #142 division  this device's (no field: on), as wiring; the ÷ facts are facts (above); divPlay: this device's
 //   #189 world  taken: every world part either side has picked up (worldUnion); only when either side has the field
+  //   #200 world  rings: every ring either side has won (worldRingsUnion); only when either side has the list
   //   garage    trophies: each part's count and each source's count, the more; upgrades: each level, the higher;
   //             unlocks and body.unlocked: everything either has; fresh: an unlock still waits for its cheer only if
   //             every side that has it hasn't cheered it yet; paint and the equipped shapes: this device's (the backup's
@@ -4285,6 +4294,8 @@ const Backup = {
     if (dev.waves != null || bak.waves != null) out.waves = { ...(isObj(bak.waves) ? clone(bak.waves) : {}), ...(isObj(dev.waves) ? clone(dev.waves) : {}), best: Math.max(waveBest(dev), waveBest(bak)) };
     // #189: the world parts picked up: both sides' (a part picked up on either device stays picked up)
     if (isObj(dev.world) || isObj(bak.world)) out.world = { ...(isObj(bak.world) ? clone(bak.world) : {}), ...(isObj(dev.world) ? clone(dev.world) : {}), taken: worldUnion(dev, bak) };
+    // #200: the rings won: both sides' (a ring won on either device stays won)
+    if (Array.isArray(dev.world?.rings) || Array.isArray(bak.world?.rings)) out.world.rings = worldRingsUnion(dev, bak);
     // #132: the mode: this device's (not the backup's where this device has none: no field there is Normal)
     if (dev.mode != null || bak.mode != null) out.mode = modeOf(dev.mode);
     // #142: division: this device's setting (a setting, as wiring; no field here is on, so not the backup's off over it)
@@ -4395,12 +4406,16 @@ const Backup = {
     return out;
   },
   // #189: Use the backup's record r, but a world part once picked up stays picked up (as keepWaves keeps the best wave):
-  // this device's keys that r hasn't are added to r's list. Pure: a new record (or r itself when nothing changes)
+  // this device's keys that r hasn't are added to r's list. #200: and a ring once won stays won, the same way (its list
+  // only when this device has rings r hasn't). Pure: a new record (or r itself when nothing changes)
   keepTaken(r, here) {
     if (!isObj(r) || !isObj(here)) return r;
-    const have = new Set(worldTaken(r)); if (worldTaken(here).every((k) => have.has(k))) return r;
+    const have = new Set(worldTaken(r)), won = new Set(worldRings(r));
+    const parts = !worldTaken(here).every((k) => have.has(k)), rings = !worldRings(here).every((k) => won.has(k));
+    if (!parts && !rings) return r;
     const out = clone(r);
-    out.world = { ...(isObj(out.world) ? out.world : {}), taken: worldUnion(r, here) };
+    if (parts) out.world = { ...(isObj(out.world) ? out.world : {}), taken: worldUnion(r, here) };
+    if (rings) out.world = { ...(isObj(out.world) ? out.world : {}), rings: worldRingsUnion(r, here) };
     return out;
   },
   // #132: Use the backup's record r, but this device's mode (a setting, not progress: no field here is Normal). Pure
@@ -12330,7 +12345,8 @@ const Hidden = {
 // shared stream, so a chunk is the same whatever order the chunks load in (Wild World's way). The parts found go in the
 // bag and the trophies as a meadow find does (Garage.collect(part, 'meadow')). #189: and each one's key goes in a saved
 // child's record (world.taken, World.take), so it never comes back after a reload. #190: a robot fixed into the squad
-// here is saved straight away, in the record's squad as a waves squadbot is (fixRobot). Nothing else here is saved.
+// here is saved straight away, in the record's squad as a waves squadbot is (fixRobot). #200: a boxing ring won goes in the
+// record too (world.rings, World.ringWin), so it pays once, even after a reload. Nothing else here is saved.
 // ===========================================================================
 const WORLD = {
   seed: 167, chunk: 96, seg: 24,               // 96 m chunks on a 4 m grid
@@ -12453,7 +12469,8 @@ const World = {
   lvl: 0,                     // #167 slice 2: player 1's level (World.level), as the HUD shows it
   rings: new Map(),           // #167 slice 3: 'cx,cz' -> the loaded chunk's ring (ringFor)
   ringSpots: new Map(),       // the seeded ring of each chunk looked at (ringAt; null: none)
-  ringsWon: new Set(),        // the rings won this run (their keys): each pays once and its champion never comes back
+  ringsWon: new Set(),        // the rings won this run (their keys): each pays once and its champion never comes back (#200: and the saved ones)
+  savedRings: null,           // #200: { rec, arr, set }: whoever is playing's world.rings as a set, made again when it changes
   summits: new Map(),         // #167 slice 5: 'cx,cz' -> the loaded chunk's summit flag (summitFor)
   summitSpots: new Map(),     // the seeded summit of each chunk looked at (summitAt; null: none)
   summitsUp: new Set(),       // the summits climbed this run (their keys): the flag stays up gold
@@ -13053,6 +13070,22 @@ const World = {
     const t = worldTaken(r); if (t.includes(wkey)) return;
     t.push(wkey); r.world = { ...(isObj(r.world) ? r.world : {}), taken: t.slice(-WORLD_SAVE.takenMax) };
   },
+  // #200: whoever is playing's saved rings won (worldRings of their record) as a set, made again when the list changes
+  savedRingSet() {
+    const r = Facts.rec, arr = isObj(r?.world) ? r.world.rings : null;
+    if (!this.savedRings || this.savedRings.rec !== r || this.savedRings.arr !== arr) this.savedRings = { rec: r, arr, set: new Set(worldRings(r)) };
+    return this.savedRings.set;
+  },
+  // a ring already won: this run (by anyone, Guest too) or, saved, by whoever is playing
+  ringIsWon(key) { return this.ringsWon.has(key) || this.savedRingSet().has(key); },
+  // #200: a ring won: won for the run, and for a saved child won after a reload too: its key goes in their record's
+  // world.rings (a new list each time, so savedRingSet sees it). The caller saves (ringWin's payout, Garage.collect)
+  winRing(key) {
+    this.ringsWon.add(key);
+    const C = Facts.child, r = Facts.rec; if (!r || !C || C.guest) return;
+    const t = worldRings(r); if (t.includes(key)) return;
+    t.push(key); r.world = { ...(isObj(r.world) ? r.world : {}), rings: t.slice(-WORLD_SAVE.ringsMax) };
+  },
   // the ground parts found so far (those picked up in the loaded chunks counted in at once)
   foundN() { for (const ch of this.chunks.values()) for (const q of ch.parts) if (q.found) this.taken.add(q.wkey); return this.taken.size; },
   tick(dt) {
@@ -13092,7 +13125,8 @@ const World = {
     }
   },
   // ---- #167 slice 3: boxing / battle rings (WORLD.rings). A ring chunk has no roaming robot (robotsFor): its champion
-  // stands in for it. Nothing about a ring is saved: a ring won stays won for the run, as a robot beaten does ----
+  // stands in for it. #200: a ring won stays won: for the run (anyone, Guest too), and for a saved child after a reload too
+  // (world.rings in their record, World.winRing), so its champion pays once ----
   // chunk (cx, cz)'s ring, from its own seeded numbers only (never the load order): { cx, cz, key, x, z, y, level, pay } or null
   ringAt(cx, cz) {
     const k = cx * 65536 + cz; if (this.ringSpots.has(k)) return this.ringSpots.get(k);
@@ -13150,7 +13184,7 @@ const World = {
       }
     });
     const { beam, mark } = Beacon.add(grp, '#ffd21f', 'ring', 17); beam.scale.set(3, 1.2, 3); mark.scale.set(3.4, 3.4, 1);
-    const ring = { g, ch, grp, ropes, beacon: beam, mark, t: 0, state: this.ringsWon.has(g.key) ? 'won' : 'wait', champ: null, paid: null };
+    const ring = { g, ch, grp, ropes, beacon: beam, mark, t: 0, state: this.ringIsWon(g.key) ? 'won' : 'wait', champ: null, paid: null };
     ch.ring = ring; this.rings.set(g.key, ring);
     if (ring.state !== 'won') this.ringChamp(ring);
     this.ringLook(ring);
@@ -13178,9 +13212,10 @@ const World = {
     if (!Game.manual) Sfx.bell();
   },
   // the champion beaten: the ring pays out its parts at once (into the bag and the trophies, as a part found does), the
-  // ropes go gold and the beacon off. Once a run: it never pays again
+  // ropes go gold and the beacon off. Once: it never pays again (#200: for a saved child, not after a reload either. Its
+  // key goes in the record first, so the payout's Facts.save saves it with the parts)
   ringWin(ring) {
-    const g = ring.g; ring.state = 'won'; this.ringsWon.add(g.key);
+    const g = ring.g; ring.state = 'won'; this.winRing(g.key);
     for (const part of g.pay) { Game.bag[part] = (Game.bag[part] || 0) + 1; Garage.collect(part, 'meadow'); }
     updateHud.partPop = (updateHud.partPop || []).concat(g.pay);   // each +1 and its icon drop out of the 🔩 count
     ring.paid = g.pay.slice();
@@ -13221,7 +13256,7 @@ const World = {
   // well inside it (so it's a real top, not a slope climbing on into the next chunk) and at least summit.min high has a
   // summit: a cairn, a pole and a red flag, a beacon over it. It comes from the ground's heights only (never the load
   // order, and no random numbers: nothing else in the chunk moves). Climb to it and the flag goes up the pole, gold, with
-  // sparks and a fanfare. Nothing is saved: a summit climbed stays climbed for the run, as a ring won does ----
+  // sparks and a fanfare. Nothing is saved: a summit climbed stays climbed for the run, as a robot beaten does ----
   // chunk (cx, cz)'s summit: { cx, cz, key, x, z, y, place, level } or null
   summitAt(cx, cz) {
     const k = cx * 65536 + cz; if (this.summitSpots.has(k)) return this.summitSpots.get(k);
@@ -13305,6 +13340,7 @@ const World = {
       bosses: [...this.live.entries()].filter(([, l]) => l.boss).map(([key, l]) => ({ key, type: l.boss, n: l.length, ids: l.map((r) => r.id) })),
       // #167 slice 3: the rings loaded, and how many won this run
       rings: [...this.rings.values()].map((g) => this.ringState(g)), ringsWon: this.ringsWon.size,
+      ringsSaved: worldRings(Facts.rec).length,   // #200: the rings whoever is playing has won, saved in their record
       // #167 slice 5: the summits loaded and how many climbed this run; player 1 on the slopes (grade along its way, × its
       // walk, clambering 0..1)
       summits: [...this.summits.values()].map((sm) => this.summitState(sm)), summitsUp: this.summitsUp.size,
