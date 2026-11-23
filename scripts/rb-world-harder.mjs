@@ -13,7 +13,7 @@
 //            * a boss group out where its chunk is: the boss as tough as its level, its satellite linked to it, its escorts;
 //              the boss bar up near it and down when it's far off though still loaded;
 //            * the boss beaten and fixed on its boss board: its rare part in the bag, its trophy latched, not in the squad,
-//              its group never back; the storage keys the same (no world key, no world field in the record).
+//              its group never back; #195: its trophy and Bosses.won entry say its level and distance (no wave 0); the storage keys the same (no world key, no world field in the record).
 //   touch  - at 844 x 390 with touch: a world run, a boss downed: at most 4 touch buttons, FIX opens its board; the level chip
 //            on screen and clear of the health bar and the pause button at 740 x 360, 844 x 390 and 667 x 375 (two digits too).
 //
@@ -275,7 +275,7 @@ async function runLogic(C) {
     const solved = solve(boss.id), won = R.Bosses.won.slice(won0);
     const rec = JSON.parse(localStorage.getItem('robotbattle.facts.tester') || 'null');
     const out = { ch: ch?.ok, why: ch?.why, board, solved, won, bag: (G.bag[rare] || 0) - bag0, squad: G.squad.some((q) => q.id === boss.id), inRobots: G.robots.includes(boss),
-      trophy: !!rec?.garage?.bosses?.[boss.type], recWorld: rec ? Object.keys(rec).filter((k) => /world|level/i.test(k)) : null };
+      trophy: !!rec?.garage?.bosses?.[boss.type], saved: rec?.garage?.bosses?.[boss.type] ?? null, lv: boss.wlevel, dist: Math.round(Math.hypot(boss.pos.x, boss.pos.z)), recWorld: rec ? Object.keys(rec).filter((k) => /world|level/i.test(k)) : null };
     // walk far away and back: the group (partly beaten) is swept as gone, and nothing of it comes out again
     const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.worldGo(px, pz); reload();
     out.gone = W.gone.has(${JSON.stringify(bossKey)}); out.again = G.robots.filter((q) => q.wkey === ${JSON.stringify(bossKey)}).length;
@@ -283,6 +283,9 @@ async function runLogic(C) {
     return out; })()`);
   ok(`the boss beaten: its Quick Fix opens on its boss board (${r.board?.slots} slots, the boss plan's; a plain robot's ${r.board?.plain})`, r.ch && r.board && r.board.slots === r.board.boss && r.board.slots > r.board.plain, r);
   ok(`... fixed: its rare part in the bag (+${r.bag}), its trophy latched in the record, and it doesn't join the squad`, r.solved && r.won.length === 1 && r.won[0].type === bossType && r.bag === 1 && r.trophy && !r.squad && !r.inRobots, r);
+  // #195: its trophy and its Bosses.won entry say where it was won (its world level, the metres out), not wave 0
+  const where = (t) => t && t.world === true && !('wave' in t) && t.level === r.lv && t.dist === r.dist;
+  ok(`... its trophy and its Bosses.won entry record where it was won: level ${r.lv}, ${r.dist} m out, no wave 0`, where(r.saved) && where(r.won[0]) && r.dist > 0, { saved: r.saved, won: r.won, lv: r.lv, dist: r.dist });
   ok('its group never back (swept as gone; nothing of it after a walk away and back)', r.gone && r.again === 0, r);
   ok('the save keys the same, no world or level field in the record', JSON.stringify(r.k0) === JSON.stringify(r.k1) && Array.isArray(r.recWorld) && r.recWorld.length === 0, { k0: r.k0, k1: r.k1, recWorld: r.recWorld });
 

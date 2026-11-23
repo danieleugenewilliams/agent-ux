@@ -3552,7 +3552,10 @@ function fillGarage(r) {
   // out = on (so a record saved before #72 looks as it did)
   if (!METALS.some((M) => M.id === g.metal && g.unlocks.includes(M.id))) g.metal = null;
   if (g.crown !== false) delete g.crown;
-  // #122: the boss trophies (bosses: { type: { at, wave } }, latched by Garage.latchBoss): kept only as an object of objects
+  // #122: the boss trophies (bosses: { type: { at, wave } }, latched by Garage.latchBoss): kept only as an object of objects.
+  // #195: one won in the endless world is { at, world: true, level, dist } instead (bossWhere). A trophy saved before #195 is
+  // kept as it was: one won in the world then says wave 0, the same as a Knight dropped in by hand
+
   if (g.bosses != null) {
     if (typeof g.bosses !== 'object' || Array.isArray(g.bosses)) delete g.bosses;
     else for (const k of Object.keys(g.bosses)) if (!g.bosses[k] || typeof g.bosses[k] !== 'object' || Array.isArray(g.bosses[k])) delete g.bosses[k];
@@ -11304,13 +11307,22 @@ function bossPlan(wave, how, type = 'knight') {
 // join the squad: it vanishes in a column of gold sparks. It counts as fixed (the wave's 🔧, its ⭐, and a fast repair's 🌟).
 // Bosses.won keeps each for the hooks
 const Bosses = { won: [] };
+// #195: where boss r was won, for its trophy and its Bosses.won entry. In the waves: { wave } (0 for a Knight dropped in by
+// hand). In the endless world, which has no waves: { world: true, level, dist }, level = the world level it came out at
+// (r.wlevel, what its toughness was set by; a ring champion's is its ring's) and dist = how far from the start it was fixed,
+// in whole metres (where it stood at the fix). Left out (a hook latching a trophy with no robot): where player 1 is
+function bossWhere(r) {
+  if (!Game.world) return { wave: Game.wave };
+  const p = r?.pos || Game.humans[0]?.mech?.pos || { x: 0, z: 0 };
+  return { world: true, level: r?.wlevel || World.level(p.x, p.z), dist: Math.round(Math.hypot(p.x, p.z)) };
+}
 function bossFixed(h, r) {
   const T = ROBOT_TYPES[r.type], fast = fastRepair(r.wires); if (fast) Game.waveStats.fast++;
   const part = T.rare;
   Game.bag[part] = (Game.bag[part] || 0) + 1; Garage.collect(part, r.type);
   (updateHud.partPop ||= []).push(part);                // its +1 ⚔️ drops out of the 🔩 count
-  const trophy = Garage.latchBoss(r.type);
-  Bosses.won.push({ id: r.id, type: r.type, wave: Game.wave, fast, by: h.idx, part, trophy });
+  const trophy = Garage.latchBoss(r.type, r);
+  Bosses.won.push({ id: r.id, type: r.type, ...bossWhere(r), fast, by: h.idx, part, trophy });   // (#195: the world's level and distance, not wave 0)
   for (let y = 0; y < 12; y += 1.5) Sparks.burst(r.pos.x, r.pos.y + y, r.pos.z, 16, SPARK_GLINT, 5);
   Impacts.flash(new V3(r.pos.x, r.pos.y + 5, r.pos.z), 6);
   removeRobot(r);
@@ -12724,10 +12736,12 @@ const World = {
     // parts on the ground: one a chunk (two in a junkyard), each at a seeded spot a mech can stand on, never twice
     const RP = wRng(wHash(ch.cx, ch.cz, 202));
     const n = this.placeRaw(x0 + C / 2, z0 + C / 2).b === PL.junkyard ? WORLD.parts.junkyard : WORLD.parts.n;
+    ch.partSpots = [];   // #205: every part's seeded spot, picked up or not (the kits keep clear of these, so they never move)
     for (let k = 0; k < n; k++) {
       const wkey = ch.key + ':p' + k, part = HIDDEN.kinds[Math.floor(RP() * HIDDEN.kinds.length)];
       let at = null;
       for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }   // (#167 slice 4: not in a tower)
+      if (at) ch.partSpots.push(at);
       if (!at || this.isTaken(wkey)) continue;
       const q = Hidden.add(at[0], at[1], part); q.wkey = wkey; ch.parts.push(q);
     }
@@ -12742,12 +12756,13 @@ const World = {
   },
   // #191: what a world kit at (x, z) mends: HEAL.kit grown with the level there, as robot toughness grows
   kitMend(x, z) { return Math.round(HEAL.kit * this.tough(this.level(x, z))); },
-  // #191: the chunk's kits, each at a seeded spot a mech can stand on (as a part's, off a ring's floor and away from the parts)
+  // #191: the chunk's kits, each at a seeded spot a mech can stand on (as a part's, off a ring's floor and away from the parts).
+  // #205: away from the parts' spots, a part picked up or not, so a kit is at the same spot whether its chunk's part is taken
   kitsFor(ch) {
     const C = WORLD.chunk, x0 = ch.cx * C, z0 = ch.cz * C, R = wRng(wHash(ch.cx, ch.cz, 910)), ring = this.ringAt(ch.cx, ch.cz);
     const ok = (x, z) => Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat)
       && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 1.5)
-      && ch.parts.every((q) => Math.hypot(q.x - x, q.z - z) > 8) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > 20);
+      && ch.partSpots.every(([px, pz]) => Math.hypot(px - x, pz - z) > 8) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > 20);
     const { n } = this.kitsAt(ch.cx, ch.cz);
     for (let i = 0; i < n; i++) {
       let at = null;
@@ -15117,15 +15132,16 @@ const Garage = {
   // robot types built with part id (the hint on an outline: who to hunt)
   carriers(id) { return Object.keys(ROBOT_TYPES).filter((t) => !ROBOT_TYPES[t].noParts && (ROBOT_TYPES[t].parts.includes(id) || ROBOT_TYPES[t].rare === id)); },   // (#121: never a clone; #122: a boss's rare part)
   // #122: latch boss `type`'s trophy (a Knight fixed) in the record's garage: bosses[type] = { at, wave }, set with ||= and
-  // never lowered or taken away. Returns whether it's new
-  latchBoss(type) {
+  // never lowered or taken away. Returns whether it's new. #195: r = the boss robot; won in the endless world, the trophy is
+  // { at, world: true, level, dist } (bossWhere) in place of wave 0
+  latchBoss(type, r) {
     const g = this.rec(), B = (g.bosses ||= {}), fresh = !B[type];
-    B[type] ||= { at: Facts.now(), wave: Game.wave };
+    B[type] ||= { at: Facts.now(), ...bossWhere(r) };
     Facts.save();
     if (this.on) this.draw();
     return fresh;
   },
-  // the boss trophies held: { type: { at, wave } }
+  // the boss trophies held: { type: { at, wave } }, or #195 { at, world: true, level, dist } for one won in the world
   bosses() { const B = this.rec().bosses; return B && typeof B === 'object' ? JSON.parse(JSON.stringify(B)) : {}; },
   // open from 'pause' (the pause screen is up) or 'clear' (the clear screen is up: this pauses the world).
   // Left out: whichever of the two is up.
@@ -17622,7 +17638,7 @@ window.__rb = {
       // #122: bossWave = this wave is a boss wave; boss = the boss up now (the boss bar's: id, type, name, health, maxHealth,
       // state) and the bar as drawn (bar: shown, fill %, name, down); axes = the Knight's axes in flight (Axes.state), axesDone =
       // the last 12 ended ({ id, by, how: hit | tree | far | gone, went, hit }); bossesWon = each boss fixed ({ id, type, wave,
-      // fast, by, part, trophy: new }); startWave = START_WAVE (?wave=N)
+      // fast, by, part, trophy: new; #195: won in the world, world: true, level, dist in place of wave }); startWave = START_WAVE (?wave=N)
       bossWave: Waves.boss(Game.wave), startWave: START_WAVE,
       boss: (() => { const b = bossUp(), el = $('bossBar'), on = !!el.offsetParent && getComputedStyle(el).display !== 'none';
         return { up: b ? { id: b.id, type: b.type, name: ROBOT_TYPES[b.type].name, health: r3(b.health), maxHealth: b.maxHealth, state: b.state } : null,
