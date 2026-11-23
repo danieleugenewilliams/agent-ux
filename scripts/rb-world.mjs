@@ -287,8 +287,9 @@ async function runLogic(C) {
 
   // ---- bounded: three 6 km walks out (east-north-east) and back; the page draws between the steps. Caches that fill
   // once (a tower size built once, the shared props) may grow on the first lap; nothing may grow lap on lap
-  // (no new robots on these walks, so the counts compare like for like: the robots are checked on their own above and by the cap)
-  await C.ev(`(() => { const R = window.__rb; R.WORLD.robots.chance = 0; R.worldGo(0, 0); R.manual(false); return true; })()`);
+  // (no new robots on these walks, so the counts compare like for like: the robots are checked on their own above and by the cap;
+  // #194: nor the Copier: every level marked as come for, so no saucer chases a mech jumping 300 m a step; rb-world-crews checks it)
+  await C.ev(`(() => { const R = window.__rb; R.WORLD.robots.chance = 0; for (let l = 1; l <= 200; l++) R.World.copied?.add(l); R.worldGo(0, 0); R.manual(false); return true; })()`);
   await sleep(600);
   const base = await C.ev(`window.__rb.World.status()`);
   const peak = { chunks: 0, geometries: 0, obstacles: 0, props: 0, worldRobots: 0, live: 0, hidden: 0, textures: 0 }, laps = [];
