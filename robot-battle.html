@@ -12259,7 +12259,16 @@ const Kits = {
   // (#191: in the endless world it mends by the level the robot came out at, as a chunk's kit there does)
   drop(r) {
     const h = r.legHeading, k = this.add(r.pos.x + Math.cos(h) * 4, r.pos.z - Math.sin(h) * 4, 'robot');
-    if (Game.world) { k.level = r.wlevel || World.level(r.pos.x, r.pos.z); k.mend = Math.round(HEAL.kit * World.tough(k.level)); }
+    if (Game.world) {
+      k.level = r.wlevel || World.level(r.pos.x, r.pos.z); k.mend = Math.round(HEAL.kit * World.tough(k.level));
+      // #206: it belongs to the chunk it lies in (or, if that one isn't loaded, the loaded chunk nearest it: a robot can be
+      // beaten out past the loaded chunks before the sweep takes it), and goes when that chunk unloads. Not one of the
+      // chunk's seeded kits (ch.kits), so it doesn't come back when the chunk loads again.
+      const C = WORLD.chunk, cx = Math.floor(k.x / C), cz = Math.floor(k.z / C);
+      let ch = World.chunks.get(World.key(cx, cz)), bd = Infinity;
+      if (!ch) for (const c of World.chunks.values()) { const d = Math.max(Math.abs(c.cx - cx), Math.abs(c.cz - cz)); if (d < bd) { bd = d; ch = c; } }
+      if (ch) (ch.drops ||= []).push(k);
+    }
     return k;
   },
   // player h walks onto a kit: mend it and use the kit up. Returns what it mended
@@ -12632,6 +12641,10 @@ const World = {
       const i = Hidden.list.indexOf(q); if (i >= 0) Hidden.list.splice(i, 1);
     }
     for (const k of ch.kits) {   // #191: its kits go (one picked up is gone already); they come again when it loads again
+      const i = Kits.list.indexOf(k); if (i >= 0) Kits.list.splice(i, 1);
+      scene.remove(k.g); k.mark.material.dispose();
+    }
+    for (const k of ch.drops || []) {   // #206: kits its robots dropped go too, for good
       const i = Kits.list.indexOf(k); if (i >= 0) Kits.list.splice(i, 1);
       scene.remove(k.g); k.mark.material.dispose();
     }
