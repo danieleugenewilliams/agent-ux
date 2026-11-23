@@ -2946,6 +2946,8 @@ const ICONS = {
   bolt: ['bolt', ['🔩'], rot(40, pa('M9.4 10 L14.6 10 L14.6 19.4 Q14.6 20.8 12 20.8 Q9.4 20.8 9.4 19.4 Z', G('steel')) + `<path d="M9.4 13.6 L14.6 12.6 M9.4 17 L14.6 16" fill="none"/>`
     + pa('M4.8 6 L8 4 L16 4 L19.2 6 L19.2 8.6 Q19.2 10.4 17.4 10.4 L6.6 10.4 Q4.8 10.4 4.8 8.6 Z', G('steel')) + hl('M7.6 6.4 L16.4 6.4'))],
   world: ['world', [], pa('M1.6 20.6 L8.6 8.4 L11.6 12.6 L15.4 5.4 L22.4 20.6 Z', G('steel')) + pa('M12.9 10.4 L15.4 5.4 L18.2 11.4 L16.6 10.4 L15.2 12 L14 10.6 Z', '#ffffff') + pa('M6.6 11.8 L8.6 8.4 L10.3 10.8 L9 10.4 L7.8 11.6 Z', '#ffffff') + hl('M9.6 16.6 L12.4 12.8')],
+  // #167 slice 3: a boxing / battle ring (the boys' page 1): its corner posts, three ropes and the canvas floor
+  ring: ['ring', [], re(1.6, 17, 20.8, 4.6, 1.4, G('blue')) + re(2, 4, 2.8, 14.4, 1.2, G('red')) + re(19.2, 4, 2.8, 14.4, 1.2, G('blue')) + ln('M4.8 7.4 L19.2 7.4 M4.8 10.6 L19.2 10.6 M4.8 13.8 L19.2 13.8', '#ffffff', 1.3, 'butt')],
   search: ['search', ['🔍'], ln('M15.6 15.6 L20.4 20.4', G('orange'), 3.4) + ci(10, 10, 7.6, G('steel')) + ci(10, 10, 4.8, '#bff3ff') + hl('M7.4 8.6 C7.8 7.6 8.6 7 9.6 6.8')],
   bag: ['bag', ['🎒'], ln('M8.8 6.4 L8.8 5 Q8.8 2.6 12 2.6 Q15.2 2.6 15.2 5 L15.2 6.4', G('dark'), 1.6) + re(4.6, 6, 14.8, 15.4, 4, G('blue')) + re(7.4, 13.4, 9.2, 6, 2, '#2f62c8') + re(10.4, 11.2, 3.2, 3.6, 0.8, G('steel')) + hl('M6.8 9 L6.8 13')],
   family: ['parents', ['👪'], ci(16.4, 6.6, 3.2, G('pink')) + pa('M11.2 21.4 L11.2 15.8 Q11.2 11.4 16.4 11.4 Q21.6 11.4 21.6 15.8 L21.6 21.4 Z', G('pink')) + ci(7.6, 6.6, 3.2, G('blue')) + pa('M2.4 21.4 L2.4 15.8 Q2.4 11.4 7.6 11.4 Q12.8 11.4 12.8 15.8 L12.8 21.4 Z', G('blue')) + hl('M4.6 14.6 L4.6 18')],
@@ -4684,6 +4686,7 @@ const Sfx = {
   splinter(k = 1) { this.noise(0.05, 0.3 * k, 3000, 0, 1); [0.04, 0.09, 0.15].forEach((d) => this.noise(0.05, 0.18 * k, 1400 + Math.random() * 800, d, 2)); this.tone(240, 0.12, 'triangle', 0.08 * k, 140); },
   find() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.13, null, i * 0.06)); this.noise(0.2, 0.06, 7500, 0.18, 2, 'highpass'); },
   // The meadow cleared: a rising fanfare and a sparkle; a new wave: a low horn from the edge of the meadow
+  bell() { [0, 0.3, 0.6].forEach((d) => { this.tone(1480, 0.5, 'sine', 0.14, null, d); this.tone(2960, 0.3, 'sine', 0.05, null, d); }); },   // #167 slice 3: the ring's bell
   cleared() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.22, 'square', 0.07, null, i * 0.11)); [1047, 1319, 1568].forEach((f) => this.tone(f, 0.9, 'triangle', 0.1, null, 0.46)); this.noise(0.6, 0.08, 7500, 0.46, 2, 'highpass'); },
   // a whole table Mastered: a bigger, brighter fanfare than the clear screen's, with a sparkle run
   table() { [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.15, null, i * 0.09)); [1047, 1319, 1568, 2093].forEach((f) => this.tone(f, 1.2, 'sine', 0.08, null, 0.5)); [0.5, 0.62, 0.74, 0.86].forEach((d) => this.noise(0.08, 0.07, 8000, d, 2, 'highpass')); },
@@ -8936,7 +8939,7 @@ function repairSelf(h, picks, mate) {
 // URL -> an Image -> the canvas), one CanvasTexture per icon, cached. The texture is made at once and drawn when the image
 // has loaded, so every icon a sprite can show (WORLD_ICONS) is loaded at boot (iconTex.preload), while no sprite shows yet;
 // pending = icon images not loaded yet, blank = frames rendered with a sprite showing one of those
-const WORLD_ICONS = ['sleep', 'warn', 'alert', 'bolt', 'home', 'wrench', 'search', 'kit', ...Object.values(PARTS).map((P) => P.ic)];
+const WORLD_ICONS = ['sleep', 'warn', 'alert', 'bolt', 'home', 'wrench', 'search', 'kit', 'ring', ...Object.values(PARTS).map((P) => P.ic)];
 // I4: the one rasterise path. Icon `name`'s standalone SVG as an Image, loaded once and cached; img.ready resolves (to the
 // image, or null if it failed) once it has loaded. iconTex, the emblem decal (decalTex) and the pilots' portraits
 // (pilotFace) all draw from it, so no picture in the game is a font glyph
@@ -12305,6 +12308,24 @@ const WORLD = {
   harder: { step: 150, tough: 0.1, toughMax: 3, bar: 110,
     boss: { from: BOSS_WAVE.every, chance: 0.12, more: 0.03, max: 0.35, cap: 2, types: ['knight', 'centipede'], clear: 9,
       escorts: { every: 2, max: 3, types: ['charger', 'sniper', 'bouncer'], ring: 10 } } },
+  // #167 slice 3: boxing / battle rings (Q4 (e): "the boxing/battle rings out in the world (page 1)"). The boys' page 1 is a
+  // "Boxing or Battle Ring" with a robot holding a sword and fists inside the ropes, and their pick: "an arena you step into
+  // for a fight, and winning it gives a lot of parts". So: a ring is a square of canvas with a post at each corner and three
+  // ropes a side; inside it waits its champion, the robot with the sword in its fist (the Knight). Step in through the
+  // ropes (or hit it) and the fight starts: the ropes glow red, a bell rings, and the champion can't leave the ring. Beat
+  // it and the ring pays out a lot of parts at once, into the bag and the trophies; then fix it on its board or take it apart
+  // as ever. Every number is a starting value, tuned at the playtest:
+  //   chance:  a chunk's own seeded roll (World.ringAt: the same chunks after a reload), never a chunk with a cave or a boss
+  //   away:    m: no ring this near the start; and never nearer than the boss level (WORLD.harder.boss.from): its champion
+  //            is a boss (the Knight, its sword its rare part), so rings come no nearer than bosses do (World.ringAway)
+  //   half:    m: half the ring's side (the posts at its corners); flat/blend: the ground flattened round its middle, as a
+  //            cave's (flat past the corners and the 4 m ground grid, so the canvas lies flat on it)
+  //   tough:   the champion's health: the Knight's × tough × the toughness of the ring's level (World.tough) × the mode's,
+  //            so it's always far tougher than a roaming robot there (a Knight is 500 to a Charger's 100)
+  //   pay:     the parts it pays: n, one more each `every` levels past 1, at most max, seeded from `pool` (every part a robot
+  //            that isn't a boss can be taken apart for; a boss's rare part still comes only from fixing the boss)
+  rings: { chance: 0.1, away: 160, half: 14, flat: 26, blend: 7, type: 'knight', tough: 0.6, ropes: [1.9, 3.3, 4.7], post: 5.6,
+    pay: { n: 6, every: 2, max: 12, pool: ['armour', 'battery', 'motor', 'wiring', 'ram', 'scope', 'rotor', 'spring', 'jetboots', 'solar'] } },
 };
 const PLACES = ['mountains', 'city', 'junkyard', 'desert', 'snow', 'cave'];
 const PL = Object.fromEntries(PLACES.map((p, i) => [p, i]));
@@ -12336,6 +12357,9 @@ const World = {
   vh: new Map(), caves: new Map(), blocks: new Map(),
   sweepT: 0, ghosts: [],
   lvl: 0,                     // #167 slice 2: player 1's level (World.level), as the HUD shows it
+  rings: new Map(),           // #167 slice 3: 'cx,cz' -> the loaded chunk's ring (ringFor)
+  ringSpots: new Map(),       // the seeded ring of each chunk looked at (ringAt; null: none)
+  ringsWon: new Set(),        // the rings won this run (their keys): each pays once and its champion never comes back
   // ---- places: jittered cells; every 2 x 3 block of cells holds all six, in a seeded order, warped so borders wander ----
   block(si, sj) {
     const k = si * 65536 + sj; let o = this.blocks.get(k);
@@ -12397,7 +12421,7 @@ const World = {
   toWorld(c, lx, lz) { return [c.x + lx * c.cs + lz * c.sn, c.z - lx * c.sn + lz * c.cs]; },
   inCave(x, z, m = 0) { const c = this.caveAt(x, z); if (!c) return null; const [lx, lz] = this.local(c, x, z); return Math.abs(lx) < WORLD.cave.hw - m && lz > -WORLD.cave.back + m && lz < 0.5 ? c : null; },
   rawH(x, z) {
-    const h = this.baseH(x, z), c = this.caveAt(x, z); if (!c) return h;
+    const h = this.baseH(x, z), c = this.caveAt(x, z); if (!c) return this.ringH(x, z, h);   // (#167 slice 3: a ring's floor; a cave chunk has none)
     const K = WORLD.cave, d = Math.hypot(x - c.mx, z - c.mz); if (d >= K.flat + K.blend) return h;
     return lerp(c.y, h, wSmooth(clamp((d - K.flat) / K.blend, 0, 1)));
   },
@@ -12449,12 +12473,14 @@ const World = {
     this.chunks.set(ch.key, ch);
     ch.ground = this.groundMesh(cx, cz); ch.group.add(ch.ground);
     this.fill(ch);
+    this.ringFor(ch);   // #167 slice 3: its boxing ring and champion, if it has one (after the parts: their placing is as before)
     scene.add(ch.group);
     this.robotsFor(ch);
     return ch;
   },
   unload(k) {
     const ch = this.chunks.get(k); if (!ch) return;
+    this.ringGone(ch);   // #167 slice 3
     for (const p of ch.props) {
       if (p.broken) this.broken.add(p.wkey);
       for (const o of p.obs) { const i = obstacles.indexOf(o); if (i >= 0) obstacles.splice(i, 1); }
@@ -12547,9 +12573,10 @@ const World = {
   fill(ch) {
     this.mats();
     const C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 101)), x0 = ch.cx * C, z0 = ch.cz * C;
-    const cave = this.cave(ch.cx, ch.cz);
+    const cave = this.cave(ch.cx, ch.cz), ring = this.ringAt(ch.cx, ch.cz);   // (#167 slice 3: nothing stands on a ring's floor)
     if (cave) this.addCave(ch, cave);
     const clear = (x, z, r) => Math.hypot(x, z) > WORLD.startClear && (!cave || Math.hypot(x - cave.mx, z - cave.mz) > WORLD.cave.flat + 2 + r)
+      && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat + r)
       && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + r + 1.5);
     this.city(ch, clear);
     for (let k = 0; k < 26; k++) {
@@ -12683,7 +12710,7 @@ const World = {
   robotsFor(ch) {
     const RW = WORLD.robots, C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 303)), key = ch.key + ':r', B = this.bossAt(ch.cx, ch.cz);
     const roll = R(), type = RW.types[Math.floor(R() * RW.types.length)];
-    if ((!B && roll >= RW.chance) || this.gone.has(key) || this.live.has(key) || this.live.size >= RW.cap || !Game.humans[0]) return;
+    if ((!B && roll >= RW.chance) || ch.ring || this.gone.has(key) || this.live.has(key) || this.live.size >= RW.cap || !Game.humans[0]) return;
     if (B && [...this.live.values()].filter((l) => l.boss).length >= WORLD.harder.boss.cap) return;
     const room = B ? WORLD.harder.boss.clear : 4;
     let at = null;
@@ -12763,6 +12790,7 @@ const World = {
     const p = Game.humans[0]?.mech.pos;
     if (p) { const lv = this.level(p.x, p.z); if (lv !== this.lvl) { if (this.lvl && lv > this.lvl) updateHud.newWave = true; this.lvl = lv; Waves.draw(); } }
     this.sweepT -= dt; if (this.sweepT <= 0) { this.sweepT = 2; this.sweep(); }
+    this.ringTick(dt);   // #167 slice 3
   },
   // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through, and a cave's roof
   // while a mech is inside its hall
@@ -12783,6 +12811,132 @@ const World = {
       }
     }
   },
+  // ---- #167 slice 3: boxing / battle rings (WORLD.rings). A ring chunk has no roaming robot (robotsFor): its champion
+  // stands in for it. Nothing about a ring is saved: a ring won stays won for the run, as a robot beaten does ----
+  // chunk (cx, cz)'s ring, from its own seeded numbers only (never the load order): { cx, cz, key, x, z, y, level, pay } or null
+  ringAt(cx, cz) {
+    const k = cx * 65536 + cz; if (this.ringSpots.has(k)) return this.ringSpots.get(k);
+    const G = WORLD.rings, C = WORLD.chunk, R = wRng(wHash(cx, cz, 808));
+    let g = null;
+    if (R() < G.chance) {
+      const edge = G.flat + G.blend + 1, x = cx * C + edge + R() * (C - 2 * edge), z = cz * C + edge + R() * (C - 2 * edge);
+      if (Math.hypot(x, z) > this.ringAway() && !this.cave(cx, cz) && !this.bossAt(cx, cz)) {
+        const level = this.level(x, z), P = G.pay, n = Math.min(P.max, P.n + Math.floor((level - 1) / P.every)), pay = [];
+        for (let i = 0; i < n; i++) pay.push(P.pool[Math.floor(R() * P.pool.length)]);
+        g = { cx, cz, key: this.key(cx, cz), x, z, y: this.baseH(x, z), level, pay };
+      }
+    }
+    if (this.ringSpots.size > 8192) this.ringSpots.clear();
+    this.ringSpots.set(k, g); return g;
+  },
+  // how near the start a ring can be: WORLD.rings.away, and no nearer than the boss level's ring (its champion is a boss)
+  ringAway() { const H = WORLD.harder; return Math.max(WORLD.rings.away, (H.boss.from - 1) * H.step); },
+  // the ground flattened to a ring's floor round its middle (as a cave's is), h the ground there without it
+  ringH(x, z, h) {
+    const g = this.ringAt(Math.floor(x / WORLD.chunk), Math.floor(z / WORLD.chunk)); if (!g) return h;
+    const G = WORLD.rings, d = Math.hypot(x - g.x, z - g.z); if (d >= G.flat + G.blend) return h;
+    return lerp(g.y, h, wSmooth(clamp((d - G.flat) / G.blend, 0, 1)));
+  },
+  // inside ring g's ropes (m: that far in from them)
+  inRing(g, x, z, m = 0) { const H = WORLD.rings.half - m; return Math.abs(x - g.x) < H && Math.abs(z - g.z) < H; },
+  // shared ring materials (built once): the canvas and its apron, the red and blue corner posts, the ropes red, white and
+  // blue while it waits, all red while it's fought in, all gold once it's won
+  ringMats() {
+    if (this.RM) return this.RM;
+    const m = (c) => mat(c, { roughness: 0.6, metalness: 0.2 });
+    this.RM = { canvas: mat('#2f63c9', { roughness: 0.85, metalness: 0 }), apron: mat('#1d2a4a', { roughness: 0.9, metalness: 0 }), posts: [m('#d8323c'), m('#2f6fe0')],
+      ropes: [glowMat('#ff3d4e', 0.5), glowMat('#ffffff', 0.35), glowMat('#3f8cff', 0.5)], fight: glowMat('#ff2a2a', 2.2), won: glowMat('#ffd21f', 1.8) };
+    return this.RM;
+  },
+  // build chunk ch's ring (if it has one): the canvas on the flattened ground, a post at each corner (each blocks, as a
+  // tree does), three ropes a side (a mech steps through them), a gold beacon over it with the ring's icon until it's won;
+  // then its champion, unless it's been won this run
+  ringFor(ch) {
+    const g = this.ringAt(ch.cx, ch.cz); if (!g) return;
+    const G = WORLD.rings, M = this.ringMats(), S = this.G, H = G.half, grp = new THREE.Group();
+    grp.position.set(g.x, g.y, g.z); ch.group.add(grp);
+    this.mesh(S.box, M.apron, 0, -0.32, 0, 2 * H + 1.6, 0.6, 2 * H + 1.6, grp).receiveShadow = true;
+    this.mesh(S.box, M.canvas, 0, -0.2, 0, 2 * H, 0.5, 2 * H, grp).receiveShadow = true;
+    const ropes = [];
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sz], i) => {
+      this.mesh(S.cyl, M.posts[i % 2], sx * H, G.post / 2, sz * H, 0.32, G.post, 0.32, grp);
+      this.mesh(S.ball, M.posts[i % 2], sx * H, G.post, sz * H, 0.5, 0.5, 0.5, grp);
+      const o = { x: g.x + sx * H, z: g.z + sz * H, r: 0.6, h: G.post, kind: 'rock', prop: null }; obstacles.push(o); ch.obs.push(o);
+    });
+    G.ropes.forEach((y, k) => {
+      for (const s of [-1, 1]) {
+        ropes.push({ k, m: this.mesh(S.box, M.ropes[k], 0, y, s * H, 2 * H, 0.16, 0.16, grp) });
+        ropes.push({ k, m: this.mesh(S.box, M.ropes[k], s * H, y, 0, 0.16, 0.16, 2 * H, grp) });
+      }
+    });
+    const { beam, mark } = Beacon.add(grp, '#ffd21f', 'ring', 17); beam.scale.set(3, 1.2, 3); mark.scale.set(3.4, 3.4, 1);
+    const ring = { g, ch, grp, ropes, beacon: beam, mark, t: 0, state: this.ringsWon.has(g.key) ? 'won' : 'wait', champ: null, paid: null };
+    ch.ring = ring; this.rings.set(g.key, ring);
+    if (ring.state !== 'won') this.ringChamp(ring);
+    this.ringLook(ring);
+  },
+  // the ring's champion: the robot with the sword in its fist, in the middle of the ring, waiting (ringWait: its brain off,
+  // it stands still) till someone steps in or hits it. Far tougher than the ring's level's roaming robots (WORLD.rings.tough)
+  ringChamp(ring) {
+    if (ring.champ || !Game.humans[0]) return;
+    const G = WORLD.rings, g = ring.g, r = spawn(G.type, g.x, g.z); if (!r) return;
+    r.health = r.maxHealth = Math.round(r.maxHealth * G.tough * this.tough(g.level) * Waves.health());
+    r.home = { x: g.x, z: g.z }; r.wkey = g.key + ':ring'; r.wlevel = g.level; r.ring = g.key; r.ringWait = true;
+    r.input.throttle = r.input.turn = 0; r.input.boost = false;
+    r.pos.y = groundH(r.pos.x, r.pos.z);
+    ring.champ = r;
+  },
+  // the ropes' colours for the ring's state
+  ringLook(ring) {
+    const M = this.ringMats();
+    for (const q of ring.ropes) q.m.material = ring.state === 'fight' ? M.fight : ring.state === 'won' ? M.won : M.ropes[q.k];
+  },
+  // the fight starts: the champion wakes, the ropes glow red, the bell
+  ringFight(ring) {
+    ring.state = 'fight'; if (ring.champ) ring.champ.ringWait = false;
+    this.ringLook(ring);
+    if (!Game.manual) Sfx.bell();
+  },
+  // the champion beaten: the ring pays out its parts at once (into the bag and the trophies, as a part found does), the
+  // ropes go gold and the beacon off. Once a run: it never pays again
+  ringWin(ring) {
+    const g = ring.g; ring.state = 'won'; this.ringsWon.add(g.key);
+    for (const part of g.pay) { Game.bag[part] = (Game.bag[part] || 0) + 1; Garage.collect(part, 'meadow'); }
+    updateHud.partPop = (updateHud.partPop || []).concat(g.pay);   // each +1 and its icon drop out of the 🔩 count
+    ring.paid = g.pay.slice();
+    this.ringLook(ring);
+    for (let k = 0; k < 6; k++) Sparks.burst(g.x + (Math.random() - 0.5) * 16, g.y + 2 + Math.random() * 4, g.z + (Math.random() - 0.5) * 16, 24, SPARK_GLINT, 7);
+    Impacts.flash(new V3(g.x, g.y + 4, g.z), 6);
+    if (!Game.manual) { Sfx.bell(); Sfx.find(); }
+  },
+  ringTick(dt) {
+    for (const ring of this.rings.values()) {
+      const g = ring.g, r = ring.champ, there = !!r && Game.robots.includes(r);
+      ring.t += dt; Beacon.show(ring, ring.state !== 'won', ring.t);
+      if (ring.state === 'wait' && there && (r.downs > 0 || r.health < r.maxHealth || r.shock > 0
+        || Game.humans.some((h) => h.mech.state !== 'down' && this.inRing(g, h.mech.pos.x, h.mech.pos.z)))) this.ringFight(ring);
+      if (ring.state === 'fight' && r && r.downs > 0) this.ringWin(ring);
+      // the champion can't leave the ring while it's up (its body inside the ropes)
+      if (there && r.state === 'glitched') {
+        const m = WORLD.rings.half - r.spec.radius - 0.3;
+        r.pos.x = clamp(r.pos.x, g.x - m, g.x + m); r.pos.z = clamp(r.pos.z, g.z - m, g.z + m);
+      }
+    }
+  },
+  // chunk ch going: its champion goes too (a fight left unfinished starts again from the start when the chunk comes back)
+  ringGone(ch) {
+    const ring = ch.ring; if (!ring) return;
+    const r = ring.champ; if (r && Game.robots.includes(r) && r.state !== 'ally') removeRobot(r);
+    ring.mark.material.dispose();
+    this.rings.delete(ring.g.key);
+  },
+  // what the hooks see of a ring
+  ringState(ring) {
+    const g = ring.g, r = ring.champ, there = !!r && Game.robots.includes(r);
+    return { key: g.key, x: r3(g.x), z: r3(g.z), y: r3(g.y), level: g.level, state: ring.state, pay: g.pay.slice(), paid: ring.paid ? ring.paid.length : 0,
+      champ: there ? { id: r.id, type: r.type, state: r.state, wait: !!r.ringWait, health: r3(r.health), max: r.maxHealth, x: r3(r.pos.x), z: r3(r.pos.z) } : null,
+      beacon: !!ring.beacon.visible, ropes: ring.ropes[0].m.material === this.ringMats().fight ? 'fight' : ring.ropes[0].m.material === this.ringMats().won ? 'won' : 'idle' };
+  },
   // what the hooks see
   status() {
     const glitched = Game.robots.filter((r) => r.wkey && r.state === 'glitched').length, p = Game.humans[0]?.mech.pos;
@@ -12796,7 +12950,9 @@ const World = {
       fog: [scene.fog.near, scene.fog.far], meadow: !!Meadow.ground?.parent,
       // #167 slice 2: player 1's level and its toughness; the boss groups out
       level: p ? this.level(p.x, p.z) : null, tough: p ? r3(this.tough(this.level(p.x, p.z)) * Waves.health()) : null,
-      bosses: [...this.live.entries()].filter(([, l]) => l.boss).map(([key, l]) => ({ key, type: l.boss, n: l.length, ids: l.map((r) => r.id) })) };
+      bosses: [...this.live.entries()].filter(([, l]) => l.boss).map(([key, l]) => ({ key, type: l.boss, n: l.length, ids: l.map((r) => r.id) })),
+      // #167 slice 3: the rings loaded, and how many won this run
+      rings: [...this.rings.values()].map((g) => this.ringState(g)), ringsWon: this.ringsWon.size };
   },
 };
 const W_COL = { dirt: new THREE.Color('#7a6a4a'), rock: new THREE.Color('#8a8a8e'), rust: new THREE.Color('#a8673a'), sandDark: new THREE.Color('#c9a35e'), snow: new THREE.Color('#f4f8fb'), cave: new THREE.Color('#3e3a44') };
@@ -13100,7 +13256,7 @@ function tick(dt) {
   // Robots think at 20 Hz (Family Knockout's bot loop), writing their input.
   // Glitched ones run their type's brain; squadmates their type's squad job (each built on allyAI).
   for (const r of Game.robots) {
-    if (r.state === 'down') continue;
+    if (r.state === 'down' || r.ringWait) continue;   // (#167 slice 3: a ring's champion stands still till its fight starts)
     r.ai.think -= dt;
     if (r.ai.think <= 0) { const T = ROBOT_TYPES[r.type]; r.ai.think = 0.05; r.ai.alert = Math.max(0, (r.ai.alert || 0) - 0.05); (r.state === 'ally' ? T.ally : T.ai)(r, 0.05); }
   }
@@ -14384,7 +14540,7 @@ function buildHud() {
 }
 // #122: the boss in the meadow, if one is up (not yet fixed, taken apart or gone): the boss bar shows it
 // (#167 slice 2: in the endless world, only a boss within WORLD.harder.bar m of player 1: a far one in a loaded chunk doesn't keep it up)
-const bossUp = () => { const p = Game.world && Game.humans[0]?.mech.pos; return Game.robots.find((r) => ROBOT_TYPES[r.type].boss && r.state !== 'ally' && (!p || Math.hypot(r.pos.x - p.x, r.pos.z - p.z) <= WORLD.harder.bar)) || null; };
+const bossUp = () => { const p = Game.world && Game.humans[0]?.mech.pos; return Game.robots.find((r) => ROBOT_TYPES[r.type].boss && r.state !== 'ally' && !r.ringWait && (!p || Math.hypot(r.pos.x - p.x, r.pos.z - p.z) <= WORLD.harder.bar)) || null; };
 function updateHud() {
   const h = Game.humans[0]; if (!h) return;
   const m = h.mech, f = Math.abs(m.speed) / MECH.topSpeed, on = Math.round(f * SPEED_BARS);
@@ -16424,6 +16580,7 @@ window.__rb = {
   world(on) { if (on == null) return World.status(); const r = on === 'toggle' ? WorldPick.toggle() : WorldPick.set(!!on); return { ...r, ...World.status() }; },
   worldAt(x, z) { return { place: World.place(x, z), h: r3(World.h(x, z)), cave: !!World.inCave(x, z), level: World.level(x, z), tough: r3(World.tough(World.level(x, z))) }; },   // (#167 slice 2: level, tough)
   // #167 slice 2: the boss chunks (World.bossAt) in a square of chunks out to rad m: [{ cx, cz, type, level }]
+  worldRings(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const g = World.ringAt(cx, cz); if (g) out.push({ cx, cz, x: r3(g.x), z: r3(g.z), level: g.level, pay: g.pay.slice() }); } return out; },   // #167 slice 3
   worldBosses(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const b = World.bossAt(cx, cz); if (b) out.push({ cx, cz, ...b }); } return out; },
   worldGo(x, z) {
     if (!Game.world) return { ok: false, why: 'not in the world' };
