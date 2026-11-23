@@ -11712,8 +11712,10 @@ function sendHome(r) {
 // ===========================================================================
 // #58: the saved squad. A robot fixed into the squad is a recruit (r.saved false, a chevron on its chip). It earns its
 // saved place, becoming a squadbot (r.saved true), when a wave after the one it was recruited in (r.recruitWave) clears
-// with it in the squad and running (Squad.earn, from Waves.check). Only squadbots are saved, in the child's record
-// (fillSquad), each with its own id (r.uid). The save is written when one earns its place, at each wave's end, when one
+// with it in the squad and running (Squad.earn, from Waves.check). #190 (Daniel's option E): in the endless world there
+// are no waves, so a robot fixed into the squad there is a squadbot at once (no recruit stage, no chevron), saved
+// straight away with wave 0. Only squadbots are saved, in the child's record
+// (fillSquad), each with its own id (r.uid). The save is written when one earns its place (or is fixed in the world), at each wave's end, when one
 // is upgraded or mended, when one powers down or is rescued, when one leaves the squad, on pause, on a child switch, and
 // when the page is hidden or closed. Guest's squad is never saved.
 // What leaves the saved squad for good (Squad.gone, written straight away): destroyMate (its rescue clock ran out:
@@ -11933,12 +11935,14 @@ function fixRobot(h, r) {
   r.state = 'ally'; r.health = r.maxHealth; r.leader = h;
   r.harm = {}; for (const a of AREAS) r.damage[a] = 0;   // #59: no damage yet (its harm as a squadmate sets the board if it powers down)
   r.upg = { plating: 0, job: 0 };                        // G3: its own garage upgrades start at none
-  r.uid = Squad.newId(); r.saved = false; r.recruitWave = Game.wave; r.recruitAt = Facts.now();   // #58: a recruit, until it earns its place
+  // #58: a recruit, until it earns its place; #190: in the world a squadbot at once (no waves to earn it in)
+  r.uid = Squad.newId(); r.saved = !!Game.world; r.recruitWave = Game.wave; r.recruitAt = Facts.now();
   r.ai = { think: 0, mode: 'follow', slot: Game.squad.length };
   r.input.throttle = r.input.turn = 0; r.input.boost = false; r.input.attack = false;
   r.glowMode = 'steady'; r.glow = r.gold ? MATHFIX.glow : ALLY.glow;   // its own colour (or gold), held steady (the glitch flicker is gone)
   setRobotName(r, rp.name);
   Game.squad.push(r);
+  if (r.saved) Squad.sync();                             // #190: a world squadbot saved straight away (Guest: nothing)
   r.ownGlow = r.glowColor; squadGlow();                  // G4: gold plating's glow on the newcomer too
   Sparks.burst(r.pos.x, r.pos.y + 3.5, r.pos.z, 50, SPARK_ZAP, 9);
   if (!Game.manual) Sfx.fixed();
@@ -12275,7 +12279,8 @@ const Hidden = {
 // apart as ever, its board set for wave 1 (fixWave). Every chunk's random numbers come from (seed, cx, cz), never from a
 // shared stream, so a chunk is the same whatever order the chunks load in (Wild World's way). The parts found go in the
 // bag and the trophies as a meadow find does (Garage.collect(part, 'meadow')). #189: and each one's key goes in a saved
-// child's record (world.taken, World.take), so it never comes back after a reload. Nothing else here is saved.
+// child's record (world.taken, World.take), so it never comes back after a reload. #190: a robot fixed into the squad
+// here is saved straight away, in the record's squad as a waves squadbot is (fixRobot). Nothing else here is saved.
 // ===========================================================================
 const WORLD = {
   seed: 167, chunk: 96, seg: 24,               // 96 m chunks on a 4 m grid
@@ -13685,6 +13690,7 @@ const FixUI = {
     if (this.mode !== 'name') return;
     const v = $('nameIn').value.trim().slice(0, 12);
     if (v && this.r && v !== this.r.name) setRobotName(this.r, v);
+    if (this.r?.saved) Squad.sync();                     // #190: a world squadbot is saved already: its name as typed
     if (!Game.manual) Sfx.click();
     this.close(); this.relock();
   },
