@@ -275,15 +275,15 @@ async function runLogic(C) {
     // walk far away and back: neither key spawns again
     const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.worldGo(px, pz); W.sweep();
     out.again = G.robots.filter((q) => q.state === 'glitched' && (q.wkey === a.wkey || q.wkey === b.wkey)).length;
-    out.key = 'robotbattle.facts.tester'; const rec = JSON.parse(localStorage.getItem(out.key) || 'null'); out.recWorld = rec && Object.keys(rec).filter((k) => /world/i.test(k)); out.recWorldIn = rec?.world ? Object.keys(rec.world) : null; out.taken = rec?.world?.taken ?? null; out.picked = window.__q?.q?.wkey ?? null;
+    out.key = 'robotbattle.facts.tester'; const rec = JSON.parse(localStorage.getItem(out.key) || 'null'); out.recWorld = rec && Object.keys(rec).filter((k) => /world/i.test(k)); out.recWorldIn = rec?.world ? Object.keys(rec.world) : null; out.taken = rec?.world?.taken ?? null; out.wgone = rec?.world?.gone ?? null; out.picked = window.__q?.q?.wkey ?? null;
     out.keys = keys();
     return out; })()`);
   ok('a world robot beaten: its Quick Fix opens on a math board (wave 1\'s plan: a fact per plug)', !r.none && r.fix.ok && r.fix.board && r.fix.board.wave === 1 && r.fix.facts > 0, r);
   ok('... fixed through the board, it joins the squad', r.solved && r.squad, r);
   ok('another beaten and salvaged: taken apart, its part in the bag', r.salvage?.ok && r.salvage.gone && r.salvage.bag >= 1, r);
   ok('both gone for good (swept as gone; not back after a walk away and back)', r.gone?.every(Boolean) && r.again === 0, r);
-  ok('the save: no world key; the record\'s one world field is world.taken, holding just the part picked up (#189)', r.keys && r.keys.every((k) => !/world/i.test(k)) && JSON.stringify(r.recWorld) === '["world"]'
-    && JSON.stringify(r.recWorldIn) === '["taken"]' && JSON.stringify(r.taken) === JSON.stringify([r.picked]) && !!r.picked, r);
+  ok('the save: no world key; the record\'s world fields are world.taken, holding just the part picked up (#189), and world.gone, the two robots beaten (#198)', r.keys && r.keys.every((k) => !/world/i.test(k)) && JSON.stringify(r.recWorld) === '["world"]'
+    && JSON.stringify(r.recWorldIn) === '["taken","gone"]' && JSON.stringify(r.wgone) === JSON.stringify([r.akey, r.bkey]) && JSON.stringify(r.taken) === JSON.stringify([r.picked]) && !!r.picked, r);
 
   // ---- bounded: three 6 km walks out (east-north-east) and back; the page draws between the steps. Caches that fill
   // once (a tower size built once, the shared props) may grow on the first lap; nothing may grow lap on lap
