@@ -12626,7 +12626,10 @@ const World = {
   // clear of the start, the chunk's cave and its ring; only what's already standing near can still put it off, in city()),
   // and y: its floor, the ground at its middle. Clear of a cave or ring means its whole flattened square (its walls and
   // the pad past them, to the square's corners) stays out of that floor's blend, so neither pulls the tower's floor off
-  // level, and the tower's own blend never reaches the cave's or ring's flat floor. (A tower's middle is at least 17 m in
+  // level. The tower's own blend can still reach a little way onto that flat floor: it runs padBlend m past the square, so
+  // along the square's diagonal it can come within about 21.7 m of a ring's middle (inside its 26 m floor) and 26.7 m of a
+  // cave's (inside its 30 m). That does no harm: rawH lays the cave's or ring's floor over towerPad's ground, so the flat
+  // floor wins there. (A tower's middle is at least 17 m in
   // from its chunk's edge and its square reaches at most 14 m, and a cave or ring stays in its own chunk, so only the
   // chunk's own two matter.)
   cityPlan(cx, cz) {
@@ -13364,7 +13367,8 @@ const World = {
   },
   // build chunk ch's ring (if it has one): the canvas on the flattened ground, a post at each corner (each blocks, as a
   // tree does), three ropes a side (a mech steps through them), a gold beacon over it with the ring's icon until it's won;
-  // then its champion, unless it's been won this run (#201: a won ring's champion left down there is its champion again)
+  // then its champion, unless it's been won this run (#201: a won ring's champion left down there is its champion again;
+  // #218: so is one that rebooted there and was left glitched)
   ringFor(ch) {
     const g = this.ringAt(ch.cx, ch.cz); if (!g) return;
     const G = WORLD.rings, M = this.ringMats(), S = this.G, H = G.half, grp = new THREE.Group();
@@ -13386,7 +13390,7 @@ const World = {
     const { beam, mark } = Beacon.add(grp, '#ffd21f', 'ring', 17); beam.scale.set(3, 1.2, 3); mark.scale.set(3.4, 3.4, 1);
     const ring = { g, ch, grp, ropes, beacon: beam, mark, t: 0, state: this.ringIsWon(g.key) ? 'won' : 'wait', champ: null, paid: null };
     ch.ring = ring; this.rings.set(g.key, ring);
-    if (ring.state !== 'won') this.ringChamp(ring); else ring.champ = Game.robots.find((r) => r.ring === g.key && r.state === 'down' && !Game.squad.includes(r)) || null;
+    if (ring.state !== 'won') this.ringChamp(ring); else ring.champ = Game.robots.find((r) => r.ring === g.key && r.state !== 'ally' && !Game.squad.includes(r)) || null;
     this.ringLook(ring);
   },
   // the ring's champion: the robot with the sword in its fist, in the middle of the ring, waiting (ringWait: its brain off,
@@ -13440,10 +13444,12 @@ const World = {
   },
   // chunk ch going: its champion goes too (a fight left unfinished starts again from the start when the chunk comes back).
   // #201: not a champion beaten and still down: it stays where it fell, its down clock held (robotTick) till its chunk is
-  // back, so it's there to fix or salvage (as a roaming robot left down is) and ringFor picks it up again
+  // back, so it's there to fix or salvage (as a roaming robot left down is) and ringFor picks it up again.
+  // #218: nor one beaten that has rebooted (its down time ran out with the ring still loaded) and is glitched again: a won
+  // ring keeps its champion whatever state it's in, and ringFor picks it up again (held inside the ropes, as ever)
   ringGone(ch) {
     const ring = ch.ring; if (!ring) return;
-    const r = ring.champ; if (r && Game.robots.includes(r) && r.state !== 'ally' && !(r.state === 'down' && ring.state === 'won')) removeRobot(r);
+    const r = ring.champ; if (r && Game.robots.includes(r) && r.state !== 'ally' && ring.state !== 'won') removeRobot(r);
     ring.mark.material.dispose();
     this.rings.delete(ring.g.key);
   },
@@ -17182,11 +17188,11 @@ window.__rb = {
   worldAt(x, z) { return { place: World.place(x, z), h: r3(World.h(x, z)), cave: !!World.inCave(x, z), level: World.level(x, z), tough: r3(World.tough(World.level(x, z))) }; },   // (#167 slice 2: level, tough)
   // #167 slice 2: the boss chunks (World.bossAt) in a square of chunks out to rad m: [{ cx, cz, type, level }]
   worldRings(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const g = World.ringAt(cx, cz); if (g) out.push({ cx, cz, x: r3(g.x), z: r3(g.z), level: g.level, pay: g.pay.slice() }); } return out; },   // #167 slice 3
-  // #191: the kits each chunk has (World.kitsAt) in a square of chunks out to rad m: [{ cx, cz, n, level, chance }]
   // #167 slice 5: the summits (World.summitAt) in a square of chunks out to rad m: [{ cx, cz, x, z, y, place, level }]
   worldSummits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const t = World.summitAt(cx, cz); if (t) out.push({ cx, cz, x: t.x, z: t.z, y: r3(t.y), place: t.place, level: t.level }); } return out; },
   // #197: the parts each chunk has on the ground (World.partsAt) in a square of chunks out to rad m: [{ cx, cz, level, base, extra, n, chance }]
   worldParts(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) out.push({ cx, cz, ...World.partsAt(cx, cz) }); return out; },
+  // #191: the kits each chunk has (World.kitsAt) in a square of chunks out to rad m: [{ cx, cz, n, level, chance }]
   worldKits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) out.push({ cx, cz, ...World.kitsAt(cx, cz) }); return out; },
   worldBosses(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const b = World.bossAt(cx, cz); if (b) out.push({ cx, cz, ...b }); } return out; },
   worldGo(x, z) {
