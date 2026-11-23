@@ -12429,6 +12429,16 @@ const WORLD = {
   //   tries: random spots tried before a scan of the chunk, so every chunk gets its kit
   // A kit picked up isn't saved: it comes back when its chunk loads again (the parts as they were before #189)
   kits: { n: 1, more: 0.03, max: 0.6, tries: 40 },
+  // #197 (Daniel's D: both B and C): the parts on the ground give more farther out, by the level at the chunk's middle
+  // (World.partsAt; the same levels that make robots tougher, one every 150 m):
+  //   every / most:  B: one extra part in a chunk for every `every` levels (600 m) past the start, at most `most` extra (so
+  //                  up to 4 in a chunk, 5 in a junkyard, from level 13, 1.8 km out). The chunk's first part (first two in
+  //                  a junkyard) is at the same spot, with the same key, as before; the extras come after it ('cx,cz:p1'..)
+  //   rareFrom / rare / rareMax:  C: from level rareFrom (750 m out) each ground part (the extras too) may be one of the
+  //                  rarer parts a boxing ring pays (`kinds`), the chance rare × (level − rareFrom + 1): 5% at level 6,
+  //                  rising 5% a level to at most rareMax, 50% at level 15 (2.1 km). Its own seeded roll per part, so a
+  //                  part's spot is as before; only its kind may change
+  partsFar: { every: 4, most: 3, rareFrom: 6, rare: 0.05, rareMax: 0.5, kinds: ['ram', 'scope', 'rotor', 'spring', 'jetboots', 'solar'] },
   city: { block: 48, street: 14 },
   cave: { chance: 0.75, hw: 7, back: 28, roof: 12, wall: 6, top: 18, flat: 30, blend: 8 },
   // #167 slice 2 (Q2: "robot toughness and bosses scale with distance"; the boys' "the farther out you go in the world the
@@ -12829,12 +12839,16 @@ const World = {
       else if (b === PL.desert) { if (pick < 0.3 && clear(x, z, 2)) this.addCactus(ch, wkey, x, z, s, R); else if (pick < 0.42 && clear(x, z, 3)) this.addRock(ch, wkey, x, z, 1 + s * 1.2, '#c98d5a'); }
       else if (pick < 0.4 && clear(x, z, 3)) this.addRock(ch, wkey, x, z, 1 + s * 1.5, '#6c6672');
     }
-    // parts on the ground: one a chunk (two in a junkyard), each at a seeded spot a mech can stand on, never twice
-    const RP = wRng(wHash(ch.cx, ch.cz, 202));
-    const n = this.placeRaw(x0 + C / 2, z0 + C / 2).b === PL.junkyard ? WORLD.parts.junkyard : WORLD.parts.n;
+    // parts on the ground: one a chunk (two in a junkyard), each at a seeded spot a mech can stand on, never twice.
+    // #197: and more of them farther out, some of them rarer (World.partsAt). The kind is still drawn from RP for every part
+    // (so every spot is where it was); a rare one swaps it for a rare kind on its own roll (RR)
+    const RP = wRng(wHash(ch.cx, ch.cz, 202)), PA = this.partsAt(ch.cx, ch.cz), RR = wRng(wHash(ch.cx, ch.cz, 203)), F = WORLD.partsFar;
+    const n = PA.n;
     ch.partSpots = [];   // #205: every part's seeded spot, picked up or not (the kits keep clear of these, so they never move)
     for (let k = 0; k < n; k++) {
-      const wkey = ch.key + ':p' + k, part = HIDDEN.kinds[Math.floor(RP() * HIDDEN.kinds.length)];
+      const wkey = ch.key + ':p' + k, rare = RR() < PA.chance, rarePick = RR();
+      const part = rare ? F.kinds[Math.floor(rarePick * F.kinds.length)] : HIDDEN.kinds[Math.floor(RP() * HIDDEN.kinds.length)];
+      if (rare) RP();   // (the common kind's draw, unused: the spots after it stay where they were)
       let at = null;
       for (let t = 0; t < 12 && !at; t++) { const x = x0 + 6 + RP() * (C - 12), z = z0 + 6 + RP() * (C - 12); if (Math.hypot(x, z) > 20 && !this.inCave(x, z, -2) && !this.inTower(x, z, -2) && obstacles.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 0.5)) at = [x, z]; }   // (#167 slice 4: not in a tower)
       if (at) ch.partSpots.push(at);
@@ -12842,6 +12856,16 @@ const World = {
       const q = Hidden.add(at[0], at[1], part); q.wkey = wkey; ch.parts.push(q);
     }
     this.kitsFor(ch);   // #191: its repair kits (after the parts, on their own random numbers: the parts' placing is as before)
+  },
+  // #197: the parts on the ground in chunk (cx, cz), by the level at its middle: { level, base (one; two in a junkyard),
+  // extra (one every WORLD.partsFar.every levels past 1, at most most), n (base + extra), chance (each part's chance of being
+  // a rarer one: 0 before rareFrom, then rare × (level − rareFrom + 1), at most rareMax) }
+  partsAt(cx, cz) {
+    const F = WORLD.partsFar, C = WORLD.chunk, level = this.level((cx + 0.5) * C, (cz + 0.5) * C);
+    const base = this.placeRaw((cx + 0.5) * C, (cz + 0.5) * C).b === PL.junkyard ? WORLD.parts.junkyard : WORLD.parts.n;
+    const extra = Math.min(F.most, Math.floor((level - 1) / F.every));
+    const chance = level < F.rareFrom ? 0 : Math.min(F.rareMax, F.rare * (level - F.rareFrom + 1));
+    return { level, base, extra, n: base + extra, chance };
   },
   // #191: how many repair kits chunk (cx, cz) has: WORLD.kits.n, and one more under the chance at the level of its middle.
   // Its own seeded roll (never the load order): { n, level, chance }
@@ -17161,6 +17185,8 @@ window.__rb = {
   // #191: the kits each chunk has (World.kitsAt) in a square of chunks out to rad m: [{ cx, cz, n, level, chance }]
   // #167 slice 5: the summits (World.summitAt) in a square of chunks out to rad m: [{ cx, cz, x, z, y, place, level }]
   worldSummits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const t = World.summitAt(cx, cz); if (t) out.push({ cx, cz, x: t.x, z: t.z, y: r3(t.y), place: t.place, level: t.level }); } return out; },
+  // #197: the parts each chunk has on the ground (World.partsAt) in a square of chunks out to rad m: [{ cx, cz, level, base, extra, n, chance }]
+  worldParts(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) out.push({ cx, cz, ...World.partsAt(cx, cz) }); return out; },
   worldKits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) out.push({ cx, cz, ...World.kitsAt(cx, cz) }); return out; },
   worldBosses(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const b = World.bossAt(cx, cz); if (b) out.push({ cx, cz, ...b }); } return out; },
   worldGo(x, z) {
