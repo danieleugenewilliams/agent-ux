@@ -12496,12 +12496,14 @@ const WORLD = {
   // wall and its people. The people aren't robots, props or obstacles: nothing targets them, nothing hurts them, the aim
   // never locks onto them; they step out of the way of a mech or a robot, turn to a mech that comes near and wave. No robot
   // comes out, or roams to, inside a tower. Nothing here is saved. Starting values, tuned at the playtest:
-  //   door / doorH: the doorway's width (m, between the wall circles each side of it: a mech is 4.6 m across) and height
+  //   door / doorH: the doorway's width (m, between the wall circles each side of it: a mech is 4.6 m across) and height.
+  //   #208 (Daniel's pick A): 11 m on the 16 m and 20 m towers; a 12 m tower gets the widest door that fits between its
+  //   corner circles, 12 - 2 x wallR = 9.8 m (World.doorW)
   //   wallR / wallGap: the wall circles' radius and the most m between their middles (overlapping: no gap anywhere)
   //   people: [fewest, most] in a tower; wave: m: a person waves at a mech this near; edge: m they keep off the walls
   //   pad / padBlend (#208): the ground under a tower is flattened to its floor, out pad m past its walls (a whole 4 m grid
   //   cell, so no cell along a wall still slopes inside), then blended back to the hillside over padBlend m
-  inside: { door: 7, doorH: 9, wallR: 1.1, wallGap: 2, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3, pad: 4, padBlend: 8 },
+  inside: { door: 11, doorH: 9, wallR: 1.1, wallGap: 2, people: [2, 4], wave: 12, edge: 1.4, shown: 60, ghost: 3, pad: 4, padBlend: 8 },
   // #167 slice 5: climbing the mountains (the boys' "make it so that you can climb the mountain"; their drawing 5: a tall
   // mountain, a player at its foot saying "Wow!"). A player's mech climbs any slope: it is never stopped, only slowed, and
   // on a steep one it leans in and clambers (its own footfall sound). Down a slope it goes a little faster. The ground's
@@ -13001,22 +13003,23 @@ const World = {
   // overlapping circles along the faces, with none across the doorway; inside are its floor, lamps, a lift on the back wall
   // (shown only while the tower is see-through) and its people ----
   towerInside(ch, tw, bx, bz) {
-    const I = WORLD.inside, G = this.G, R = wRng(wHash(bx, bz, 515)), w = tw.w, half = w / 2, D = I.door;
+    const I = WORLD.inside, G = this.G, R = wRng(wHash(bx, bz, 515)), w = tw.w, half = w / 2, D = this.doorW(w);
     const side = Math.floor(R() * 4), [nx, nz] = SIDES[side], tx = -nz, tz = nx, y0 = this.h(tw.x, tw.z);
-    Object.assign(tw, { key: ch.key + ':t' + bx + ',' + bz, side, nx, nz, y0, people: [], inside: false });
+    Object.assign(tw, { key: ch.key + ':t' + bx + ',' + bz, side, nx, nz, y0, doorW: D, people: [], inside: false });
     // the walls: each face a line of circles, from corner to corner, evenly spaced at most wallGap apart; the door's face
     // in two lines, either side of the doorway (their edges D apart). A face's last corner is the next face's first, so
-    // it's left to that one (end: false)
+    // it's left to that one (end: false). #208: on a 12 m tower the doorway runs corner to corner, so the lines either
+    // side of it are only the corner (s0 = s1): the first corner circle once, the other corner left to the next face
     const line = (fx, fz, s0, s1, end = true) => {
-      const n = Math.max(1, Math.ceil((s1 - s0) / I.wallGap));
+      const n = s1 - s0 < 1e-6 ? 0 : Math.max(1, Math.ceil((s1 - s0) / I.wallGap));
       for (let k = 0; k <= (end ? n : n - 1); k++) {
-        const s = s0 + (s1 - s0) * k / n, o = { x: tw.x + fx * half + (-fz) * s, z: tw.z + fz * half + fx * s, r: I.wallR, h: tw.hgt + 2, kind: 'rock', prop: null };
+        const s = n ? s0 + (s1 - s0) * k / n : s0, o = { x: tw.x + fx * half + (-fz) * s, z: tw.z + fz * half + fx * s, r: I.wallR, h: tw.hgt + 2, kind: 'rock', prop: null };
         obstacles.push(o); ch.obs.push(o);
       }
     };
     SIDES.forEach(([fx, fz], i) => {
       if (i !== side) line(fx, fz, -half, half, false);
-      else { line(fx, fz, -half, -(D / 2 + I.wallR)); line(fx, fz, D / 2 + I.wallR, half, false); }
+      else { line(fx, fz, -half, Math.max(-half, -(D / 2 + I.wallR))); line(fx, fz, Math.min(half, D / 2 + I.wallR), half, false); }
     });
     // the doorway: a warm lit panel on the face (put away while the tower is see-through), a glowing frame round it and an
     // awning over it, so it reads as a way in from down the street
@@ -13123,10 +13126,13 @@ const World = {
       }
     }
   },
+  // #208: a w m tower's doorway (m between the wall circles either side): WORLD.inside.door, or on a tower too narrow
+  // for it, the widest that fits between its corner circles
+  doorW(w) { const I = WORLD.inside; return Math.min(I.door, w - 2 * I.wallR); },
   // what the hooks see of a tower
   towerState(t) {
     const M = this.M;
-    return { key: t.key, x: r3(t.x), z: r3(t.z), w: t.w, side: t.side, door: { x: r3(t.x + t.nx * t.w / 2), z: r3(t.z + t.nz * t.w / 2), nx: t.nx, nz: t.nz, width: WORLD.inside.door },
+    return { key: t.key, x: r3(t.x), z: r3(t.z), w: t.w, side: t.side, door: { x: r3(t.x + t.nx * t.w / 2), z: r3(t.z + t.nz * t.w / 2), nx: t.nx, nz: t.nz, width: r3(t.doorW) },
       inside: t.inside, ghost: t.mesh.material !== M.towers[t.m], innerShown: !!t.inner.visible, panelShown: !!t.doorPanel.visible,
       people: t.people.map((q) => ({ key: q.key, x: r3(q.x), z: r3(q.z), home: { x: r3(q.home.x), z: r3(q.home.z) }, wave: r3(q.wave), face: r3(q.face), shown: !!q.g.visible })) };
   },

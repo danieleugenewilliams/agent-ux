@@ -20,6 +20,10 @@
 //            * #208: on the most sloped tower's block, the ground inside is its floor and a mech driven in stands on it,
 //              level with its people; every tower spot out to 40 chunks (ring- and cave-side ones too) level inside,
 //              and every ring's floor still flat;
+//            * #208 door (Daniel's pick A): the doorway, measured between the wall circles, is 11 m on a 16 m or 20 m
+//              tower and 9.8 m on a 12 m one, with no wall circle outside the tower; the biggest world robot (the
+//              Knight, 7.8 m across) fits through it; and a mech driven straight in 2 m off the door's middle, on held
+//              keys, goes in on every size of tower without touching the wall;
 //            * the storage keys the same, nothing new in the record.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
@@ -185,9 +189,9 @@ async function runLogic(C) {
   await C.ev(`localStorage.clear()`); await C.open(1280, 800, false);
   r = await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); window.__k0 = keys(); window.__r0 = Object.keys(rec() || {}).sort();
     const c = goCity(); if (!c) return { none: true }; R.step(2);
-    const all = R.worldTowers(), D = WI.door, bad = [];
+    const all = R.worldTowers(), bad = [];
     for (const t of all) {
-      const h = t.w / 2, m = h - WI.edge + 1e-3, P = t.people;
+      const D = t.door.width, h = t.w / 2, m = h - WI.edge + 1e-3, P = t.people;
       const n = P.length >= WI.people[0] && P.length <= WI.people[1];
       const side = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([x, z]) => x === t.door.nx && z === t.door.nz) && Math.abs(Math.abs(t.door.x - t.x) + Math.abs(t.door.z - t.z) - h) < 1e-3;
       const homes = P.map((q) => loc(t, q.home.x, q.home.z));
@@ -357,6 +361,38 @@ async function runLogic(C) {
     return { spots, nearRing, nearCave, rings, ringOff: +ringOff.toFixed(3), worst: +worst.toFixed(3), bad: bad.slice(0, 5), nBad: bad.length }; })()`);
   ok(`#208: every tower spot in 81 x 81 chunks (${r.spots}, ${r.nearRing} within 70 m of a ring, ${r.nearCave} within 75 m of a cave): the ground inside is level with its middle (${r.worst} m off at most)`, r.spots > 1000 && r.nearRing > 0 && r.nBad === 0, r);
   ok(`#208: every ring's floor in those chunks (${r.rings}) is still flat (${r.ringOff} m off at most)`, r.rings > 0 && r.ringOff <= 0.06, r);
+
+  // ---- #208 door (Daniel's pick A: 11 m on the 16 m and 20 m towers, 9.8 m on a 12 m one, the widest that fits between
+  // its corners). For one tower of each size, from the cities out from the start: the doorway measured from the wall
+  // circles themselves (the gap between the circles either side of the door's middle, on its face), the width the hooks
+  // report, no wall circle outside the tower; the biggest robot that roams or guards the world fits through it; and a
+  // mech (4.6 m across) driven straight in on held keys 2 m off the door's middle goes in without the wall moving it
+  r = await C.ev(String.raw`(() => { ${H} const want = { 12: 9.8, 16: 11, 20: 11 }, picked = {};
+    for (let k = 0; k < 30 && Object.keys(picked).length < 3; k++) { if (!goCity(k)) break;
+      for (const t of R.worldTowers()) if (!picked[t.w]) picked[t.w] = { k, key: t.key }; }
+    const RT = R.ROBOT_TYPES || {}, WR = R.WORLD.robots, kinds = [...WR.types, 'ninja', ...(R.WORLD.harder?.boss?.types || [])];
+    const big = kinds.map((k) => [k, RT[k]?.spec?.radius]).filter(([, r]) => r > 0).sort((a, b) => b[1] - a[1])[0] || null;
+    const res = [];
+    for (const w of [12, 16, 20]) { const P = picked[w]; if (!P) { res.push({ w, none: true }); continue; }
+      goCity(P.k); calm(); const t = tw(P.key), T = real(P.key), h = t.w / 2, m = m0();
+      const obs = W.chunks.get(T.ch.key).obs.filter((o) => Math.abs(o.x - t.x) <= h + 3 && Math.abs(o.z - t.z) <= h + 3 && o.kind === 'rock' && o.r === WI.wallR);
+      const face = obs.map((o) => ({ o, p: loc(t, o.x, o.z) })).filter(({ p }) => Math.abs(p.b - h) < 0.01);
+      const lft = Math.max(...face.filter(({ p }) => p.a < 0).map(({ o, p }) => p.a + o.r)), rgt = Math.min(...face.filter(({ p }) => p.a > 0).map(({ o, p }) => p.a - o.r));
+      const out = obs.filter((o) => { const p = loc(t, o.x, o.z); return Math.abs(p.a) > h + 0.01 || Math.abs(p.b) > h + 0.01; }).length;
+      // drive in 2 m off the door's middle, straight at it
+      const off = 2, ax = -t.door.nz, az = t.door.nx;
+      pose(t.door.x + t.door.nx * 12 + ax * off, t.door.z + t.door.nz * 12 + az * off, -t.door.nx, -t.door.nz); R.step(2);
+      let inAt = -1, drift = 0; R.hold('KeyW', true);
+      for (let i = 0; i < 600 && inAt < 0; i++) { R.step(1); calm(); const p = loc(t, m.pos.x, m.pos.z); drift = Math.max(drift, Math.abs(p.a - off)); if (p.b < h - 4) inAt = i; }
+      R.hold('KeyW', false); R.step(5);
+      res.push({ w, key: P.key, gap: +(rgt - lft).toFixed(3), width: t.door.width, want: want[w], out, inAt, drift: +drift.toFixed(3), inside: W.status().inTower === P.key });
+    }
+    return { res, big, mech: R.MECH?.radius ?? null }; })()`);
+  for (const q of r.res) {
+    ok(`#208: a ${q.w} m tower's doorway is ${q.want} m between its wall circles (measured ${q.gap}, reported ${q.width}), no wall circle outside the tower`, !q.none && Math.abs(q.gap - q.want) < 0.01 && Math.abs(q.width - q.want) < 0.01 && q.out === 0, q);
+    ok(`#208: the biggest world robot (${r.big?.[0]}, ${r.big ? 2 * r.big[1] : '?'} m across) fits through a ${q.w} m tower's door (${q.gap} m)`, !q.none && r.big && q.gap > 2 * r.big[1], { q, big: r.big });
+    ok(`#208: a mech driven straight in 2 m off the door's middle gets into a ${q.w} m tower untouched (in after ${q.inAt} ticks, pushed ${q.drift} m sideways)`, !q.none && q.inAt >= 0 && q.inside && q.drift < 0.05, q);
+  }
 
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);
