@@ -305,21 +305,24 @@ async function runLogic(C) {
   // and staying out)
   r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0], half = t.w / 2, nx = t.door.nx, nz = t.door.nz;
     const at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), behind = at(-(half + 8)), me = at(-(half + 60));
-    pose(me.x, me.z, nx, nz); R.step(2);
+    pose(me.x, me.z, nx, nz); R.step(2); const p0 = { x: m0().pos.x, z: m0().pos.z };
     const res = { key: t.key, walk: [], out: [] };
+    // (held each step: world robots from chunks that load after the pose cleared again; how far player 1 has moved is
+    // reported, and a walk-in robot that came for player 1 fails as that, not as a robot stepping in)
+    const hold = () => { calm(); return Math.hypot(m0().pos.x - p0.x, m0().pos.z - p0.z); };
     const put = (type, p) => { const s = R.spawn(type, p.x + 30, p.z + 30); const q = G.robots.find((o) => o.id === s.id); q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'roam'; q.ai.alert = 0; q.ai.wp = { ...behind }; q.ai.wpT = 1e9; q.home = { ...behind }; return q; };
     const away = (q) => { q.pos.x += 5000; };
     for (const type of ['bouncer', 'charger']) {
-      let q = put(type, at(half + 3)), inside = 0, minB = Infinity;
-      for (let k = 0; k < 240; k++) { R.step(5); if (W.inTower(q.pos.x, q.pos.z, 0)) inside++; minB = Math.min(minB, (q.pos.x - t.x) * nx + (q.pos.z - t.z) * nz); }
-      res.walk.push({ type, inside, minB: +minB.toFixed(2), mode: q.ai.mode, loaded: !!real(t.key) }); away(q);
+      let q = put(type, at(half + 3)), inside = 0, minB = Infinity, moved = 0, engagedT = 0;
+      for (let k = 0; k < 240; k++) { R.step(5); moved = Math.max(moved, hold()); if (q.ai.mode !== 'roam') engagedT++; if (W.inTower(q.pos.x, q.pos.z, 0)) inside++; minB = Math.min(minB, (q.pos.x - t.x) * nx + (q.pos.z - t.z) * nz); }
+      res.walk.push({ type, inside, minB: +minB.toFixed(2), mode: q.ai.mode, engagedT, moved: +moved.toFixed(2), loaded: !!real(t.key) }); away(q);
       q = put(type, at(-(half - 3)));
       let outAt = null, back = 0;
-      for (let k = 0; k < 420; k++) { R.step(5); const inT = !!W.inTower(q.pos.x, q.pos.z, 0); if (!inT && outAt == null) outAt = +((k + 1) * 5 / 60).toFixed(1); else if (inT && outAt != null) back++; }
+      for (let k = 0; k < 420; k++) { R.step(5); hold(); const inT = !!W.inTower(q.pos.x, q.pos.z, 0); if (!inT && outAt == null) outAt = +((k + 1) * 5 / 60).toFixed(1); else if (inT && outAt != null) back++; }
       res.out.push({ type, outAt, back, mode: q.ai.mode, loaded: !!real(t.key) }); away(q);
     }
     return res; })()`);
-  ok(`#217: a roaming Bouncer and Charger aimed straight through a tower from its door never step inside it (${r.walk.map((w) => w.type + ' ' + w.inside + ' samples in').join(', ')})`, r.walk.length === 2 && r.walk.every((w) => w.inside === 0 && w.mode === 'roam' && w.loaded), r);
+  ok(`#217: a roaming Bouncer and Charger aimed straight through a tower from its door never step inside it (${r.walk.map((w) => w.type + ' ' + w.inside + ' samples in').join(', ')})`, r.walk.length === 2 && r.walk.every((w) => w.inside === 0 && w.mode === 'roam' && w.engagedT === 0 && w.loaded), r);
   ok(`#217: a roaming Bouncer and Charger put inside a tower come out of its door (${r.out.map((w) => w.type + ' at ' + w.outAt + ' s').join(', ')}) and stay out`, r.out.length === 2 && r.out.every((w) => w.outAt != null && w.outAt <= 30 && w.back === 0 && w.loaded), r);
 
   // ---- #208: on a sloped city block the mech stands on the floor the people stand on (no floating, no sinking). The
@@ -411,7 +414,7 @@ async function runLogic(C) {
       const p = at(-(half - 3)), s = R.spawn(type, p.x + 30, p.z + 30), q = G.robots.find((o) => o.id === s.id);
       q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'stalk'; q.ai.t = 0.6; q.ai.alert = 0;
       let outAt = null, engagedT = 0, minB = Infinity;
-      for (let k = 0; k < 360 && outAt == null; k++) { R.step(5); const m = m0(); m.health = m.maxHealth || 100; if (q.ai.mode !== 'roam') engagedT++;
+      for (let k = 0; k < 360 && outAt == null; k++) { R.step(5); calm(); const m = m0(); m.health = m.maxHealth || 100; if (q.ai.mode !== 'roam') engagedT++;
         minB = Math.min(minB, (q.pos.x - t.x) * nx + (q.pos.z - t.z) * nz); if (!W.inTower(q.pos.x, q.pos.z, 0)) outAt = +((k + 1) * 5 / 60).toFixed(1); }
       const e = loc(t, q.pos.x, q.pos.z);
       res.runs.push({ type, outAt, engagedT, mode: q.ai.mode, minB: +minB.toFixed(2), end: { a: +e.a.toFixed(2), b: +e.b.toFixed(2) }, loaded: !!real(t.key) }); q.pos.x += 5000;
@@ -448,7 +451,7 @@ async function runLogic(C) {
       const s = R.spawn(type, t.x + 30, t.z + 30), q = G.robots.find((o) => o.id === s.id), rad = q.spec.radius, p = at(side * (D / 2 - rad - 0.2), h - 2);
       q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'roam'; q.ai.alert = 0; q.ai.wp = { ...behind }; q.ai.wpT = 1e9; q.home = { ...behind };
       let outAt = null, back = 0, clear = Infinity, crossA = null, steered = 0;
-      for (let k = 0; k < 420; k++) { R.step(5); const inT = !!W.inTower(q.pos.x, q.pos.z, 0), lp = loc(t, q.pos.x, q.pos.z);
+      for (let k = 0; k < 420; k++) { R.step(5); calm(); const inT = !!W.inTower(q.pos.x, q.pos.z, 0), lp = loc(t, q.pos.x, q.pos.z);
         if (inT && outAt == null) { steered++; for (const o of corners) clear = Math.min(clear, Math.hypot(q.pos.x - o.x, q.pos.z - o.z) - o.r - rad); }
         if (!inT && outAt == null) { outAt = +((k + 1) * 5 / 60).toFixed(1); crossA = +lp.a.toFixed(2); } else if (inT && outAt != null) back++; }
       play.push({ type, side, rad, outAt, crossA, back, clear: +clear.toFixed(3), steered, loaded: !!real(P.key) }); q.pos.x += 5000;
