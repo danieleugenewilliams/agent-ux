@@ -24,6 +24,8 @@
 //              tower and 9.8 m on a 12 m one, with no wall circle outside the tower; the biggest world robot (the
 //              Knight, 7.8 m across) fits through it; and a mech driven straight in 2 m off the door's middle, on held
 //              keys, goes in on every size of tower without touching the wall;
+//            * #228: every drive-in starts with player 1 up and whole (an earlier check could leave it powered down, its
+//              controls dead for the whole drive); knocked out cold just before the sloped tower's drive, it still gets in;
 //            * #217: a Charger and a Bouncer inside a tower that notice a player behind its back wall come out of its
 //              door rather than push on the wall;
 //            * #217 with #208's door widths: on a 12 m tower (9.8 m door) wayOut sends a robot straight out only when
@@ -179,6 +181,12 @@ const H = String.raw`
   const real = (key) => [...W.chunks.values()].flatMap((ch) => ch.towers).find((t) => t.key === key);
   // player 1 at (x, z) facing along (fx, fz) (forward is (-sin, -cos) of the heading)
   const pose = (x, z, fx, fz) => { R.teleport(0, x, z); const m = m0(), hd = Math.atan2(-fx, -fz); m.legHeading = hd; m.torsoYaw = hd; m.speed = 0; m.turnVel = 0; };
+  // #228: player 1 up and whole before a drive-in. A drive is 600 ticks (10 s), and a mech an earlier check left powered
+  // down sits out PLAYER.downTime (8 s) with its controls dead, so it never got in (tower 5,4:t10,8, inTicks 0). Rebooted
+  // through the game's own path (its down clock run out, one step), then mended to full; returns how it was before
+  const ready = () => { const m = m0(), pre = { state: m.state, hp: Math.round(m.health), downT: +(m.downT || 0).toFixed(2) };
+    if (m.state === 'down') { m.downT = 0; R.step(1); }
+    for (const a in m.damage) m.damage[a] = 0; m.health = m.maxHealth; m.hop = null; m.push.set(0, 0, 0); return pre; };
   // where p is in tower t's frame: a across its door, b out towards it
   const loc = (t, x, z) => ({ a: (x - t.x) * -t.door.nz + (z - t.z) * t.door.nx, b: (x - t.x) * t.door.nx + (z - t.z) * t.door.nz });
 `;
@@ -224,7 +232,7 @@ async function runLogic(C) {
   // ---- drive in through the door (held keys), turn round inside, drive back out
   r = await C.ev(String.raw`(() => { ${H} calm();
     const t0 = R.worldTowers().find((t) => t.w === 12) || R.worldTowers()[0], key = t0.key, d = t0.door, h = t0.w / 2, m = m0();
-    pose(d.x + d.nx * 12, d.z + d.nz * 12, -d.nx, -d.nz); R.step(2);
+    const pre = ready(); pose(d.x + d.nx * 12, d.z + d.nz * 12, -d.nx, -d.nz); R.step(2);
     let inAt = -1, deep = -1e9, i;
     R.hold('KeyW', true);
     for (i = 0; i < 900 && inAt < 0; i++) { R.step(1); calm(); const p = loc(t0, m.pos.x, m.pos.z); deep = Math.max(deep, h - Math.max(Math.abs(p.a), Math.abs(p.b))); if (W.inTower(m.pos.x, m.pos.z, 2.5) && W.inTower(m.pos.x, m.pos.z, 2.5).key === key && p.b < h - 4) inAt = i; }
@@ -242,7 +250,7 @@ async function runLogic(C) {
     // well away, facing the tower (the camera behind): solid again, its insides and people put away
     pose(d.x + d.nx * 18, d.z + d.nz * 18, -d.nx, -d.nz); R.step(5); for (let k = 0; k < 4; k++) R.render(); const s2 = tw(key);
     window.__key = key;
-    return { key, w: t0.w, inAt, deep, p1, inside, s1: { inside: s1.inside, ghost: s1.ghost, innerShown: s1.innerShown, panelShown: s1.panelShown, shown: s1.people.map((q) => q.shown) }, turned, p2, outAt, cross,
+    return { key, w: t0.w, pre, inAt, deep, p1, inside, s1: { inside: s1.inside, ghost: s1.ghost, innerShown: s1.innerShown, panelShown: s1.panelShown, shown: s1.people.map((q) => q.shown) }, turned, p2, outAt, cross,
       s2: { inside: s2.inside, ghost: s2.ghost, innerShown: s2.innerShown, panelShown: s2.panelShown, shown: s2.people.map((q) => q.shown) }, rule: W.inTower(m.pos.x, m.pos.z, -WI.ghost)?.key === key }; })()`);
   ok(`a mech drives in through the door of a ${r.w} m tower with the drive key held (in after ${r.inAt} ticks)`, r.inAt >= 0 && r.inside && r.p1.b < r.w / 2 - 3, r);
   ok('inside, the tower goes see-through: its floor, lamps and lift show, the door panel is put away, its people show', r.s1.inside && r.s1.ghost && r.s1.innerShown && !r.s1.panelShown && r.s1.shown.length && r.s1.shown.every(Boolean), r.s1);
@@ -344,16 +352,21 @@ async function runLogic(C) {
     const floor = T.inner.position.y + 0.05;   // (the floor's top: its slab's middle 0.15 down, 0.4 thick)
     // the ground across the inside, against the floor
     let off = 0; for (let a = -h; a <= h + 1e-6; a += h / 8) for (let b = -h; b <= h + 1e-6; b += h / 8) off = Math.max(off, Math.abs(W.h(t.x + a, t.z + b) - floor));
-    // drive in through the door
-    pose(t.door.x + t.door.nx * 12, t.door.z + t.door.nz * 12, -t.door.nx, -t.door.nz); R.step(2);
-    let inTicks = 0, mOff = 0; R.hold('KeyW', true);
-    for (let i = 0; i < 600; i++) { R.step(1); calm(); if (W.inTower(m.pos.x, m.pos.z, 2.5)?.key === best.key) { inTicks++; mOff = Math.max(mOff, Math.abs(m.pos.y - floor)); if (inTicks > 40) break; } }
-    R.hold('KeyW', false); R.step(5);
+    // drive in through the door (player 1 made ready first, #228)
+    const drive = () => { const pre = ready(); pose(t.door.x + t.door.nx * 12, t.door.z + t.door.nz * 12, -t.door.nx, -t.door.nz); R.step(2);
+      let inTicks = 0, mOff = 0; R.hold('KeyW', true);
+      for (let i = 0; i < 600; i++) { R.step(1); calm(); if (W.inTower(m.pos.x, m.pos.z, 2.5)?.key === best.key) { inTicks++; mOff = Math.max(mOff, Math.abs(m.pos.y - floor)); if (inTicks > 40) break; } }
+      R.hold('KeyW', false); R.step(5); return { pre, inTicks, mOff: +mOff.toFixed(3) }; };
+    // #228: forced, player 1 knocked out cold just before (a fresh 8 s down clock, past the 6.8 s left in the run that
+    // missed): the drive still gets in. Then the drive as #208 has it
+    R.hurt(0, 1e6); const knocked = { down: m.state === 'down', ...drive() };
+    const { pre, inTicks, mOff } = drive();
     // the people's feet on the floor too (from where they're drawn: a waving one bobs up to 6 cm)
     const feet = T.people.map((q) => +(q.g.position.y - floor).toFixed(3));
-    return { key: best.key, w: best.w, spread: +best.spread.toFixed(2), off: +off.toFixed(3), feet, inTicks, mOff: +mOff.toFixed(3) }; })()`);
+    return { key: best.key, w: best.w, spread: +best.spread.toFixed(2), off: +off.toFixed(3), feet, pre, inTicks, mOff, knocked }; })()`);
   ok(`#208: a tower on a sloped block (${r.spread} m of hillside across its ${r.w} m): the ground inside is its floor (${r.off} m off at most)`, !r.none && r.spread > 1 && r.off <= 0.06, r);
   ok(`#208: driven in, the mech stands on the floor its people stand on (${r.mOff} m off over ${r.inTicks} ticks inside)`, !r.none && r.inTicks > 20 && r.mOff <= 0.06 && r.feet.length && r.feet.every((f) => f >= -0.06 && f <= 0.12), r);
+  ok(`#228: player 1 powered down just before the drive-in (${r.knocked?.pre?.downT} s on its clock): made ready first, it still drives into ${r.key} (${r.knocked?.inTicks} ticks inside, ${r.knocked?.mOff} m off the floor)`, !r.none && r.knocked.down && r.knocked.pre.state === 'down' && r.knocked.pre.downT >= 7 && r.knocked.inTicks > 20 && r.knocked.mOff <= 0.06, r.knocked);
 
   // ---- #208: every tower spot out to 40 chunks each way, the ring-side ones too (a ring's or a cave's blend once pulled
   // the corners of a tower's inside off its floor, by up to 3 m): the ground across the inside (a 13 x 13 grid) against
@@ -393,11 +406,11 @@ async function runLogic(C) {
       const out = obs.filter((o) => { const p = loc(t, o.x, o.z); return Math.abs(p.a) > h + 0.01 || Math.abs(p.b) > h + 0.01; }).length;
       // drive in 2 m off the door's middle, straight at it
       const off = 2, ax = -t.door.nz, az = t.door.nx;
-      pose(t.door.x + t.door.nx * 12 + ax * off, t.door.z + t.door.nz * 12 + az * off, -t.door.nx, -t.door.nz); R.step(2);
+      const pre = ready(); pose(t.door.x + t.door.nx * 12 + ax * off, t.door.z + t.door.nz * 12 + az * off, -t.door.nx, -t.door.nz); R.step(2);
       let inAt = -1, drift = 0; R.hold('KeyW', true);
       for (let i = 0; i < 600 && inAt < 0; i++) { R.step(1); calm(); const p = loc(t, m.pos.x, m.pos.z); drift = Math.max(drift, Math.abs(p.a - off)); if (p.b < h - 4) inAt = i; }
       R.hold('KeyW', false); R.step(5);
-      res.push({ w, key: P.key, gap: +(rgt - lft).toFixed(3), width: t.door.width, want: want[w], out, inAt, drift: +drift.toFixed(3), inside: W.status().inTower === P.key });
+      res.push({ w, key: P.key, gap: +(rgt - lft).toFixed(3), width: t.door.width, want: want[w], out, pre, inAt, drift: +drift.toFixed(3), inside: W.status().inTower === P.key });
     }
     return { res, big, mech: R.MECH?.radius ?? null }; })()`);
   for (const q of r.res) {
