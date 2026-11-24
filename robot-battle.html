@@ -873,6 +873,8 @@
   .ptab .face { width: 34px; height: 34px; font-size: 20px; }
   .psum { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 4px 0 10px; font-size: 17px; }
   .psum b { color: var(--yellow); }
+  /* #224: a save failed (storage full): one line at the top of the parent view */
+  .pwarn { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 0 8px; padding: 8px 12px; border-radius: 14px; background: #8a1f2b; color: #fff; font-size: 16px; text-align: left; }
   .pcols { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 22px; }
   .pgrid { flex: 0 1 360px; min-width: 0; }
   .pgrid .fgrid { --cs: min(32px, calc((100vw - 80px) / 10)); }
@@ -3230,9 +3232,19 @@ const Icons = {
     return { open: true, icons: names.length };
   },
 };
+// #224: a write that fails (storage full, or turned off) isn't dropped silently: its key and value wait in store.unsaved, and
+// the parent view says progress isn't saving while any wait. Per key, not one flag: when storage is full a small write (the
+// sound switch) can still work while a fact record keeps failing. Each write that works tries the waiting ones again, so a key
+// written once (who's playing) doesn't keep the warning up after space is freed. set returns whether it saved
 const store = {
+  unsaved: new Map(),
   get(k, d) { try { const v = localStorage.getItem('robotbattle.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('robotbattle.' + k, JSON.stringify(v)); } catch (e) {} },
+  put(k, v) { try { localStorage.setItem('robotbattle.' + k, JSON.stringify(v)); this.unsaved.delete(k); return true; } catch (e) { this.unsaved.set(k, v); return false; } },
+  set(k, v) {
+    if (!this.put(k, v)) return false;
+    for (const [k2, v2] of [...this.unsaved]) this.put(k2, v2);
+    return true;
+  },
 };
 // Seeded random so the meadow is the same every visit
 let seed = 1337;
@@ -3424,6 +3436,7 @@ const Profiles = {
     if (picked) { pickChild('guest'); if (!Game.pilot) pickChild(null); }
     else if (Facts.child === C) Facts.load(GUEST);   // (back on who's playing after picking them: their record let go too)
     try { localStorage.removeItem('robotbattle.facts.' + C.id); } catch (e) {}
+    store.unsaved.delete('facts.' + C.id);   // (#224: gone, so it isn't waiting to save)
     let left = null; try { left = localStorage.getItem('robotbattle.facts.' + C.id); } catch (e) {}
     if (left != null) return { ok: false, why: "this browser wouldn't delete it, so nothing was changed" };
     if (wasLast || picked) { try { localStorage.removeItem('robotbattle.child'); } catch (e) {} }
@@ -4546,6 +4559,7 @@ const Backup = {
       try { for (const [k, v] of old.reverse()) { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } } catch (e2) {}
       return { ok: false, why: "this browser wouldn't save it (storage is full or turned off), so nothing was changed" };
     }
+    for (const w of writes) store.unsaved.delete(w.key);   // (#224: written now)
     return { ok: true };
   },
   // check, plan and (with a choice) write a restore: __rb.restore and the parent view's ✔ both come here. choices left
@@ -14935,10 +14949,12 @@ const Progress = {
     if (this.tab != null && !this.kids().some((C) => C.id === this.tab)) this.tab = this.kids()[0]?.id ?? null;   // (#50: theirs was removed)
     $('pTabs').parentElement.classList.toggle('many', this.kids().length > 3);
     $('pTabs').innerHTML = this.kids().map((C) => `<button class="chip ptab${C.id === this.tab ? ' on' : ''}" data-k="${C.id}" aria-label="${esc(C.name)}" aria-pressed="${C.id === this.tab}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${esc(C.name)}</span></button>`).join('');
+    // #224: a save failed (storage full): say so at the top, plainly, with what to do
+    const warn = store.unsaved.size ? `<p class="pwarn" id="pSaveWarn" role="alert">${icon('warn')}<span>Progress isn't saving: this device's storage is full. Make a backup below.</span></p>` : '';
     // #50: no profiles yet: say so, and where to make one (the backup section stays: a restore can bring players back)
     if (this.tab == null) {
       this.confirm = false; this.rm = null; $('pConfirm').classList.remove('on');
-      $('pBody').innerHTML = `<div class="pnone" id="pNone"><span class="big">${icon('smile')}</span><b>No players yet</b><span class="hint">Tap ${icon('plus', { label: 'new player' })} on the title to make one.</span></div>` + BackupUI.html();
+      $('pBody').innerHTML = warn + `<div class="pnone" id="pNone"><span class="big">${icon('smile')}</span><b>No players yet</b><span class="hint">Tap ${icon('plus', { label: 'new player' })} on the title to make one.</span></div>` + BackupUI.html();
       BackupUI.draw(); return;
     }
     const D = this.data(this.tab), rec = Facts.peek(this.tab), div = this.pop === '÷';
@@ -14954,7 +14970,7 @@ const Progress = {
       + (div ? ` ${icon('divide')} facts follow the same rules; each opens once its ${icon('times')} partner is Known, and at most 1 Quick Fix wire in 3 is a ${icon('divide')} fact.` : '') + '</p>';   // (#142)
     const SL = div ? D.div.slowest : D.slowest;
     const slow = SL.length ? SL.map((q) => `<li data-key="${q.key}"><i class="cell s-${q.stage}">${icon(STAGE_LOOK[q.stage].ic)}</i>${q.fact}<span class="t">${secs(q.ms)}</span></li>`).join('') : '<li class="none">No answers yet</li>';
-    $('pBody').innerHTML = `<div class="psum"><span>${icon('star')} Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span>`
+    $('pBody').innerHTML = warn + `<div class="psum"><span>${icon('star')} Mastered <b>${D.mastery.mastered}/${D.mastery.goal}</b></span>`
       + `<span class="pdiv">${icon('divide')} ${icon('star')} <b>${D.div.mastered}/${D.div.goal}</b> · ${D.div.open} open${D.division ? '' : ' · off'}</span>`   // #142
       + `<span>Step <b>${D.step}/${D.steps}</b>: ${D.stepName}</span><span>Today <b>${mins(D.todayMs)} min</b></span>`
       + `<span class="pfix" title="Today's median fix time (board open to reboot), ${D.fixMs.days[D.fixMs.days.length - 1].n} fixes">${icon('wrench')}${icon('timer')} <b>${secs(D.fixMs.today)}</b> median fix</span></div>`
