@@ -307,9 +307,10 @@ async function runLogic(C) {
     const at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), behind = at(-(half + 8)), me = at(-(half + 60));
     pose(me.x, me.z, nx, nz); R.step(2); const p0 = { x: m0().pos.x, z: m0().pos.z };
     const res = { key: t.key, walk: [], out: [] };
-    // (held each step: world robots from chunks that load after the pose cleared again; how far player 1 has moved is
-    // reported, and a walk-in robot that came for player 1 fails as that, not as a robot stepping in)
-    const hold = () => { calm(); return Math.hypot(m0().pos.x - p0.x, m0().pos.z - p0.z); };
+    // (held each step: world robots from chunks that load after the pose cleared again, and player 1's health kept full,
+    // as a robot that comes out may go for it and leave it too battered for the drive-in checks after; how far player 1
+    // has moved is reported, and a walk-in robot that came for player 1 fails as that, not as a robot stepping in)
+    const hold = () => { calm(); m0().health = m0().maxHealth || 100; return Math.hypot(m0().pos.x - p0.x, m0().pos.z - p0.z); };
     const put = (type, p) => { const s = R.spawn(type, p.x + 30, p.z + 30); const q = G.robots.find((o) => o.id === s.id); q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'roam'; q.ai.alert = 0; q.ai.wp = { ...behind }; q.ai.wpT = 1e9; q.home = { ...behind }; return q; };
     const away = (q) => { q.pos.x += 5000; };
     for (const type of ['bouncer', 'charger']) {
@@ -451,7 +452,7 @@ async function runLogic(C) {
       const s = R.spawn(type, t.x + 30, t.z + 30), q = G.robots.find((o) => o.id === s.id), rad = q.spec.radius, p = at(side * (D / 2 - rad - 0.2), h - 2);
       q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'roam'; q.ai.alert = 0; q.ai.wp = { ...behind }; q.ai.wpT = 1e9; q.home = { ...behind };
       let outAt = null, back = 0, clear = Infinity, crossA = null, steered = 0;
-      for (let k = 0; k < 420; k++) { R.step(5); calm(); const inT = !!W.inTower(q.pos.x, q.pos.z, 0), lp = loc(t, q.pos.x, q.pos.z);
+      for (let k = 0; k < 420; k++) { R.step(5); calm(); m0().health = m0().maxHealth || 100; const inT = !!W.inTower(q.pos.x, q.pos.z, 0), lp = loc(t, q.pos.x, q.pos.z);
         if (inT && outAt == null) { steered++; for (const o of corners) clear = Math.min(clear, Math.hypot(q.pos.x - o.x, q.pos.z - o.z) - o.r - rad); }
         if (!inT && outAt == null) { outAt = +((k + 1) * 5 / 60).toFixed(1); crossA = +lp.a.toFixed(2); } else if (inT && outAt != null) back++; }
       play.push({ type, side, rad, outAt, crossA, back, clear: +clear.toFixed(3), steered, loaded: !!real(P.key) }); q.pos.x += 5000;
