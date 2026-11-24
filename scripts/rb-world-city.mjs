@@ -29,6 +29,9 @@
 //            * #217 with #208's door widths: on a 12 m tower (9.8 m door) wayOut sends a robot straight out only when
 //              its body clears the real doorway; a Bouncer and a Charger put beside the door by a side wall come out
 //              through it and stay out, never touching the doorway's corner wall circles;
+//            * #222: the Copier's saucer never passes through a tower, coming in over one to a player behind it or to a
+//              player inside it (in, scan, print and out); dropSpot's fallback, every spot round the player blocked and a
+//              tower right ahead, is outside every tower;
 //            * the storage keys the same, nothing new in the record.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
@@ -460,6 +463,34 @@ async function runLogic(C) {
     return { key: P.key, w: t.w, D, walls: walls.length, corners: corners.length, hook, play }; })()`);
   ok(`#217/#208: on a 12 m tower (${r.D} m door) wayOut sends a robot straight out only when its body clears the real doorway (${(r.hook || []).map((q) => q.type + ' ' + q.out + ' out / ' + q.mid + ' to the middle, ' + q.nBad + ' too far over').join('; ')})`, !r.none && r.D === 9.8 && r.hook.length >= 2 && r.hook.every((q) => q.nBad === 0 && q.out > 0 && q.mid > 0), r);
   ok(`#217/#208: a Bouncer and a Charger beside a 12 m tower's door, by its side wall, come out through the doorway and stay out without touching the doorway's corner wall circles on the way (${(r.play || []).map((q) => q.type + ' out at ' + q.outAt + ' s, ' + q.clear + ' m clear').join('; ')})`, !r.none && r.corners === 2 && r.play.length === 4 && r.play.every((q) => q.outAt != null && q.outAt <= 30 && q.back === 0 && q.loaded && q.steered > 0 && q.clear > 0.05 && Math.abs(q.crossA) + q.rad <= r.D / 2 + 0.05), r);
+
+  // ---- #222: the Copier and the towers. (1) Its saucer sent in from 30 m past the nearest tower's door side to player 1
+  // standing 20 m behind its back wall, so the straight way in runs through the tower (at COPIER.fly, 16 m up, under every
+  // roof: the lowest is 22 m), then (2) to player 1 standing in the middle of that tower: through every phase (in, scan,
+  // print, out) its rim (COPIER.shield, the shield's reach) never comes within a tower's walls below its roof. (3) dropSpot
+  // with every spot round player 1 blocked (one big made-up obstacle, for that call only) and the spot COPIER.drop m
+  // right ahead of them 3 m inside the tower, where the old fallback printed the clone: the spot it gives is outside every tower
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0], T = real(t.key), half = t.w / 2, nx = t.door.nx, nz = t.door.nz, K = R.COPIER;
+    const at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), res = { key: t.key, w: t.w, top: +T.top.toFixed(1), runs: [] };
+    const fly = (me, from) => {
+      pose(me.x, me.z, nx, nz); R.step(2); const c = R.Copier.launch(0); R.step(1);
+      if (from) c.pos.set(from.x, m0().pos.y + K.fly, from.z);
+      const o = { phases: [], hits: 0, first: null, lowest: Infinity, ticks: 0 };
+      for (let k = 0; k < 3000 && R.Copier.list.includes(c); k++) { R.step(1); calm(); m0().health = m0().maxHealth || 100; o.ticks++;
+        if (o.phases.at(-1) !== c.phase) o.phases.push(c.phase);
+        const q = W.inTower(c.pos.x, c.pos.z, -K.shield); if (q) o.lowest = Math.min(o.lowest, +(c.pos.y - q.top).toFixed(2));
+        if (q && c.pos.y - 1 < q.top) { o.hits++; o.first ||= { phase: c.phase, x: +c.pos.x.toFixed(1), y: +c.pos.y.toFixed(1), z: +c.pos.z.toFixed(1), top: +q.top.toFixed(1) }; } }
+      o.gone = !R.Copier.list.includes(c); if (!o.gone) R.Copier.remove(c);
+      for (const q of G.robots) if (q.clone) q.pos.x += 5000;
+      return o; };
+    res.runs.push({ what: 'behind', ...fly(at(-(half + 20)), at(half + 30)) });
+    res.runs.push({ what: 'inside', ...fly({ x: t.x, z: t.z }, null) });
+    const b = at(-(half + K.drop - 3)); pose(b.x, b.z, nx, nz); const m = m0(), big = { x: m.pos.x, z: m.pos.z, r: 60, h: 1 };
+    R.obstacles.push(big); let s; try { s = R.Copier.dropSpot(m); } finally { R.obstacles.splice(R.obstacles.indexOf(big), 1); }
+    res.drop = { s, ahead: !!W.inTower(m.pos.x - Math.sin(m.legHeading) * K.drop, m.pos.z - Math.cos(m.legHeading) * K.drop, 0), inTower: W.inTower(s.x, s.z, 0)?.key ?? null };
+    return res; })()`);
+  for (const q of r.runs || []) ok(`#222: the Copier's saucer, player 1 ${q.what === 'behind' ? 'behind a tower from it' : 'inside the tower'}, never passes through a tower (${q.hits} ticks in one; lowest ${q.lowest} m over a roof; phases ${q.phases.join(' > ')})`, q.hits === 0 && q.phases.includes('scan') && q.phases.includes('out') && q.gone && q.lowest < Infinity, { key: r.key, w: r.w, top: r.top, ...q });
+  ok(`#222: dropSpot's fallback (every spot round player 1 blocked, a tower ${r.drop?.ahead ? 'right ahead' : 'NOT ahead'}) is outside every tower (${JSON.stringify(r.drop?.s)} in ${r.drop?.inTower})`, r.drop && r.drop.ahead && r.drop.inTower === null, r.drop);
 
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);
