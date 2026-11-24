@@ -13,6 +13,8 @@
 //               (fast / slow / too-slow / miss / next day, on Max's and Sam's facts) checks every answer against the
 //               progress read just before it;
 //             * Max's records: 1 x 6 (Known, days [d1, today]) and 2 x 3 (Learning, days [today]);
+//             * #224: a save that fails (setItem stubbed to throw a QuotaExceededError: storage full) shows a warning at the top of
+//               the parent view, and it goes once a save works again;
 //             * reading never writes: the saved record, the stage counts, the star total and the backup are the same
 //               before and after opening the grid and the parent view and tapping facts; entries keep their old fields
 //               only; a saved record reloads as it was, with the same progress.
@@ -335,6 +337,33 @@ async function connect(S) {
   return { send, ev, open, tap, click, key, errs };
 }
 
+// #224: storage full. Storage.prototype.setItem is stubbed to throw a QuotaExceededError (not localStorage.setItem = …:
+// Storage's named-property setter would just save a key called "setItem"), and put back after. Max's answer saves his record
+// (Facts.save); the parent view then shows the warning at its top, on screen. With setItem back, the next save works and the
+// warning goes. (DOM reads are optional-chained, so a build without the warning fails these checks, not the run)
+const SAVE_FULL = String.raw`(() => {
+  ${HELPERS}
+  const warnAt = () => { R.parent(true, 'max'); const el = document.getElementById('pSaveWarn'), b = el?.getBoundingClientRect();
+    const v = el ? { text: el.textContent.trim(), w: Math.round(b.width), h: Math.round(b.height), top: Math.round(b.top), onScreen: b.width > 0 && b.height > 0 && b.top >= 0 && b.bottom <= innerHeight && b.left >= 0 && b.right <= innerWidth } : null;
+    R.parent(false); return v; };
+  ok('storage full: no warning while saves work', warnAt() === null, warnAt());
+  const orig = Storage.prototype.setItem;
+  Storage.prototype.setItem = function () { throw new DOMException('The quota has been exceeded.', 'QuotaExceededError'); };
+  let threw = false; try { localStorage.setItem('robotbattle.probe', '1'); } catch (e) { threw = e.name === 'QuotaExceededError'; }
+  ok('storage full: the stub took (a direct setItem throws QuotaExceededError)', threw, threw);
+  const before = localStorage.getItem('robotbattle.facts.max');
+  let w;
+  try { R.player('max'); fast(5, 6); R.Facts.save(); w = warnAt(); } finally { Storage.prototype.setItem = orig; }
+  ok('storage full: the record really did not save (the stub stopped it)', localStorage.getItem('robotbattle.facts.max') === before, null);
+  ok('storage full: the parent view says progress is not saving (storage is full)', !!w && /saving/i.test(w.text) && /full/i.test(w.text), w);
+  ok('storage full: the warning is on screen at the top of the parent view', !!w && w.onScreen, w);
+  fast(5, 6); R.Facts.save();
+  ok('storage full: once a save works again, the record saves', localStorage.getItem('robotbattle.facts.max') !== before, null);
+  const after = warnAt();
+  ok('storage full: once a save works again, the warning goes', after === null, after);
+  return out;
+})()`;
+
 async function runLogic(C) {
   await C.open(1280, 800, false);
   const res = await C.ev(LOGIC);
@@ -356,6 +385,9 @@ async function runLogic(C) {
   const after = await C.ev(`(() => { __rb.manual(true); __rb.clock(${B.off}); __rb.player('max'); return JSON.stringify({ off: __rb.Facts.offset, facts: __rb.Facts.rec.facts, p: [[1,6],[2,3],[1,9],[1,8],[1,1]].map(([a,b]) => __rb.progress(a, b)) }); })()`);
   const A = JSON.parse(after);
   ok('a saved record reloads with the same facts and the same progress', JSON.stringify(A.facts) === JSON.stringify(B.facts) && JSON.stringify(A.p) === JSON.stringify(B.p), { before: B.p, after: A.p });
+  // #224: a save that fails because storage is full is noticed: the parent view says progress isn't saving, and stops once a save works
+  const full = await C.ev(SAVE_FULL);
+  for (const r of full) out.push(r);
   return out;
 }
 
