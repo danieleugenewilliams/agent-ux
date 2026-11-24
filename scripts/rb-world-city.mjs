@@ -32,7 +32,11 @@
 //              its body clears the real doorway; a Bouncer and a Charger put beside the door by a side wall come out
 //              through it and stay out, never touching the doorway's corner wall circles;
 //            * #231: a Bouncer chasing a player who stands still behind a 12, 16 or 20 m tower for 60 s, 10, 14 or 20 m
-//              back, goes round the tower (in at its door at most once), not in and out of the doorway or round a corner;
+//              back, goes round the tower (in at its door at most once, never a hop in), not in and out of the doorway or
+//              round a corner;
+//            * #236: a hop keeps out of the towers: a Bouncer's spring off player 1's head behind a tower that would come
+//              down inside it stops at the wall; and a roaming Bouncer at a door, a Charger overlapping it from outside,
+//              is never pushed in by separate();
 //            * #222: the Copier's saucer never passes through a tower, coming in over one to a player behind it or to a
 //              player inside it (in, scan, print and out); dropSpot's fallback, every spot round the player blocked and a
 //              tower right ahead, is outside every tower;
@@ -341,6 +345,47 @@ async function runLogic(C) {
   ok(`#217: a roaming Bouncer and Charger aimed straight through a tower from its door never step inside it (${r.walk.map((w) => w.type + ' ' + w.inside + ' samples in').join(', ')})`, r.walk.length === 2 && r.walk.every((w) => w.inside === 0 && w.mode === 'roam' && w.engagedT === 0 && w.loaded), r);
   ok(`#217: a roaming Bouncer and Charger put inside a tower come out of its door (${r.out.map((w) => w.type + ' at ' + w.outAt + ' s').join(', ')}) and stay out`, r.out.length === 2 && r.out.every((w) => w.outAt != null && w.outAt <= 30 && w.back === 0 && w.loaded), r);
 
+  // ---- #236 (Daniel's pick A): a hop keeps out of the towers. The way #238's trace saw a Bouncer get in: it stomped player 1
+  // behind a tower and the 9 m spring off their head carried it over the back wall and down inside (hops had no wall
+  // checks). Forced here through the game's own path: player 1 4 m out from the back wall of a 12 m tower, a glitched
+  // Bouncer 10 m further out on the same line, crouched to hop; Math.random held at 0.5 for the run, so its hop lands on
+  // player 1's head (no wild bounce) and the spring goes straight on, 9 m, which is past the back wall (on main it comes
+  // down 5 m inside). It must stop at the wall or land outside: never a sample inside the tower, stepped one tick at a time
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const ts = R.worldTowers(), t = ts.find((q) => q.w === 12) || ts[0]; if (!t) return { none: true };
+    const half = t.w / 2, nx = t.door.nx, nz = t.door.nz, at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), me = at(-(half + 4)), start = at(-(half + 14));
+    const rnd = Math.random; Math.random = () => 0.5;
+    try {
+      pose(me.x, me.z, nx, nz); R.step(2); const p0 = { x: m0().pos.x, z: m0().pos.z };
+      const s = R.spawn('bouncer', start.x + 30, start.z + 30), q = G.robots.find((o) => o.id === s.id);
+      q.pos.x = start.x; q.pos.z = start.z; q.pos.y = W.h(start.x, start.z); q.legHeading = q.torsoYaw = Math.atan2(nx, nz); q.ai.mode = 'crouch'; q.ai.t = 0.01; q.ai.alert = 0;
+      const st0 = q.stomps || 0; let inside = 0, landB = null, wasAir = false, lands = [], moved = 0, hops = 0;
+      for (let k = 0; k < 240; k++) { R.step(1); calm(); const m = m0(); m.health = m.maxHealth || 100; moved = Math.max(moved, Math.hypot(m.pos.x - p0.x, m.pos.z - p0.z));
+        if (W.inTower(q.pos.x, q.pos.z, 0)?.key === t.key) inside++;
+        if (q.air && !wasAir) hops++;
+        if (wasAir && !q.air) lands.push(+loc(t, q.pos.x, q.pos.z).b.toFixed(2));
+        wasAir = !!q.air; }
+      const res = { key: t.key, w: t.w, stomps: (q.stomps || 0) - st0, hopsUp: hops, inside, lands, stops: q.hopStops || 0, moved: +moved.toFixed(2), loaded: !!real(t.key), wallOut: +(half + R.WORLD.inside.wallR).toFixed(2) };
+      q.pos.x += 5000; return res;
+    } finally { Math.random = rnd; } })()`);
+  ok(`#236: a Bouncer's spring off player 1's head, 4 m behind a ${r.w} m tower, that would come down inside it stops at the wall or lands outside (${r.stomps} stomps, ${r.hopsUp} times up, ${r.inside} ticks inside; landed at b ${(r.lands || []).join(', ')}, the back wall at -${r.w / 2})`, !r.none && r.loaded && r.stomps >= 1 && r.inside === 0 && r.lands.length >= 1 && r.lands.every((b) => b < -r.w / 2), r);
+
+  // ---- #236: and nothing pushes a roaming robot in. The walk-in flake's way in, traced: a roaming Bouncer at a tower's door
+  // with a glitched Charger (a spawned one, which calm() leaves) right by it; separate() pushed the Bouncer through the door,
+  // after keepOut had looked at its step, and it was inside (roam, never engaged). Forced: player 1 60 m behind the tower,
+  // a roaming Bouncer 0.6 m out from the door on its middle line and a roaming Charger 1 m further out, overlapping it by
+  // 2.4 m, so separate() alone pushes the Bouncer 1.2 m in past the door (on main it's then inside). 30 ticks, one at a time
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0]; if (!t) return { none: true };
+    const half = t.w / 2, nx = t.door.nx, nz = t.door.nz, at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), me = at(-(half + 60));
+    pose(me.x, me.z, nx, nz); R.step(2);
+    const put = (type, b) => { const p = at(b), s = R.spawn(type, p.x + 30, p.z + 30), q = G.robots.find((o) => o.id === s.id);
+      q.pos.x = p.x; q.pos.z = p.z; q.pos.y = W.h(p.x, p.z); q.speed = 0; q.legHeading = q.torsoYaw = Math.atan2(nx, nz); q.ai.mode = 'roam'; q.ai.alert = 0; q.ai.wp = at(half + 40); q.ai.wpT = 1e9; return q; };
+    const b = put('bouncer', half + 0.6), c = put('charger', half + 1.6), d0 = Math.hypot(b.pos.x - c.pos.x, b.pos.z - c.pos.z);
+    let inside = 0, minB = Infinity, engaged = 0;
+    for (let k = 0; k < 30; k++) { R.step(1); calm(); if (W.inTower(b.pos.x, b.pos.z, 0)?.key === t.key) inside++; minB = Math.min(minB, loc(t, b.pos.x, b.pos.z).b); if (b.ai.mode !== 'roam') engaged++; }
+    const res = { key: t.key, w: t.w, d0: +d0.toFixed(2), overlap: +(b.spec.radius + c.spec.radius - d0).toFixed(2), inside, minB: +minB.toFixed(2), engaged, apart: +Math.hypot(b.pos.x - c.pos.x, b.pos.z - c.pos.z).toFixed(2), loaded: !!real(t.key) };
+    b.pos.x += 5000; c.pos.x += 5000; return res; })()`);
+  ok(`#236: a roaming Bouncer at a tower's door, a Charger overlapping it ${r.overlap} m from outside, is never pushed in (${r.inside} of 30 ticks inside, nearest ${r.minB} m from the middle, the door at ${r.w / 2})`, !r.none && r.loaded && r.overlap > 2 && r.engaged === 0 && r.inside === 0 && r.minB >= r.w / 2, r);
+
   // ---- #208: on a sloped city block the mech stands on the floor the people stand on (no floating, no sinking). The
   // tower with the most slope under it (its hillside before flattening, World.baseH, over its walls) of the cities near
   // the start; the ground the mech walks on (World.h) across its inside against its floor; then a drive in on held keys
@@ -487,10 +532,10 @@ async function runLogic(C) {
   // player 1 close behind (10 or 14 m) the first fix circled a front corner for the whole minute, on 12, 16 and 20 m towers.
   // So: each tower size, player 1 10 and 14 m behind the back wall (and 20 m on the 12 m tower: further back is past the
   // Bouncer's 45 m notice on the bigger ones), held still with full health for 60 s, the other robots cleared. Each passes
-  // when it walks in at the door at most once and gets round (past the back wall, or a hop onto player 1). Only walking in
-  // counts: a hop has no wall checks, and with player 1 this close to the back wall a spring off their head can come down
-  // inside (then it walks out at the door). Those hop-ins are counted apart and shown, not failed: they are hop landings, not
-  // doorway dithering. Math.random is seeded for each run (timing still varies run to run)
+  // when it walks in at the door at most once, never hops in, and gets round (past the back wall, or a hop onto player 1).
+  // Hop-ins are counted apart from walking in: with player 1 this close to the back wall a spring off their head came down
+  // inside before #236; now a hop stops at the wall (World.hopStop), so any hop-in fails. Math.random is seeded for each
+  // run (timing still varies run to run)
   for (const [W0, back] of [[12, 10], [12, 14], [12, 20], [16, 10], [16, 14], [20, 10], [20, 14]]) {
     r = await C.ev(String.raw`(() => { ${H} let P = null;
       for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break; const t = R.worldTowers().find((q) => q.w === ${W0}); if (t) P = { k, key: t.key }; }
@@ -511,7 +556,7 @@ async function runLogic(C) {
         const e = loc(t, q.pos.x, q.pos.z), res = { key: P.key, w: t.w, D: t.door.width, entries, hopIns, insideN, engagedT, roundAt, stomps: (q.stomps || 0) - st0, maxIn: +maxIn.toFixed(2), closest: +closest.toFixed(1), moved: +moved.toFixed(2), mode: q.ai.mode, end: { a: +e.a.toFixed(1), b: +e.b.toFixed(1) }, loaded: !!real(P.key) };
         q.pos.x += 5000; return res;
       } finally { Math.random = rnd; } })()`);
-    ok(`#231: a Bouncer chasing player 1, who stands still ${back} m behind a ${W0} m tower (${r.D} m door) for 60 s, goes round it, not in and out of the doorway (${r.entries} times in at the door, ${r.hopIns} hops in, ${r.insideN} of 720 samples inside; round at ${r.roundAt} s, ${r.stomps} stomps)`, !r.none && r.w === W0 && r.loaded && r.engagedT > 0 && r.moved < 0.5 && r.entries <= 1 && r.roundAt != null, r);
+    ok(`#231: a Bouncer chasing player 1, who stands still ${back} m behind a ${W0} m tower (${r.D} m door) for 60 s, goes round it, not in and out of the doorway (${r.entries} times in at the door, ${r.hopIns} hops in, ${r.insideN} of 720 samples inside; round at ${r.roundAt} s, ${r.stomps} stomps)`, !r.none && r.w === W0 && r.loaded && r.engagedT > 0 && r.moved < 0.5 && r.entries <= 1 && r.hopIns === 0 && r.roundAt != null, r);
   }
 
   // ---- #222: the Copier and the towers. (1) Its saucer sent in from 30 m past the nearest tower's door side to player 1
