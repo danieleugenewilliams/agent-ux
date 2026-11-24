@@ -21,6 +21,8 @@
 //            * #218: a champion beaten that reboots at its ring (left there past its down time) and is then left glitched is
 //              still there when its chunk loads again: the same champion, glitched, inside the ropes, the ring still won,
 //              no fresh champion and no second payout;
+//            * #230: left glitched and far off 120 s (its ring unloaded), it holds still, inside the ropes, before the ring
+//              loads again (its brain off, as #201 holds a downed one's clock);
 //            * the storage keys the same; the record's one new field is world.rings, holding that ring's key (#200).
 //   touch  - at 844 x 390 with touch: a world run, a ring's champion downed: at most 4 touch buttons, FIX opens its board.
 //   saved  - #200, a ring pays once even after a reload. At 1280 x 800, through window.__rb, with main's page from before
@@ -318,13 +320,18 @@ async function runLogic(C) {
     // stand well back from the ropes while its down time runs out with the ring loaded (out of its sword's reach)
     const d = Math.hypot(g.x, g.z); R.teleport(0, g.x - g.x / d * 60, g.z - g.z / d * 60); R.step(60 * (R.ROBOT_TYPES[WR.type].downTime + 5));
     const up = { state: c?.state, there: G.robots.includes(c), ring: ringOf(g)?.state };
-    const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.step(60 * 5);
-    const away = { loaded: W.rings.has(g.cx + ',' + g.cz), there: G.robots.includes(c) };
+    // #230: then far off 120 s (its ring unloaded), its brain would roam it WORLD.robots.roam around its home: it holds still
+    const m = WR.half - (c?.spec.radius ?? 0) - 0.3, at0 = c && { x: c.pos.x, z: c.pos.z };
+    const p = G.humans[0].mech.pos, px = p.x, pz = p.z; R.worldGo(px + 3000, pz); W.sweep(); R.step(60 * 120);
+    const away = { loaded: W.rings.has(g.cx + ',' + g.cz), there: G.robots.includes(c), state: c?.state, moved: c ? Math.hypot(c.pos.x - at0.x, c.pos.z - at0.z) : null,
+      out: c ? Math.max(Math.abs(c.pos.x - g.x), Math.abs(c.pos.z - g.z)) : null };
     R.worldGo(px, pz); reload(); R.step(30);
-    const s = ringOf(g), m = WR.half - (c?.spec.radius ?? 0) - 0.3;
+    const s = ringOf(g);
     const same = Object.keys({ ...bag0, ...G.bag }).every((k) => (bag0[k] || 0) === (G.bag[k] || 0));
-    return { w: w.s?.state, id, up, away, s, same, champs: champsOf(g), inside: !!s?.champ && Math.abs(s.champ.x - g.x) <= m + 0.01 && Math.abs(s.champ.z - g.z) <= m + 0.01 }; })()`);
+    return { w: w.s?.state, id, up, away, s, same, m, half: WR.half, champs: champsOf(g), inside: !!s?.champ && Math.abs(s.champ.x - g.x) <= m + 0.01 && Math.abs(s.champ.z - g.z) <= m + 0.01 }; })()`);
   ok('#218: a champion beaten that reboots at its ring (left there past its down time) is glitched again, the ring still won', !r.none && r.w === 'won' && r.id != null && r.up.there && r.up.state === 'glitched' && r.up.ring === 'won', r);
+  ok(`#230: left glitched and far off 120 s (its ring unloaded), it holds still inside the ropes before the ring loads again (moved ${r.away?.moved?.toFixed?.(2)} m, ${r.away?.out?.toFixed?.(2)} m from the middle, ropes at ${r.half} m)`,
+    r.away?.there && !r.away.loaded && r.away.state === 'glitched' && r.away.moved < 0.01 && r.away.out <= r.m + 0.01, r.away);
   ok('... left glitched, it is still there when its chunk loads again: the same champion, glitched, inside the ropes, the ring still won, no fresh champion and no second payout', r.away?.there && !r.away.loaded && r.s?.state === 'won' && r.s.champ?.id === r.id && r.s.champ.state === 'glitched' && r.inside && r.champs === 1 && r.same, r);
 
   // ---- the same ring chunks after a reload
