@@ -12218,6 +12218,13 @@ function stutterGlow(r, dt, hot) {
   r.glow = !skip && (u < 0.12 || (u > 0.24 && u < 0.36)) ? (hot ? 6.5 : 4.5) : 0.05;
 }
 
+// a ring champion whose ring is out of the loaded chunks (never a squadmate's: a fixed champion in the squad goes where
+// the squad goes). Only a won ring keeps its champion then (#201, #218): ringGone takes any other ring's with its chunk
+function ringUnloaded(r) { return !!r.ring && !!Game.world && !Game.squad.includes(r) && !World.rings.has(r.ring); }
+// #230: a won ring's champion left glitched holds still while its ring is away (as #201 holds a downed one's clock): its
+// brain off (tick) and its legs stopped, so it's still inside the ropes, where ringTick last held it, when the ring loads
+function ringHeld(r) { return r.state === 'glitched' && ringUnloaded(r); }
+
 function robotTick(r, dt) {
   const T = ROBOT_TYPES[r.type];
   r.t += dt;
@@ -12226,9 +12233,10 @@ function robotTick(r, dt) {
     // the clock holds while someone is fixing it, and (#201) while a ring champion's ring is out of the loaded chunks:
     // a champion beaten and left behind is still down, to fix or salvage, when the player comes back (never a squadmate's:
     // a fixed champion downed in the squad has its rescue clock as any squadmate has)
-    if (!r.repairBy && !(r.ring && Game.world && !Game.squad.includes(r) && !World.rings.has(r.ring))) r.downT -= dt;
+    if (!r.repairBy && !ringUnloaded(r)) r.downT -= dt;
     if (r.downT <= 0) { if (Game.squad.includes(r)) { destroyMate(r, 'time'); return; } reboot(r); }   // (#59: a squadmate nobody rescued is gone)
   }
+  if (ringHeld(r)) { r.input.throttle = r.input.turn = 0; r.input.boost = r.input.attack = false; r.speed = r.turnVel = 0; r.push.set(0, 0, 0); }   // #230
   // a Bouncer mid-hop moves itself along its arc; everything else walks (or flies) like a mech
   if (!T.move?.(r, dt)) {
     const x0 = r.pos.x, z0 = r.pos.z;
@@ -13941,7 +13949,7 @@ function tick(dt) {
   // Robots think at 20 Hz (Family Knockout's bot loop), writing their input.
   // Glitched ones run their type's brain; squadmates their type's squad job (each built on allyAI).
   for (const r of Game.robots) {
-    if (r.state === 'down' || r.ringWait) continue;   // (#167 slice 3: a ring's champion stands still till its fight starts)
+    if (r.state === 'down' || r.ringWait || ringHeld(r)) continue;   // (#167 slice 3: a ring's champion stands still till its fight starts; #230: and a won one's while its ring is away)
     r.ai.think -= dt;
     if (r.ai.think <= 0) { const T = ROBOT_TYPES[r.type]; r.ai.think = 0.05; r.ai.alert = Math.max(0, (r.ai.alert || 0) - 0.05); if (r.state === 'ally') T.ally(r, 0.05); else if (!(Game.world && World.leave(r))) T.ai(r, 0.05); }   // (#217: out of a tower first)
   }
