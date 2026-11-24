@@ -15,6 +15,8 @@
 //            * the people: not robots (never in the robots, props or obstacles); they turn to a mech near them and wave,
 //              step out of its way and walk home after;
 //            * no world robot starts, or roams to, inside a tower; no hidden part, and no repair kit (#191), inside one;
+//            * #217: a roaming robot (a Bouncer, a Charger) aimed through a tower from its door never steps in; one put
+//              inside walks out of its door and stays out;
 //            * #208: on the most sloped tower's block, the ground inside is its floor and a mech driven in stands on it,
 //              level with its people; every tower spot out to 40 chunks (ring- and cave-side ones too) level inside,
 //              and every ring's floor still flat;
@@ -22,6 +24,11 @@
 //              tower and 9.8 m on a 12 m one, with no wall circle outside the tower; the biggest world robot (the
 //              Knight, 7.8 m across) fits through it; and a mech driven straight in 2 m off the door's middle, on held
 //              keys, goes in on every size of tower without touching the wall;
+//            * #217: a Charger and a Bouncer inside a tower that notice a player behind its back wall come out of its
+//              door rather than push on the wall;
+//            * #217 with #208's door widths: on a 12 m tower (9.8 m door) wayOut sends a robot straight out only when
+//              its body clears the real doorway; a Bouncer and a Charger put beside the door by a side wall come out
+//              through it and stay out, never touching the doorway's corner wall circles;
 //            * the storage keys the same, nothing new in the record.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
@@ -291,6 +298,34 @@ async function runLogic(C) {
   ok(`no repair kit (#191) is put inside a tower (${r.kitsSeen} kits looked at in the cities)`, r.kitsSeen > 0 && r.kits.length === 0, { kits: r.kits.slice(0, 3), kitsSeen: r.kitsSeen });
   ok('a minute of play in the city: no roaming robot inside a tower', r.inPlay === 0, r);
 
+  // ---- #217: a roaming robot doesn't wander in through a door, and one inside comes back out. Placed, not left to chance:
+  // the nearest tower, player 1 60 m behind it (past every robot's notice, its chunk still loaded), the other robots
+  // cleared; a Bouncer (the one seen stuck) and a Charger each roaming with its waypoint straight through the tower from
+  // just outside its door (20 s: never inside), then each put by the back wall heading for a spot behind it (out within 30 s
+  // and staying out)
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0], half = t.w / 2, nx = t.door.nx, nz = t.door.nz;
+    const at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), behind = at(-(half + 8)), me = at(-(half + 60));
+    pose(me.x, me.z, nx, nz); R.step(2); const p0 = { x: m0().pos.x, z: m0().pos.z };
+    const res = { key: t.key, walk: [], out: [] };
+    // (held each step: world robots from chunks that load after the pose cleared again, and player 1's health kept full,
+    // as a robot that comes out may go for it and leave it too battered for the drive-in checks after; how far player 1
+    // has moved is reported, and a walk-in robot that came for player 1 fails as that, not as a robot stepping in)
+    const hold = () => { calm(); m0().health = m0().maxHealth || 100; return Math.hypot(m0().pos.x - p0.x, m0().pos.z - p0.z); };
+    const put = (type, p) => { const s = R.spawn(type, p.x + 30, p.z + 30); const q = G.robots.find((o) => o.id === s.id); q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'roam'; q.ai.alert = 0; q.ai.wp = { ...behind }; q.ai.wpT = 1e9; q.home = { ...behind }; return q; };
+    const away = (q) => { q.pos.x += 5000; };
+    for (const type of ['bouncer', 'charger']) {
+      let q = put(type, at(half + 3)), inside = 0, minB = Infinity, moved = 0, engagedT = 0;
+      for (let k = 0; k < 240; k++) { R.step(5); moved = Math.max(moved, hold()); if (q.ai.mode !== 'roam') engagedT++; if (W.inTower(q.pos.x, q.pos.z, 0)) inside++; minB = Math.min(minB, (q.pos.x - t.x) * nx + (q.pos.z - t.z) * nz); }
+      res.walk.push({ type, inside, minB: +minB.toFixed(2), mode: q.ai.mode, engagedT, moved: +moved.toFixed(2), loaded: !!real(t.key) }); away(q);
+      q = put(type, at(-(half - 3)));
+      let outAt = null, back = 0;
+      for (let k = 0; k < 420; k++) { R.step(5); hold(); const inT = !!W.inTower(q.pos.x, q.pos.z, 0); if (!inT && outAt == null) outAt = +((k + 1) * 5 / 60).toFixed(1); else if (inT && outAt != null) back++; }
+      res.out.push({ type, outAt, back, mode: q.ai.mode, loaded: !!real(t.key) }); away(q);
+    }
+    return res; })()`);
+  ok(`#217: a roaming Bouncer and Charger aimed straight through a tower from its door never step inside it (${r.walk.map((w) => w.type + ' ' + w.inside + ' samples in').join(', ')})`, r.walk.length === 2 && r.walk.every((w) => w.inside === 0 && w.mode === 'roam' && w.engagedT === 0 && w.loaded), r);
+  ok(`#217: a roaming Bouncer and Charger put inside a tower come out of its door (${r.out.map((w) => w.type + ' at ' + w.outAt + ' s').join(', ')}) and stay out`, r.out.length === 2 && r.out.every((w) => w.outAt != null && w.outAt <= 30 && w.back === 0 && w.loaded), r);
+
   // ---- #208: on a sloped city block the mech stands on the floor the people stand on (no floating, no sinking). The
   // tower with the most slope under it (its hillside before flattening, World.baseH, over its walls) of the cities near
   // the start; the ground the mech walks on (World.h) across its inside against its floor; then a drive in on held keys
@@ -367,6 +402,64 @@ async function runLogic(C) {
     ok(`#208: the biggest world robot (${r.big?.[0]}, ${r.big ? 2 * r.big[1] : '?'} m across) fits through a ${q.w} m tower's door (${q.gap} m)`, !q.none && r.big && q.gap > 2 * r.big[1], { q, big: r.big });
     ok(`#208: a mech driven straight in 2 m off the door's middle gets into a ${q.w} m tower untouched (in after ${q.inAt} ticks, pushed ${q.drift} m sideways)`, !q.none && q.inAt >= 0 && q.inside && q.drift < 0.05, q);
   }
+
+  // ---- #217 (review of d53d014): a robot that notices a player while it's still inside a tower. A Charger (the one the
+  // come-out check twice caught stuck in stalk) and a Bouncer, each put by the back wall of the nearest tower with player 1
+  // 25 m behind that wall (well inside their notice: they engage at once, from inside): each comes out of the door within
+  // 30 s instead of pushing on the back wall towards the player
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0], half = t.w / 2, nx = t.door.nx, nz = t.door.nz;
+    const at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), me = at(-(half + 25));
+    pose(me.x, me.z, nx, nz); R.step(2);
+    const res = { key: t.key, w: t.w, runs: [] };
+    for (const type of ['charger', 'bouncer']) {
+      const p = at(-(half - 3)), s = R.spawn(type, p.x + 30, p.z + 30), q = G.robots.find((o) => o.id === s.id);
+      q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'stalk'; q.ai.t = 0.6; q.ai.alert = 0;
+      let outAt = null, engagedT = 0, minB = Infinity;
+      for (let k = 0; k < 360 && outAt == null; k++) { R.step(5); calm(); const m = m0(); m.health = m.maxHealth || 100; if (q.ai.mode !== 'roam') engagedT++;
+        minB = Math.min(minB, (q.pos.x - t.x) * nx + (q.pos.z - t.z) * nz); if (!W.inTower(q.pos.x, q.pos.z, 0)) outAt = +((k + 1) * 5 / 60).toFixed(1); }
+      const e = loc(t, q.pos.x, q.pos.z);
+      res.runs.push({ type, outAt, engagedT, mode: q.ai.mode, minB: +minB.toFixed(2), end: { a: +e.a.toFixed(2), b: +e.b.toFixed(2) }, loaded: !!real(t.key) }); q.pos.x += 5000;
+    }
+    return res; })()`);
+  ok(`#217: a Charger and a Bouncer that notice a player behind a tower's back wall while inside it come out of its door (${(r.runs || []).map((q) => q.type + ' out at ' + q.outAt + ' s').join(', ')})`, r.runs.length === 2 && r.runs.every((q) => q.outAt != null && q.outAt <= 30 && q.engagedT > 0 && q.loaded && Math.abs(q.end.a) < r.w / 2 + 1), r);
+
+  // ---- #217 with #208's door widths: a 12 m tower's doorway is 9.8 m (World.doorW), not WORLD.inside.door's 11, and the
+  // way out has to use it. (1) The hook: for each world robot kind, across the inside by the door (b from half - 3.9 to
+  // half - 0.5, a out to 5 m less its radius: where an 11 m door would call it lined up), wayOut only sends it straight out
+  // when its body clears the real doorway by 0.5 m (|a| + radius + 0.5 <= doorW / 2); otherwise to the middle first.
+  // (2) In play: a Bouncer and a Charger put beside the door, by the side wall, come out through the doorway within 30 s
+  // and stay out, never touching the doorway's two corner wall circles on the way through (clearance to them, less their
+  // radius, while it is inside and wayOut is steering it; once out it turns back for its roam spot behind the tower, and
+  // may brush the wall outside, which is ordinary roaming)
+  r = await C.ev(String.raw`(() => { ${H} let P = null;
+    for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break; const t = R.worldTowers().find((q) => q.w === 12); if (t) P = { k, key: t.key }; }
+    if (!P) return { none: true };
+    goCity(P.k); calm(); R.step(2); const t = tw(P.key), T = real(P.key), h = t.w / 2, D = t.door.width, ax = -t.door.nz, az = t.door.nx, nx = t.door.nx, nz = t.door.nz;
+    const at = (a, b) => ({ x: t.x + ax * a + nx * b, z: t.z + az * a + nz * b });
+    const RT = R.ROBOT_TYPES || {}, hook = [];
+    for (const type of R.WORLD.robots.types) { const rad = RT[type]?.spec?.radius; if (!(rad > 0) || D / 2 - rad - 0.5 < 0.5) continue;
+      let out = 0, mid = 0, bad = [];
+      for (let b = h - 3.9; b <= h - 0.5 + 1e-6; b += 0.2) for (let a = -(5 - rad); a <= 5 - rad + 1e-6; a += 0.1) {
+        const p = at(a, b); if (!W.inTower(p.x, p.z, 0)) continue; const o = W.wayOut(p.x, p.z, rad); if (!o) continue;
+        if (loc(t, o.x, o.z).b > h) { out++; if (Math.abs(a) + rad + 0.5 > D / 2 + 1e-6) bad.push({ a: +a.toFixed(2), b: +(b - h).toFixed(2) }); } else mid++;
+      }
+      hook.push({ type, rad, out, mid, nBad: bad.length, bad: bad.slice(0, 3) });
+    }
+    const me = at(0, -(h + 60)), behind = at(0, -(h + 8)); pose(me.x, me.z, nx, nz); R.step(2);
+    const walls = W.chunks.get(T.ch.key).obs.filter((o) => o.kind === 'rock' && o.r === WI.wallR && Math.abs(o.x - t.x) <= h + 3 && Math.abs(o.z - t.z) <= h + 3);
+    const corners = walls.filter((o) => { const p = loc(t, o.x, o.z); return Math.abs(p.b - h) < 0.01 && Math.abs(Math.abs(p.a) - (D / 2 + WI.wallR)) < 0.01; }), play = [];
+    for (const type of ['bouncer', 'charger']) for (const side of [-1, 1]) {
+      const s = R.spawn(type, t.x + 30, t.z + 30), q = G.robots.find((o) => o.id === s.id), rad = q.spec.radius, p = at(side * (D / 2 - rad - 0.2), h - 2);
+      q.pos.x = p.x; q.pos.z = p.z; q.ai.mode = 'roam'; q.ai.alert = 0; q.ai.wp = { ...behind }; q.ai.wpT = 1e9; q.home = { ...behind };
+      let outAt = null, back = 0, clear = Infinity, crossA = null, steered = 0;
+      for (let k = 0; k < 420; k++) { R.step(5); calm(); m0().health = m0().maxHealth || 100; const inT = !!W.inTower(q.pos.x, q.pos.z, 0), lp = loc(t, q.pos.x, q.pos.z);
+        if (inT && outAt == null) { steered++; for (const o of corners) clear = Math.min(clear, Math.hypot(q.pos.x - o.x, q.pos.z - o.z) - o.r - rad); }
+        if (!inT && outAt == null) { outAt = +((k + 1) * 5 / 60).toFixed(1); crossA = +lp.a.toFixed(2); } else if (inT && outAt != null) back++; }
+      play.push({ type, side, rad, outAt, crossA, back, clear: +clear.toFixed(3), steered, loaded: !!real(P.key) }); q.pos.x += 5000;
+    }
+    return { key: P.key, w: t.w, D, walls: walls.length, corners: corners.length, hook, play }; })()`);
+  ok(`#217/#208: on a 12 m tower (${r.D} m door) wayOut sends a robot straight out only when its body clears the real doorway (${(r.hook || []).map((q) => q.type + ' ' + q.out + ' out / ' + q.mid + ' to the middle, ' + q.nBad + ' too far over').join('; ')})`, !r.none && r.D === 9.8 && r.hook.length >= 2 && r.hook.every((q) => q.nBad === 0 && q.out > 0 && q.mid > 0), r);
+  ok(`#217/#208: a Bouncer and a Charger beside a 12 m tower's door, by its side wall, come out through the doorway and stay out without touching the doorway's corner wall circles on the way (${(r.play || []).map((q) => q.type + ' out at ' + q.outAt + ' s, ' + q.clear + ' m clear').join('; ')})`, !r.none && r.corners === 2 && r.play.length === 4 && r.play.every((q) => q.outAt != null && q.outAt <= 30 && q.back === 0 && q.loaded && q.steered > 0 && q.clear > 0.05 && Math.abs(q.crossA) + q.rad <= r.D / 2 + 0.05), r);
 
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);
