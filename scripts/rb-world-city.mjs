@@ -36,6 +36,8 @@
 //            * #222: the Copier's saucer never passes through a tower, coming in over one to a player behind it or to a
 //              player inside it (in, scan, print and out); dropSpot's fallback, every spot round the player blocked and a
 //              tower right ahead, is outside every tower;
+//            * #233: dropSpot's last fallback, every try round the player failed and the player inside a 12 m tower off its
+//              door's line, is outside every tower; and so it is, 4 m clear, for a player inside any loaded tower;
 //            * the storage keys the same, nothing new in the record.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
@@ -539,6 +541,29 @@ async function runLogic(C) {
     return res; })()`);
   for (const q of r.runs || []) ok(`#222: the Copier's saucer, player 1 ${q.what === 'behind' ? 'behind a tower from it' : 'inside the tower'}, never passes through a tower (${q.hits} ticks in one; lowest ${q.lowest} m over a roof; phases ${q.phases.join(' > ')})`, q.hits === 0 && q.phases.includes('scan') && q.phases.includes('out') && q.gone && q.lowest < Infinity, { key: r.key, w: r.w, top: r.top, ...q });
   ok(`#222: dropSpot's fallback (every spot round player 1 blocked, a tower ${r.drop?.ahead ? 'right ahead' : 'NOT ahead'}) is outside every tower (${JSON.stringify(r.drop?.s)} in ${r.drop?.inTower})`, r.drop && r.drop.ahead && r.drop.inTower === null, r.drop);
+
+  // ---- #233: dropSpot's last fallback. Every one of its 48 tries made to fail (World.inTower stubbed, for those calls
+  // only: the -4 m check each try makes says "in a tower"), with player 1 at three spots inside a 12 m tower not lined up
+  // with its door (by a side wall, by the other side wall nearer the door, behind the middle): where the old fallback
+  // (wayOut's first stop, 2.5 m inside the door wall) printed the clone inside the tower, the spot it gives is outside
+  // every tower, and clear of them by the 4 m every other try keeps
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const ts = R.worldTowers(), t = ts.find((q) => q.w === 12) || ts[0]; if (!t) return { none: true };
+    const half = t.w / 2, at = (a, b) => ({ x: t.x - t.door.nz * a + t.door.nx * b, z: t.z + t.door.nx * a + t.door.nz * b }), res = { key: t.key, w: t.w, drops: [] };
+    const orig = W.inTower, T = real(t.key);
+    for (const [a, b] of [[half - 2.5, 0], [-(half - 2.5), half - 3], [0, -3]]) {
+      const p = at(a, b); pose(p.x, p.z, t.door.nx, t.door.nz); const m = m0(), inside = orig.call(W, m.pos.x, m.pos.z, 0)?.key ?? null;
+      let s, stubbed = 0; W.inTower = function (x, z, mm = 0) { if (mm === -4) { stubbed++; return T; } return orig.call(this, x, z, mm); };
+      try { s = R.Copier.dropSpot(m); } finally { W.inTower = orig; }
+      res.drops.push({ a: +a.toFixed(1), b: +b.toFixed(1), inside, stubbed, s, inTower: W.inTower(s.x, s.z, 0)?.key ?? null, near: W.inTower(s.x, s.z, -4)?.key ?? null });
+    }
+    res.restored = W.inTower === orig;
+    // and for every loaded tower: the spot that fallback gives for a player inside it (COPIER.out m past its door wall) is
+    // clear of every tower by 4 m
+    res.all = 0; res.bad = []; for (const q of [...W.chunks.values()].flatMap((ch) => ch.towers)) { res.all++; const ob = q.w / 2 + R.COPIER.out, x = q.x + q.nx * ob, z = q.z + q.nz * ob;
+      if (W.inTower(x, z, -4)) res.bad.push({ key: q.key, x: +x.toFixed(1), z: +z.toFixed(1), hit: W.inTower(x, z, -4).key }); }
+    return res; })()`);
+  ok(`#233: dropSpot's last fallback (all 48 tries failed, player 1 inside a ${r.w} m tower off its door's line) is outside every tower (${(r.drops || []).map((q) => JSON.stringify(q.s) + ' in ' + q.inTower).join('; ')}); for each of the ${r.all} loaded towers its spot is 4 m clear of them all (${r.bad?.length} not)`,
+    !r.none && r.restored && r.drops.length === 3 && r.drops.every((q) => q.inside === r.key && q.stubbed === 48 && q.inTower === null && q.near === null) && r.all > 0 && r.bad.length === 0, r);
 
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);

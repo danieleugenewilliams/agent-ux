@@ -2696,9 +2696,10 @@ const NINJA = {
 //           `roof` m over the roof of any tower within its shield's reach (+ 1 m) of its path for the next `ahead` m, climbing
 //           straight up first when one comes up ahead, so it never passes through a tower (and scans a mech inside one
 //           from over its roof)
+//   #233 dropSpot's last fallback, with the mech inside a tower: `out` m out past that tower's door wall, in the street
 const COPIER = {
   wave: { from: 4, every: 2 },
-  arrive: 6, speed: 24, fly: 16, alt: 10.5, scan: 3.5, shield: 3.4, drop: 15, print: 1.2, roof: 9, ahead: 40,
+  arrive: 6, speed: 24, fly: 16, alt: 10.5, scan: 3.5, shield: 3.4, drop: 15, print: 1.2, roof: 9, ahead: 40, out: 6,
   clone: { health: 0.5, dmg: 0.5, push: 0.5, eyes: '#ff2f5b', boot: 1.6,
     keep: 16, gunRange: 0.8, gunRest: 1.3, spread: 0.03, emCool: 5, emRange: 45, railCool: 7, railRange: 90,
     meleeCool: 5, windup: 0.4, rushT: 4, jumpCool: 6, jumpVar: 3 },
@@ -10811,8 +10812,9 @@ const Copier = {
   },
   // where the clone walks out: COPIER.drop m from the mech, ahead of it if that's clear (else round it), inside the meadow.
   // #222: if no spot round it is clear of everything, the first one round it that is only inside the meadow and clear of
-  // the towers (props and robots allowed); failing that, the mech's own spot, or the way out of the tower it's in. Never
-  // inside a tower
+  // the towers (props and robots allowed); failing that, the mech's own spot, or (#233) COPIER.out m out past the door of
+  // the tower it's in (not wayOut's first stop, which is inside the tower when the mech isn't lined up with the door).
+  // Never inside a tower
   dropSpot(p) {
     for (const all of [true, false]) for (let t = 0; t < 24; t++) {
       const a = p.legHeading + (t ? (t % 2 ? 1 : -1) * Math.ceil(t / 2) * 0.35 : 0), x = p.pos.x - Math.sin(a) * COPIER.drop, z = p.pos.z - Math.cos(a) * COPIER.drop;
@@ -10822,8 +10824,8 @@ const Copier = {
       if (all && Game.robots.some((r) => !ROBOT_TYPES[r.type].flies && Math.hypot(r.pos.x - x, r.pos.z - z) < r.spec.radius + MECH.radius + 1)) continue;
       return { x: r3(x), z: r3(z) };
     }
-    const out = Game.world && World.wayOut(p.pos.x, p.pos.z, MECH.radius);
-    return out ? { x: r3(out.x), z: r3(out.z) } : { x: r3(p.pos.x), z: r3(p.pos.z) };
+    const t = Game.world && World.inTower(p.pos.x, p.pos.z, 0), ob = t && t.w / 2 + COPIER.out;
+    return t ? { x: r3(t.x + t.nx * ob), z: r3(t.z + t.nz * ob) } : { x: r3(p.pos.x), z: r3(p.pos.z) };
   },
   // #222: how high it has to be over (x, z) to clear a city tower there (its roof, sign and all), or -Infinity
   roofY(x, z) { const t = Game.world && World.inTower(x, z, -(COPIER.shield + 1)); return t ? t.top + COPIER.roof : -Infinity; },
