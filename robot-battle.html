@@ -3440,8 +3440,12 @@ const Profiles = {
     store.unsaved.delete('facts.' + C.id);   // (#224: gone, so it isn't waiting to save)
     let left = null; try { left = localStorage.getItem('robotbattle.facts.' + C.id); } catch (e) {}
     if (left != null) return { ok: false, why: "this browser wouldn't delete it, so nothing was changed" };
-    if (wasLast || picked) { try { localStorage.removeItem('robotbattle.child'); } catch (e) {} store.unsaved.delete('child'); }
-    else if (store.unsaved.get('child') === C.id) store.unsaved.delete('child');   // (#240: picked while saves failed: not put back by the next write that works)
+    if (wasLast || picked) { try { localStorage.removeItem('robotbattle.child'); } catch (e) {} }
+    // (#240: a waiting 'child' write goes only when it names them, or is the Guest pick made just above for them, so the next
+    // write that works doesn't put them back. A different player's waiting pick is kept even when disk names them as last:
+    // disk is out of date while saves fail, and that player is still here)
+    const waiting = store.unsaved.get('child');
+    if (waiting === C.id || (picked && waiting === GUEST.id)) store.unsaved.delete('child');
     this.sync(this.list().filter((p) => p.id !== C.id)); this.save();
     return { ok: true, id: C.id, name: C.name, wasLast, wasPlaying };
   },

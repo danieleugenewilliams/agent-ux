@@ -403,6 +403,28 @@ const SAVE_240 = String.raw`(() => {
   ok('#240 remove: the next write that works does not save the removed profile as who is playing', child !== JSON.stringify('max'), child);
   R.parent(true, 'sam'); const left = document.getElementById('pSaveWarn')?.textContent.trim() ?? null; R.parent(false);
   ok('#240 remove: nothing is left waiting to save (no warning)', left === null, left);
+  // the last one played on disk is removed while a different player's pick waits: that pick is kept, and saves once a write works
+  const a = R.addProfile('Player A');
+  ok('#240 last played: a made-up profile to remove is made', a?.ok === true, a);
+  R.player(a.id);
+  ok('#240 last played: disk names it as who played last', localStorage.getItem('robotbattle.child') === JSON.stringify(a.id), localStorage.getItem('robotbattle.child'));
+  let resA;
+  fail('QuotaExceededError');
+  try { R.player('sam'); resA = R.Profiles.remove(a.id); } finally { Storage.prototype.setItem = orig; }
+  ok('#240 last played: it is removed as the last one played, not the one picked', resA?.ok === true && resA.wasLast === true && resA.wasPlaying === false, resA);
+  R.Profiles.save();
+  const childA = localStorage.getItem('robotbattle.child');
+  ok("#240 last played: Sam's pick, waiting while saves failed, saves on the next write that works", childA === JSON.stringify('sam'), childA);
+  // the one picked is removed while saves fail: the Guest pick it falls back to is dropped with it (who's playing goes, as before)
+  const b = R.addProfile('Player B');
+  ok('#240 picked: a second made-up profile to remove is made', b?.ok === true, b);
+  let resB;
+  fail('QuotaExceededError');
+  try { R.player(b.id); resB = R.Profiles.remove(b.id); } finally { Storage.prototype.setItem = orig; }
+  ok('#240 picked: it is removed as the one picked', resB?.ok === true && resB.wasLast === false, resB);
+  R.Profiles.save();
+  const childB = localStorage.getItem('robotbattle.child');
+  ok('#240 picked: the next write that works saves neither it nor Guest as who is playing', childB === null, childB);
   return out;
 })()`;
 
