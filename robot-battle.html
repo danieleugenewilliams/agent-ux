@@ -10277,6 +10277,9 @@ function bouncerAI(r, dt) {
   const tgt = nearestFoe(r, true);
   if (!engaged(r, tgt)) { roam(r, dt); return; }
   if (ai.mode !== 'stalk') ai.mode = 'stalk';
+  // #231: a tower in the way (its foe not in it): round it by a corner first, no hop over it, and not in at its door
+  const via = Game.world && World.round(r, tgt);
+  if (via) { steer(r, via.x, via.z, 1); return; }
   const dist = steer(r, tgt.pos.x, tgt.pos.z, 1);
   if (dist < 12) inp.throttle = 0;
   if (ai.t <= 0 && dist < J.reach) { ai.mode = 'crouch'; ai.t = J.crouch; inp.throttle = inp.turn = 0; }
@@ -12762,6 +12765,61 @@ const World = {
     const lined = Math.abs(a) < Math.max(0.5, (t.doorW ?? this.doorW(t.w)) / 2 - rad - 0.5) && b > half - 4;
     const ob = lined ? half + 6 : half - 2.5;
     return { x: t.x + t.nx * ob, z: t.z + t.nz * ob };
+  },
+  // #231: the way round a tower for a robot outside it chasing a foe who isn't in it: when the straight line to the foe
+  // crosses a loaded tower (its walls, their wall circles and the robot's body), a corner of that tower just past its wall
+  // circles, on the shortest way round (corner to corner) of the ones it can head straight for; null when the way is clear (or it's in a tower:
+  // wayOut). A Bouncer heading straight for a player behind a 12 m tower went in at its door, came back out (leave) and in
+  // again, 19 times a minute, and never got round. One whose foe is in the tower still follows them in (#217)
+  round(r, f) {
+    if (!f) return null;
+    const x = r.pos.x, z = r.pos.z, fx = f.pos.x, fz = f.pos.z, rad = r.spec?.radius ?? 2, wr = WORLD.inside.wallR;
+    if (this.inTower(x, z, 0)) return null;
+    // where along (x0, z0) -> (x1, z1) it first comes within H of (cx, cz) on both axes, or null
+    const hit = (x0, z0, x1, z1, cx, cz, H) => {
+      let lo = 0, hi = 1;
+      for (const [p, d, c] of [[x0, x1 - x0, cx], [z0, z1 - z0, cz]]) {
+        if (Math.abs(d) < 1e-9) { if (Math.abs(p - c) >= H) return null; continue; }
+        let u0 = (c - H - p) / d, u1 = (c + H - p) / d; if (u0 > u1) [u0, u1] = [u1, u0];
+        lo = Math.max(lo, u0); hi = Math.min(hi, u1); if (lo > hi) return null;
+      }
+      return lo;
+    };
+    let t = null, tu = Infinity;
+    for (const ch of this.chunks.values()) for (const q of ch.towers) {
+      if (Math.abs(q.x - fx) < q.w / 2 && Math.abs(q.z - fz) < q.w / 2) continue;   // (its foe in there: in after them)
+      const u = hit(x, z, fx, fz, q.x, q.z, q.w / 2 + wr + rad + 0.3); if (u != null && u < tu) { tu = u; t = q; }
+    }
+    if (!t) return null;
+    const half = t.w / 2 + wr, E = half + rad + 1.5, Hb = t.w / 2 + wr + rad + 0.3;
+    // the corners in order round the tower (each one's neighbours are the ones before and after it), and from each the
+    // shortest way on to the foe: straight there when that leg is clear of the tower, otherwise along a side to the next
+    // corner and on from there. (Scoring a corner by its straight line to the foe, through the tower when the foe stood
+    // close behind it, kept a Bouncer circling a front corner for a minute: #238's review)
+    const P = [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([sx, sz]) => ({ x: t.x + sx * E, z: t.z + sz * E }));
+    const ok = P.map((p) => !this.inTower(p.x, p.z, -rad));
+    const toF = P.map((p, i) => ok[i] && hit(p.x, p.z, fx, fz, t.x, t.z, Hb) == null ? Math.hypot(fx - p.x, fz - p.z) : Infinity);
+    const nxt = P.map(() => -1);
+    for (let pass = 0; pass < 3; pass++) for (let i = 0; i < 4; i++) if (ok[i]) for (const j of [(i + 1) % 4, (i + 3) % 4]) {
+      if (!ok[j]) continue;
+      const d = Math.hypot(P[j].x - P[i].x, P[j].z - P[i].z) + toF[j]; if (d < toF[i]) { toF[i] = d; nxt[i] = j; }
+    }
+    // what it can head straight for from here: the square its walls fill, less as far as it is in among the wall circles
+    // (stood in the door's mouth); then the shortest way on from the corner
+    const out = Math.max(Math.abs(x - t.x), Math.abs(z - t.z)) - half, Hs = half + Math.min(rad + 0.3, out - 0.05);
+    let best = -1, bd = Infinity, any = -1, ad = Infinity;
+    for (let i = 0; i < 4; i++) {
+      if (!ok[i] || toF[i] === Infinity) continue;
+      const d = Math.hypot(P[i].x - x, P[i].z - z) + toF[i];
+      if (d < ad) { ad = d; any = i; }
+      if (hit(x, z, P[i].x, P[i].z, t.x, t.z, Hs) == null && d < bd) { bd = d; best = i; }
+    }
+    let i = best >= 0 ? best : any;
+    if (i < 0) return null;
+    // already at that corner: on to where its way goes next (the next corner, or null: straight for the foe as before),
+    // not round and round the corner
+    if (Math.hypot(P[i].x - x, P[i].z - z) < 2.5) { if (nxt[i] < 0) return null; i = nxt[i]; }
+    return { x: P[i].x, z: P[i].z };
   },
 
   // ---- going in: the meadow is put away (its ground, grass, props, kits and hidden parts), the fog drawn in, and the
