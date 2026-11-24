@@ -15,6 +15,8 @@
 //             * Max's records: 1 x 6 (Known, days [d1, today]) and 2 x 3 (Learning, days [today]);
 //             * #224: a save that fails (setItem stubbed to throw a QuotaExceededError: storage full) shows a warning at the top of
 //               the parent view, and it goes once a save works again;
+//             * #240: a backup made while saves fail holds the latest record; storage turned off (SecurityError) gets a warning
+//               that says so; a profile picked while saves fail and then removed isn't saved back as who's playing;
 //             * reading never writes: the saved record, the stage counts, the star total and the backup are the same
 //               before and after opening the grid and the parent view and tapping facts; entries keep their old fields
 //               only; a saved record reloads as it was, with the same progress.
@@ -364,6 +366,46 @@ const SAVE_FULL = String.raw`(() => {
   return out;
 })()`;
 
+// #240: the leftovers from #224, each with setItem stubbed to throw (and put back after, in a finally):
+//   * a backup made while saves fail holds the latest fact record (the one waiting in store.unsaved), not the last that saved;
+//   * storage turned off (a SecurityError, not a quota error) shows a warning that's true for that too ("turned off");
+//   * a profile picked while saves fail, then removed, isn't put back as who's playing by the next write that works
+//     (Profiles.remove's own save of the list is that write).
+const SAVE_240 = String.raw`(() => {
+  ${HELPERS}
+  const orig = Storage.prototype.setItem;
+  const fail = (name) => { Storage.prototype.setItem = function () { throw new DOMException('storage stub', name); }; };
+  // the backup
+  R.player('max'); fast(5, 7); R.Facts.save();
+  const saved = localStorage.getItem('robotbattle.facts.max');
+  let bak, latest;
+  fail('QuotaExceededError');
+  try { fast(5, 7); fast(6, 7); R.Facts.save(); latest = js(R.Facts.rec); bak = R.backup(); } finally { Storage.prototype.setItem = orig; }
+  ok('#240 backup: the latest record really did not save (the stub stopped it)', localStorage.getItem('robotbattle.facts.max') === saved && saved !== latest, null);
+  ok('#240 backup: a backup made while saves fail holds the latest fact record', !!bak && js(bak.data?.['facts.max']) === latest, { inBackup: bak?.data?.['facts.max']?.facts?.['×6,7'] ?? null, latest: JSON.parse(latest).facts['×6,7'] });
+  R.Facts.save();   // (storage back: the record saves and nothing waits)
+  // storage turned off: the warning's words are true for it
+  let w = null;
+  fail('SecurityError');
+  try { fast(5, 8); R.Facts.save(); R.parent(true, 'max'); w = document.getElementById('pSaveWarn')?.textContent.trim() ?? null; R.parent(false); } finally { Storage.prototype.setItem = orig; }
+  ok('#240 turned off: the parent view warns that progress is not saving', !!w && /saving/i.test(w), w);
+  ok('#240 turned off: the warning says storage may be turned off, not only full', !!w && /turned off/i.test(w), w);
+  R.Facts.save();
+  // a profile picked while saves fail, then removed
+  R.player('sam');
+  const was = localStorage.getItem('robotbattle.child');
+  fail('QuotaExceededError');
+  try { R.player('max'); R.player(null); } finally { Storage.prototype.setItem = orig; }
+  ok('#240 remove: picking Max while saves fail left who is playing as it was on disk', localStorage.getItem('robotbattle.child') === was, localStorage.getItem('robotbattle.child'));
+  const res = R.Profiles.remove('max');
+  ok('#240 remove: Max is removed', res?.ok === true, res);
+  const child = localStorage.getItem('robotbattle.child');
+  ok('#240 remove: the next write that works does not save the removed profile as who is playing', child !== JSON.stringify('max'), child);
+  R.parent(true, 'sam'); const left = document.getElementById('pSaveWarn')?.textContent.trim() ?? null; R.parent(false);
+  ok('#240 remove: nothing is left waiting to save (no warning)', left === null, left);
+  return out;
+})()`;
+
 async function runLogic(C) {
   await C.open(1280, 800, false);
   const res = await C.ev(LOGIC);
@@ -388,6 +430,9 @@ async function runLogic(C) {
   // #224: a save that fails because storage is full is noticed: the parent view says progress isn't saving, and stops once a save works
   const full = await C.ev(SAVE_FULL);
   for (const r of full) out.push(r);
+  // #240: the backup holds what's waiting to save; the warning is true when storage is off; a removed profile stays gone
+  const left = await C.ev(SAVE_240);
+  for (const r of left) out.push(r);
   return out;
 }
 
