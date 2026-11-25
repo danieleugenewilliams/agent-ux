@@ -12299,7 +12299,7 @@ function rams() {
   }
 }
 // Keep bodies apart: a light robot gives way to a heavy mech. A Bouncer mid-hop is above
-// it all; a drone keeps its height (lift) as it's nudged. (#236: a roaming robot pushed in through a tower's door is put
+// it all; a drone keeps its height (lift) as it's nudged. (#236: a roaming robot, or any glitched Bouncer, pushed in through a tower's door is put
 // back, as keepOut puts back a step: a Charger beside a roaming Bouncer at a door shoved it inside, past keepOut)
 function separate() {
   const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air && !r.under && !(ROBOT_TYPES[r.type].high && r.lift > SATELLITE.reach)).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own; #123: a satellite up in the sky is over it all; #141: the Centipede underground is under it all)
@@ -12747,9 +12747,10 @@ const World = {
   },
   // #217: robots leave the towers alone. A roaming robot's step that would take it in past a tower's walls (in through its
   // door: the walls stop it anywhere else) is undone, and it picks somewhere else to go. Chasing a player it still follows
-  // them in; once it gives up it comes back out (wayOut)
+  // them in; once it gives up it comes back out (wayOut). (#236, A1: but never a Bouncer, whatever it's doing: one hopping at
+  // the door, knocked over the doorstep as it landed, was inside and stomped the player there)
   keepOut(r, x0, z0) {
-    if (r.state !== 'glitched' || r.ai?.mode !== 'roam' || !this.inTower(r.pos.x, r.pos.z, 0) || this.inTower(x0, z0, 0)) return false;
+    if (r.state !== 'glitched' || (r.ai?.mode !== 'roam' && r.type !== 'bouncer') || !this.inTower(r.pos.x, r.pos.z, 0) || this.inTower(x0, z0, 0)) return false;
     r.pos.x = x0; r.pos.z = z0; r.pos.y = groundH(x0, z0); r.speed = 0;
     r.ai.wp = null; if (r.swarm != null && Game.swarms[r.swarm]) Game.swarms[r.swarm].wp = null;
     return true;
