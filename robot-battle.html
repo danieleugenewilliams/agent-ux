@@ -7649,12 +7649,13 @@ class CamRig {
     const g = groundH(c.position.x, c.position.z) + 1.5; if (c.position.y < g) c.position.y = g;
     const look = new V3(this.target.x - Math.sin(yaw) * 10, this.target.y + Math.tan(m.aimPitch) * 10 + CAM_FAR.look * F, this.target.z - Math.cos(yaw) * 10);
     if (Game.world) {   // #167 slice 5: on the world's slopes: lifted at once as far as it needs, let down again gently
+      // #167 slice 6: in a cave the camera is kept under the roof (so the roof stays solid, and no open sky shows in the dark),
+      // coming on by how far in the mech is alone, over WORLD.dark.under m: nothing switches as the camera crosses the door or a wall
+      const cv = World.inCave(m.pos.x, m.pos.z), low = cv ? cv.y - 1 + WORLD.cave.roof - 0.6 : 0;
+      if (cv && c.position.y > low) c.position.y = Math.max(lerp(c.position.y, low, wSmooth(clamp(World.depthAt(m.pos.x, m.pos.z) * (WORLD.cave.back - MECH.radius) / WORLD.dark.under, 0, 1))), Math.min(c.position.y, groundH(c.position.x, c.position.z) + 1.5));
       const dy = camSlope(c.position, this.target, look);
       this.slope = dy >= (this.slope || 0) || snapped ? dy : lerp(this.slope, dy, 1 - Math.exp(-3 * dt));
       c.position.y += this.slope;
-      // #167 slice 6: in a cave, kept under the roof (so it stays solid, and no open sky shows in the dark)
-      const cv = World.inCave(m.pos.x, m.pos.z) && World.inCave(c.position.x, c.position.z);
-      if (cv) c.position.y = Math.min(c.position.y, cv.y - 1 + WORLD.cave.roof - 0.6);
     }
     if (this.shake > 0.001) {
       const s = this.shake * this.shake * 0.35, t = this.t * 40;
@@ -12542,8 +12543,9 @@ const WORLD = {
   //   lamp:      the two lamps on the front of the torso (its own frame); the light comes from `high` m over and `rear` m
   //              behind them, so it lights the mech too and stays wide on a near wall; ahead: the beam meets the ground that far out (m) with the aim
   //              level, and goes up and down with it; fall: how fast the light falls off (0: evenly lit
-  //              to the edge of its reach, so neither the mech nor a near wall is dazzling)
-  dark: { sun: 0.04, sky: 0.3, air: 0.015, far: 70, on: 0.3, reach: [60, 34], wide: [1.05, 0.82], beam: [8.5, 6.5], soft: 0.6, fall: 0, lamp: [0.95, 0.75, -1.75], high: 3, rear: 7, ahead: 16 },
+  //              to the edge of its reach, so neither the mech nor a near wall is dazzling);
+  //              under: the camera is all the way under the roof with the mech this far in (m)
+  dark: { sun: 0.04, sky: 0.3, air: 0.015, far: 70, on: 0.3, reach: [60, 34], wide: [1.05, 0.82], beam: [8.5, 6.5], soft: 0.6, fall: 0, lamp: [0.95, 0.75, -1.75], high: 3, rear: 7, under: 12, ahead: 16 },
   // #167 slice 2 (Q2: "robot toughness and bosses scale with distance"; the boys' "the farther out you go in the world the
   // harder it gets", and their drawing 3: a small building, a bigger one with a few robots, then a huge satellite boss linked
   // to a crowd of robots). Every number here is a starting value, tuned at the playtest. Distance from the start stands in

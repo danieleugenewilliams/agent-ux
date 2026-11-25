@@ -18,9 +18,12 @@
 //   touch  - at 844 x 390, 740 x 360 and 667 x 375 with touch, deep in a cave: at most 4 touch buttons, no scroll, every one
 //            on screen, and what's ahead still lit.
 //
+//   camera - at 1280 x 800, 820 x 1180 (upright) and 844 x 390, aim level and down: driven in and out, and turned round inside,
+//            the camera never jumps from one frame to the next; well inside the roof is solid.
+//
 // Usage:
-//   node scripts/rb-world-cave.mjs                     # ./robot-battle.html: logic, then touch
-//   node scripts/rb-world-cave.mjs --logic             # the logic run only
+//   node scripts/rb-world-cave.mjs                     # ./robot-battle.html: logic, camera, then touch
+//   node scripts/rb-world-cave.mjs --logic             # the logic run only (--camera: the camera run only)
 //   node scripts/rb-world-cave.mjs path/or/url.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
@@ -31,13 +34,14 @@ import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
-let target = null, json = false, logicOnly = false;
+let target = null, json = false, logicOnly = false, camOnly = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--json') json = true;
   else if (args[i] === '--logic') logicOnly = true;
+  else if (args[i] === '--camera') camOnly = true;
   else target = args[i];
 }
-const runs = logicOnly ? ['logic'] : ['logic', 'touch'];
+const runs = camOnly ? ['camera'] : logicOnly ? ['logic'] : ['logic', 'camera', 'touch'];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 target ||= path.join(repo, 'robot-battle.html');
 const url = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve(target)).href;
@@ -245,6 +249,34 @@ async function runLogic(C) {
   return out;
 }
 
+// the camera, frame by frame: driven in and out with the key held, and turned right round at three depths (#246's review: it
+// jumped as the limit that keeps it under the roof went on and off). The most its height, and its place, moves in one frame.
+async function runCam(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name: 'camera: ' + name, pass: !!pass, got: pass && !json ? undefined : got }); return !!pass; };
+  for (const [w, h, touch] of [[1280, 800, false], [820, 1180, true], [844, 390, true]]) {
+    await C.ev(`localStorage.clear()`).catch(() => {});
+    await C.open(w, h, touch);
+    await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); })()`);
+    for (const pitch of [0, -0.35]) {
+      const r = await C.ev(String.raw`(() => { ${H} const c = cave(), m = m0(), rig = G.humans[0].rig, pitch = ${pitch}, depth = () => W.depthAt(m.pos.x, m.pos.z);
+        // a frame of the game's own camera, without drawing it (drawing thousands takes minutes here), the footfalls' shake off
+        const frame = () => { rig.shake = 0; rig.rec = 0; rig.update(1 / 60, m); };
+        const track = () => { let last = null; const q = { dy: 0, d3: 0, n: 0, at: 0 }; return { q, see: () => { frame(); const p = rig.cam.position.clone(); if (last) { const dy = Math.abs(p.y - last.y), d3 = p.distanceTo(last); if (dy > q.dy) { q.dy = dy; q.at = W.depthAt(m.pos.x, m.pos.z); } q.d3 = Math.max(q.d3, d3); } last = p; q.n++; } }; };
+        const settle = () => { m.aimPitch = pitch; for (let i = 0; i < 90; i++) { R.step(1); calm(); m.aimPitch = pitch; frame(); } };
+        const drive = (out) => { stand(c, out ? 0.97 : -0.8, out); settle(); const t = track(), ends = [depth()]; R.hold('KeyW', true);
+          for (let i = 0; i < 800; i++) { out ? head(c.x * 3 - c.bx * 2, c.z * 3 - c.bz * 2) : head(c.bx * 3 - c.x * 2, c.bz * 3 - c.z * 2); m.aimPitch = pitch; R.step(1); calm(); t.see(); if (out && Math.hypot(m.pos.x - c.bx, m.pos.z - c.bz) > 45) break; }
+          R.hold('KeyW', false); ends.push(depth()); return { ...t.q, ends }; };
+        const turn = (u) => { stand(c, u); settle(); const t = track(), a0 = m.torsoYaw; for (let i = 0; i < 240; i++) { R.step(1); calm(); m.torsoYaw = m.input.aimYaw = a0 + (i + 1) / 240 * Math.PI * 2; m.aimPitch = pitch; t.see(); } return t.q; };
+        return { far: rig.far, inn: drive(false), out: drive(true), turns: [0.2, 0.5, 0.86].map(turn) }; })()`);
+      const all = [r.inn, r.out, ...r.turns], top = Math.max(...all.map((q) => q.dy)), f = (v) => v.toFixed(2);
+      ok(`${w}x${h}${r.far > 0.9 ? ' upright' : ''}, aim ${pitch}: no jump driving in (${f(r.inn.dy)} m in a frame), out (${f(r.out.dy)}) or turning round inside (${r.turns.map((q) => f(q.dy)).join(', ')})`, top < 0.35 && all.every((q) => q.d3 < 0.9) && all.every((q) => q.n > 100) && r.inn.ends[0] === 0 && r.inn.ends[1] > 0.95 && r.out.ends[0] > 0.9 && r.out.ends[1] === 0 && (w !== 820 || r.far > 0.9), r);
+      const roof = await C.ev(String.raw`(() => { ${H} const c = cave(), m = m0(), cv = () => [...W.chunks.values()].flatMap((ch) => ch.caves).find((q) => Math.hypot(q.c.x - c.x, q.c.z - c.z) < 1); return [0.6, 0.97].flatMap((u) => [false, true].map((b) => { stand(c, u, b); m.aimPitch = ${pitch}; for (let i = 0; i < 90; i++) { R.step(1); calm(); m.aimPitch = ${pitch}; G.humans[0].rig.update(1 / 60, m); } R.render(); return cv().parts[3].material.transparent; })); })()`);
+      ok(`${w}x${h}, aim ${pitch}: well inside, facing in or out, the roof is solid`, roof.every((t) => !t), roof);
+    }
+  }
+  return out;
+}
+
 async function runTouch(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name: 'touch: ' + name, pass: !!pass, got: pass && !json ? undefined : got }); return !!pass; };
   for (const [w, h] of [[844, 390], [740, 360], [667, 375]]) {
@@ -268,7 +300,7 @@ async function main() {
     const S = launch(); const t0 = Date.now();
     try {
       const C = await connect(S);
-      const res = run === 'logic' ? await runLogic(C) : await runTouch(C);
+      const res = run === 'logic' ? await runLogic(C) : run === 'camera' ? await runCam(C) : await runTouch(C);
       if (C.errs.length) res.push({ name: run + ': no page errors', pass: false, got: C.errs.slice(0, 10) });
       else res.push({ name: run + ': no page errors', pass: true });
       all.push(...res);
