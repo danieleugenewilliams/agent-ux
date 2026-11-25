@@ -272,6 +272,10 @@ const RUNS = {
     f.send = () => {}; f.got(JSON.stringify({ t: 'hi', g: 'ww', v: 1, world: 'x', av: { icon: 'fox', color: '#ffffff' } })); await sleep(300); r = await A.st();
     ok('a friend in another game: refused calmly, the room left', r.net === 'off' && !r.peer && /different world/.test(r.msg) && r.calm, r);
     f.gone();
+    for (const [nm, hi] of [['Robot Battle with another world seed', { g: 'rb', v: 1, seed: 1 }], ['another game with the same seed', { g: 'ww', v: 1, seed: await A.ev('window.__rb.WORLD.seed') }], ['a newer page', { g: 'rb', v: 99, seed: await A.ev('window.__rb.WORLD.seed') }]]) {
+      await A.js(`T.host(); return 1;`); await sleep(300); const q = fake(); Rooms.join(q, (await A.st()).code); q.got(JSON.stringify({ t: 'hi', world: 'x', av: { icon: 'sun', color: '#ffffff' }, ...hi })); await sleep(300); r = await A.st(); q.gone();
+      ok(`${nm}: refused calmly too`, r.net === 'off' && !r.peer && /different world/.test(r.msg) && r.calm, r);
+    }
     Rooms.misses = { t: Date.now(), n: MISS_MAX }; for (const n of code) await B.js(`T.joinPage(); return 1;`); for (const n of code) await B.js(`T.tapKey(${n}); return 1;`); await sleep(300); r = await B.st(); Rooms.misses = { t: 0, n: 0 };
     ok('a busy server: said so', r.net === 'off' && /busy/.test(r.msg), r);
     await A.js(`T.close(); return 1;`); await B.js(`T.close(); return 1;`);
