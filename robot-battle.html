@@ -17259,14 +17259,14 @@ const r2 = (v) => Math.round(v * 100) / 100;
 
 const Two = {
   on: false, page: 'off', entry: [], msg: '', calm: false, peer: null, quiet: false, cur: 0, pulseT: 0, closeT: 0, toastT: 0,
-  met: false,            // (this room) the joiner has been put beside the host
+  met: false,            // this page was in the room first, or has been put beside the one that was
   mates: new Map(),      // the friend's squadmates, only drawn here: their id -> robot (in no list of the game's)
   dirty: false, stopped: false, wants: new Map(),
   // ---- the panel ----
   may() { return !!(Game.world && Game.pilot); },
   open() {
     if (!this.may()) return false;
-    this.on = true; this.msg = ''; this.calm = false; this.cur = 0;
+    this.on = true; this.msg = ''; this.calm = false; this.cur = 1; this.keyed = false;
     if (Net.state === 'off' || Net.state === 'dropped') this.page = 'off';
     if (!Net.available() && Net.state === 'off') { this.msg = TWO_WHY; this.calm = true; }
     this.draw(); return true;
@@ -17308,7 +17308,7 @@ const Two = {
     else if ((e.code === 'Enter' || e.code === 'Space') && !e.repeat) this.press();
   },
   btns() { return [...$('twPanel').querySelectorAll('button')]; },
-  step(d) { const n = this.btns().length; if (n) { this.cur = (this.cur + d + n) % n; this.draw(); } },
+  step(d) { const n = this.btns().length; this.keyed = true; if (n) { this.cur = (this.cur + d + n) % n; this.draw(); } },
   press() { const b = this.btns()[this.cur]; if (b) this.act(b.dataset.a, +b.dataset.i); },
   pad(p) {
     if (!p) return;
@@ -17329,7 +17329,7 @@ const Two = {
       : P === 'together' ? `<div class="tw-with">${this.peer ? this.face(this.peer.av) : ''}<span>Playing together!</span></div>${msg}<div class="tw-row">${b('leave', 'leave', 'LEAVE', 'slim')}</div>`
       : `<div class="tw-row">${b('host', 'host', 'HOST')}${b('join', 'join', 'JOIN', 'join')}</div>${msg}`;
     $('twPanel').innerHTML = `<div class="tw-head"><h2>${icon('two')}<span>2 players</span></h2><button class="tw-x" data-a="x" aria-label="${P === 'join' ? 'Back' : 'Close'}">${icon('cross')}</button></div>${body}`;
-    const L = this.btns(); this.cur = Math.min(this.cur, Math.max(0, L.length - 1)); if (Input.padSeen?.() || this.keyed) L[this.cur]?.classList.add('cur');
+    const L = this.btns(); this.cur = Math.min(this.cur, Math.max(0, L.length - 1)); if (this.keyed || padConnected()) L[this.cur]?.classList.add('cur');
   },
   toast(a, b2, av) {
     const el = $('twToast'); clearTimeout(this.toastT);
@@ -17384,7 +17384,7 @@ const Two = {
     const first = !P.hi; P.hi = true; P.av = this.cleanAv(m.av);
     if (first) {
       this.makeMech(twN(m.x), twN(m.z));
-      if (Net.you === 1 && !this.met) this.beside(twN(m.x), twN(m.z));
+      if (!this.met) this.beside(twN(m.x), twN(m.z));
       this.met = true;
       this.toast('Your friend is here!', 'Find their face, or follow the arrow.', P.av);
     }
@@ -17410,7 +17410,7 @@ const Two = {
     const P = this.peer; if (P.m) return;
     const m = newMech(x, z, 0);
     Object.assign(m, { peer: true, fx: shapeFx('walker'), upg: {}, adv: {}, feet: { thud: 0, land: 0, roll: 0, air: 0 }, onFootfall() {}, onLand() {} });
-    m.model = buildMech(); scene.add(m.model.root);
+    m.model = buildMech({ ...PAINT, armour: P.av.color }); scene.add(m.model.root);
     const ic = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, map: iconTex('sleep') }));
     ic.scale.set(2.4, 2.4, 1); ic.visible = false; ic.renderOrder = 7; m.model.root.add(ic); m.model.icon = ic;
     const av = P.av;
@@ -17498,7 +17498,7 @@ const Two = {
     P.paused = m.p === 1; b.away = P.paused;
     b.state = twN(m.d) > 0 ? 'down' : 'up'; b.downT = twN(m.d);
     P.hop = twN(m.j, 0, 0, 60);
-    b.swing = Array.isArray(m.w) && typeof m.w[0] === 'string' && Object.hasOwn(WEAPON, m.w[0]) && WEAPON[m.w[0]].swing ? Object.assign(b.swing || {}, { w: m.w[0], t: twN(m.w[1], 0, 0, 5), hit: true }) : null;
+    b.swing = Array.isArray(m.w) && typeof m.w[0] === 'string' && Object.hasOwn(WEAPON, m.w[0]) && WEAPON[m.w[0]].dur ? Object.assign(b.swing || {}, { w: m.w[0], t: twN(m.w[1], 0, 0, 5), hit: true }) : null;
     b.charge = null; b.shield = 0;
     if (Array.isArray(m.s)) for (const s of m.s.slice(0, TWO.shots)) this.ghost(s);
     if (Array.isArray(m.r)) for (const a of m.r.slice(0, TWO.robots)) if (Array.isArray(a) && twId(a[0])) { const r = P.robots.get(a[0]); if (r) this.take(r, a.slice(1), now); }
@@ -17789,7 +17789,7 @@ const Two = {
       mates: [...this.mates.values()].map((r) => ({ type: r.type, x: r3(r.pos.x), z: r3(r.pos.z), name: r.name, state: r.state })), mechs: Game.mechs.length };
   },
 };
-Net.on('room', (m) => { Two.met = m.you === 0 ? Two.met : false; if (Net.state === 'together') Two.together(); else { Two.page = 'wait'; Two.draw(); } });
+Net.on('room', (m) => { Two.met = !(m.peers > 1); if (Net.state === 'together') Two.together(); else { Two.page = 'wait'; Two.draw(); } });
 Net.on('peer-join', () => Two.together());
 Net.on('peer-left', () => Two.parted('left'));
 Net.on('lost', (m) => { const was = m.was; Two.parted(was === 'together' ? 'lost' : 'off'); if (was !== 'together') { Two.msg = 'The game server stopped.'; Two.calm = false; Two.draw(); } });
