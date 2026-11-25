@@ -4968,7 +4968,7 @@ const Meadow = {
   time: { value: 0 },
   build() {
     this.sky = makeSky();
-    scene.add(new THREE.HemisphereLight('#dff1ff', '#5d8a3a', 1.25));
+    const hemi = new THREE.HemisphereLight('#dff1ff', '#5d8a3a', 1.25); scene.add(hemi); this.hemi = hemi;   // (#167 slice 6: kept, so a cave can darken it)
     const sun = new THREE.DirectionalLight('#fff3d6', 2.6);
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
     const sc = sun.shadow.camera; sc.left = -40; sc.right = 40; sc.top = 40; sc.bottom = -40; sc.near = 1; sc.far = 160;
@@ -7649,6 +7649,10 @@ class CamRig {
     const g = groundH(c.position.x, c.position.z) + 1.5; if (c.position.y < g) c.position.y = g;
     const look = new V3(this.target.x - Math.sin(yaw) * 10, this.target.y + Math.tan(m.aimPitch) * 10 + CAM_FAR.look * F, this.target.z - Math.cos(yaw) * 10);
     if (Game.world) {   // #167 slice 5: on the world's slopes: lifted at once as far as it needs, let down again gently
+      // #167 slice 6: in a cave the camera is kept under the roof (so the roof stays solid, and no open sky shows in the dark),
+      // coming on by how far in the mech is alone, over WORLD.dark.under m: nothing switches as the camera crosses the door or a wall
+      const cv = World.inCave(m.pos.x, m.pos.z), low = cv ? cv.y - 1 + WORLD.cave.roof - 0.6 : 0;
+      if (cv && c.position.y > low) c.position.y = Math.max(lerp(c.position.y, low, wSmooth(clamp(World.depthAt(m.pos.x, m.pos.z) * (WORLD.cave.back - MECH.radius) / WORLD.dark.under, 0, 1))), Math.min(c.position.y, groundH(c.position.x, c.position.z) + 1.5));
       const dy = camSlope(c.position, this.target, look);
       this.slope = dy >= (this.slope || 0) || snapped ? dy : lerp(this.slope, dy, 1 - Math.exp(-3 * dt));
       c.position.y += this.slope;
@@ -12528,6 +12532,20 @@ const WORLD = {
   partsFar: { every: 4, most: 3, rareFrom: 6, rare: 0.05, rareMax: 0.5, kinds: ['ram', 'scope', 'rotor', 'spring', 'jetboots', 'solar'] },
   city: { block: 48, street: 14 },
   cave: { chance: 0.75, hw: 7, back: 28, roof: 12, wall: 6, top: 18, flat: 30, blend: 8 },
+  // #167 slice 6 (the boys' "the farther you go the darker it gets"; Q7: "the mech gets headlights so the boys can still see
+  // deep in, with the light shrinking as it gets darker"): depth 0 at a cave's door to 1 as far back as a mech gets, by how
+  // far in player 1's mech is (World.depthAt). At the deepest:
+  //   sun / sky / air: how much is left of the sun, of the light from the sky, and of the sky's and the haze's own colours
+  //   far:       where the haze is thick (m; at the door it's the world's own, fog[1])
+  //   on:        the headlights are full on by this depth (from off at the door, as the dark comes)
+  //   reach / wide / beam: the headlights' reach (m), half-width (rad) and strength: all shrink as it gets darker, never to
+  //              nothing [at the door, deepest]
+  //   lamp:      the two lamps on the front of the torso (its own frame); the light comes from `high` m over and `rear` m
+  //              behind them, so it lights the mech too and stays wide on a near wall; ahead: the beam meets the ground that far out (m) with the aim
+  //              level, and goes up and down with it; fall: how fast the light falls off (0: evenly lit
+  //              to the edge of its reach, so neither the mech nor a near wall is dazzling);
+  //              under: the camera is all the way under the roof with the mech this far in (m)
+  dark: { sun: 0.04, sky: 0.3, air: 0.015, far: 70, on: 0.3, reach: [60, 34], wide: [1.05, 0.82], beam: [8.5, 6.5], soft: 0.6, fall: 0, lamp: [0.95, 0.75, -1.75], high: 3, rear: 7, under: 12, ahead: 16 },
   // #167 slice 2 (Q2: "robot toughness and bosses scale with distance"; the boys' "the farther out you go in the world the
   // harder it gets", and their drawing 3: a small building, a bigger one with a few robots, then a huge satellite boss linked
   // to a crowd of robots). Every number here is a starting value, tuned at the playtest. Distance from the start stands in
@@ -12702,6 +12720,8 @@ const World = {
     this.caves.set(key, c); return c;
   },
   caveAt(x, z) { return this.cave(Math.floor(x / WORLD.chunk), Math.floor(z / WORLD.chunk)); },
+  // #167 slice 6: how deep in a cave (x, z) is: 0 at its door and anywhere out of one, 1 as far back as a mech gets
+  depthAt(x, z) { const c = this.inCave(x, z); return c ? clamp(-this.local(c, x, z)[1] / (WORLD.cave.back - MECH.radius), 0, 1) : 0; },
   local(c, x, z) { const dx = x - c.x, dz = z - c.z; return [dx * c.cs - dz * c.sn, dx * c.sn + dz * c.cs]; },
   toWorld(c, lx, lz) { return [c.x + lx * c.cs + lz * c.sn, c.z - lx * c.sn + lz * c.cs]; },
   inCave(x, z, m = 0) { const c = this.caveAt(x, z); if (!c) return null; const [lx, lz] = this.local(c, x, z); return Math.abs(lx) < WORLD.cave.hw - m && lz > -WORLD.cave.back + m && lz < 0.5 ? c : null; },
@@ -12897,6 +12917,7 @@ const World = {
     this.lvl = 0; this.copied.clear();   // (#194: the Copier's levels: this run's)
     for (const q of Hidden.list) scene.remove(q.g); Hidden.list.length = 0;
     scene.fog.near = WORLD.fog[0]; scene.fog.far = WORLD.fog[1];
+    this.darkMake();   // #167 slice 6
     this.update(true);
     for (const m of Game.mechs) m.pos.y = groundH(m.pos.x, m.pos.z);
     for (const r of Game.robots) r.pos.y = groundH(r.pos.x, r.pos.z) + (r.lift || 0);
@@ -13320,7 +13341,7 @@ const World = {
       inside: t.inside, ghost: t.mesh.material !== M.towers[t.m], innerShown: !!t.inner.visible, panelShown: !!t.doorPanel.visible,
       people: t.people.map((q) => ({ key: q.key, x: r3(q.x), z: r3(q.z), home: { x: r3(q.home.x), z: r3(q.home.z) }, wave: r3(q.wave), face: r3(q.face), shown: !!q.g.visible })) };
   },
-  // a cave: rock walls each side and at the back, a roof over the hall; normally lit (the dark is a later slice)
+  // a cave: rock walls each side and at the back, a roof over the hall (how dark it is inside: darkSync)
   addCave(ch, c) {
     const K = WORLD.cave, G = this.G, M = this.M, g = new THREE.Group(), y = c.y - 1;
     g.position.set(c.x, y, c.z); g.rotation.y = c.ry;
@@ -13513,8 +13534,8 @@ const World = {
     this.summitTick(dt);   // #167 slice 5
     this.peopleTick(dt);   // #167 slice 4
   },
-  // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through, and a cave's roof
-  // while a mech is inside its hall
+  // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through; a mech inside a cave's
+  // hall, only the walls or roof in the way
   sync() {
     const h = Game.humans[0]; if (!h) return;
     const c = h.rig.cam.position, p = h.mech.pos, M = this.M; if (!M) return;
@@ -13533,10 +13554,62 @@ const World = {
       }
       for (const cv of ch.caves) {
         const inside = Game.humans.some((q) => this.inCave(q.mech.pos.x, q.mech.pos.z) === cv.c);
-        const ghost = inside || cuts(cv.c.mx, cv.c.mz, cv.W + 2);
-        for (const m of cv.parts) m.material = ghost ? M.caveGhost : M.caveRock;
+        // (#167 slice 6: a mech inside: only the walls (or the roof, with the rock on it) in the camera's way; the rest stay
+        // solid, so the headlights have walls to shine on and the open air doesn't show through)
+        const ghost = !inside && cuts(cv.c.mx, cv.c.mz, cv.W + 2), hide = inside ? cv.parts.slice(0, 4).map((m) => this.inWay(cv.c, m, c, p)) : null;
+        cv.parts.forEach((m, i) => { m.material = ghost || hide?.[Math.min(i, 3)] ? M.caveGhost : M.caveRock; });
       }
     }
+    this.darkSync();   // #167 slice 6
+  },
+  // ---- #167 slice 6: the dark in the caves, and the headlights (WORLD.dark). It's player 1's view that darkens (the daylight,
+  // the sky and the haze together), by how deep in a cave the mech is, so nothing is kept and walking out is full daylight
+  // again. The headlights' light is in the scene for the whole world run, at 0 out of a cave: a light coming and going would
+  // rebuild every material at the cave's door ----
+  darkMake() {
+    if (this.DK) return;
+    const D = WORLD.dark, U = Meadow.sky.material.uniforms, lamp = () => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 3, 2.4), toneMapped: false, fog: false }));
+      m.visible = false; scene.add(m); return m;
+    };
+    const beam = new THREE.SpotLight('#fff0cc', 0, D.reach[0], D.wide[0], D.soft, D.fall);
+    scene.add(beam, beam.target);
+    this.DK = { beam, lamps: [lamp(), lamp()], hemi: Meadow.hemi.intensity, sun: Meadow.sun.intensity, fog: scene.fog.color.clone(), sky: ['top', 'mid', 'bot'].map((k) => [U[k].value, U[k].value.clone()]), depth: 0, v: new THREE.Vector3() };
+  },
+  // is cave c's box m (a wall, or its roof) on the way from the camera (a) to over the mech (at b), or round the camera?
+  inWay(c, m, a, b) {
+    const [ax, az] = this.local(c, a.x, a.z), [bx, bz] = this.local(c, b.x, b.z), A = [ax, a.y - (c.y - 1), az], B = [bx, b.y + 6.2 - (c.y - 1), bz];
+    const O = m.position.toArray(), S = m.scale.toArray(); let t0 = 0, t1 = 1;
+    for (let i = 0; i < 3; i++) {
+      const lo = O[i] - S[i] / 2 - 0.25, hi = O[i] + S[i] / 2 + 0.25, d = B[i] - A[i];
+      if (Math.abs(d) < 1e-6) { if (A[i] < lo || A[i] > hi) return false; continue; }
+      const u = (lo - A[i]) / d, v = (hi - A[i]) / d; t0 = Math.max(t0, Math.min(u, v)); t1 = Math.min(t1, Math.max(u, v));
+    }
+    return t0 <= t1;
+  },
+  darkSync() {
+    const K = this.DK, D = WORLD.dark, m = Game.humans[0]?.mech; if (!K || !m) return;
+    const d = K.depth = this.depthAt(m.pos.x, m.pos.z), mix = ([a, b]) => lerp(a, b, d);
+    // the daylight goes by the same share each metre in, so each step in is darker than the last
+    const air = Math.pow(D.air, d);
+    Meadow.hemi.intensity = K.hemi * Math.pow(D.sky, d); Meadow.sun.intensity = K.sun * Math.pow(D.sun, d);
+    scene.fog.color.copy(K.fog).multiplyScalar(air); scene.fog.far = mix([WORLD.fog[1], D.far]);
+    for (const [c, c0] of K.sky) c.copy(c0).multiplyScalar(air);
+    const T = m.model?.torso, on = T && d > 0 ? wSmooth(clamp(d / D.on, 0, 1)) * Math.max(0.4, m.glow ?? 1) : 0;   // (a mech that's down: dimmed, not out)
+    K.beam.intensity = mix(D.beam) * on; K.beam.distance = mix(D.reach); K.beam.angle = mix(D.wide);
+    for (const l of K.lamps) l.visible = on > 0.05;
+    if (!on) return;
+    T.updateWorldMatrix(true, false);
+    const [lx, ly, lz] = D.lamp;
+    K.lamps.forEach((l, i) => l.position.copy(T.localToWorld(K.v.set(i ? lx : -lx, ly, lz))));
+    K.beam.position.copy(T.localToWorld(K.v.set(0, ly + D.high, lz + D.rear)));
+    K.beam.target.position.set(m.pos.x - Math.sin(m.torsoYaw) * D.ahead, m.pos.y + 1.2 + Math.tan(m.aimPitch || 0) * D.ahead, m.pos.z - Math.cos(m.torsoYaw) * D.ahead);
+    K.beam.target.updateMatrixWorld();
+  },
+  darkState() {
+    const K = this.DK; if (!K) return null;
+    return { depth: r3(K.depth), hemi: Meadow.hemi.intensity, sun: Meadow.sun.intensity, fog: '#' + scene.fog.color.getHexString(), far: scene.fog.far, sky: K.sky.map(([c]) => '#' + c.getHexString()),
+      beam: r3(K.beam.intensity), reach: r3(K.beam.distance), wide: r3(K.beam.angle), lamps: K.lamps.filter((l) => l.visible).length };
   },
   // ---- #167 slice 3: boxing / battle rings (WORLD.rings). A ring chunk has no roaming robot (robotsFor): its champion
   // stands in for it. #200: a ring won stays won: for the run (anyone, Guest too), and for a saved child after a reload too
@@ -13756,6 +13829,7 @@ const World = {
       inTower: p ? this.inTower(p.x, p.z, -WORLD.inside.ghost)?.key ?? null : null,
       geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, place: p ? this.place(p.x, p.z) : null, at: p ? { x: r3(p.x), z: r3(p.z) } : null,
       fog: [scene.fog.near, scene.fog.far], meadow: !!Meadow.ground?.parent,
+      dark: this.darkState(),   // #167 slice 6: player 1's depth in a cave, the daylight left, the headlights
       // #167 slice 2: player 1's level and its toughness; the boss groups out
       level: p ? this.level(p.x, p.z) : null, tough: p ? r3(this.tough(this.level(p.x, p.z)) * Waves.health()) : null,
       bosses: [...this.live.entries()].filter(([, l]) => l.boss).map(([key, l]) => ({ key, type: l.boss, n: l.length, ids: l.map((r) => r.id) })),
@@ -17403,6 +17477,8 @@ window.__rb = {
   worldRings(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const g = World.ringAt(cx, cz); if (g) out.push({ cx, cz, x: r3(g.x), z: r3(g.z), level: g.level, pay: g.pay.slice() }); } return out; },   // #167 slice 3
   // #167 slice 5: the summits (World.summitAt) in a square of chunks out to rad m: [{ cx, cz, x, z, y, place, level }]
   worldSummits(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const t = World.summitAt(cx, cz); if (t) out.push({ cx, cz, x: t.x, z: t.z, y: r3(t.y), place: t.place, level: t.level }); } return out; },
+  // #167 slice 6: the caves (World.cave) in a square of chunks out to rad m: [{ cx, cz, x, z (the door), bx, bz (as far back as a mech gets) }]
+  worldCaves(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) { const c = World.cave(cx, cz); if (c) { const [bx, bz] = World.toWorld(c, 0, -(WORLD.cave.back - MECH.radius)); out.push({ cx, cz, x: r3(c.x), z: r3(c.z), bx: r3(bx), bz: r3(bz) }); } } return out; },
   // #197: the parts each chunk has on the ground (World.partsAt) in a square of chunks out to rad m: [{ cx, cz, level, base, extra, n, chance }]
   worldParts(rad) { const C = WORLD.chunk, n = Math.ceil(rad / C), out = []; for (let cx = -n; cx < n; cx++) for (let cz = -n; cz < n; cz++) out.push({ cx, cz, ...World.partsAt(cx, cz) }); return out; },
   // #191: the kits each chunk has (World.kitsAt) in a square of chunks out to rad m: [{ cx, cz, n, level, chance }]
