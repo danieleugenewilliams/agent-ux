@@ -5206,7 +5206,7 @@ const Props = {
   },
   smash(p, w, dx, dz) {
     p.broken = true; p.by = w; p.hp = 0;
-    if (Game.world && p.wkey) World.smashed(p.wkey);   // #198: a world prop: kept in a saved child's record, never back
+    if (Game.world && p.wkey) { if (Two.quiet) World.broken.add(p.wkey); else { World.smashed(p.wkey); Two.did('smash', { k: p.wkey, x: r2(dx), z: r2(dz) }); } }   // #198: a world prop: kept in a saved child's record, never back
     for (const o of p.obs) { const i = obstacles.indexOf(o); if (i >= 0) obstacles.splice(i, 1); }
     const L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L, y = groundH(p.x, p.z), at = new V3(p.x, y + 1.2, p.z), k = loud(at);
     if (p.kind === 'tree') {
@@ -8395,6 +8395,7 @@ const Bullets = {
     // (#123: a round from a robot a satellite links hits harder: linkHit)
     this.list.push({ p: from.clone(), v: dir.clone().multiplyScalar(spd), d: 0, owner, kind, foe, spd, range: range ?? W.range, dmg: (dmg ?? W.dmg) * linkHit(owner), look: WEAPON[kind] ? kind : foe ? 'foe' : 'ally' });
     if (owner?.human) owner.lastShot = { kind, from: [r3(from.x), r3(from.y), r3(from.z)], speed: spd, range: range ?? W.range, tick: Game.ticks };   // (#42: for the hooks)
+    Two.shot(kind, from, dir, owner, spd, range ?? W.range);
     if (this.list.length > this.pool.length) this.list.shift();
   },
   tick(dt) {
@@ -8411,7 +8412,8 @@ const Bullets = {
       seg.subVectors(b.p, p0);
       if (b.kind === 'em' && Game.ticks % 2 === 0) Sparks.burst(b.p.x, b.p.y, b.p.z, 2, SPARK_ZAP, 3);   // the pulse crackles as it flies
       let hit = null, best = 2, at = null;
-      if (b.foe) {
+      if (b.ghost) { /* the friend's: only to see */ }
+      else if (b.foe) {
         for (const m of Game.mechs) {
           if (m.state === 'down') continue;            // a powered-down mech is left alone
           const t = sweep(m.pos.x, m.pos.y + MECH_HIT.y, m.pos.z, MECH_HIT.r, best);
@@ -8437,7 +8439,7 @@ const Bullets = {
       const land = this.landing(p0, seg);
       if (land) {
         // a player's round wears down the tree, rock or fence it lands in (Props)
-        if (land.o && b.owner?.human) Props.hit(land.o.prop, b.dmg, b.kind, b.v.x, b.v.z);
+        if (land.o && b.owner?.human && !b.ghost) Props.hit(land.o.prop, b.dmg, b.kind, b.v.x, b.v.z);
         if (b.kind === 'em') { Sparks.burst(land.p.x, land.p.y + 0.3, land.p.z, 14, SPARK_ZAP, 5); Impacts.flash(land.p, 1.2); }   // a pulse fizzles out
         else Impacts.at(land.kind, land.p, b.v);
         this.list.splice(k, 1); continue;
@@ -8699,6 +8701,7 @@ const RailFx = {
     }
   },
   fire(a, b) {
+    Two.shot('railfx', a, b);
     const q = this.list.find((x) => x.t >= this.life) || this.list[0], d = new V3().subVectors(b, a), len = d.length();
     q.t = 0; q.g.position.copy(a); q.g.quaternion.setFromUnitVectors(UP, d.normalize()); q.len = len;
     // a crackle of sparks every few metres along the trace
@@ -8938,6 +8941,7 @@ function hitRobot(r, dmg, w, dx, dz, at, pushK) {
 // r.harm: the damage it has taken since it last booted, by weapon (sets its faults when it goes down)
 function hurtRobot(r, amount, w) {
   if (r.state === 'down') return false;
+  if (r.net) { Two.hitPuppet(r, amount, w); return true; }   // #167 slice 7: the friend's page runs it
   if (r.under) { centNote(r).immune++; return false; }   // #141 (Q2 A): nor hurt
   if (r.state === 'ally') { hurtMech(r, amount, w); return true; }   // #59: a squadmate takes it in its damage areas
   const dealt = Math.min(Math.max(0, amount), r.health);
@@ -8951,6 +8955,7 @@ function hurtRobot(r, amount, w) {
 // ROBOT.shockMax a glitched robot's electronics cut out and it powers down mostly intact.
 function shockRobot(r, amount) {
   if (r.state !== 'glitched' || r.under) return false;   // (#141: nor shocked underground)
+  if (r.net) { Two.hitPuppet(r, 0, 'em', amount); return true; }   // #167 slice 7
   r.shock = Math.min(ROBOT.shockMax, r.shock + amount * (ROBOT_TYPES[r.type].shockK ?? 1));   // (#122: a Knight's is a fraction)
   if (r.shock < ROBOT.shockMax) return false;
   powerDown(r, 'em');
@@ -8974,6 +8979,7 @@ function shotMech(m, b, at) {
 // down too (mateDown). Only a running squadmate ('ally') can be hurt here.
 function hurtMech(m, amount, how = 'hit') {
   if (m.state === 'down' || (m.type && m.state !== 'ally')) return 0;
+  if (m.peer) return Two.hurtPeer(m, amount, how);       // #167 slice 7: the friend's page takes it off their energy
   if (m.type) amount *= linkTake(m);                      // #123: a squadmate linked by your satellite: its shield
   // G4 shield emitter: the bubble takes the hit whole while it has hits left (ADV.shield a wave), then it's gone till the next wave
   if (m.shield > 0 && amount > 0) {
@@ -9928,6 +9934,8 @@ function nearestPlayer(r) {
     if (h.mech.state === 'down') continue;      // a powered-down mech isn't a target
     const d = Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z); if (d < bd) { bd = d; best = h.mech; }
   }
+  // #167 slice 7: or the friend's (not while their page is paused)
+  const f = Two.peer?.m; if (f && f.state !== 'down' && !f.away && flatDist(f, r) < bd) best = f;
   return best;
 }
 // #59: what a glitched robot goes for: the nearest running player's mech or running squadmate. A Charger or a Bouncer
@@ -11419,6 +11427,7 @@ const Axes = {
     const x = r.pos.x + dx * off, z = r.pos.z + dz * off;
     const a = { id: this.nextId++, by: r.id, dx, dz, x, z, y: groundH(x, z) + K.y, went: 0, spin: 0, md: null, k: linkHit(r) };   // (#123: k: × a satellite's link as it left the hand)
     a.md = buildAxe(ROBOT_TYPES.knight.paint); scene.add(a.md);
+    Two.shot('axe', r.pos, new V3(dx, 0, dz), r);
     this.list.push(a);
     return a;
   },
@@ -11436,7 +11445,7 @@ const Axes = {
       const step = K.speed * dt, x1 = a.x + a.dx * step, z1 = a.z + a.dz * step;
       // the first body along this tick's segment (nearest the start), its feet under the axe's top
       let best = null, bt = Infinity;
-      for (const b of [...Game.mechs, ...Game.squad]) {
+      for (const b of a.ghost ? [] : [...Game.mechs, ...Game.squad]) {
         if (!kickable(b) || this.feet(b) >= K.h) continue;
         const px = b.pos.x - a.x, pz = b.pos.z - a.z, t = clamp(px * a.dx + pz * a.dz, 0, step), qx = a.x + a.dx * t - b.pos.x, qz = a.z + a.dz * t - b.pos.z;
         if (Math.hypot(qx, qz) <= bodyR(b) + K.r && t < bt) { bt = t; best = b; }
@@ -11607,15 +11616,7 @@ const Satellites = {
 function powerDown(r, how) {
   r.state = 'down'; r.downT = ROBOT_TYPES[r.type].downTime ?? ROBOT.downTime; r.downs++; r.ai.mode = 'off'; r.ai.aimT = 0;   // (#122: a Knight's longer)
   r.beatenBy = how === 'em' ? 'em' : r.lastHitBy ?? null;
-  r.faults = faultsOf(r, how === 'em');
-  // P3-1: from wave 1 the wave sets the board (fixPlan): its math wires, none burnt (a burnt wire is 🔥's charred
-  // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
-  // (#122: a Knight's board is bigger, bossPlan: from any wave, wave 0 too)
-  const fw = fixWave(), P = ROBOT_TYPES[r.type].boss ? bossPlan(fw, r.beatenBy, r.type) : fw >= 1 ? fixPlan(fw, r.beatenBy) : null;   // (#141: the boss's own)
-  // #193: in the endless world a roaming robot's facts follow the level it came out at (World.band); the board stays wave 1's
-  const band = P && Game.world && !ROBOT_TYPES[r.type].boss ? World.band(r.wlevel || World.level(r.pos.x, r.pos.z)) : P?.band;
-  r.board = P && { wave: fw, band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
-  r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
+  dealBoard(r, how === 'em');
   r.shock = 0;
   r.input.throttle = r.input.turn = 0; r.input.boost = false;
   r.dash = null;                                         // #120: beaten mid-dash: it stops where it is
@@ -11631,6 +11632,18 @@ function powerDown(r, how) {
   const k = loud(r.pos);
   if (how === 'em') { Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 50, SPARK_ZAP, 9); if (k > 0) Sfx.emDown(k); }
   else { Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 40, SPARK_HOT, 10); if (k > 0) Sfx.powerDown(k); }
+}
+// a downed robot's faults and its board (#167 slice 7: dealt afresh for a robot the friend's page handed over)
+function dealBoard(r, em) {
+  r.faults = faultsOf(r, em);
+  // P3-1: from wave 1 the wave sets the board (fixPlan): its math wires, none burnt (a burnt wire is 🔥's charred
+  // segment instead); the puzzles are dealt when the fix first opens. Wave 0 keeps the fault-driven board.
+  // (#122: a Knight's board is bigger, bossPlan: from any wave, wave 0 too)
+  const fw = fixWave(), P = ROBOT_TYPES[r.type].boss ? bossPlan(fw, r.beatenBy, r.type) : fw >= 1 ? fixPlan(fw, r.beatenBy) : null;   // (#141: the boss's own)
+  // #193: in the endless world a roaming robot's facts follow the level it came out at (World.band); the board stays wave 1's
+  const band = P && Game.world && !ROBOT_TYPES[r.type].boss ? World.band(r.wlevel || World.level(r.pos.x, r.pos.z)) : P?.band;
+  r.board = P && { wave: fw, band, math: P.math, n: P.puzzles.length, target: P.target, burnt: r.faults.burnt, em: r.beatenBy === 'em', sizes: { ...P.sizes }, puzzles: null, boss: !!P.boss };
+  r.wires = P ? makeWires(P.math, 0) : makeWires(r.faults.wires, r.faults.burnt);
 }
 // The faults a downed robot leaves, from how it was beaten (FAULTS): wires to connect and burnt plugs
 function faultsOf(r, em) {
@@ -11901,6 +11914,7 @@ function chooseFor(h, r, choice, name, picks) {
   if (r.state !== 'down') return { ok: false, why: 'not down' };
   if (flatDist(r, h.mech) > REPAIR.promptRange) return { ok: false, why: 'too far' };
   if (r.repairBy && r.repairBy !== h) return { ok: false, why: 'busy' };
+  if (r.net) return Two.want(h, r, choice, name, picks);   // #167 slice 7: asked of the friend's page
   if (choice === 'parts') {
     if (ROBOT_TYPES[r.type].noParts) return { ok: false, why: 'no parts' };   // #121: a clone drops no part
     if (picks !== undefined) return takeParts(h, r, picks);
@@ -12170,6 +12184,7 @@ function fixRobot(h, r) {
   Game.fixes.push(Game.lastFix);
   if (B) Facts.addFix(Game.lastFix.ms);                  // #48: a ramp fix's time, in the child's record (wave 0 writes nothing)
   if (Game.squad.includes(r)) { rescueMate(r); if (h.idx === 0) FixUI.close(); return; }   // #59: a rescued squadmate
+  Two.fixed(r);
   World.beat(r);                                         // #198: a world robot fixed: gone for good, saved (before Squad.sync)
   if (ROBOT_TYPES[r.type].vanish) { cloneFixed(h, r); return; }                           // #121: a clone vanishes
   if (ROBOT_TYPES[r.type].boss) { bossFixed(h, r); return; }                              // #122: the Knight: its part and trophy
@@ -12229,6 +12244,7 @@ function takeParts(h, r, picks) {
   if (new Set(picks).size !== picks.length) return { ok: false, why: 'same part twice' };
   if (!picks.every((id) => r.parts.includes(id))) return { ok: false, why: 'not on this robot' };
   if (r.repairBy) cancelRepair(r.repairBy);
+  Two.fixed(r);
   if (!Game.squad.includes(r)) World.beat(r);            // #198: a world robot taken apart: gone for good, saved
   for (const id of picks) { Game.bag[id] = (Game.bag[id] || 0) + 1; Garage.collect(id, r.type); }
   // a part that `unlocks` a weapon (the Sniper's 🔭 scope: the rail gun) makes it selectable
@@ -12334,6 +12350,7 @@ function ringUnloaded(r) { return !!r.ring && !!Game.world && !Game.squad.includ
 function ringHeld(r) { return r.state === 'glitched' && ringUnloaded(r); }
 
 function robotTick(r, dt) {
+  if (r.net) { Two.puppetTick(r, dt); return; }          // #167 slice 7
   const T = ROBOT_TYPES[r.type];
   r.t += dt;
   if (r.state === 'down') {
@@ -12376,8 +12393,8 @@ function robotTick(r, dt) {
 // pushed apart, with a reach past that separation distance. (#59: a squadmate on the ground gets rammed too.)
 function rams() {
   for (const r of Game.robots) {
-    if (r.state !== 'glitched' || r.ai.mode !== 'charge' || r.speed < 5) continue;
-    for (const m of [...Game.humans.map((h) => h.mech), ...Game.squad]) {
+    if (r.state !== 'glitched' || r.net || r.ai.mode !== 'charge' || r.speed < 5) continue;
+    for (const m of [...Game.mechs, ...Game.squad]) {
       if (m.type && (m.state !== 'ally' || m.air || ROBOT_TYPES[m.type].flies)) continue;
       const dx = m.pos.x - r.pos.x, dz = m.pos.z - r.pos.z, d = Math.hypot(dx, dz) || 1;
       if (m.state === 'down' || d > (m.type ? m.spec.radius : MECH.radius) + r.spec.radius + 0.6) continue;
@@ -12397,7 +12414,7 @@ function rams() {
 // it all; a drone keeps its height (lift) as it's nudged. (#236: a roaming robot, or any glitched Bouncer, pushed in through a tower's door is put
 // back, as keepOut puts back a step: a Charger beside a roaming Bouncer at a door shoved it inside, past keepOut)
 function separate() {
-  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air && !r.under && !(ROBOT_TYPES[r.type].high && r.lift > SATELLITE.reach)).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own; #123: a satellite up in the sky is over it all; #141: the Centipede underground is under it all)
+  const bodies = [...Game.mechs.map((m) => [m, MECH.radius, m.peer ? 1e-4 : 0.2]), ...Game.robots.filter((r) => !r.air && !r.under && !(ROBOT_TYPES[r.type].high && r.lift > SATELLITE.reach)).map((r) => [r, r.spec.radius, r.net ? 1e-4 : ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own; #123: a satellite up in the sky is over it all; #141: the Centipede underground is under it all)
   const was = Game.world ? bodies.map(([B]) => [B.pos.x, B.pos.z]) : null;
   for (let a = 0; a < bodies.length; a++) for (let b = a + 1; b < bodies.length; b++) {
     const [A, ra, wa] = bodies[a], [B, rb, wb] = bodies[b];
@@ -12448,7 +12465,7 @@ const Kits = {
   },
   // a beaten robot drops its kit beside it, on its right
   // (#191: in the endless world it mends by the level the robot came out at, as a chunk's kit there does)
-  drop(r) {
+  drop(r, quiet = false) {
     const h = r.legHeading, k = this.add(r.pos.x + Math.cos(h) * 4, r.pos.z - Math.sin(h) * 4, 'robot');
     if (Game.world) {
       k.level = r.wlevel || World.level(r.pos.x, r.pos.z); k.mend = Math.round(HEAL.kit * World.tough(k.level));
@@ -12460,6 +12477,7 @@ const Kits = {
       if (!ch) for (const c of World.chunks.values()) { const d = Math.max(Math.abs(c.cx - cx), Math.abs(c.cz - cz)); if (d < bd) { bd = d; ch = c; } }
       if (ch) (ch.drops ||= []).push(k);
     }
+    if (Two.peer && !quiet) { k.nid = `${Net.you}:${k.id}`; Two.did('kit', { n: k.nid, x: r2(k.x), z: r2(k.z), l: k.level || 1 }); }
     return k;
   },
   // player h walks onto a kit: mend it and use the kit up. Returns what it mended
@@ -12469,6 +12487,7 @@ const Kits = {
     const k = this.list.find((q) => Math.hypot(q.x - m.pos.x, q.z - m.pos.z) < HEAL.kitReach); if (!k) return 0;
     const got = healMech(m, k.mend ?? HEAL.kit, 'kit');   // (#191: a world kit's own mend; the meadow's HEAL.kit)
     this.list.splice(this.list.indexOf(k), 1); scene.remove(k.g);
+    if (k.nid || k.wkey) Two.did('kitgone', { n: k.nid || null, k: k.wkey || null });
     Sparks.burst(k.x, groundH(k.x, k.z) + 1.2, k.z, 40, SPARK_MEND, 8);
     if (!Game.manual) Sfx.kit();
     return got;
@@ -12533,7 +12552,7 @@ const Hidden = {
     const m = h.mech; if (m.state === 'down') return null;
     const q = this.list.find((k) => !k.found && Math.hypot(k.x - m.pos.x, k.z - m.pos.z) < HIDDEN.reach); if (!q) return null;
     q.found = true; q.foundBy = h.idx; scene.remove(q.g);
-    if (q.wkey) World.take(q.wkey);   // #189: a world part: kept in the record (Garage.collect saves it), never back
+    if (q.wkey) { World.take(q.wkey); Two.did('part', { k: q.wkey }); }   // #189: a world part: kept in the record (Garage.collect saves it), never back
     Game.bag[q.part] = (Game.bag[q.part] || 0) + 1; Garage.collect(q.part, 'meadow');
     if (h.idx === 0) updateHud.partPop = (updateHud.partPop || []).concat(q.part);   // +1 and its icon drop out of the 🔩 count
     const y = groundH(q.x, q.z) + 1;
@@ -13441,13 +13460,13 @@ const World = {
     const RW = WORLD.robots, C = WORLD.chunk, R = wRng(wHash(ch.cx, ch.cz, 303)), key = ch.key + ':r', B = this.bossAt(ch.cx, ch.cz);
     // (#194: the pick is drawn as before, and mapped over the types the spot's level has (robotTypes) once the spot is found)
     const roll = R(), pick = R(), may = !B && this.crewMay(ch.cx, ch.cz);
-    if ((!B && roll >= RW.chance) || ch.ring || this.gone.has(key) || this.live.has(key) || this.live.size >= RW.cap || !Game.humans[0]) return;
+    if ((!B && roll >= RW.chance) || ch.ring || this.gone.has(key) || this.live.has(key) || Game.robots.some((r) => r.net && r.wkey === key) || this.live.size >= RW.cap || !Game.humans[0]) return;
     if (B && [...this.live.values()].filter((l) => l.boss).length >= WORLD.harder.boss.cap) return;
     const room = B ? WORLD.harder.boss.clear : may ? RW.crewRoom : 4;
     let at = null;
     for (let t = 0; t < 10 && !at; t++) {
       const x = ch.cx * C + 10 + R() * (C - 20), z = ch.cz * C + 10 + R() * (C - 20);
-      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4 - (B || may ? room : 0)) || this.inTower(x, z, -4 - (B ? room + WORLD.harder.boss.escorts.ring : may ? room : 0)) || Game.humans.some((h) => Math.hypot(h.mech.pos.x - x, h.mech.pos.z - z) < 45)) continue;
+      if (Math.hypot(x, z) < RW.away || this.inCave(x, z, -4 - (B || may ? room : 0)) || this.inTower(x, z, -4 - (B ? room + WORLD.harder.boss.escorts.ring : may ? room : 0)) || Game.mechs.some((m) => Math.hypot(m.pos.x - x, m.pos.z - z) < 45)) continue;
       if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + room)) continue;
       at = [x, z];
     }
@@ -13512,17 +13531,18 @@ const World = {
   sweep() {
     const far = (WORLD.keep + 0.5) * WORLD.chunk;
     for (const [key, list] of this.live) {
-      const left = list.filter((r) => Game.robots.includes(r) && r.state !== 'ally' && !Game.squad.includes(r));
+      const left = list.filter((r) => Game.robots.includes(r) && !r.net && r.state !== 'ally' && !Game.squad.includes(r));
       if (!left.length) { this.gone.add(key); this.live.delete(key); continue; }
       if (left.every((r) => r.state === 'glitched' && !r.repairBy && Game.humans.every((h) => Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z) > far))) {
-        for (const r of left) removeRobot(r);
-        const sw = list[0].swarm; if (sw != null && !Game.robots.some((r) => r.swarm === sw)) delete Game.swarms[sw];
-        if (left.length < list.length) this.gone.add(key);   // (some of it beaten: what's left doesn't come back whole)
+        const some = left.length < list.length;
+        for (const r of left) if (!Two.hand(r)) removeRobot(r);   // (#167 slice 7: near the friend, it's theirs now)
+        const sw = left[0].swarm; if (sw != null && !Game.robots.some((r) => r.swarm === sw)) delete Game.swarms[sw];
+        if (some) this.gone.add(key);   // (some of it beaten: what's left doesn't come back whole)
         this.live.delete(key);
       }
     }
     // #194: a Copier's clone left glitched far behind goes too, as a roaming robot does (it isn't a chunk's: it never comes back)
-    for (const r of Game.robots.filter((q) => q.clone && !q.wkey && q.state === 'glitched' && !q.repairBy)) if (Game.humans.every((h) => Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z) > far)) removeRobot(r);
+    for (const r of Game.robots.filter((q) => q.clone && !q.net && !q.wkey && q.state === 'glitched' && !q.repairBy)) if (Game.humans.every((h) => Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z) > far) && !Two.hand(r)) removeRobot(r);
   },
   // #189: whoever is playing's saved world parts (worldTaken of their record) as a set, made again when the list changes
   savedSet() {
@@ -13751,6 +13771,7 @@ const World = {
   // it stands still) till someone steps in or hits it. Far tougher than the ring's level's roaming robots (WORLD.rings.tough)
   ringChamp(ring) {
     if (ring.champ || !Game.humans[0]) return;
+    const f = Game.robots.find((q) => q.net && q.ring === ring.g.key); if (f) { ring.champ = f; return; }   // #167 slice 7: the friend's page has it
     const G = WORLD.rings, g = ring.g, r = spawn(G.type, g.x, g.z); if (!r) return;
     r.health = r.maxHealth = Math.round(r.maxHealth * G.tough * this.tough(g.level) * Waves.health());
     r.home = { x: g.x, z: g.z }; r.wkey = g.key + ':ring'; r.wlevel = g.level; r.ring = g.key; r.ringWait = true;
@@ -13787,7 +13808,7 @@ const World = {
       const g = ring.g, r = ring.champ, there = !!r && Game.robots.includes(r);
       ring.t += dt; Beacon.show(ring, ring.state !== 'won', ring.t);
       if (ring.state === 'wait' && there && (r.downs > 0 || r.health < r.maxHealth || r.shock > 0
-        || Game.humans.some((h) => h.mech.state !== 'down' && this.inRing(g, h.mech.pos.x, h.mech.pos.z)))) this.ringFight(ring);
+        || Game.mechs.some((m) => m.state !== 'down' && this.inRing(g, m.pos.x, m.pos.z)))) this.ringFight(ring);
       if (ring.state === 'fight' && r && r.downs > 0) this.ringWin(ring);
       // the champion can't leave the ring while it's up (its body inside the ropes)
       if (there && r.state === 'glitched') {
@@ -13803,7 +13824,7 @@ const World = {
   // ring keeps its champion whatever state it's in, and ringFor picks it up again (held inside the ropes, as ever)
   ringGone(ch) {
     const ring = ch.ring; if (!ring) return;
-    const r = ring.champ; if (r && Game.robots.includes(r) && r.state !== 'ally' && ring.state !== 'won') removeRobot(r);
+    const r = ring.champ; if (r && Game.robots.includes(r) && r.state !== 'ally' && ring.state !== 'won' && !r.net && !Two.hand(r)) removeRobot(r);
     ring.mark.material.dispose();
     this.rings.delete(ring.g.key);
   },
@@ -13874,7 +13895,7 @@ const World = {
     }
   },
   summitUp(sm) {
-    const s = sm.s; sm.up = true; this.summitsUp.add(s.key); this.summitLook(sm);
+    const s = sm.s; sm.up = true; this.summitsUp.add(s.key); this.summitLook(sm); Two.did('summit', { k: s.key });
     for (let k = 0; k < 5; k++) Sparks.burst(s.x + (Math.random() - 0.5) * 8, s.y + 2 + Math.random() * 5, s.z + (Math.random() - 0.5) * 8, 22, SPARK_GLINT, 6);
     Impacts.flash(new V3(s.x, s.y + 5, s.z), 5);
     if (!Game.manual) Sfx.summit();
@@ -14218,7 +14239,7 @@ function tick(dt) {
   // Robots think at 20 Hz (Family Knockout's bot loop), writing their input.
   // Glitched ones run their type's brain; squadmates their type's squad job (each built on allyAI).
   for (const r of Game.robots) {
-    if (r.state === 'down' || r.ringWait || ringHeld(r)) continue;   // (#167 slice 3: a ring's champion stands still till its fight starts; #230: and a won one's while its ring is away)
+    if (r.net || r.state === 'down' || r.ringWait || ringHeld(r)) continue;   // (#167 slice 3: a ring's champion stands still till its fight starts; #230: and a won one's while its ring is away)
     r.ai.think -= dt;
     if (r.ai.think <= 0) { const T = ROBOT_TYPES[r.type]; r.ai.think = 0.05; r.ai.alert = Math.max(0, (r.ai.alert || 0) - 0.05); if (r.state === 'ally') T.ally(r, 0.05); else if (!(Game.world && World.leave(r))) T.ai(r, 0.05); }   // (#217: out of a tower first)
   }
@@ -17335,8 +17356,9 @@ const Two = {
     const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear();
     if (P) {
       // every glitched or beaten robot of the friend's that's here is this page's now; their mech and their squad go
-      for (const r of [...P.robots.values()]) this.adopt(r, P);
+      for (const r of [...P.robots.values()]) this.adopt(r, P, true);
       for (const r of Game.robots) r.nid = null;
+      for (const k of Kits.list) k.nid = null;
       for (const r of this.mates.values()) freeModel(r.model);
       this.mates.clear();
       if (P.m) { const i = Game.mechs.indexOf(P.m); if (i >= 0) Game.mechs.splice(i, 1); this.freeMech(P.m); }
@@ -17534,7 +17556,7 @@ const Two = {
     },
     kit(o) {
       if (!twId(o.n) || Kits.list.some((k) => k.nid === o.n)) return;
-      const k = Kits.drop({ pos: { x: twN(o.x), z: twN(o.z) }, legHeading: 0, wlevel: twN(o.l, 1, 1, 500) | 0 }, true); k.nid = o.n;
+      const k = Kits.drop({ pos: { x: twN(o.x) - 4, z: twN(o.z) }, legHeading: 0, wlevel: twN(o.l, 1, 1, 500) | 0 }, true); k.nid = o.n;
     },
     kitgone(o) {
       const k = Kits.list.find((c) => (twId(o.n) && c.nid === o.n) || (twKey(o.k) && c.wkey === o.k)); if (!k) return;
@@ -17658,11 +17680,14 @@ const Two = {
     for (const [k, r] of this.mates) if (!keep.has(k)) { freeModel(r.model); this.mates.delete(k); }
   },
   // a puppet goes from this page (out of the friend's sight of it, or fixed)
-  drop(r) { this.peer?.robots.delete(r.nid); this.away(r); },
+  drop(r) {
+    this.peer?.robots.delete(r.nid); this.away(r);
+    const g = World.rings.get(r.ring); if (g && g.state !== 'won' && !g.champ) World.ringChamp(g);   // (its fight starts again, as when a chunk comes back)
+  },
   away(r) {
     const by = Game.humans.find((h) => h.repair?.r === r); if (by) cancelRepair(by);
     r.net = null; removeRobot(r);
-    for (const g of World.rings.values()) if (g.champ === r) { g.champ = null; if (g.state !== 'won' && World.chunks.has(g.ch.key) && !Game.robots.some((q) => q.ring === g.g.key)) World.ringChamp(g); }
+    for (const g of World.rings.values()) if (g.champ === r) g.champ = null;
   },
   // its key out of World.live without marking it gone
   unlist(r) { const L = World.live.get(r.wkey); if (!L) return; const i = L.indexOf(r); if (i >= 0) L.splice(i, 1); if (!L.length) World.live.delete(r.wkey); },
@@ -17682,15 +17707,15 @@ const Two = {
   // World's sweep or a ring's chunk going: r is far from here, but not from the friend: theirs (true)
   hand(r) { const P = this.peer; if (!P?.m || r.net || P.paused || flatDist(r, P.m) > TWO.reach) return false; this.give(r); return true; },
   // a puppet is this page's own from now on
-  adopt(r, P) {
+  adopt(r, P, parting = false) {
     if (!r.net) return;
     P.robots.delete(r.nid); r.net = null; r.repairBy = null; r.crewNid = null;
-    if (r.wkey && World.gone.has(r.wkey) && !r.ring && !World.live.has(r.wkey) && r.state === 'glitched') { this.away(r); return; }
+    if (parting && r.wkey && World.gone.has(r.wkey) && !r.ring && !World.live.has(r.wkey) && r.state === 'glitched') { this.away(r); return; }
     r.air = null; r.mv = null; r.dash = null; r.under = false; r.charge = null; r.ai.aimT = 0; r.ai.aimAt = null; r.push.set(0, 0, 0);
     r.ai.think = 0; r.ai.alert = 0; r.ai.t = 0.6; r.ai.mode = r.state === 'down' ? 'off' : 'recover';
     r.pos.y = groundH(r.pos.x, r.pos.z) + Math.max(0, r.lift || 0); r.lift = Math.max(0, r.lift || 0);
-    if (r.state === 'down') { r.shock = 0; dealBoard(r); r.downT = Math.max(r.downT, 3); }
-    if (r.wkey && !r.ring && !World.gone.has(r.wkey)) { const L = World.live.get(r.wkey); if (L) { if (!L.includes(r)) L.push(r); } else { const N = [r]; if (ROBOT_TYPES[r.type].boss) N.boss = r.type; World.live.set(r.wkey, N); } }
+    if (r.state === 'down') { r.shock = 0; dealBoard(r, r.beatenBy === 'em'); r.downT = Math.max(r.downT, 3); }
+    if (r.wkey && !r.ring) { const L = World.live.get(r.wkey); if (L) { if (!L.includes(r)) L.push(r); } else { const N = [r]; if (ROBOT_TYPES[r.type].boss) N.boss = r.type; World.live.set(r.wkey, N); } }
     if (r.ring) { const g = World.rings.get(r.ring); if (g) g.champ = r; }
   },
   // ---- the hooks in the game ----
@@ -17719,9 +17744,9 @@ const Two = {
     try {
       if (k === 'railfx') RailFx.fire(a, b);
       else if (k === 'axe') { if (from?.type === 'knight') Axes.throw(from, Math.atan2(-b.x, -b.z)).ghost = true; }
-      else if (typeof k === 'string' && (Object.hasOwn(WEAPON, k) || Object.hasOwn(ROBOT_HITS, k)) && Number.isFinite((WEAPON[k] || ROBOT_HITS[k]).speed) && b.length() > 0.1) {
+      else if (typeof k === 'string' && (Object.hasOwn(WEAPON, k) || Object.hasOwn(ROBOT_HITS, k)) && b.length() > 0.1) {
         Bullets.fire(a, b.normalize(), from, k, 0, twN(s[10], 60, 1, 400), twN(s[9], 60, 5, 400));
-        const q = Bullets.list[Bullets.list.length - 1]; if (q) { q.ghost = true; q.foe = s[8] === 1; q.look = WEAPON[k] ? k : q.foe ? 'foe' : 'ally'; if (!Bullets.looks[q.look]) q.look = 'gun'; }
+        const q = Bullets.list[Bullets.list.length - 1]; if (q) { q.ghost = true; q.foe = s[8] === 1; q.look = WEAPON[k] ? k : q.foe ? 'foe' : 'ally';  }
         const L = loud(a); if (L > 0) Sfx.ping(0.35 * L);
       }
       if (from) { from.flash = MUZZLE.flash; from.recoil = 1; from.barrel = (from.barrel || 0) ^ 1; }
@@ -18089,6 +18114,10 @@ function robotState(r) {
   };
 }
 window.__rb = {
+  // #167 slice 7: two players
+  two: Two, net: Net,
+  twoStatus: () => Two.status(),
+  twoPage: { open: () => Two.open(), host: () => Two.host(), joinPage: () => Two.joinPage(), tap: (i) => Two.tapKey(i), del: () => Two.del(), leave: () => Two.leave() },
   Game, THREE, renderer, composer, MECH, Sfx, obstacles, ROBOT_TYPES, PARTS, PILOTS, Props, Hidden, CHILDREN, Facts, FACT, LADDERS, Progress, PARENT, Kits, Garage, ADVANCED, ADV, Adv, METALS, METAL, metalsOf, TierToast, Body, BODY, BODY_SECTIONS, Shapes, LEG_SHAPES, LEG_KITS, Builds, BUILDS, BUILD, BUILD_SPOTS, BUILD_TURN, BUILD_JOBS, BUILD_UPS, SPIDER_MK2, LEGS6,
   BODY_SHAPES, TORSO_SHAPES, ARM_SHAPES, TORSO_KITS, ARM_KITS, WEAPON, SEAMS, shotSock,   // (#42)
   ICONS, icon, icText,
