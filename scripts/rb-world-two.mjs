@@ -92,7 +92,7 @@ class Peer {
   constructor(raw, shut) { this.raw = raw; this.shut = shut; this.rate = { t: 0, n: 0 }; this.events = { t: 0, n: 0 }; this.room = null; this.mute = false; }
   send(m) { if (!this.mute) this.raw(typeof m === 'string' ? m : JSON.stringify(m)); }
   got(text) {
-    const len = Buffer.byteLength(text); Wire.frames.push(text);
+    const len = Buffer.byteLength(text); if (!this.fake) Wire.frames.push(text);   // (the pages' own frames)
     if (len > MAX_MSG) { Wire.over++; this.shut(1009); return; }
     if (this.mute) return;
     let m; try { m = JSON.parse(text); } catch { return; }
@@ -106,7 +106,7 @@ class Peer {
   }
   gone() { Rooms.leave(this); }
 }
-const fake = () => { const got = []; const p = new Peer((s) => got.push(JSON.parse(s)), () => {}); p.log = got; return p; };
+const fake = () => { const got = []; const p = new Peer((s) => got.push(JSON.parse(s)), () => {}); p.log = got; p.fake = true; return p; };
 
 // ---- in the page, before its own scripts: the relay's line and the stand-in socket ----
 const INJECT = `(() => {
@@ -473,7 +473,10 @@ const RUNS = {
   },
   async wire(ok) {
     ok(`every frame fits the relay (${Wire.frames.length} frames, the longest ${Math.max(0, ...Wire.frames.map((f) => f.length))} bytes; none dropped by its caps)`, Wire.over === 0 && Wire.capped === 0, { over: Wire.over, capped: Wire.capped });
-    const bad = Wire.frames.filter((f) => /tester|\brobo\b|"Robo"|Boltz|facts|mastery|robotbattle|profile|garage|"name"/i.test(f)); ok('no frame carries a name, an id or a record', Wire.frames.length > 100 && bad.length === 0, bad.slice(0, 3));
+    // the profiles' own names, ids, ladders and wiring, every pilot's name and id in the game, the squadmate named above, and the words a record is kept under
+    const pilots = [...fs.readFileSync(target, 'utf8').matchAll(/\{ id: '([\w-]+)', name: '([^']+)', hex: '[^']+', emblemIc:/g)].flatMap((m) => [m[1], m[2]]), words = [...new Set([...KIDS.flatMap((k) => [k.id, k.name, k.ladder, k.wiring]), ...pilots, 'Boltz', 'facts', 'mastery', 'robotbattle', 'profile', 'garage', 'name', 'ladder'])];
+    const word = new RegExp('(?<![A-Za-z])(' + words.join('|') + ')(?![A-Za-z])', 'i'); ok(`(the words looked for, ${words.length}, have the pilots' names among them)`, pilots.length >= 4, pilots);
+    const bad = Wire.frames.filter((f) => word.test(f)); ok('no frame carries a name, an id or a record', Wire.frames.length > 100 && bad.length === 0, bad.slice(0, 3));
     const types = [...new Set(Wire.frames.map((f) => { try { return JSON.parse(f).t; } catch { return 'bad'; } }))].sort(); ok(`only these messages are sent: ${types}`, types.every((t) => ['ev', 'hi', 'host', 'join', 'leave', 'st'].includes(t)), types);
     const his = Wire.frames.map((f) => JSON.parse(f)).filter((m) => m.t === 'hi' && m.g === 'rb'); ok('hello is only the game, the world, an icon, a colour and a place', his.length > 1 && his.every((m) => Object.keys(m).sort().join() === 'av,g,seed,t,v,world,x,z' && Object.keys(m.av).sort().join() === 'color,icon'), his[0]);
   },
