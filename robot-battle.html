@@ -10229,11 +10229,13 @@ function bouncerFly(r, dt) {
 function bounceLand(r) {
   const A = r.air, J = ROBOT_TYPES.bouncer.jump; r.air = null;
   const under = (b, rad) => Math.hypot(b.pos.x - r.pos.x, b.pos.z - r.pos.z) < rad + J.foot;
+  // #236 (A1): a player inside a tower is safe: one coming down on the doorstep doesn't stomp them through the doorway
+  const sheltered = (b) => { const t = Game.world && World.inTower(b.pos.x, b.pos.z, 0); return !!t && World.inTower(r.pos.x, r.pos.z, 0) !== t; };
   // the hop off a stomped mech always comes down on the ground (A.last): the stomp ended the chain,
   // so landing on a robot or a mech there is no new bounce and no second stomp
   // a running player's mech under a glitched Bouncer: a stomp
   // (#59: or a running squadmate on the ground under it: a stomp too)
-  const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius))
+  const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius) && !sheltered(q))
     || Game.squad.find((q) => q.state === 'ally' && !q.air && !ROBOT_TYPES[q.type].flies && under(q, q.spec.radius)) : null;
   if (m) return bounceStomp(r, m, A);
   // another robot: spring off its head

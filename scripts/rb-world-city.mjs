@@ -37,7 +37,8 @@
 //            * #236: a hop keeps out of the towers: a Bouncer's spring off player 1's head behind a tower that would come
 //              down inside it stops at the wall; and a roaming Bouncer at a door, a Charger overlapping it from outside,
 //              is never pushed in by separate();
-//            * #236 (A1): a Bouncer at a door that isn't roaming (landing, crouched, stalking) is never pushed or shoved in;
+//            * #236 (A1): a Bouncer at a door that isn't roaming (landing, crouched, stalking) is never pushed or shoved in,
+//              and one hopping on the doorstep doesn't stomp player 1 through the doorway;
 //            * #236 (Daniel's pick A1): a Bouncer chasing player 1, who stands 3 m inside a 12 or 16 m tower's door, never
 //              lands inside and never stomps them in 30 s (its hops stop at the wall);
 //            * #222: the Copier's saucer never passes through a tower, coming in over one to a player behind it or to a
@@ -408,6 +409,21 @@ async function runLogic(C) {
       b.air = null; b.pos.x += 5000; return res; })()`);
     ok(`#236 (A1): a Bouncer at a tower's door in '${mode}', player 1 inside, is never pushed in by a Charger (${r.pushed} of 30 ticks inside) or shoved in by a hit (${r.shoved} of 30)`, !r.none && r.loaded && r.other === 0 && r.inside === 0 && r.stomps === 0 && r.minB >= r.w / 2, r);
   }
+
+  // ---- #236 (A1): nor is player 1 stomped through the doorway. Seen: a Bouncer hopping in place on the doorstep, outside,
+  // came down within a stomp's reach of player 1 3 m inside. Forced: a Bouncer 0.4 m out from the door, crouched to hop
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0]; if (!t) return { none: true };
+    const half = t.w / 2, nx = t.door.nx, nz = t.door.nz, at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), me = at(half - 3), p = at(half + 0.4), rnd = Math.random; Math.random = () => 0.5;
+    try {
+      pose(me.x, me.z, nx, nz); R.step(2);
+      const s = R.spawn('bouncer', p.x + 30, p.z + 30), q = G.robots.find((o) => o.id === s.id);
+      q.pos.x = p.x; q.pos.z = p.z; q.pos.y = W.h(p.x, p.z); q.legHeading = q.torsoYaw = Math.atan2(nx, nz); q.ai.mode = 'crouch'; q.ai.t = 0.01; q.ai.alert = 0;
+      const st0 = q.stomps || 0; let lands = 0, inside = 0, air = false, meOut = 0;
+      for (let k = 0; k < 120 && !lands; k++) { R.step(1); calm(); if (air && !q.air) lands++; air = !!q.air; if (q.stomps > st0) break; if (W.inTower(q.pos.x, q.pos.z, 0)?.key === t.key) inside++; if (W.inTower(m0().pos.x, m0().pos.z, 0)?.key !== t.key) meOut++; }
+      const res = { key: t.key, w: t.w, lands, inside, meOut, stomps: (q.stomps || 0) - st0, gap: +Math.hypot(q.pos.x - m0().pos.x, q.pos.z - m0().pos.z).toFixed(2), loaded: !!real(t.key) };
+      q.air = null; q.pos.x += 5000; return res;
+    } finally { Math.random = rnd; } })()`);
+  ok(`#236 (A1): a Bouncer hopping in place on a tower's doorstep doesn't stomp player 1, 3 m inside (${r.stomps} stomps, ${r.gap} m apart as it lands)`, !r.none && r.loaded && r.lands === 1 && r.inside === 0 && r.meOut === 0 && r.stomps === 0 && r.gap < 4, r);
 
   // ---- #236 (Daniel's pick A1, literal: "no hop ever lands inside a tower. A player inside a tower is safe from Bouncers,
   // which hop at the door"). The chase-in case: player 1 3 m in from the door of a 12 m and a 16 m tower, held still with
