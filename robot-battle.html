@@ -1551,8 +1551,64 @@
   #start .tm.muted .ic { opacity: .6; }
   #start .tm:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
   @media (orientation: portrait) { #start .tpmenu { grid-template-columns: repeat(2, min(150px, 40vw)); } }
+  @media (orientation: landscape) { #start .tpmenu.seven { grid-template-columns: repeat(4, 132px); } }   /* #167 slice 7: the world's seventh tile */
   @media (max-height: 460px) { html.tp-mode #start:not(.title) .logo { font-size: 34px; } html.tp-mode #start:not(.title) .kidbar { margin-top: 10px; } #start .tpmenu { margin-top: 12px; gap: 10px; } #start .tm { height: 72px; } }
-  @media (min-width: 700px) and (min-height: 700px) { #start .tpmenu { grid-template-columns: repeat(3, 170px); gap: 16px; } #start .tm { height: 110px; font-size: 22px; } #start .tm .ic { font-size: 44px; } }
+  @media (min-width: 700px) and (min-height: 700px) { #start .tpmenu { grid-template-columns: repeat(3, 170px); gap: 16px; } #start .tpmenu.seven { grid-template-columns: repeat(4, minmax(0, 150px)); } #start .tm { height: 110px; font-size: 22px; } #start .tm .ic { font-size: 44px; } }
+  /* ---- #167 slice 7: two players in the endless world (Wild World W3's panel): the panel over the pause screen, the friend's face
+     over their mech (or an arrow at the screen's edge), and its own one-line toast ---- */
+  .garb.two { background: var(--orange); display: none; }
+  .garb.two.on { display: flex; }
+  #two { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(10,14,30,.6); }
+  #two.on { display: flex; }
+  .tw-panel { position: relative; width: min(640px, calc(100vw - 16px)); max-height: calc(100% - 12px); overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 24px;
+    border: 5px solid var(--ink); background: #1f2740; color: #fff; box-shadow: 0 8px 0 var(--ink), inset 0 0 0 3px rgba(255,255,255,.18); font: 900 18px 'Asap', sans-serif; }
+  .tw-head { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+  .tw-head h2 { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 8px; font: 900 24px 'Asap', sans-serif; white-space: nowrap; }
+  .tw-head h2 .ic { font-size: 34px; margin: 0; }
+  .tw-x { flex: none; width: 48px; height: 48px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); background: #3a4666; color: #fff; font-size: 22px; cursor: pointer; }
+  .tw-row { display: flex; gap: 12px; justify-content: center; }
+  .tw-big { flex: 1; max-width: 260px; min-height: 96px; padding: 4px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 20px; border: 4px solid var(--ink);
+    background: var(--orange); color: #fff; font: 900 20px 'Asap', sans-serif; text-shadow: 1px 1px 0 var(--ink); box-shadow: 0 5px 0 var(--ink); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .tw-big .ic { font-size: 40px; margin: 0; }
+  .tw-big.join { background: #2f7fd6; }
+  .tw-big.slim { min-height: 56px; flex-direction: row; gap: 10px; background: #3a4666; }
+  .tw-big.slim .ic { font-size: 26px; }
+  .tw-panel button:active { transform: translateY(3px); }
+  .tw-panel button:focus-visible, .tw-panel button.cur { outline: 4px solid var(--yellow); outline-offset: 2px; }
+  .tw-msg { text-align: center; line-height: 1.25; color: #ff9aa6; }
+  .tw-msg:empty { display: none; }
+  .tw-msg.calm { color: #fff; }
+  .tw-note { text-align: center; }
+  .tw-note.small { font-size: 15px; opacity: .85; }
+  .tw-code { display: flex; gap: 10px; justify-content: center; }
+  .tw-code span, .tw-key { display: flex; align-items: center; justify-content: center; border-radius: 16px; background: #dfe8ff; font-size: var(--ci, 44px); }
+  .tw-code span { width: var(--cs, 72px); height: var(--cs, 72px); flex: none; }
+  .tw-code .ic, .tw-key .ic { margin: 0; }
+  .tw-slot { --cs: 56px; --ci: 34px; box-sizing: border-box; border: 3px dashed #7b8bb5; }
+  .tw-code .tw-slot { background: transparent; }
+  .tw-code .tw-slot.full { border: 3px solid var(--green, #4cd964); background: #dfe8ff; }
+  .tw-keys { display: grid; grid-template-columns: repeat(5, minmax(0, 72px)); gap: 8px; justify-content: center; }
+  .tw-key { height: 64px; padding: 0; border: 4px solid var(--ink); --ci: 36px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .tw-key.del { background: #3a4666; color: #fff; grid-column: 5; grid-row: 1 / 3; height: auto; }
+  .tw-with { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 20px; }
+  .tw-face { width: 100%; height: 100%; border-radius: 50%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; background: var(--c, #c9d2e3); font-size: 20px; box-shadow: 0 2px 0 rgba(0,0,0,.4); }
+  .tw-face .ic { margin: 0; }
+  .tw-with .tw-face { width: 64px; height: 64px; font-size: 36px; flex: none; }
+  #peerTag, #peerArrow { position: fixed; left: 0; top: 0; z-index: 4; pointer-events: none; display: none; }
+  #peerTag { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
+  #peerArrow { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+  #peerTag.on, #peerArrow.on { display: block; }
+  #peerArrow .fc { position: absolute; inset: 0; }
+  #peerArrow .pt { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+  #peerArrow .pt::before { content: ''; position: absolute; left: 24px; top: -10px; border-left: 14px solid var(--yellow); border-top: 10px solid transparent; border-bottom: 10px solid transparent; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+  #start.on ~ :is(#peerTag, #peerArrow), body.garage :is(#peerTag, #peerArrow) { display: none; }
+  #twToast { position: fixed; left: 50%; top: max(22%, 180px); translate: -50% 0; z-index: 41; display: none; align-items: center; gap: 12px; max-width: calc(100vw - 32px); padding: 8px 20px 8px 12px; border-radius: 22px; box-sizing: border-box;
+    border: 4px solid var(--ink); background: rgba(20,24,42,.92); color: #fff; font: 900 19px 'Asap', sans-serif; pointer-events: none; }
+  #twToast.on { display: flex; }
+  #twToast .tf2 { width: 44px; height: 44px; flex: none; }
+  #twToast small { display: block; font: 900 15px 'Asap', sans-serif; color: var(--yellow); }
+  @media (max-height: 460px) { #twToast { top: 84px; } .tw-big { min-height: 64px; flex-direction: row; gap: 10px; } .tw-big .ic { font-size: 32px; } .tw-code { --cs: 52px; --ci: 32px; } .tw-slot { --cs: 46px; --ci: 28px; } .tw-key { height: 56px; } .tw-panel { gap: 6px; padding: 8px; }
+    .tw-with .tw-face { width: 48px; height: 48px; font-size: 26px; } }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1587,7 +1643,8 @@
     <!-- TITLE: one big tile per pilot, a helmet portrait in their colour; a tap starts the game -->
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
-    <div class="resume"><div class="who" id="who"></div><div class="rcol"><button class="gridb" id="gridB" aria-label="My facts"><i data-ic="star"></i><b id="gridN"></b><small>T</small></button><button class="garb" id="garageB" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button></div><button id="go" aria-label="Play"><i data-ic="play"></i></button></div>
+    <div class="resume"><div class="who" id="who"></div><div class="rcol"><button class="gridb" id="gridB" aria-label="My facts"><i data-ic="star"></i><b id="gridN"></b><small>T</small></button><button class="garb" id="garageB" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button><!--
+      #167 slice 7: the endless world with a friend on another screen (only in the world) --><button class="garb two" id="twoB" aria-label="2 players"><i data-ic="two"></i></button></div><button id="go" aria-label="Play"><i data-ic="play"></i></button></div>
     <!-- #103: on a touch screen the pause screen is a menu instead: Resume, the bag (and its parts count), the garage, my facts
          (⭐ mastered of the goal), the trophies (hidden parts found) and the sound on or off -->
     <div class="tpmenu" id="tpMenu">
@@ -1597,6 +1654,7 @@
       <button class="tm" id="tmFacts" aria-label="Facts"><i data-ic="star"></i><span>Facts</span><b id="tmFactsN"></b></button>
       <button class="tm" id="tmTrophies" aria-label="Trophies"><i data-ic="trophy"></i><span>Trophies</span><b id="tmFoundN">0</b></button>
       <button class="tm" id="tmSound" aria-label="Sound"><i class="snd"></i><span>Sound</span></button>
+      <button class="tm off" id="tmTwo" aria-label="2 players"><i data-ic="two"></i><span>2 Players</span></button>
     </div>
     <div class="keys">
       <div class="hint"><div class="keyset">
@@ -1643,6 +1701,10 @@
 <!-- HUD: the pilot and health, weapons, speed bars (boot icon), a compass showing legs vs torso;
      top right the squad, parts collected (🔩), hidden parts found (🔍) and the bag -->
 <div id="hurt"></div>
+<!-- #167 slice 7: the friend's face over their mech, or an arrow pointing to them; the two-player panel; its toast -->
+<div id="peerTag"></div><div id="peerArrow"><div class="pt"></div><div class="fc"></div></div>
+<div id="two" role="dialog" aria-label="2 players"><div class="tw-panel" id="twPanel"></div></div>
+<div id="twToast" role="status"></div>
 <div id="hud" class="screen on">
   <div class="reticle"></div>
   <div class="health" id="health"><div class="who" id="pilotHud"><img class="face" id="pilotFace" alt=""><span id="pilotName"></span></div><span class="ico"><i data-ic="energy"></i></span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech"><i data-ic="wrench"></i><small>R</small></button><button class="mendb jumpb" id="jumpBtn" aria-label="Jump"><i data-ic="jump"></i><small>C</small></button></div>
@@ -3145,6 +3207,11 @@ const ICONS = {
   // ---- UI symbols: white, so they read on a coloured button and a dark panel ----
   check: ['yes', ['✔', '✔️', '✅'], ln('M4.4 12.6 L9.6 17.6 L19.6 6.4', UI, 3.2)],
   cross: ['no', ['✖', '✖️', '❌'], ln('M6 6 L18 18 M18 6 L6 18', UI, 3.2)],
+  // #167 slice 7: the two-player panel's: two mech heads, HOST (a mast calling out), JOIN (an arrow in at a door), LEAVE (out of it)
+  two: ['2 players', [], re(1.6, 5, 9.6, 8.4, 2, G('cyan')) + re(3.4, 7.4, 6, 2.4, 1, INK) + re(3, 14.6, 6.8, 5.4, 1.4, G('steel')) + re(12.8, 5, 9.6, 8.4, 2, G('orange')) + re(14.6, 7.4, 6, 2.4, 1, INK) + re(14.2, 14.6, 6.8, 5.4, 1.4, G('steel'))],
+  host: ['host', [], ln('M12 11 L12 21.4 M8 21.4 L16 21.4', UI, 2.8) + cn(12, 9, 2.4, UI) + ln('M7.4 13.4 A6.4 6.4 0 0 1 7.4 4.6 M16.6 4.6 A6.4 6.4 0 0 1 16.6 13.4 M4.2 16.4 A10.6 10.6 0 0 1 4.2 1.8 M19.8 1.8 A10.6 10.6 0 0 1 19.8 16.4', UI, 2.2)],
+  join: ['join', [], ln('M12.4 3.4 L20.4 3.4 L20.4 20.6 L12.4 20.6 M2.6 12 L14.6 12 M10 7 L15 12 L10 17', UI, 2.8)],
+  leave: ['leave', [], ln('M11.6 3.4 L3.6 3.4 L3.6 20.6 L11.6 20.6 M9.4 12 L21.4 12 M16.8 7 L21.8 12 L16.8 17', UI, 2.8)],
   play: ['go', ['▶', '▶️'], pa('M7 3.6 L20.4 12 L7 20.4 Z', UI)],
   back: ['back', ['◀', '◀️'], pa('M17 3.6 L3.6 12 L17 20.4 Z', UI)],
   pause: ['pause', ['⏸', '⏸️'], re(5.2, 3.6, 5, 16.8, 1.4, UI) + re(13.8, 3.6, 5, 16.8, 1.4, UI)],   // #94: the touch controller's pause
@@ -4827,6 +4894,8 @@ addEventListener('keydown', (e) => {
   if (e.target instanceof HTMLInputElement) { if (e.code === 'Enter' || e.code === 'Escape') FixUI.confirmName(); return; }
   // the garage is open: keys go to it (Esc / G close, ◀ ▶ pick a tab), not the game
   if (Garage.on) { if (Garage.key(e) !== 'native') e.preventDefault(); return; }
+  // #167 slice 7: the two-player panel is open: its keys (1-8 pick a picture, Backspace, Esc), not the game's
+  if (Two.on) { Two.key(e); return; }
   // the fact grid or the parent view is open: keys go to it (Esc closes, arrows move over the grid), not the game
   if (Progress.mode) { if (Progress.key(e) !== 'native') e.preventDefault(); return; }
   // the keypad is open: digits, Backspace, Enter and Escape go to it, not the mech (Digit1–5 pick weapons, Enter fires)
@@ -7688,6 +7757,7 @@ const Game = { state: 'loading', humans: [], mechs: [], robots: [], squad: [], b
 // The start screen is the title (pick a pilot) until a pilot is picked, then the pause screen (▶)
 function setPause(on) {
   Game.paused = on;
+  Two.paused(on);       // #167 slice 7
   if (on) Squad.sync();   // #58: the squad's damage saved on pause
   $('start').classList.toggle('on', on);
   Title.draw(); Waves.draw();
@@ -14040,6 +14110,8 @@ function gatherInput(dt) {
     if (Garage.on) { if (h.idx === 0) Garage.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // the fact grid or the parent view is open: player 0's pad works it, and the mech stands still
     if (h.idx === 0 && Progress.mode) { Progress.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
+    // #167 slice 7: the two-player panel is open: player 0's pad works it
+    if (h.idx === 0 && Two.on) { Two.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // #129: the wave picker is up: player 0's pad works it (its A picks a wave, not a pilot; Start picks too)
     if (h.idx === 0 && WavePick.on && Title.on && !Game.manual) { WavePick.pad(pad); if (h.mech) { h.mech.input.throttle = h.mech.input.turn = 0; h.mech.input.attack = false; } continue; }
     // Start pauses and carries on; on the title it picks the highlighted child, then the highlighted pilot.
@@ -14156,6 +14228,7 @@ function tick(dt) {
   for (const m of Game.mechs) {
     // a powered-down mech's controls do nothing, whatever is held
     if (m.state === 'down') { m.input.throttle = m.input.turn = 0; m.input.attack = false; m.input.boost = false; m.input.aimYaw = m.torsoYaw; m.input.aimPitch = m.aimPitch; }
+    if (m.peer) { Two.mechTick(m, dt); continue; }       // #167 slice 7: the friend's mech is drawn from what their page sends
     mechTick(m, dt); combatTick(m, dt);
   }
   for (const r of [...Game.robots]) robotTick(r, dt);   // (a copy: #59 a squadmate can be destroyed in its tick)
@@ -17021,6 +17094,7 @@ function render(dt) {
   // I1: a frame drawn with a sprite showing an icon not drawn yet (never: the boot preloads them before one can show)
   if (iconTex.pending) { let b = 0; scene.traverseVisible((o) => { if (o.isSprite && o.material.map?.userData?.drawn === false) b = 1; }); iconTex.blank += b; }
   const W = innerWidth, H = innerHeight;
+  Two.frame(dt);                                         // #167 slice 7
   for (const m of Game.mechs) syncMechModel(m);
   for (const r of Game.robots) syncRobotModel(r, dt);
   Copier.sync(dt);
@@ -17050,6 +17124,7 @@ function render(dt) {
   if (Game.world) World.sync();                          // #167: towers and caves in the way go see-through
   renderPass.camera = c;
   composer.render(dt);
+  Two.view(c);                                           // #167 slice 7: the friend's face or arrow
   if (!Game.manual && Sfx.ctx) Sfx.setHum(Math.min(1, Math.abs(h.mech.speed) / MECH.topSpeed));
   updateHud();
 }
@@ -17081,6 +17156,7 @@ $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
 // can't take the same tap. Bag opens over the menu (the world stays paused) and its ✖ comes back to it; Garage opens the
 // garage on its 🦾 Mech tab and Trophies on its 🏆 Trophies tab; Facts is the ⭐ grid; Sound turns all sound off or on.
 function drawPauseMenu() {
+  const two = Two.may(); $('tmTwo').classList.toggle('off', !two); $('tpMenu').classList.toggle('seven', two); $('twoB').classList.toggle('on', two);   // #167 slice 7
   $('tmBagN').textContent = Game.parts;
   $('tmFacts').classList.toggle('off', !$('gridB').classList.contains('on')); $('tmFactsN').textContent = $('gridN').textContent;
   $('tmFoundN').textContent = foundText();
@@ -17093,7 +17169,618 @@ $('tmBag').addEventListener('click', (e) => { e.stopPropagation(); if (Game.paus
 $('tmGarage').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); if (Garage.open('pause').ok) Garage.setTab('mech'); });
 $('tmFacts').addEventListener('click', (e) => { e.stopPropagation(); Progress.openGrid('pause'); });
 $('tmTrophies').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); if (Garage.open('pause').ok) Garage.setTab('trophies'); });
+for (const id of ['twoB', 'tmTwo']) $(id).addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); Sfx.click(); Two.open(); });   // #167 slice 7
 $('tmSound').addEventListener('click', (e) => { e.stopPropagation(); Sfx.setMuted(!Sfx.muted); Sfx.unlock(); Sfx.click(); drawPauseMenu(); });
+
+// ===========================================================================
+// #167 slice 7: two players in the endless world, on two screens at home (Daniel's Q5: as Wild World's W3). The transport, the
+// room (a code of 4 pictures), the panel, the friend's face and the arrow are Wild World's; the relay is the same one
+// (scripts/ww-relay.mjs), which puts window.WW_RELAY in the page it serves. No relay (Pages, or the file opened): one calm line.
+//   Only an icon and a colour ever leave this page (av): no name, no record, no paint, no squadmate's name.
+//   Each robot is run by ONE of the two pages (its owner: the one it came out on). On the other it's a puppet (r.net): drawn from
+// the owner's `st` (30 a second), no brain; a hit on it is sent to the owner. A robot that meets its own double (both pages had
+// that chunk) is the host's. Whoever does a thing keeps it: the finder the part, the fixer the squadmate, the taker the parts; a
+// fix or a salvage asks the owner for the robot first (want / give). A page that pauses or is hidden hands its robots near the
+// friend over. On a drop each page keeps every robot it can see as its own, and plays on alone.
+//   st: where things are, unreliable. ev: what happened, one batch at a time, sent again till the friend's st acks it (ack).
+// ===========================================================================
+const TWO = { hz: 30, interp: 50, snap: 8, silent: 8000, reach: 200, robots: 30, shots: 6, frame: 3600, resend: 300, v: 1 };
+const TWO_WHY = 'Two players works at home: ask a parent to start the game server';
+const CODE_ICONS = ['rocket', 'gem', 'flame', 'bolt', 'star', 'moon', 'spider', 'trophy'];
+const HomeTransport = {
+  name: 'home',
+  available() { return !!window.WW_RELAY && location.protocol === 'http:' && typeof WebSocket === 'function'; },
+  connect(onMsg, onClose) {
+    return new Promise((res, rej) => {
+      let ws, opened = false;
+      try { ws = new WebSocket('ws://' + location.host + '/ww'); } catch (e) { rej(e); return; }
+      ws.onopen = () => { opened = true; res({ send: (m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); }, close: () => { ws.onclose = null; try { ws.close(); } catch (e) {} } }); };
+      ws.onmessage = (e) => { let m = null; try { m = JSON.parse(e.data); } catch (err) {} if (m && typeof m.t === 'string') onMsg(m); };
+      ws.onerror = () => {};
+      ws.onclose = () => { if (!opened) rej(new Error('closed')); else onClose(); };
+    });
+  },
+};
+const Net = {
+  transport: HomeTransport, link: null, gen: 0, state: 'off', code: null, you: 0, sent: 0, got: 0, handlers: {},
+  available() { return this.transport.available(); },
+  on(type, fn) { (this.handlers[type] ||= []).push(fn); return fn; },
+  emit(m) { for (const fn of this.handlers[m.t] || []) fn(m); },
+  async open() {
+    if (this.link) return this.link;
+    const gen = ++this.gen; this.state = 'connecting';
+    try {
+      const link = await this.transport.connect((m) => { if (gen === this.gen) { this.got++; this.receive(m); } }, () => { if (gen === this.gen) this.lost(); });
+      if (gen !== this.gen) { link.close(); return null; }
+      this.link = link; return link;
+    } catch (e) { if (gen === this.gen) { this.state = 'off'; this.emit({ t: 'fail' }); } return null; }
+  },
+  async host() { if (!this.available()) return false; const l = await this.open(); if (!l) return false; l.send({ t: 'host' }); return true; },
+  async join(code) { if (!this.available()) return false; const l = await this.open(); if (!l) return false; l.send({ t: 'join', code }); return true; },
+  send(m) { if (!this.link) return false; this.link.send(m); this.sent++; return true; },
+  close() { this.gen++; const was = this.state; if (this.link) { this.link.send({ t: 'leave' }); this.link.close(); } this.link = null; this.state = 'off'; this.code = null; if (was !== 'off') this.emit({ t: 'closed' }); },
+  lost(silent) { this.gen++; if (this.link) this.link.close(); this.link = null; const was = this.state; this.state = 'dropped'; this.code = null; this.emit({ t: 'lost', was, silent: !!silent }); },
+  receive(m) {
+    this.heardAt = performance.now();
+    if (m.t === 'room') { this.code = Array.isArray(m.code) ? m.code.slice(0, 4) : null; this.you = m.you === 1 ? 1 : 0; this.state = m.peers > 1 ? 'together' : 'waiting'; }
+    else if (m.t === 'peer-join') this.state = 'together';
+    else if (m.t === 'peer-left') { if (this.state === 'together') this.state = 'waiting'; }
+    else if (m.t === 'err') { this.gen++; if (this.link) this.link.close(); this.link = null; this.state = 'off'; this.code = null; }
+    this.emit(m);
+  },
+};
+// what comes off the wire is checked before it's used
+const twN = (v, d = 0, lo = -1e6, hi = 1e6) => (typeof v === 'number' && Number.isFinite(v) ? clamp(v, lo, hi) : d);
+const twId = (v) => typeof v === 'string' && /^[01]:\d{1,9}$/.test(v);
+const twKey = (v) => typeof v === 'string' && /^[-\w,:.]{1,48}$/.test(v);
+const twHex = (v) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
+const r2 = (v) => Math.round(v * 100) / 100;
+
+const Two = {
+  on: false, page: 'off', entry: [], msg: '', calm: false, peer: null, quiet: false, cur: 0, pulseT: 0, closeT: 0, toastT: 0,
+  met: false,            // (this room) the joiner has been put beside the host
+  mates: new Map(),      // the friend's squadmates, only drawn here: their id -> robot (in no list of the game's)
+  dirty: false, stopped: false, wants: new Map(),
+  // ---- the panel ----
+  may() { return !!(Game.world && Game.pilot); },
+  open() {
+    if (!this.may()) return false;
+    this.on = true; this.msg = ''; this.calm = false; this.cur = 0;
+    if (Net.state === 'off' || Net.state === 'dropped') this.page = 'off';
+    if (!Net.available() && Net.state === 'off') { this.msg = TWO_WHY; this.calm = true; }
+    this.draw(); return true;
+  },
+  close() { this.on = false; this.draw(); },
+  async host() {
+    if (!Net.available()) { this.msg = TWO_WHY; this.calm = true; this.draw(); return false; }
+    if (Net.state !== 'off' && Net.state !== 'dropped') return false;
+    this.page = 'connecting'; this.msg = ''; this.draw();
+    return Net.host();
+  },
+  joinPage() {
+    if (!Net.available()) { this.msg = TWO_WHY; this.calm = true; this.draw(); return false; }
+    this.page = 'join'; this.entry = []; this.msg = ''; this.cur = 0; this.draw(); return true;
+  },
+  async join(code) {
+    if (!Net.available()) { this.msg = TWO_WHY; this.calm = true; this.draw(); return false; }
+    if (Net.state !== 'off' && Net.state !== 'dropped') return false;
+    this.page = 'connecting'; this.msg = ''; this.draw();
+    return Net.join(code);
+  },
+  tapKey(i) { if (this.page !== 'join' || this.entry.length >= 4) return; this.entry.push(i); this.msg = ''; this.draw(); if (this.entry.length === 4) this.join(this.entry.slice()); },
+  del() { if (this.page === 'join' && this.entry.length) { this.entry.pop(); this.draw(); } },
+  leave() { Net.close(); },
+  back() { if (this.page === 'join') { this.page = 'off'; this.msg = ''; this.cur = 0; this.draw(); } else this.close(); },
+  act(a, i) {
+    if (!Game.manual) Sfx.click();
+    if (a === 'host') this.host(); else if (a === 'join') this.joinPage(); else if (a === 'key') this.tapKey(i); else if (a === 'del') this.del();
+    else if (a === 'leave') this.leave(); else if (a === 'x') this.back();
+  },
+  key(e) {
+    e.preventDefault?.(); keysPressed.clear();
+    const d = /^(?:Digit|Numpad)([1-8])$/.exec(e.code || '');
+    if (d && this.page === 'join') this.tapKey(+d[1] - 1);
+    else if (e.code === 'Backspace') this.del();
+    else if (e.code === 'Escape') this.back();
+    else if (/^Arrow(Left|Up)$/.test(e.code)) this.step(-1);
+    else if (/^Arrow(Right|Down)$/.test(e.code)) this.step(1);
+    else if ((e.code === 'Enter' || e.code === 'Space') && !e.repeat) this.press();
+  },
+  btns() { return [...$('twPanel').querySelectorAll('button')]; },
+  step(d) { const n = this.btns().length; if (n) { this.cur = (this.cur + d + n) % n; this.draw(); } },
+  press() { const b = this.btns()[this.cur]; if (b) this.act(b.dataset.a, +b.dataset.i); },
+  pad(p) {
+    if (!p) return;
+    if (p.upP || p.leftP) this.step(-1); if (p.downP || p.rightP) this.step(1);
+    if (p.aP) this.press(); else if (p.bP) this.back();
+  },
+  face(av) { return `<span class="tw-face" style="--c:${av.color}">${icon(av.icon)}</span>`; },
+  draw() {
+    const el = $('two'); el.classList.toggle('on', this.on); if (!this.on) return;
+    const b = (a, ic, t, cls = '') => `<button class="tw-big ${cls}" data-a="${a}">${icon(ic)}<span>${t}</span></button>`;
+    const msg = `<div class="tw-msg${this.calm ? ' calm' : ''}">${esc(this.msg)}</div>`;
+    const code = (Net.code || []).map((n) => `<span>${icon(CODE_ICONS[n] || 'star')}</span>`).join('');
+    const P = this.page;
+    const body = P === 'connecting' ? `<div class="tw-note">Finding the game...</div><div class="tw-row">${b('leave', 'cross', 'CANCEL', 'slim')}</div>`
+      : P === 'wait' ? `<div class="tw-note">Your friend taps JOIN, then these pictures:</div><div class="tw-code">${code}</div><div class="tw-note small">Waiting for your friend...</div>${msg}<div class="tw-row">${b('leave', 'leave', 'LEAVE', 'slim')}</div>`
+      : P === 'join' ? `<div class="tw-code">${[0, 1, 2, 3].map((i) => `<span class="tw-slot${this.entry[i] != null ? ' full' : ''}">${this.entry[i] != null ? icon(CODE_ICONS[this.entry[i]]) : ''}</span>`).join('')}</div>${msg}<div class="tw-keys">`
+        + CODE_ICONS.map((n, i) => `<button class="tw-key" data-a="key" data-i="${i}" aria-label="${n}">${icon(n)}</button>`).join('') + `<button class="tw-key del" data-a="del" aria-label="Delete">${icon('erase')}</button></div>`
+      : P === 'together' ? `<div class="tw-with">${this.peer ? this.face(this.peer.av) : ''}<span>Playing together!</span></div>${msg}<div class="tw-row">${b('leave', 'leave', 'LEAVE', 'slim')}</div>`
+      : `<div class="tw-row">${b('host', 'host', 'HOST')}${b('join', 'join', 'JOIN', 'join')}</div>${msg}`;
+    $('twPanel').innerHTML = `<div class="tw-head"><h2>${icon('two')}<span>2 players</span></h2><button class="tw-x" data-a="x" aria-label="${P === 'join' ? 'Back' : 'Close'}">${icon('cross')}</button></div>${body}`;
+    const L = this.btns(); this.cur = Math.min(this.cur, Math.max(0, L.length - 1)); if (Input.padSeen?.() || this.keyed) L[this.cur]?.classList.add('cur');
+  },
+  toast(a, b2, av) {
+    const el = $('twToast'); clearTimeout(this.toastT);
+    el.innerHTML = `<span class="tf2">${this.face(av || this.peer?.av || this.av())}</span><span>${esc(a)}${b2 ? `<small>${esc(b2)}</small>` : ''}</span>`;
+    el.classList.add('on'); this.toastT = setTimeout(() => el.classList.remove('on'), 4500);
+  },
+  // ---- together, and parting ----
+  av() { const C = Game.child || GUEST; return { icon: Object.hasOwn(ICONS, C.ic) ? C.ic : 'smile', color: twHex(C.hex) ? C.hex : '#c9d2e3' }; },
+  cleanAv(a) { return { icon: typeof a?.icon === 'string' && Object.hasOwn(ICONS, a.icon) ? a.icon : 'smile', color: twHex(a?.color) ? a.color : '#c9d2e3' }; },
+  together() {
+    this.parted('');
+    this.page = 'together'; this.msg = '';
+    this.peer = { av: this.cleanAv(null), hi: false, snaps: [], m: null, robots: new Map(), known: new Set(), seen: 0, paused: false, health: 1,
+      q: [], fly: null, seq: 0, inSeq: 0, shots: [], hurts: new Map(), hurtMe: [], shotsIn: 0 };
+    const m = Game.humans[0].mech;
+    Net.send({ t: 'hi', g: 'rb', v: TWO.v, world: 'rb' + WORLD.seed, seed: WORLD.seed, av: this.av(), x: r2(m.pos.x), z: r2(m.pos.z) });
+    this.stopped = this.isStopped();
+    this.pulseT = setInterval(() => this.pulse(), 1000 / TWO.hz);
+    this.draw();
+    this.closeT = setTimeout(() => { if (this.on) { this.close(); if (this.page === 'together' && Title.on && Game.paused) startPlay(); } }, 1200);
+  },
+  parted(why) {
+    clearInterval(this.pulseT); clearTimeout(this.closeT); this.pulseT = this.closeT = 0;
+    const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear();
+    if (P) {
+      // every glitched or beaten robot of the friend's that's here is this page's now; their mech and their squad go
+      for (const r of [...P.robots.values()]) this.adopt(r, P);
+      for (const r of Game.robots) r.nid = null;
+      for (const r of this.mates.values()) freeModel(r.model);
+      this.mates.clear();
+      if (P.m) { const i = Game.mechs.indexOf(P.m); if (i >= 0) Game.mechs.splice(i, 1); this.freeMech(P.m); }
+      for (const r of Game.robots) if (r.ai && r.ai.at === P.m) r.ai.at = null;
+    }
+    for (const k of ['peerTag', 'peerArrow']) $(k).classList.remove('on');
+    if (why === 'left') { this.page = 'wait'; this.toast('Your friend left', 'Keep exploring! They can join again with the same pictures.', P?.av); }
+    else if (why === 'lost') { this.page = 'off'; this.met = false; this.toast('The two player game stopped', 'Keep playing on your own. Nothing is lost!', P?.av); }
+    else if (why) { this.page = 'off'; this.met = false; }
+    this.draw();
+  },
+  freeMech(m) {
+    scene.remove(m.model.root);
+    const seen = new Set();
+    m.model.root.traverse((o) => { if (o.isMesh && !o.geometry.userData.shared) o.geometry.dispose(); else if (o.isSprite && !seen.has(o.material)) { seen.add(o.material); o.material.dispose(); } });
+    m.model.pilot?.badge.material.map?.dispose();
+  },
+  isStopped() { return Game.paused || document.hidden; },
+  paused() { if (this.peer) this.pulse(); },
+  onHi(m) {
+    const P = this.peer; if (!P) return;
+    if (m.g !== 'rb' || m.v !== TWO.v || m.seed !== WORLD.seed) { Net.close(); this.msg = 'Your friend is in a different world. Open the same page on both.'; this.calm = true; this.draw(); this.toast('Your friend is in a different world', 'Open the same page on both.'); return; }
+    const first = !P.hi; P.hi = true; P.av = this.cleanAv(m.av);
+    if (first) {
+      this.makeMech(twN(m.x), twN(m.z));
+      if (Net.you === 1 && !this.met) this.beside(twN(m.x), twN(m.z));
+      this.met = true;
+      this.toast('Your friend is here!', 'Find their face, or follow the arrow.', P.av);
+    }
+    this.draw();
+  },
+  // the joiner starts beside the host: the first clear spot round them (inside the same cave or tower, or outside as they are)
+  beside(x, z) {
+    const h = Game.humans[0], m = h.mech, at = (a, b) => [World.inCave(a, b) || null, World.inTower(a, b, 0)?.key ?? null];
+    const [cv, tw] = at(x, z); let spot = [x + 5, z];
+    m.pos.x = x; m.pos.z = z; World.update(true);
+    out: for (const d of [5, 7, 4, 10]) for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d, [c2, t2] = at(px, pz);
+      if (c2 !== cv || t2 !== tw || obstacles.some((o) => Math.hypot(o.x - px, o.z - pz) < o.r + MECH.radius + 0.4)) continue;
+      spot = [px, pz]; break out;
+    }
+    cancelRepair(h);
+    m.pos.set(spot[0], 0, spot[1]); m.pos.y = groundH(m.pos.x, m.pos.z); m.hop = null; m.speed = 0; m.push.set(0, 0, 0);
+    for (const r of Game.squad) { r.pos.x = m.pos.x + (Math.random() - 0.5) * 6; r.pos.z = m.pos.z + 5 + Math.random() * 3; r.pos.y = groundH(r.pos.x, r.pos.z) + (r.lift || 0); }
+    World.update(true); if (h.rig) h.rig.snap = true;
+  },
+  // the friend's mech: the stock walker in their colour, their icon on its back (what they built or painted stays on their page)
+  makeMech(x, z) {
+    const P = this.peer; if (P.m) return;
+    const m = newMech(x, z, 0);
+    Object.assign(m, { peer: true, fx: shapeFx('walker'), upg: {}, adv: {}, feet: { thud: 0, land: 0, roll: 0, air: 0 }, onFootfall() {}, onLand() {} });
+    m.model = buildMech(); scene.add(m.model.root);
+    const ic = new THREE.Sprite(new THREE.SpriteMaterial({ depthWrite: false, toneMapped: false, transparent: true, map: iconTex('sleep') }));
+    ic.scale.set(2.4, 2.4, 1); ic.visible = false; ic.renderOrder = 7; m.model.root.add(ic); m.model.icon = ic;
+    const av = P.av;
+    setPilot({ mech: m }, { id: 'friend-' + av.icon + av.color, name: ' ', hex: av.color, emblemIc: av.icon });
+    P.m = m; Game.mechs.push(m);
+  },
+  // ---- sending ----
+  // st, 30 a second (paused too: a paused friend stands still, and is left alone)
+  pulse() {
+    const P = this.peer; if (!P || Net.state !== 'together') return;
+    const stop = this.isStopped(), m = Game.humans[0].mech;
+    if (stop && !this.stopped && P.hi && !P.paused) this.giveNear();
+    this.stopped = stop;
+    this.flush();
+    const s = { t: 'st', k: P.inSeq, m: [m.pos.x, m.pos.y, m.pos.z, m.legHeading, m.torsoYaw, m.aimPitch, m.speed, m.phase % (Math.PI * 200)].map(r2), h: [Math.round(m.health), m.maxHealth], p: stop ? 1 : 0, d: m.state === 'down' ? r2(Math.max(0.01, m.downT)) : 0 };
+    if (m.hop) s.j = r2(m.hop.y);
+    if (m.swing) s.w = [m.swing.w, r2(m.swing.t)];
+    if (m.charge) s.c = r2(m.charge.t);
+    if (m.shield > 0) s.sh = 1;
+    if (P.shots.length) s.s = P.shots.splice(0, TWO.shots);
+    P.shots.length = 0;
+    if (P.hi && P.m) {
+      const q = P.m.pos, near = (r, R) => Math.hypot(r.pos.x - q.x, r.pos.z - q.z) < R;
+      s.q = Game.squad.filter((r) => near(r, TWO.reach)).map((r) => [r.id, r.type, twHex(r.glowColor) ? r.glowColor : '#39e6ff', ...this.pose(r)]);
+      const list = Game.robots.filter((r) => !r.net && r.state !== 'ally' && !Game.squad.includes(r) && near(r, P.known.has(r.nid) ? TWO.reach + 25 : TWO.reach))
+        .sort((a, b) => flatDist(a, P.m) - flatDist(b, P.m)).slice(0, TWO.robots);
+      let room = TWO.frame - JSON.stringify(s).length; s.r = [];
+      const known = new Set();
+      for (const r of list) {
+        const a = [this.nid(r), ...this.pose(r)], n = JSON.stringify(a).length + 1; if (n > room) break;
+        room -= n; s.r.push(a); known.add(r.nid);
+        if (!P.known.has(r.nid)) this.say({ e: 'new', ...this.stat(r) });
+      }
+      P.known = known;
+    }
+    Net.send(s);
+  },
+  nid(r) { return (r.nid ||= `${Net.you}:${r.id}`); },
+  // a robot's pose: numbers, then what its own animation needs
+  pose(r) {
+    const ai = r.ai || {}, x = {};
+    if (r.air) x.a = r2(r.air.u || 0); for (const k of ['kickT', 'swipeT', 'throwT', 'axeOut', 'printT', 'sputter']) if (r[k] > 0) x[k] = r2(r[k]);
+    if (r.under) x.u = 1; if (r.ringWait) x.g = 1; if (r.shock > 0) x.s = r2(r.shock); if (r.charge) x.c = 1;
+    if (ai.w && typeof ai.w === 'string') x.w = ai.w;
+    if (ai.aimT > 0 && ai.aimAt?.pos) { const c = aimPoint(ai.aimAt); x.at = [r2(ai.aimT), r2(c.x), r2(c.y), r2(c.z)]; }
+    if (r.nj?.tries) x.n = r.nj.tries % 2; if (r.kn?.swipes) x.n = r.kn.swipes % 2;
+    if (r.mv) x.mv = [r.mv.w, r2(r.mv.t || 0), r2(r.mv.pt || 0), r.mv.hit ? 1 : 0, r2(r.mv.len || 0)];
+    if (r.repairBy?.repair) x.f = r.repairBy.repair.kind;
+    const a = [r2(r.pos.x), r2(r.pos.y), r2(r.pos.z), r2(r.legHeading), r2(r.torsoYaw), r2(r.aimPitch || 0), r2(r.speed), r2(r.phase % (Math.PI * 200)), r2(r.lift || 0),
+      r.state === 'down' ? 1 : 0, Math.round(r.health), String(ai.mode || 'stalk'), r2(twN(ai.t)), r2(twN(r.downT))];
+    if (Object.keys(x).length) a.push(x);
+    return a;
+  },
+  // what a robot is, said once as it comes into the friend's sight
+  stat(r) {
+    const s = { n: this.nid(r), y: r.type, k: r.wkey || null, H: r.maxHealth, l: r.wlevel || 1, g: r.glowColor, p: this.pose(r), z: r.downs, hm: r.home ? [r2(r.home.x), r2(r.home.z)] : null };
+    if (r.swarm != null) s.s = r.swarm;
+    if (r.crew != null) { const L = Game.robots.find((q) => q.id === r.crew); if (L) s.c = this.nid(L); }
+    if (r.ring) s.rg = r.ring;
+    if (Array.isArray(r.parts)) s.ps = r.parts;
+    if (r.state === 'down') { s.hr = Object.fromEntries(Object.entries(r.harm).map(([a, b]) => [a, r2(b)])); s.by = r.beatenBy; s.lh = r.lastHitBy ?? null; }
+    if (r.clone) s.cl = { of: 0, fired: 0 };
+    return s;
+  },
+  say(o) { if (this.peer) this.peer.q.push(o); },
+  // the reliable line: one batch in flight; the next goes when the friend's st has acked it
+  flush() {
+    const P = this.peer, now = performance.now(); if (!P) return;
+    if (P.m && P.hurtMe.length) { for (const h of P.hurtMe) this.say({ e: 'me', a: r2(h.a), w: h.w, x: r2(clamp(P.m.push.x, -60, 60)), z: r2(clamp(P.m.push.z, -60, 60)) }), P.m.push.set(0, 0, 0); P.hurtMe.length = 0; }
+    for (const [n, h] of P.hurts) { if (h.a || h.s) this.say({ e: 'hurt', n, a: r2(h.a), s: r2(h.s), w: h.w, x: r2(h.x), z: r2(h.z) }); } P.hurts.clear();
+    if (P.fly) { if (now - P.fly.at > TWO.resend) { P.fly.at = now; Net.send(P.fly.m); } return; }
+    if (!P.q.length || now - (P.evAt || 0) < 80) return;
+    const list = []; let n = 60;
+    while (P.q.length) { const L = JSON.stringify(P.q[0]).length + 1; if (list.length && n + L > 3500) break; n += L; list.push(P.q.shift()); }
+    P.fly = { at: now, m: { t: 'ev', n: ++P.seq, l: list } }; P.evAt = now; Net.send(P.fly.m);
+  },
+  // ---- receiving ----
+  onSt(m) {
+    const P = this.peer; if (!P || !P.hi || !P.m) return;
+    const now = performance.now(), dt = P.stAt ? Math.min(250, now - P.stAt) : 0; P.stAt = now; P.clock = (P.clock || 0) + dt;
+    if (P.fly && m.k === P.fly.m.n) P.fly = null;
+    if (Array.isArray(m.m) && m.m.length === 8 && m.m.every((v) => Number.isFinite(v))) { P.snaps.push({ at: now, v: m.m.map((v) => clamp(v, -1e6, 1e6)) }); if (P.snaps.length > 30) P.snaps.shift(); }
+    const b = P.m;
+    if (Array.isArray(m.h)) { b.maxHealth = twN(m.h[1], 150, 1, 1e4); b.health = twN(m.h[0], b.maxHealth, 0, b.maxHealth); }
+    P.paused = m.p === 1; b.away = P.paused;
+    b.state = twN(m.d) > 0 ? 'down' : 'up'; b.downT = twN(m.d);
+    P.hop = twN(m.j, 0, 0, 60);
+    b.swing = Array.isArray(m.w) && typeof m.w[0] === 'string' && Object.hasOwn(WEAPON, m.w[0]) && WEAPON[m.w[0]].swing ? Object.assign(b.swing || {}, { w: m.w[0], t: twN(m.w[1], 0, 0, 5), hit: true }) : null;
+    b.charge = null; b.shield = 0;
+    if (Array.isArray(m.s)) for (const s of m.s.slice(0, TWO.shots)) this.ghost(s);
+    if (Array.isArray(m.r)) for (const a of m.r.slice(0, TWO.robots)) if (Array.isArray(a) && twId(a[0])) { const r = P.robots.get(a[0]); if (r) this.take(r, a.slice(1), now); }
+    for (const [n, r] of P.robots) if (P.clock - r.net.seen > 1000) this.drop(r);
+    if (Array.isArray(m.q)) this.matesIn(m.q.slice(0, 6), now);
+    this.dirty = true;
+  },
+  onEv(m) {
+    const P = this.peer; if (!P || !P.hi || !Number.isInteger(m.n) || m.n !== P.inSeq + 1 || !Array.isArray(m.l)) return;
+    P.inSeq = m.n;
+    for (const o of m.l.slice(0, 200)) { if (!o || typeof o.e !== 'string' || !Object.hasOwn(this.EV, o.e)) continue; if (!this.peer) return; this.EV[o.e].call(this, o, P); }
+  },
+  EV: {
+    new(o, P) { if (twId(o.n)) this.puppet(o, P); },
+    hurt(o, P) {
+      const r = this.mine(o.n); if (!r || r.state !== 'glitched') return;
+      const w = typeof o.w === 'string' && (Object.hasOwn(WEAPON, o.w) || Object.hasOwn(ROBOT_HITS, o.w)) ? o.w : 'gun';
+      r.push.x += twN(o.x, 0, -40, 40); r.push.z += twN(o.z, 0, -40, 40); r.hits[w] = (r.hits[w] || 0) + 1; r.hitFlash = Math.min(1, r.hitFlash + 0.3);
+      const a = twN(o.a, 0, 0, 2000), s = twN(o.s, 0, 0, 1000);
+      if (a > 0) hurtRobot(r, a, w); if (s > 0) shockRobot(r, s);
+    },
+    me(o) {
+      if (this.isStopped()) return;
+      const m = Game.humans[0].mech; if (m.state === 'down') return;
+      m.push.x += twN(o.x, 0, -60, 60); m.push.z += twN(o.z, 0, -60, 60);
+      hurtMech(m, twN(o.a, 0, 0, 500), typeof o.w === 'string' && Object.hasOwn(HIT_AREAS, o.w) ? o.w : 'hit');
+    },
+    // the friend wants to fix it, or take its parts: theirs, if it's down and nobody here is at it
+    want(o) {
+      const r = this.mine(o.n);
+      if (r && r.state === 'down' && !r.repairBy && !Game.squad.includes(r)) this.give(r, 'want');
+      else this.say({ e: 'no', n: String(o.n).slice(0, 14), y: r?.repairBy ? 1 : 0 });
+    },
+    give(o, P) {
+      if (!twId(o.n)) return;
+      let r = P.robots.get(o.n);
+      if (!r) r = this.puppet(o, P); else this.fill(r, o);
+      if (r) this.adopt(r, P);
+      if (!r) return;
+      const h = Game.humans[0], W = this.wants.get(o.n); this.wants.delete(o.n);
+      if (W && !this.isStopped()) chooseFor(h, r, W.choice, W.name, W.picks);
+    },
+    no(o) { if (this.wants.delete(o.n) && o.y === 1) this.toast('Your friend is fixing that one'); },
+    // fixed or taken apart by the friend: gone here too, for this session (nothing goes in this child's record)
+    gone(o, P) {
+      if (twKey(o.k)) { World.gone.add(o.k); }
+      const r = twId(o.n) && P.robots.get(o.n); if (!r) return;
+      Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 45, SPARK_ZAP, 9); const k = loud(r.pos); if (k > 0) Sfx.fixed();
+      this.drop(r);
+    },
+    part(o) {
+      if (!twKey(o.k)) return; World.taken.add(o.k);
+      const q = Hidden.list.find((c) => c.wkey === o.k && !c.found); if (!q) return;
+      q.found = true; q.foundBy = 'friend'; scene.remove(q.g); Sparks.burst(q.x, groundH(q.x, q.z) + 1, q.z, 24, SPARK_GLINT, 6);
+    },
+    kit(o) {
+      if (!twId(o.n) || Kits.list.some((k) => k.nid === o.n)) return;
+      const k = Kits.drop({ pos: { x: twN(o.x), z: twN(o.z) }, legHeading: 0, wlevel: twN(o.l, 1, 1, 500) | 0 }, true); k.nid = o.n;
+    },
+    kitgone(o) {
+      const k = Kits.list.find((c) => (twId(o.n) && c.nid === o.n) || (twKey(o.k) && c.wkey === o.k)); if (!k) return;
+      Kits.list.splice(Kits.list.indexOf(k), 1); scene.remove(k.g); Sparks.burst(k.x, groundH(k.x, k.z) + 1.2, k.z, 24, SPARK_MEND, 7);
+    },
+    smash(o) {
+      if (!twKey(o.k)) return; World.broken.add(o.k);
+      const p = Props.list.find((q) => q.wkey === o.k && !q.broken); if (!p) return;
+      this.quiet = true; try { Props.smash(p, 'gun', twN(o.x, 1, -1e3, 1e3), twN(o.z, 0, -1e3, 1e3)); } finally { this.quiet = false; }
+    },
+    summit(o) {
+      if (!twKey(o.k)) return; const sm = World.summits.get(o.k);
+      this.quiet = true; try { if (sm && !sm.up) World.summitUp(sm); else World.summitsUp.add(o.k); } finally { this.quiet = false; }
+    },
+  },
+  mine(n) { return twId(n) ? Game.robots.find((r) => r.nid === n && !r.net) || null : null; },
+  // ---- the friend's robots here ----
+  puppet(o, P) {
+    let r = P.robots.get(o.n);
+    if (r) { this.fill(r, o); return r; }
+    if (typeof o.y !== 'string' || !Object.hasOwn(ROBOT_TYPES, o.y) || !P.m) return null;
+    if (P.robots.size >= 64 || this.mine(o.n)) return null;
+    // both pages have this chunk's robots: the host's stay
+    if (twKey(o.k)) {
+      const own = Game.robots.filter((q) => q.wkey === o.k && !q.net && q.state !== 'ally' && !Game.squad.includes(q)), pre = o.n[0];
+      if (pre === '1' && own.some((q) => this.nid(q)[0] === '0')) return null;
+      if (pre === '0') for (const q of own) if (this.nid(q)[0] === '1') { this.unlist(q); this.away(q); }
+    }
+    const p = Array.isArray(o.p) ? o.p : [], x = twN(p[0]), z = twN(p[2]);
+    r = o.y === 'clone' ? spawnClone({ mech: P.m, idx: 0 }, x, z) : spawnRobot(o.y, x, z); if (!r) return null;
+    r.net = { snaps: [], seen: P.clock || 0, aim: null }; r.nid = o.n; P.robots.set(o.n, r);
+    this.fill(r, o);
+    if (Number.isInteger(o.s)) {
+      const map = (P.swarms ||= new Map()); let id = map.get(o.s);
+      if (id == null || !Game.swarms[id]) { id = nextSwarm++; map.set(o.s, id); Game.swarms[id] = { id, n: 1, wp: null, wpUntil: 0, seen: -1e9, kit: r.downs > 0 }; }
+      r.swarm = id; r.orbitA = Math.random() * 6;
+    }
+    if (twId(o.c)) { r.crewNid = o.c; for (const q of Game.robots) if (q.crewNid) { const L = Game.robots.find((c) => c.nid === q.crewNid); q.crew = L ? L.id : q.id; } }
+    if (r.ring) { const g = World.rings.get(r.ring); if (g && g.state !== 'won') g.champ = r; }
+    const pos = [x, twN(p[1], groundH(x, z)), z]; r.pos.set(...pos);
+    return r;
+  },
+  fill(r, o) {
+    if (twKey(o.k)) r.wkey = o.k;
+    r.maxHealth = twN(o.H, r.maxHealth, 1, 1e5); r.wlevel = twN(o.l, 1, 1, 1000) | 0; r.downs = twN(o.z, 0, 0, 1000) | 0;
+    if (twHex(o.g) && o.g !== r.glowColor) setGlowColor(r, o.g);
+    if (Array.isArray(o.hm)) r.home = { x: twN(o.hm[0]), z: twN(o.hm[1]) };
+    if (twKey(o.rg)) r.ring = o.rg;
+    if (Array.isArray(o.ps)) r.parts = o.ps.filter((id) => typeof id === 'string' && Object.hasOwn(PARTS, id) && ROBOT_TYPES[r.type].parts.includes(id)).slice(0, 12);
+    r.harm = {}; if (isObj(o.hr)) for (const [k, v] of Object.entries(o.hr).slice(0, 16)) if (/^\w{1,10}$/.test(k)) r.harm[k] = twN(v, 0, 0, 1e5);
+    const how = (w) => (w === 'em' || (typeof w === 'string' && (Object.hasOwn(WEAPON, w) || Object.hasOwn(ROBOT_HITS, w))) ? w : null);
+    r.beatenBy = how(o.by); r.lastHitBy = how(o.lh);
+    if (Array.isArray(o.p) && r.net) { const s = r.net.seen; this.take(r, o.p, performance.now()); r.net.seen = Math.max(s, this.peer?.clock || 0); }
+  },
+  take(r, a, now) {
+    if (!r.net || a.length < 14 || !a.slice(0, 11).every((v) => Number.isFinite(v))) return;
+    const N = r.net, T = ROBOT_TYPES[r.type], X = isObj(a[14]) ? a[14] : {}, was = r.state;
+    N.seen = this.peer?.clock || 0;
+    N.snaps.push({ at: now, v: a.slice(0, 9).map((v) => clamp(v, -1e6, 1e6)) }); if (N.snaps.length > 30) N.snaps.shift();
+    r.health = clamp(a[10], 0, r.maxHealth);
+    const ally = N.ally;
+    r.state = a[9] === 1 ? 'down' : ally ? 'ally' : 'glitched';
+    r.downT = twN(a[13], 0, 0, 1e4);
+    let mode = typeof a[11] === 'string' && /^[a-zA-Z]{1,10}$/.test(a[11]) ? a[11] : 'stalk';
+    const cfg = r.type === 'knight' ? KNIGHT : r.type === 'centipede' ? CENTIPEDE : null;
+    if (cfg) {
+      const ok = typeof X.w === 'string' && /^(sword|axe|laser|crunch|dig)$/.test(X.w) && Object.hasOwn(cfg, X.w) && cfg[X.w].windup > 0;
+      if (ok) r.ai.w = X.w; else if (mode === 'windup') mode = 'stalk';
+    }
+    r.ai.mode = mode; r.ai.t = twN(a[12], 0, 0, 1000);
+    r.air = X.a != null ? { u: twN(X.a, 0, 0, 1) } : null;
+    for (const k of ['kickT', 'swipeT', 'throwT', 'axeOut', 'printT', 'sputter']) r[k] = twN(X[k], 0, 0, 60);
+    r.under = X.u === 1; r.ringWait = X.g === 1; r.shock = twN(X.s, 0, 0, 1e4); r.charge = null;
+    if (X.n === 0 || X.n === 1) { if (r.type === 'knight') (r.kn ||= { swipes: 0 }).swipes = X.n; else if (r.type === 'ninja') (r.nj ||= { tries: 0 }).tries = X.n; }
+    if (Array.isArray(X.at)) { const p = new V3(twN(X.at[1]), twN(X.at[2]), twN(X.at[3])); r.ai.aimT = twN(X.at[0], 0, 0, 60); r.ai.aimAt = { pos: p.setY(p.y - aimPoint({ pos: new V3() }).y) }; } else { r.ai.aimT = 0; r.ai.aimAt = null; }
+    r.mv = r.type === 'centipede' && Array.isArray(X.mv) && /^(laser|crunch|dig)$/.test(X.mv[0]) ? { w: X.mv[0], t: twN(X.mv[1], 0, 0, 60), pt: twN(X.mv[2], 0, 0, 60), hit: X.mv[3] === 1, len: twN(X.mv[4], 0, 0, 200), ph: null } : null;
+    r.repairBy = r.state === 'down' && ['fix', 'parts', 'home'].includes(X.f) ? (r.repairBy || { friend: true, repair: { kind: X.f, r } }) : null;
+    if (was === 'glitched' && r.state === 'down') {
+      r.downs = Math.max(1, r.downs); r.shock = 0;
+      Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 40, SPARK_HOT, 10); const k = loud(r.pos); if (k > 0) Sfx.powerDown(k);
+    } else if (was === 'down' && r.state === 'glitched') { Sparks.burst(r.pos.x, r.pos.y + 3, r.pos.z, 30, SPARK_ZAP, 8); const k = loud(r.pos); if (k > 0) Sfx.reboot(k); }
+  },
+  // between the two snaps round `interp` ms ago (a jump past `snap` m is taken at once)
+  lerpSnap(S, jump = TWO.snap) {
+    if (!S.length) return null;
+    const rt = performance.now() - TWO.interp; let i = S.length - 1; while (i > 0 && S[i].at > rt) i--;
+    const A = S[i], B = S[Math.min(i + 1, S.length - 1)]; let t = B.at > A.at ? clamp((rt - A.at) / (B.at - A.at), 0, 1) : 1;
+    if (Math.hypot(B.v[0] - A.v[0], B.v[2] - A.v[2]) > jump) t = 1;
+    return B.v.map((v, k) => (k === 3 || k === 4 ? A.v[k] + wrapAngle(v - A.v[k]) * t : k === 7 ? (Math.abs(v - A.v[k]) > 20 ? v : lerp(A.v[k], v, t)) : lerp(A.v[k], v, t)));
+  },
+  puppetPose(r) {
+    const v = this.lerpSnap(r.net.snaps); if (!v) return;
+    r.pos.set(v[0], v[1], v[2]); r.legHeading = v[3]; r.torsoYaw = v[4]; r.aimPitch = v[5]; r.speed = v[6]; r.phase = v[7]; r.lift = v[8];
+  },
+  puppetTick(r, dt) {
+    r.t += dt; this.puppetPose(r);
+    if (r.push.x || r.push.z) r.push.set(0, 0, 0);
+    r.input.throttle = r.input.turn = 0; r.input.attack = r.input.boost = false;
+    robotGlow(r, dt);
+    r.sparkT -= dt; if (r.sparkT <= 0) { r.sparkT = 0.3 + Math.random(); if (r.state === 'glitched' && !r.under) Sparks.burst(r.pos.x, r.pos.y + ROBOT_TYPES[r.type].hitY, r.pos.z, 4, SPARK_HOT, 5); }
+    r.hitFlash = Math.max(0, r.hitFlash - dt * 6); r.flash = Math.max(0, (r.flash || 0) - dt); r.recoil = Math.max(0, (r.recoil || 0) - dt / MUZZLE.recoil);
+  },
+  mechTick(m, dt) {
+    const P = this.peer; if (!P) return;
+    const was = m.legHeading, v = this.lerpSnap(P.snaps); if (v) { m.pos.set(v[0], v[1], v[2]); m.legHeading = v[3]; m.torsoYaw = v[4]; m.aimPitch = v[5]; m.speed = v[6]; m.phase = v[7]; }
+    m.turnVel = damp(m.turnVel, clamp(wrapAngle(m.legHeading - was) / Math.max(dt, 1e-3), -2, 2), 10, dt);
+    m.hop = P.hop > 0 ? { y: P.hop, v: 0, peak: P.hop } : null;
+    m.flash = Math.max(0, (m.flash || 0) - dt); m.recoil = Math.max(0, (m.recoil || 0) - dt / MUZZLE.recoil);
+    m.glow = m.state === 'down' ? (m.downT > PLAYER.warnTime ? 0.03 : Math.sin(Game.ticks * DT * 12) > 0.3 ? 1 : 0.03) : 1;
+    m.slump = approach(m.slump, m.state === 'down' ? 1 : 0, dt * 1.6);
+  },
+  matesIn(list, now) {
+    const keep = new Set();
+    for (const a of list) {
+      if (!Array.isArray(a) || !Number.isInteger(a[0]) || typeof a[1] !== 'string' || !Object.hasOwn(ROBOT_TYPES, a[1]) || a[1] === 'clone' || keep.has(a[0])) continue;
+      let r = this.mates.get(a[0]);
+      if (r && r.type !== a[1]) { freeModel(r.model); r = null; }
+      if (!r) { r = spawnRobot(a[1], twN(a[3]), twN(a[5])); Game.robots.splice(Game.robots.indexOf(r), 1); r.net = { snaps: [], seen: 0, ally: true }; r.state = 'ally'; this.mates.set(a[0], r); if (twHex(a[2])) setGlowColor(r, a[2]); }
+      keep.add(a[0]); this.take(r, a.slice(3), now);
+    }
+    for (const [k, r] of this.mates) if (!keep.has(k)) { freeModel(r.model); this.mates.delete(k); }
+  },
+  // a puppet goes from this page (out of the friend's sight of it, or fixed)
+  drop(r) { this.peer?.robots.delete(r.nid); this.away(r); },
+  away(r) {
+    const by = Game.humans.find((h) => h.repair?.r === r); if (by) cancelRepair(by);
+    r.net = null; removeRobot(r);
+    for (const g of World.rings.values()) if (g.champ === r) { g.champ = null; if (g.state !== 'won' && World.chunks.has(g.ch.key) && !Game.robots.some((q) => q.ring === g.g.key)) World.ringChamp(g); }
+  },
+  // its key out of World.live without marking it gone
+  unlist(r) { const L = World.live.get(r.wkey); if (!L) return; const i = L.indexOf(r); if (i >= 0) L.splice(i, 1); if (!L.length) World.live.delete(r.wkey); },
+  // hand robot r to the friend: it's a puppet here from now on
+  give(r, why) {
+    const P = this.peer; if (!P || r.net) return;
+    if (r.repairBy) cancelRepair(r.repairBy);
+    this.say({ e: 'give', ...this.stat(r) });
+    this.unlist(r); P.known.delete(r.nid);
+    r.net = { snaps: [], seen: (P.clock || 0) + 2500 }; P.robots.set(r.nid, r);
+    this.take(r, this.pose(r), performance.now()); r.net.seen = (P.clock || 0) + 2500;
+  },
+  giveNear() {
+    const P = this.peer; if (!P?.m || P.paused) return;
+    for (const r of [...Game.robots]) if (!r.net && r.state !== 'ally' && !Game.squad.includes(r) && flatDist(r, P.m) < TWO.reach) this.give(r);
+  },
+  // World's sweep or a ring's chunk going: r is far from here, but not from the friend: theirs (true)
+  hand(r) { const P = this.peer; if (!P?.m || r.net || P.paused || flatDist(r, P.m) > TWO.reach) return false; this.give(r); return true; },
+  // a puppet is this page's own from now on
+  adopt(r, P) {
+    if (!r.net) return;
+    P.robots.delete(r.nid); r.net = null; r.repairBy = null; r.crewNid = null;
+    if (r.wkey && World.gone.has(r.wkey) && !r.ring && !World.live.has(r.wkey) && r.state === 'glitched') { this.away(r); return; }
+    r.air = null; r.mv = null; r.dash = null; r.under = false; r.charge = null; r.ai.aimT = 0; r.ai.aimAt = null; r.push.set(0, 0, 0);
+    r.ai.think = 0; r.ai.alert = 0; r.ai.t = 0.6; r.ai.mode = r.state === 'down' ? 'off' : 'recover';
+    r.pos.y = groundH(r.pos.x, r.pos.z) + Math.max(0, r.lift || 0); r.lift = Math.max(0, r.lift || 0);
+    if (r.state === 'down') { r.shock = 0; dealBoard(r); r.downT = Math.max(r.downT, 3); }
+    if (r.wkey && !r.ring && !World.gone.has(r.wkey)) { const L = World.live.get(r.wkey); if (L) { if (!L.includes(r)) L.push(r); } else { const N = [r]; if (ROBOT_TYPES[r.type].boss) N.boss = r.type; World.live.set(r.wkey, N); } }
+    if (r.ring) { const g = World.rings.get(r.ring); if (g) g.champ = r; }
+  },
+  // ---- the hooks in the game ----
+  // a hit on a puppet goes to its owner
+  hitPuppet(r, a, w, s = 0) {
+    const P = this.peer; if (!P) return; let h = P.hurts.get(r.nid); if (!h) P.hurts.set(r.nid, h = { a: 0, s: 0, x: 0, z: 0, w });
+    h.a += Math.max(0, a); h.s += s; h.x += r.push.x; h.z += r.push.z; if (a > 0) h.w = w; r.push.set(0, 0, 0);
+  },
+  // a robot of this page's hits the friend's mech: their page takes it off their energy
+  hurtPeer(m, amount, how) { const P = this.peer; if (!P || P.paused || m.state === 'down') { m.push.set(0, 0, 0); return 0; } P.hurtMe.push({ a: amount, w: how }); if (P.hurtMe.length > 40) P.hurtMe.shift(); return amount; },
+  want(h, r, choice, name, picks) {
+    this.wants.set(r.nid, { choice, name, picks, at: performance.now() }); this.say({ e: 'want', n: r.nid }); return { ok: false, why: 'asked' };
+  },
+  fixed(r) { if (this.peer && !Game.squad.includes(r)) this.say({ e: 'gone', n: this.nid(r), k: r.ring ? null : r.wkey || null }); },
+  did(e, o) { if (this.peer && !this.quiet) this.say({ e, ...o }); },
+  shot(kind, a, b, owner, spd, range) {
+    const P = this.peer; if (!P || this.quiet || P.shots.length >= TWO.shots) return;
+    P.shots.push([kind, ...[a.x, a.y, a.z, b.x, b.y, b.z].map((v) => Math.round(v * 1000) / 1000), owner?.human ? 'p' : owner?.type && owner.nid ? owner.nid : 0, owner?.type && owner.state === 'glitched' ? 1 : 0, Math.round(spd || 0), Math.round(range || 0)]);
+  },
+  // the friend's shots, only to see
+  ghost(s) {
+    if (!Array.isArray(s) || !s.slice(1, 7).every((v) => Number.isFinite(v) && Math.abs(v) < 1e6)) return;
+    const P = this.peer, a = new V3(s[1], s[2], s[3]), b = new V3(s[4], s[5], s[6]), from = s[7] === 'p' ? P.m : twId(s[7]) ? P.robots.get(s[7]) : null, k = s[0];
+    if (Game.paused) return;
+    this.quiet = true;
+    try {
+      if (k === 'railfx') RailFx.fire(a, b);
+      else if (k === 'axe') { if (from?.type === 'knight') Axes.throw(from, Math.atan2(-b.x, -b.z)).ghost = true; }
+      else if (typeof k === 'string' && (Object.hasOwn(WEAPON, k) || Object.hasOwn(ROBOT_HITS, k)) && Number.isFinite((WEAPON[k] || ROBOT_HITS[k]).speed) && b.length() > 0.1) {
+        Bullets.fire(a, b.normalize(), from, k, 0, twN(s[10], 60, 1, 400), twN(s[9], 60, 5, 400));
+        const q = Bullets.list[Bullets.list.length - 1]; if (q) { q.ghost = true; q.foe = s[8] === 1; q.look = WEAPON[k] ? k : q.foe ? 'foe' : 'ally'; if (!Bullets.looks[q.look]) q.look = 'gun'; }
+        const L = loud(a); if (L > 0) Sfx.ping(0.35 * L);
+      }
+      if (from) { from.flash = MUZZLE.flash; from.recoil = 1; from.barrel = (from.barrel || 0) ^ 1; }
+    } finally { this.quiet = false; }
+    P.shotsIn++;
+  },
+  // each frame: a line gone quiet is dropped; the friend's squad moves (and, while paused here, nothing else)
+  frame(dt) {
+    const P = this.peer, now = performance.now(); if (!P) return;
+    if (Net.state === 'together' && now - (Net.heardAt || now) > TWO.silent) { Net.lost(true); return; }
+    if (P.m && Game.paused) this.mechTick(P.m, dt);
+    for (const r of this.mates.values()) { this.puppetTick(r, dt); syncRobotModel(r, dt); }
+    for (const [n, W] of this.wants) if (now - W.at > 4000) this.wants.delete(n);
+  },
+  // the friend's face over their mech, or an arrow at the edge pointing to them
+  view(cam) {
+    const tag = $('peerTag'), arr = $('peerArrow'), P = this.peer;
+    if (!P?.m || !P.hi) { tag.classList.remove('on'); arr.classList.remove('on'); return; }
+    if (P.faced !== P.av) { P.faced = P.av; tag.innerHTML = arr.querySelector('.fc').innerHTML = this.face(P.av); }
+    const W = innerWidth, H = innerHeight, v = P.m.pos.clone(); v.y += 8.2; cam.updateMatrixWorld(); v.project(cam);
+    const behind = v.z > 1, sx = (v.x + 1) / 2 * W, sy = (1 - v.y) / 2 * H;
+    if (!behind && sx > 24 && sx < W - 24 && sy > 24 && sy < H - 24) {
+      tag.style.transform = `translate(${sx}px,${sy}px)`; tag.classList.add('on'); arr.classList.remove('on'); P.shown = { on: 'tag', x: sx, y: sy }; return;
+    }
+    let dx = sx - W / 2, dy = sy - H / 2; if (behind) { dx = -dx; dy = -dy; } if (!dx && !dy) dy = 1;
+    const l = 42, rr = W - 42, t = Math.min(H / 2, 84);
+    const place = (b) => { const k = Math.min(dx > 0 ? (rr - W / 2) / dx : dx < 0 ? (l - W / 2) / dx : Infinity, dy > 0 ? (b - H / 2) / dy : dy < 0 ? (t - H / 2) / dy : Infinity); return [clamp(W / 2 + dx * Math.abs(k), l, rr), clamp(H / 2 + dy * Math.abs(k), t, b)]; };
+    let [ax, ay] = place(Math.max(t + 1, H - 42));
+    if (touch.state.touchMode && ay > H - 196 && (ax < 200 || ax > W - 240)) [ax, ay] = place(Math.max(t + 1, H - 196));
+    arr.style.transform = `translate(${ax}px,${ay}px)`; arr.querySelector('.pt').style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+    arr.classList.add('on'); tag.classList.remove('on'); P.shown = { on: 'arrow', x: ax, y: ay };
+  },
+  // for the hooks
+  status() {
+    const P = this.peer, m = P?.m;
+    return { on: this.on, page: this.page, msg: this.msg, calm: this.calm, entry: this.entry.slice(), net: Net.state, code: Net.code, you: Net.you, available: Net.available(), sent: Net.sent, got: Net.got,
+      peer: P ? { av: P.av, hi: P.hi, paused: P.paused, shown: P.shown || null, shotsIn: P.shotsIn, queue: P.q.length + (P.fly ? 1 : 0), m: m ? { x: r3(m.pos.x), y: r3(m.pos.y), z: r3(m.pos.z), health: m.health, max: m.maxHealth, state: m.state, heading: r3(m.legHeading), swing: m.swing?.w ?? null } : null,
+        puppets: [...P.robots.values()].map((r) => ({ nid: r.nid, id: r.id, type: r.type, state: r.state, health: r3(r.health), x: r3(r.pos.x), z: r3(r.pos.z), key: r.wkey ?? null, fixing: !!r.repairBy, mode: r.ai.mode })) } : null,
+      own: Game.robots.filter((r) => !r.net).map((r) => ({ nid: r.nid ?? null, id: r.id, type: r.type, state: r.state, health: r3(r.health), x: r3(r.pos.x), z: r3(r.pos.z), key: r.wkey ?? null })),
+      mates: [...this.mates.values()].map((r) => ({ type: r.type, x: r3(r.pos.x), z: r3(r.pos.z), name: r.name, state: r.state })), mechs: Game.mechs.length };
+  },
+};
+Net.on('room', (m) => { Two.met = m.you === 0 ? Two.met : false; if (Net.state === 'together') Two.together(); else { Two.page = 'wait'; Two.draw(); } });
+Net.on('peer-join', () => Two.together());
+Net.on('peer-left', () => Two.parted('left'));
+Net.on('lost', (m) => { const was = m.was; Two.parted(was === 'together' ? 'lost' : 'off'); if (was !== 'together') { Two.msg = 'The game server stopped.'; Two.calm = false; Two.draw(); } });
+Net.on('closed', () => Two.parted('off'));
+Net.on('fail', () => { Two.page = 'off'; Two.msg = 'Could not reach the game server. Is it still running?'; Two.calm = false; Two.draw(); });
+Net.on('err', (m) => {
+  const W = { full: 'That game has two players already', nocode: 'No game has those pictures. Try again!', busy: 'The game server is busy. Try again soon.' };
+  Two.page = m.why === 'busy' ? 'off' : 'join'; Two.entry = []; Two.msg = typeof m.why === 'string' && Object.hasOwn(W, m.why) ? W[m.why] : W.busy; Two.calm = false; Two.draw();
+});
+Net.on('hi', (m) => Two.onHi(m));
+Net.on('st', (m) => Two.onSt(m));
+Net.on('ev', (m) => Two.onEv(m));
+$('two').addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (b) { Sfx.unlock(); Two.act(b.dataset.a, +b.dataset.i); } });
+document.addEventListener('visibilitychange', () => Two.paused());
+addEventListener('pagehide', () => { if (Net.link) Net.close(); });
+
 
 // ===========================================================================
 // Waves. The meadow is cleared when no glitched or powered-down robot is left
