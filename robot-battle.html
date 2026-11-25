@@ -1551,9 +1551,9 @@
   #start .tm.muted .ic { opacity: .6; }
   #start .tm:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
   @media (orientation: portrait) { #start .tpmenu { grid-template-columns: repeat(2, min(150px, 40vw)); } }
-  @media (orientation: landscape) { #start .tpmenu.seven { grid-template-columns: repeat(4, 132px); } }   /* #167 slice 7: the world's seventh tile */
+  @media (orientation: landscape) { html.tp-mode #start:not(.title) .tpmenu.seven { display: flex; flex-wrap: wrap; width: 570px; max-width: calc(100vw - 32px); } #start .tpmenu.seven .tm { width: 132px; } }   /* #167 slice 7: the world's seventh tile: four, then three in the middle, clear of the grown-ups' button */
   @media (max-height: 460px) { html.tp-mode #start:not(.title) .logo { font-size: 34px; } html.tp-mode #start:not(.title) .kidbar { margin-top: 10px; } #start .tpmenu { margin-top: 12px; gap: 10px; } #start .tm { height: 72px; } }
-  @media (min-width: 700px) and (min-height: 700px) { #start .tpmenu { grid-template-columns: repeat(3, 170px); gap: 16px; } #start .tpmenu.seven { grid-template-columns: repeat(4, minmax(0, 150px)); } #start .tm { height: 110px; font-size: 22px; } #start .tm .ic { font-size: 44px; } }
+  @media (min-width: 700px) and (min-height: 700px) { #start .tpmenu { grid-template-columns: repeat(3, 170px); gap: 16px; } #start .tm { height: 110px; font-size: 22px; } #start .tm .ic { font-size: 44px; } }
   /* ---- #167 slice 7: two players in the endless world (Wild World W3's panel): the panel over the pause screen, the friend's face
      over their mech (or an arrow at the screen's edge), and its own one-line toast ---- */
   .garb.two { background: var(--orange); display: none; }
@@ -1609,6 +1609,7 @@
   #twToast small { display: block; font: 900 15px 'Asap', sans-serif; color: var(--yellow); }
   @media (max-height: 460px) { #twToast { top: 84px; } .tw-big { min-height: 64px; flex-direction: row; gap: 10px; } .tw-big .ic { font-size: 32px; } .tw-code { --cs: 52px; --ci: 32px; } .tw-slot { --cs: 46px; --ci: 28px; } .tw-key { height: 56px; } .tw-panel { gap: 6px; padding: 8px; }
     .tw-with .tw-face { width: 48px; height: 48px; font-size: 26px; } }
+  @media (orientation: landscape) and (min-width: 700px) and (min-height: 700px) { html.tp-mode #start:not(.title) .tpmenu.seven { width: 740px; } #start .tpmenu.seven .tm { width: 170px; } }
 </style>
 <script type="importmap">
 { "imports": {
@@ -17776,6 +17777,7 @@ const Two = {
     const place = (b) => { const k = Math.min(dx > 0 ? (rr - W / 2) / dx : dx < 0 ? (l - W / 2) / dx : Infinity, dy > 0 ? (b - H / 2) / dy : dy < 0 ? (t - H / 2) / dy : Infinity); return [clamp(W / 2 + dx * Math.abs(k), l, rr), clamp(H / 2 + dy * Math.abs(k), t, b)]; };
     let [ax, ay] = place(Math.max(t + 1, H - 42));
     if (touch.state.touchMode && ay > H - 196 && (ax < 200 || ax > W - 240)) [ax, ay] = place(Math.max(t + 1, H - 196));
+    else if (!touch.state.touchMode && ay > H - 120 && Math.abs(ax - W / 2) < 230) [ax, ay] = place(Math.max(t + 1, H - 126));   // (clear of the weapons)
     arr.style.transform = `translate(${ax}px,${ay}px)`; arr.querySelector('.pt').style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
     arr.classList.add('on'); tag.classList.remove('on'); P.shown = { on: 'arrow', x: ax, y: ay };
   },

@@ -302,7 +302,7 @@ const RUNS = {
     await B.shot('two-desktop-tag');
     await B.js(`R.aim(0, -Math.PI / 2); G.humans[0].rig.snap = true; return 1;`); await run(400); const t2 = (await B.st()).peer.shown;
     await B.shot('two-desktop-arrow');
-    ok('facing the friend: their face over their mech; facing away: an arrow at the edge', t1?.on === 'tag' && v1 && t2?.on === 'arrow' && t2.x >= 42 && t2.x <= 1238 && t2.y >= 40 && t2.y <= 758, { t1, t2 });
+    ok('facing the friend: their face over their mech; facing away: an arrow at the edge', t1?.on === 'tag' && v1 && t2?.on === 'arrow' && t2.x >= 42 && t2.x <= 1238 && t2.y >= 40 && t2.y <= 680, { t1, t2 });
     // places, together
     const place = await A.js(`const s = R.worldSummits(1500).sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z))[0], cv = R.worldCaves(1500).sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z))[0]; return { s, cv };`);
     for (const [nm, x, z] of [['a summit', place.s.x, place.s.z], ['a cave', (place.cv.x + place.cv.bx) / 2, (place.cv.z + place.cv.bz) / 2]]) {
@@ -477,12 +477,14 @@ const RUNS = {
     const sizes = [[844, 390], [740, 360], [667, 375]];
     await Promise.all([A.open(844, 390, true), B.open(844, 390, true)]);
     await meet(); await A.js(`T.leave(); R.manual(false); return 1;`); await B.js(`T.leave(); return 1;`); await sleep(400);
-    const fit = (C, sel) => C.ev(`(() => { const W = innerWidth, H = innerHeight, out = [], L = [...document.querySelectorAll(${JSON.stringify(sel)})].filter((e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden'); for (const e of L) { const b = e.getBoundingClientRect(); if (b.left < -1 || b.top < -1 || b.right > W + 1 || b.bottom > H + 1) out.push([e.id || e.className, Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]); } return { n: L.length, out, scroll: document.documentElement.scrollWidth - W }; })()`);
+    const fit = (C, sel) => C.ev(`(() => { const W = innerWidth, H = innerHeight, out = [], L = [...document.querySelectorAll(${JSON.stringify(sel)})].filter((e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden'); for (const e of L) { const b = e.getBoundingClientRect(); if (b.left < -1 || b.top < -1 || b.right > W + 1 || b.bottom > H + 1) out.push([e.id || e.className, Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]); } const bx = L.map((e) => [e, e.getBoundingClientRect()]), over = [];
+      const G = [...document.querySelectorAll('#parentB, #start button')].filter((e) => !L.includes(e) && !e.closest('#two') && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden'); if (L[0]?.classList.contains('tm')) for (const g of G) { const b = g.getBoundingClientRect(); for (const [e, r] of bx) if (b.left < r.right - 1 && b.right > r.left + 1 && b.top < r.bottom - 1 && b.bottom > r.top + 1) over.push([g.id || g.className, e.id]); }
+      return { n: L.length, out, over, scroll: document.documentElement.scrollWidth - W }; })()`);
     for (const [w, h] of sizes) {
       await A.size(w, h, true); await sleep(300); await A.js(`window.dispatchEvent(new Event('resize')); return 1;`);
       await A.ev(`(() => { const p = [...document.querySelectorAll('.tp-pause')].find((e) => e.getClientRects().length); window.__pb = p ? (() => { const b = p.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })() : null; return 1; })()`);
       const pb = await A.ev('window.__pb'); if (pb) await A.tap(pb.x, pb.y); await sleep(400);
-      const menu = await fit(A, '#tpMenu .tm'); ok(`${w} x ${h}: the pause menu (${menu.n} tiles, 2 players among them) fits`, menu.n >= 7 && menu.out.length === 0 && menu.scroll <= 0 && await A.ev(`document.getElementById('tmTwo').getClientRects().length > 0`), { menu, pb }); await A.shot(`two-menu-${w}`);
+      const menu = await fit(A, '#tpMenu .tm'); ok(`${w} x ${h}: the pause menu (${menu.n} tiles, 2 players among them) fits`, menu.n >= 7 && menu.out.length === 0 && menu.scroll <= 0 && menu.over.length === 0 && await A.ev(`document.getElementById('tmTwo').getClientRects().length > 0`), { menu, pb }); await A.shot(`two-menu-${w}`);
       const tapped = await A.tapEl('#tmTwo'); await sleep(300); const on = (await A.st()).on; const p1 = await fit(A, '#twPanel, #twPanel button, #twPanel .tw-msg'); await A.shot(`two-panel-${w}`);
       ok(`${w} x ${h}: a tap opens the panel (HOST, JOIN), and it fits`, tapped && on && p1.n >= 4 && !p1.out.length, { tapped, on, p1 });
       await A.tapEl('#twPanel [data-a="join"]'); await sleep(200); const p2 = await fit(A, '#twPanel, #twPanel button, #twPanel .tw-slot'); await A.shot(`two-join-${w}`); ok(`${w} x ${h}: the 8 pictures fit`, p2.n >= 14 && !p2.out.length, p2);
