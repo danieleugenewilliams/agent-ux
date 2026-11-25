@@ -3441,6 +3441,11 @@ const Profiles = {
     let left = null; try { left = localStorage.getItem('robotbattle.facts.' + C.id); } catch (e) {}
     if (left != null) return { ok: false, why: "this browser wouldn't delete it, so nothing was changed" };
     if (wasLast || picked) { try { localStorage.removeItem('robotbattle.child'); } catch (e) {} }
+    // (#240: a waiting 'child' write goes only when it names them, or is the Guest pick made just above for them, so the next
+    // write that works doesn't put them back. A different player's waiting pick is kept even when disk names them as last:
+    // disk is out of date while saves fail, and that player is still here)
+    const waiting = store.unsaved.get('child');
+    if (waiting === C.id || (picked && waiting === GUEST.id)) store.unsaved.delete('child');
     this.sync(this.list().filter((p) => p.id !== C.id)); this.save();
     return { ok: true, id: C.id, name: C.name, wasLast, wasPlaying };
   },
@@ -4545,8 +4550,14 @@ const Backup = {
     const br = /Edg\//.test(ua) ? 'Edge' : /Firefox\/|FxiOS/.test(ua) ? 'Firefox' : /Chrome\/|CriOS/.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'browser';
     return dev + ' · ' + br;
   },
-  // the backup of this device, now (whoever is playing saved first)
-  now() { Squad.sync(); Facts.save(); return this.make(this.raw(), { exported: new Date().toISOString(), device: this.deviceName() }); },
+  // the backup of this device, now (whoever is playing saved first). #240: a write that's waiting in store.unsaved (storage
+  // full or turned off) goes in over what's on disk, so the backup holds the latest progress, not the last that saved
+  now() {
+    Squad.sync(); Facts.save();
+    const raw = this.raw();
+    for (const [k, v] of store.unsaved) raw[k] = JSON.stringify(v);
+    return this.make(raw, { exported: new Date().toISOString(), device: this.deviceName() });
+  },
   // the file's name: robot-battle-backup-<today's date>.json (the real date, not the tracker's test clock)
   fileName() { return `robot-battle-backup-${Facts.date(Date.now())}.json`; },
   // write every change, or none: each key's old value is kept first, and if any write fails (storage full or blocked)
@@ -15047,7 +15058,7 @@ const Progress = {
     $('pTabs').parentElement.classList.toggle('many', this.kids().length > 3);
     $('pTabs').innerHTML = this.kids().map((C) => `<button class="chip ptab${C.id === this.tab ? ' on' : ''}" data-k="${C.id}" aria-label="${esc(C.name)}" aria-pressed="${C.id === this.tab}" style="--c:${C.hex}"><b class="face">${icon(C.ic)}</b><span>${esc(C.name)}</span></button>`).join('');
     // #224: a save failed (storage full): say so at the top, plainly, with what to do
-    const warn = store.unsaved.size ? `<p class="pwarn" id="pSaveWarn" role="alert">${icon('warn')}<span>Progress isn't saving: this device's storage is full. Make a backup below.</span></p>` : '';
+    const warn = store.unsaved.size ? `<p class="pwarn" id="pSaveWarn" role="alert">${icon('warn')}<span>Progress isn't saving: this device's storage is full or turned off. Make a backup below.</span></p>` : '';
     // #50: no profiles yet: say so, and where to make one (the backup section stays: a restore can bring players back)
     if (this.tab == null) {
       this.confirm = false; this.rm = null; $('pConfirm').classList.remove('on');
