@@ -9872,9 +9872,11 @@ function nearestFoe(r, ground = false) {
 // -> charge (boost straight at you) -> recover (shake it off) -> stalk.
 // Bend a heading error round trees and rocks in the next 10 m (closer than `dist`)
 // (and round any extra `bodies`, e.g. a squadmate's leader: { x, z, r })
-function avoid(r, err, dist, bodies = []) {
+// (walls false: not round the towers' wall circles: World.round's way already keeps clear of them)
+function avoid(r, err, dist, bodies = [], walls = true) {
   const h = r.legHeading, fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
   for (const o of bodies.length ? obstacles.concat(bodies) : obstacles) {
+    if (!walls && o.wall) continue;
     const ox = o.x - r.pos.x, oz = o.z - r.pos.z, along = ox * fx + oz * fz, lat = ox * rx + oz * rz;
     if (along > 0 && along < 10 && along < dist && Math.abs(lat) < o.r + r.spec.radius + 1) err += lat > 0 ? 0.9 : -0.9;
   }
@@ -9883,9 +9885,9 @@ function avoid(r, err, dist, bodies = []) {
 
 // Head for (x, z), bending round trees and rocks: `pace` throttle when facing it, slow while
 // turning, and easing off inside `slowR` metres (0 = no easing). Returns how far it is.
-function steer(r, x, z, pace = 1, slowR = 0) {
+function steer(r, x, z, pace = 1, slowR = 0, walls = true) {
   const dx = x - r.pos.x, dz = z - r.pos.z, dist = Math.hypot(dx, dz);
-  const err = avoid(r, wrapAngle(Math.atan2(-dx, -dz) - r.legHeading), dist);
+  const err = avoid(r, wrapAngle(Math.atan2(-dx, -dz) - r.legHeading), dist, [], walls);
   r.input.throttle = Math.abs(err) > 1.2 ? 0.2 * pace : slowR ? pace * clamp(dist / slowR, 0.15, 1) : pace;
   r.input.turn = clamp(-err * 2.5, -1, 1);
   return dist;
@@ -10213,17 +10215,25 @@ function hop(r, target, plan) {
   const R = Math.hypot(x + off.x, z + off.z), lim = rimR() - 4;
   if (R > lim) { const k = lim / R; off.x = (x + off.x) * k - x; off.z = (z + off.z) * k - z; }
   const to = new V3(x + off.x, 0, z + off.z); to.y = landY(target.body, to);
+  // #236: never down inside a tower it isn't in: it stops at the wall, on the ground there (the chain ends)
+  const stop = Game.world && World.hopStop(from.x, from.z, to.x, to.z, r.spec.radius);
+  if (stop) { to.x = stop.x; to.z = stop.z; to.y = landY(null, to); off = { x: 0, z: 0 }; target = { x: to.x, z: to.z }; plan = []; r.hopStops = (r.hopStops || 0) + 1; }
   const dist = Math.hypot(to.x - from.x, to.z - from.z);
   r.air = { from, to, off, body: target.body || null, plan, u: 0, dur: clamp(0.5 + dist / 18, 0.55, 1.3), h: 3 + dist * 0.18 };
   if (dist > 0.1) r.legHeading = r.torsoYaw = Math.atan2(-(to.x - from.x), -(to.z - from.z));
-  r.speed = 0; r.ai.mode = 'air';
+  r.speed = 0; r.ai.mode = 'air'; r.ai.door = null;
   const k = loud(r.pos); if (k > 0) Sfx.boing(k, r.bounces);
 }
 // Each tick of a hop: along the arc (following a robot it's aiming for), then land
 function bouncerFly(r, dt) {
   const A = r.air; if (!A) return false;
   A.u += dt / A.dur;
-  if (A.body?.type && Game.robots.includes(A.body)) { A.to.x = A.body.pos.x + A.off.x; A.to.z = A.body.pos.z + A.off.z; A.to.y = landY(A.body, A.to); }
+  if (A.body?.type && Game.robots.includes(A.body)) {
+    const x = A.body.pos.x + A.off.x, z = A.body.pos.z + A.off.z, stop = Game.world && World.hopStop(A.from.x, A.from.z, x, z, r.spec.radius);
+    // (#236: one it's following into a tower: it lets it go and comes down where it was heading, its way there clear)
+    if (stop) { A.to.y = landY(null, A.to); A.body = null; A.plan = []; r.hopStops = (r.hopStops || 0) + 1; }
+    else { A.to.x = x; A.to.z = z; A.to.y = landY(A.body, A.to); }
+  }
   const u = Math.min(A.u, 1);
   r.pos.lerpVectors(A.from, A.to, u); r.pos.y += A.h * 4 * u * (1 - u);
   if (A.u >= 1) bounceLand(r);
@@ -10232,11 +10242,13 @@ function bouncerFly(r, dt) {
 function bounceLand(r) {
   const A = r.air, J = ROBOT_TYPES.bouncer.jump; r.air = null;
   const under = (b, rad) => Math.hypot(b.pos.x - r.pos.x, b.pos.z - r.pos.z) < rad + J.foot;
+  // #236 (A1): a player inside a tower is safe: one coming down on the doorstep doesn't stomp them through the doorway
+  const sheltered = (b) => { const t = Game.world && World.inTower(b.pos.x, b.pos.z, 0); return !!t && World.inTower(r.pos.x, r.pos.z, 0) !== t; };
   // the hop off a stomped mech always comes down on the ground (A.last): the stomp ended the chain,
   // so landing on a robot or a mech there is no new bounce and no second stomp
   // a running player's mech under a glitched Bouncer: a stomp
   // (#59: or a running squadmate on the ground under it: a stomp too)
-  const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius))
+  const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius) && !sheltered(q))
     || Game.squad.find((q) => q.state === 'ally' && !q.air && !ROBOT_TYPES[q.type].flies && under(q, q.spec.radius)) : null;
   if (m) return bounceStomp(r, m, A);
   // another robot: spring off its head
@@ -10289,8 +10301,14 @@ function bouncerAI(r, dt) {
   if (!engaged(r, tgt)) { roam(r, dt); return; }
   if (ai.mode !== 'stalk') ai.mode = 'stalk';
   // #231: a tower in the way (its foe not in it): round it by a corner first, no hop over it, and not in at its door
-  const via = Game.world && World.round(r, tgt);
-  if (via) { steer(r, via.x, via.z, 1); return; }
+  // (#236: put back at a tower's door, off the doorstep before that; and a hop at a foe in reach is fine from either when
+  // the straight line to them keeps out of the towers: one beside a wall, its foe round the corner, stood there)
+  const off = Game.world && World.offDoor(r, tgt, dt), via = Game.world && !off && World.round(r, tgt);
+  if (off || via) {
+    if (via) steer(r, via.x, via.z, 1, 0, false);   // (round's corner, not bent off the tower's wall circles: that held one facing a wall)
+    if (ai.t <= 0 && flatDist(r, tgt) < J.reach && !World.hopStop(r.pos.x, r.pos.z, tgt.pos.x, tgt.pos.z, r.spec.radius)) { ai.mode = 'crouch'; ai.t = J.crouch; inp.throttle = inp.turn = 0; }
+    return;
+  }
   const dist = steer(r, tgt.pos.x, tgt.pos.z, 1);
   if (dist < 12) inp.throttle = 0;
   if (ai.t <= 0 && dist < J.reach) { ai.mode = 'crouch'; ai.t = J.crouch; inp.throttle = inp.turn = 0; }
@@ -12302,9 +12320,11 @@ function rams() {
   }
 }
 // Keep bodies apart: a light robot gives way to a heavy mech. A Bouncer mid-hop is above
-// it all; a drone keeps its height (lift) as it's nudged.
+// it all; a drone keeps its height (lift) as it's nudged. (#236: a roaming robot, or any glitched Bouncer, pushed in through a tower's door is put
+// back, as keepOut puts back a step: a Charger beside a roaming Bouncer at a door shoved it inside, past keepOut)
 function separate() {
   const bodies = [...Game.mechs.map((m) => [m, MECH.radius, 0.2]), ...Game.robots.filter((r) => !r.air && !r.under && !(ROBOT_TYPES[r.type].high && r.lift > SATELLITE.reach)).map((r) => [r, r.spec.radius, ROBOT_TYPES[r.type].weight ?? 0.8])];   // (#122: a Knight's own; #123: a satellite up in the sky is over it all; #141: the Centipede underground is under it all)
+  const was = Game.world ? bodies.map(([B]) => [B.pos.x, B.pos.z]) : null;
   for (let a = 0; a < bodies.length; a++) for (let b = a + 1; b < bodies.length; b++) {
     const [A, ra, wa] = bodies[a], [B, rb, wb] = bodies[b];
     const dx = B.pos.x - A.pos.x, dz = B.pos.z - A.pos.z, d = Math.hypot(dx, dz) || 1e-3, min = ra + rb;
@@ -12313,6 +12333,7 @@ function separate() {
     A.pos.x -= dx / d * o * sa; A.pos.z -= dz / d * o * sa; B.pos.x += dx / d * o * sb; B.pos.z += dz / d * o * sb;
     A.pos.y = groundH(A.pos.x, A.pos.z) + (A.lift || 0); B.pos.y = groundH(B.pos.x, B.pos.z) + (B.lift || 0);
   }
+  if (was) bodies.forEach(([B], i) => { if (B.type && World.keepOut(B, was[i][0], was[i][1])) B.pos.y += B.lift || 0; });
 }
 
 // ===========================================================================
@@ -12747,9 +12768,11 @@ const World = {
   },
   // #217: robots leave the towers alone. A roaming robot's step that would take it in past a tower's walls (in through its
   // door: the walls stop it anywhere else) is undone, and it picks somewhere else to go. Chasing a player it still follows
-  // them in; once it gives up it comes back out (wayOut)
+  // them in; once it gives up it comes back out (wayOut). (#236, A1: but never a Bouncer, whatever it's doing: one hopping at
+  // the door, knocked over the doorstep as it landed, was inside and stomped the player there)
   keepOut(r, x0, z0) {
-    if (r.state !== 'glitched' || r.ai?.mode !== 'roam' || !this.inTower(r.pos.x, r.pos.z, 0) || this.inTower(x0, z0, 0)) return false;
+    if (r.state !== 'glitched' || (r.ai?.mode !== 'roam' && r.type !== 'bouncer') || !this.inTower(r.pos.x, r.pos.z, 0) || this.inTower(x0, z0, 0)) return false;
+    if (r.type === 'bouncer') { r.ai.door = this.inTower(r.pos.x, r.pos.z, 0); r.ai.doorT = 4; }   // (#236: offDoor)
     r.pos.x = x0; r.pos.z = z0; r.pos.y = groundH(x0, z0); r.speed = 0;
     r.ai.wp = null; if (r.swarm != null && Game.swarms[r.swarm]) Game.swarms[r.swarm].wp = null;
     return true;
@@ -12766,6 +12789,20 @@ const World = {
     r.input.boost = false; r.input.attack = false; r.input.aimYaw = r.legHeading;
     return true;
   },
+  // #236: a Bouncer keepOut has put back at a tower's door, its foe outside that tower: it backs straight off the doorstep,
+  // turning round, until it's clear of the doorway's wall circles (4 s at most), and only then goes for its foe as before.
+  // Heading for World.round's corner from there, avoid() bent it off those circles to face in at the door, and keepOut undid
+  // every step: it stood on the door plane for good, its foe outside. true while it's backing off. One whose foe is in the
+  // tower stays at the door, hopping there (A1)
+  offDoor(r, f, dt) {
+    const ai = r.ai, t = ai.door; if (!t) return false;
+    ai.doorT -= dt;
+    const b = (r.pos.x - t.x) * t.nx + (r.pos.z - t.z) * t.nz - t.w / 2;
+    if (ai.doorT <= 0 || b < -0.5 || b > WORLD.inside.wallR + r.spec.radius + 2 || (Math.abs(f.pos.x - t.x) < t.w / 2 && Math.abs(f.pos.z - t.z) < t.w / 2)) { ai.door = null; return false; }
+    const err = wrapAngle(Math.atan2(-t.nx, -t.nz) - r.legHeading);
+    r.input.throttle = Math.cos(err); r.input.turn = clamp(-err * 2.5, -1, 1);
+    return true;
+  },
   // #217: the way out for a robot inside a tower (its chunk loaded round it, a chase that ended in there, a hop that came
   // down in there): first to the middle of the doorway from inside, then out through it into the street; null if it's not
   // in one. (Heading straight for somewhere outside, it would only push on a wall.) Lined up against this tower's own
@@ -12777,6 +12814,30 @@ const World = {
     const ob = lined ? half + 6 : half - 2.5;
     return { x: t.x + t.nx * ob, z: t.z + t.nz * ob };
   },
+  // where along (x0, z0) -> (x1, z1) (0 to 1) it first comes within H of (cx, cz) on both axes, or null
+  segHit(x0, z0, x1, z1, cx, cz, H) {
+    let lo = 0, hi = 1;
+    for (const [p, d, c] of [[x0, x1 - x0, cx], [z0, z1 - z0, cz]]) {
+      if (Math.abs(d) < 1e-9) { if (Math.abs(p - c) >= H) return null; continue; }
+      let u0 = (c - H - p) / d, u1 = (c + H - p) / d; if (u0 > u1) [u0, u1] = [u1, u0];
+      lo = Math.max(lo, u0); hi = Math.min(hi, u1); if (lo > hi) return null;
+    }
+    return lo;
+  },
+  // #236 (Daniel's pick A): a hop keeps out of the towers. Hops had no wall checks: a stomp's spring off player 1's head
+  // behind a tower carried a Bouncer over the back wall and down inside. For a hop from (x0, z0) to (x1, z1) by a body of
+  // radius rad: when its way goes into a loaded tower it didn't start in, the spot it comes down instead, stopped at that
+  // tower's wall (the first one on its way), clear of its wall circles; null when its way is clear. A hop that starts in
+  // a tower (one that followed a player in) is left alone in there
+  hopStop(x0, z0, x1, z1, rad = 2) {
+    const wr = WORLD.inside.wallR, home = this.inTower(x0, z0, 0);
+    let tu = Infinity;
+    for (const ch of this.chunks.values()) for (const t of ch.towers) {
+      if (t === home || this.segHit(x0, z0, x1, z1, t.x, t.z, t.w / 2) == null) continue;   // (not into this one)
+      const u = this.segHit(x0, z0, x1, z1, t.x, t.z, t.w / 2 + wr + rad + 0.3); if (u < tu) tu = u;
+    }
+    return tu === Infinity ? null : { x: x0 + (x1 - x0) * tu, z: z0 + (z1 - z0) * tu };
+  },
   // #231: the way round a tower for a robot outside it chasing a foe who isn't in it: when the straight line to the foe
   // crosses a loaded tower (its walls, their wall circles and the robot's body), a corner of that tower just past its wall
   // circles, on the shortest way round (corner to corner) of the ones it can head straight for; null when the way is clear (or it's in a tower:
@@ -12786,16 +12847,7 @@ const World = {
     if (!f) return null;
     const x = r.pos.x, z = r.pos.z, fx = f.pos.x, fz = f.pos.z, rad = r.spec?.radius ?? 2, wr = WORLD.inside.wallR;
     if (this.inTower(x, z, 0)) return null;
-    // where along (x0, z0) -> (x1, z1) it first comes within H of (cx, cz) on both axes, or null
-    const hit = (x0, z0, x1, z1, cx, cz, H) => {
-      let lo = 0, hi = 1;
-      for (const [p, d, c] of [[x0, x1 - x0, cx], [z0, z1 - z0, cz]]) {
-        if (Math.abs(d) < 1e-9) { if (Math.abs(p - c) >= H) return null; continue; }
-        let u0 = (c - H - p) / d, u1 = (c + H - p) / d; if (u0 > u1) [u0, u1] = [u1, u0];
-        lo = Math.max(lo, u0); hi = Math.min(hi, u1); if (lo > hi) return null;
-      }
-      return lo;
-    };
+    const hit = this.segHit;
     let t = null, tu = Infinity;
     for (const ch of this.chunks.values()) for (const q of ch.towers) {
       if (Math.abs(q.x - fx) < q.w / 2 && Math.abs(q.z - fz) < q.w / 2) continue;   // (its foe in there: in after them)
@@ -13145,7 +13197,7 @@ const World = {
     const line = (fx, fz, s0, s1, end = true) => {
       const n = s1 - s0 < 1e-6 ? 0 : Math.max(1, Math.ceil((s1 - s0) / I.wallGap));
       for (let k = 0; k <= (end ? n : n - 1); k++) {
-        const s = n ? s0 + (s1 - s0) * k / n : s0, o = { x: tw.x + fx * half + (-fz) * s, z: tw.z + fz * half + fx * s, r: I.wallR, h: tw.hgt + 2, kind: 'rock', prop: null };
+        const s = n ? s0 + (s1 - s0) * k / n : s0, o = { x: tw.x + fx * half + (-fz) * s, z: tw.z + fz * half + fx * s, r: I.wallR, h: tw.hgt + 2, kind: 'rock', prop: null, wall: true };
         obstacles.push(o); ch.obs.push(o);
       }
     };
