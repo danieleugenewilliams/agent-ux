@@ -3237,11 +3237,31 @@ const Icons = {
 // the parent view says progress isn't saving while any wait. Per key, not one flag: when storage is full a small write (the
 // sound switch) can still work while a fact record keeps failing. Each write that works tries the waiting ones again, so a key
 // written once (who's playing) doesn't keep the warning up after space is freed. set returns whether it saved
+// #242: while the profile list waits (Profiles.read uses it), a profile made since exists only in that list. Its record
+// (facts.<id>) and a pick of it (child) wait with it and never go to disk before it: when storage is nearly full a small
+// write can work while the list's fails, and a record or pick left on disk for a profile disk's list lacks makes every
+// backup of this device refused. held says whether k waits for the list; set tries the waiting list first, every time
 const store = {
   unsaved: new Map(),
   get(k, d) { try { const v = localStorage.getItem('robotbattle.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  put(k, v) { try { localStorage.setItem('robotbattle.' + k, JSON.stringify(v)); this.unsaved.delete(k); return true; } catch (e) { this.unsaved.set(k, v); return false; } },
+  // (on disk: in disk's list; with no list, or one that can't be read, a record of theirs on disk is what makes them a profile)
+  held(k, v) {
+    if (k === 'profiles' || !this.unsaved.has('profiles')) return false;
+    const id = k === 'child' ? v : k.startsWith('facts.') ? k.slice(6) : null;
+    if (typeof id !== 'string' || id === 'guest') return false;
+    try {
+      const raw = localStorage.getItem('robotbattle.profiles'); let list = null;
+      if (raw != null) { try { list = JSON.parse(raw); } catch (e) {} }
+      if (Array.isArray(list)) return !list.some((p) => p && p.id === id);
+      return localStorage.getItem('robotbattle.facts.' + id) == null;
+    } catch (e) { return true; }
+  },
+  put(k, v) {
+    if (this.held(k, v)) { this.unsaved.set(k, v); return false; }
+    try { localStorage.setItem('robotbattle.' + k, JSON.stringify(v)); this.unsaved.delete(k); return true; } catch (e) { this.unsaved.set(k, v); return false; }
+  },
   set(k, v) {
+    if (k !== 'profiles' && this.unsaved.has('profiles')) this.put('profiles', this.unsaved.get('profiles'));   // (the list first)
     if (!this.put(k, v)) return false;
     for (const [k2, v2] of [...this.unsaved]) this.put(k2, v2);
     return true;
