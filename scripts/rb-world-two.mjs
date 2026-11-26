@@ -388,7 +388,7 @@ const RUNS = {
     }
   },
   async things(ok) {
-    await meet(); await quiet(); const keys0 = [await A.js('return keys();'), await B.js('return keys();')];
+    const code = await meet(); await quiet(); const keys0 = [await A.js('return keys();'), await B.js('return keys();')];
     // a part
     const part = await A.js(`let q = null; for (let d = 60; d < 900 && !q; d += 50) { R.worldGo(d, -d); q = R.Hidden.list.find((c) => c.wkey && !c.found && W.chunks.size); } return q && { x: q.x, z: q.z, k: q.wkey };`);
     await B.js(`R.worldGo(${part.x} + 25, ${part.z}); return 1;`); await run(500);
@@ -408,6 +408,34 @@ const RUNS = {
     await Promise.all([A.js(`R.teleport(0, ${p3.x}, ${p3.z}); return 1;`), B.js(`R.teleport(0, ${p3.x} + 0.3, ${p3.z}); return 1;`)]); await run(2500);
     const has = [await A.js(`return JSON.stringify(rec('tester')?.world || {}).includes('${p3.k}');`), await B.js(`return JSON.stringify(rec('robo')?.world || {}).includes('${p3.k}');`)], bag2 = [await A.js(`return JSON.stringify(G.bag);`), await B.js(`return JSON.stringify(G.bag);`)];
     ok('one part stepped on by both in the same moment: in one bag and one record, gone from both', has.filter(Boolean).length === 1 && bag2.filter((b, i) => b !== bags[i]).length === 1 && await B.js(`return !R.Hidden.list.some((q) => q.wkey === '${p3.k}' && !q.found);`), { has, bags, bag2 });
+    // the host's page only says no to a part its own player took while together; every other ask is the joiner's
+    const recHas = (C, id, k) => C.js(`return JSON.stringify(rec('${id}')?.world || {}).includes('${k}');`);
+    const noFor = (k) => Wire.frames.filter((f) => f.includes('"nopart"') && f.includes(k)).length;
+    // far apart: the host's page has never loaded that chunk
+    const p4 = await B.js(`let q = null; for (let d = 2400; d < 3400 && !q; d += 50) { R.worldGo(d, -d); q = R.Hidden.list.find((c) => c.wkey && !c.found); } return q && { x: q.x, z: q.z, k: q.wkey };`);
+    const hostKnows = await A.js(`return R.Hidden.list.some((q) => q.wkey === '${p4?.k}');`), far = await A.js(`const p = m0().pos; return Math.round(Math.hypot(p.x - ${p4?.x}, p.z - ${p4?.z}));`), bg4 = await B.js(`return JSON.stringify(G.bag);`);
+    await B.js(`R.teleport(0, ${p4?.x}, ${p4?.z}); return 1;`); const got4 = await run(3000, async () => recHas(B, 'robo', p4.k));
+    ok(`far apart (${far} m): a part the host's page never loaded is the joiner's (bag and record)`, p4 && !hostKnows && far > 1000 && got4 && (await B.js(`return JSON.stringify(G.bag);`)) !== bg4 && noFor(p4.k) === 0, { p4, hostKnows, far, got4, no: noFor(p4.k) });
+    // the host took it while the joiner was out: each sees their own world for that, so the joiner still gets it
+    await B.js(`T.leave(); return 1;`); await run(500);
+    const p5 = await findPart(A, 1500); await A.js(`R.teleport(0, ${p5.x}, ${p5.z}); return 1;`); const hostHas = await run(2500, async () => recHas(A, 'tester', p5.k)); await A.js(`R.worldGo(${p5.x} + 40, ${p5.z}); return 1;`);
+    await B.js(`T.join(${JSON.stringify(code)}); return 1;`); const back5 = await run(8000, together); await run(400);
+    await B.js(`R.worldGo(${p5.x} + 25, ${p5.z}); return 1;`); await run(600); const seen5 = await B.js(`return R.Hidden.list.some((q) => q.wkey === '${p5.k}' && !q.found);`), bg5 = await B.js(`return JSON.stringify(G.bag);`);
+    await B.js(`R.teleport(0, ${p5.x}, ${p5.z}); return 1;`); const got5 = await run(3000, async () => recHas(B, 'robo', p5.k));
+    ok("a part the host already has (taken while the joiner was out): still there for the joiner, and theirs when they step on it", hostHas && back5 && seen5 && got5 && (await B.js(`return JSON.stringify(G.bag);`)) !== bg5 && noFor(p5.k) === 0, { hostHas, back5, seen5, got5, no: noFor(p5.k) });
+    // the host's yes is lost to a rejoin: asked again, the answer is yes again
+    const p6 = await findPart(A, 1900); await B.js(`R.worldGo(${p6.x} + 25, ${p6.z}); return 1;`); await run(600);
+    await A.js(`const say = T.say; T.say = function (o) { if (o?.e === 'givepart') { T.say = say; window.__lostYes = o.k; return; } return say.call(this, o); }; return 1;`);
+    const bg6 = await B.js(`return JSON.stringify(G.bag);`); await B.js(`R.teleport(0, ${p6.x}, ${p6.z}); return 1;`);
+    const gave6 = await run(3000, async () => A.js(`return window.__lostYes === '${p6.k}' && W.taken.has('${p6.k}');`)); await B.js(`R.teleport(0, ${p6.x} + 25, ${p6.z}); T.leave(); return 1;`); await run(500);
+    const none6 = !(await recHas(B, 'robo', p6.k)); await B.js(`T.join(${JSON.stringify(code)}); return 1;`); const back6 = await run(8000, together); await run(400);
+    await B.js(`R.teleport(0, ${p6.x}, ${p6.z}); return 1;`); const got6 = await run(4000, async () => recHas(B, 'robo', p6.k));
+    ok("the host's yes lost to a rejoin: asked again, it is yes again, and the part is the joiner's", gave6 && none6 && back6 && got6 && (await B.js(`return JSON.stringify(G.bag);`)) !== bg6 && noFor(p6.k) === 0, { gave6, none6, back6, got6, no: noFor(p6.k) });
+    // and a part the host took while together is still a no
+    const p7 = await findPart(A, 2300); await B.js(`R.worldGo(${p7.x} + 25, ${p7.z}); return 1;`); await run(600);
+    await A.js(`R.teleport(0, ${p7.x}, ${p7.z}); return 1;`); const n7 = await run(4000, async () => { const v = await B.js(`const q = R.Hidden.list.find((c) => c.wkey === '${p7.k}'); return q ? (q.found ? 'found' : 'there') : 'none';`); return v !== 'there' && v; }) || 'there';
+    const want7 = await B.js(`T.say({ e: 'wantpart', k: '${p7.k}' }); return 1;`); const no7 = await run(3000, async () => noFor(p7.k) > 0); await run(500);
+    ok('a part the host took while together: an ask for it is told no, and it stays in one bag', want7 && no7 && n7 !== 'there' && !(await recHas(B, 'robo', p7.k)) && await recHas(A, 'tester', p7.k), { n7, no7 });
     // a kit
     const at = await A.js(`const p = m0().pos; return [p.x, p.z];`); await A.js(`R.Kits.drop({ pos: { x: ${at[0]} + 14, z: ${at[1]} }, legHeading: 0, wlevel: 1 }); return 1;`).catch(() => null);
     const kitHook = await A.js(`return !!R.Kits;`);

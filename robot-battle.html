@@ -12557,7 +12557,7 @@ const Hidden = {
   },
   take(q, h) {
     q.found = true; q.foundBy = h.idx; scene.remove(q.g);
-    if (q.wkey) { World.take(q.wkey); Two.did('part', { k: q.wkey }); }   // #189: a world part: kept in the record (Garage.collect saves it), never back
+    if (q.wkey) { World.take(q.wkey); if (Two.peer && Net.you === 0) Two.hostTook.add(q.wkey); Two.did('part', { k: q.wkey }); }   // #189: a world part: kept in the record (Garage.collect saves it), never back
     Game.bag[q.part] = (Game.bag[q.part] || 0) + 1; Garage.collect(q.part, 'meadow');
     if (h.idx === 0) updateHud.partPop = (updateHud.partPop || []).concat(q.part);   // +1 and its icon drop out of the 🔩 count
     const y = groundH(q.x, q.z) + 1;
@@ -17268,6 +17268,7 @@ const Two = {
   mates: new Map(),      // the friend's squadmates, only drawn here: their id -> robot (in no list of the game's)
   dirty: false, stopped: false, wants: new Map(),
   partAsks: new Map(),   // a world part the joiner stands on: its key -> when the host's page was asked for it
+  hostTook: new Set(),   // the host's page: world parts its own players took while together this time (the only ones the joiner is told no)
   // ---- the panel ----
   may() { return !!(Game.world && Game.pilot); },
   open() {
@@ -17359,7 +17360,7 @@ const Two = {
   },
   parted(why) {
     clearInterval(this.pulseT); clearTimeout(this.closeT); this.pulseT = this.closeT = 0;
-    const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear(); this.partAsks.clear();
+    const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear(); this.partAsks.clear(); this.hostTook.clear();
     if (P) {
       // every glitched or beaten robot of the friend's that's here is this page's now; their mech and their squad go
       for (const r of [...P.robots.values()]) this.adopt(r, P, true);
@@ -17560,12 +17561,16 @@ const Two = {
       const q = Hidden.list.find((c) => c.wkey === o.k && !c.found); if (!q) return;
       q.found = true; q.foundBy = 'friend'; scene.remove(q.g); Sparks.burst(q.x, groundH(q.x, q.z) + 1, q.z, 24, SPARK_GLINT, 6);
     },
-    // a world part: the host's page settles who has it (the joiner asks; the host's own steps take it at once)
+    // a world part: the host's page settles who has it (the joiner asks; the host's own steps take it at once).
+    // No only when the host's own player took it while together this time. Anything else is the joiner's: a chunk this
+    // page hasn't loaded (far apart), a part in this child's saved record only (each sees their own world for those),
+    // or one already given that the joiner asks again for (the answer was lost, or a rejoin came first).
     wantpart(o) {
       if (Net.you !== 0 || !twKey(o.k)) return;
-      const q = Hidden.list.find((c) => c.wkey === o.k);
-      if (!q || q.found || World.taken.has(o.k)) { this.say({ e: 'nopart', k: o.k }); return; }
-      World.taken.add(o.k); q.found = true; q.foundBy = 'friend'; scene.remove(q.g); Sparks.burst(q.x, groundH(q.x, q.z) + 1, q.z, 24, SPARK_GLINT, 6);
+      if (this.hostTook.has(o.k)) { this.say({ e: 'nopart', k: o.k }); return; }
+      World.taken.add(o.k);
+      const q = Hidden.list.find((c) => c.wkey === o.k && !c.found);
+      if (q) { q.found = true; q.foundBy = 'friend'; scene.remove(q.g); Sparks.burst(q.x, groundH(q.x, q.z) + 1, q.z, 24, SPARK_GLINT, 6); }
       this.say({ e: 'givepart', k: o.k });
     },
     givepart(o) {
