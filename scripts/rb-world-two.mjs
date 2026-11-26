@@ -365,8 +365,8 @@ const RUNS = {
     const busy = await B.js(`const r = pup('${nid}'); R.teleport(0, r.pos.x - 3, r.pos.z); const c = R.choose(r.id, 'fix'); return c.why;`); await run(700);
     const still = await A.js(`return G.humans[0].repair?.r.id === ${id};`);
     ok('one is fixing it: the friend sees that and cannot take it', ca && seen && busy === 'busy' && still, { ca, seen, busy, still });
-    // (#252: the no comes back through both pages' event batches, each waiting on the other's ack: 0.6 to 1 s here, more on a
-    // loaded machine, so it is waited for, up to 3.5 s, inside the 4 s an ask is kept, rather than for a fixed 1.2 s)
+    // (#252: headless software GL makes each render a 250-330 ms long task on both pages, so the no lands 0.1 to 1.2 s after the ask;
+    // it was waited for a fixed 1.2 s and missed now and then. It is waited for, up to 3.5 s, inside the 4 s an ask is kept)
     await B.ev(`document.getElementById('twToast').textContent = ''`); const t0 = Date.now();
     const race = await B.js(`const r = pup('${nid}'); r.repairBy = null; const c = R.choose(r.id, 'fix'); return c.why;`);
     const said = await run(3500, async () => /fixing that one/.test(await B.ev(`document.getElementById('twToast').textContent`)) && Date.now() - t0); const toast = await B.ev(`document.getElementById('twToast').textContent`);
