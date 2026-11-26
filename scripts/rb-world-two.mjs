@@ -115,7 +115,8 @@ const INJECT = `(() => {
     send(s) { if (this.readyState === 1) __wire(JSON.stringify({ id: this.id, op: 'msg', s })); }
     close() { if (this.readyState < 2) { this.readyState = 3; __wire(JSON.stringify({ id: this.id, op: 'close' })); } } }
   window.WebSocket = Stand;
-  window.__toPage = (id, op, s) => { const w = socks.get(id); if (!w) return; if (op === 'open') { w.readyState = 1; w.onopen?.({}); } else if (op === 'msg') { if (w.readyState === 1) w.onmessage?.({ data: s }); } else { if (w.readyState === 3) return; w.readyState = 3; w.onclose?.({ code: 1006 }); } };
+  window.__toPage = (id, op, s) => setTimeout(() => __deliver(id, op, s));   // (later, from the page's own event loop, as a real socket's events come: a throw there is the page's error)
+  const __deliver = (id, op, s) => { const w = socks.get(id); if (!w) return; if (op === 'open') { w.readyState = 1; w.onopen?.({}); } else if (op === 'msg') { if (w.readyState === 1) w.onmessage?.({ data: s }); } else { if (w.readyState === 3) return; w.readyState = 3; w.onclose?.({ code: 1006 }); } };
 })();`;
 
 const shared = new Set();
@@ -295,7 +296,7 @@ const RUNS = {
     await A.js(`R.hold('KeyW', true); return 1;`); await run(1500); const mid = await B.st(), a1 = await pos(A); await A.js(`R.hold('KeyW', false); return 1;`); await run(1200);
     a = await pos(A); sb = await B.st();
     ok(`the host drives ${Math.hypot(a.x - sa.peer.m.x, a.z - sa.peer.m.z).toFixed(0)} m: the friend's screen follows as it goes and at the end`, Math.hypot(mid.peer.m.x - a1.x, mid.peer.m.z - a1.z) < 6 && near(sb.peer.m, a) && Math.abs(sb.peer.m.y - a.y) < 0.5, { mid: mid.peer.m, a1, end: sb.peer.m, a });
-    await A.js(`R.aim(0, 1.2, 0.1); return 1;`); await run(500); let r = await B.js(`const m = T.peer.m; return { t: m.torsoYaw, p: m.aimPitch };`); ok('its aim follows', Math.abs(r.t - 1.2) < 0.1, r);
+    await A.js(`R.aim(0, 1.2, 0.1); return 1;`); await run(3000, async () => Math.abs(await B.js(`return T.peer.m.torsoYaw;`) - 1.2) < 0.1); let r = await B.js(`const m = T.peer.m; return { t: m.torsoYaw, p: m.aimPitch };`); ok('its aim follows', Math.abs(r.t - 1.2) < 0.1, r);
     await A.js(`R.fire(0, 'punch'); R.step(1); return 1;`); r = await run(1500, async () => (await B.js(`return T.peer.m.swing?.w || null;`))); ok('its punch is seen', r === 'punch', r);
     const n0 = (await B.st()).peer.shotsIn; await A.js(`R.fire(0, 'gun'); return 1;`); r = await run(1500, async () => (await B.st()).peer.shotsIn > n0); ok('its shot is seen', r, r);
     r = await B.js(`return R.Bullets.list.filter((q) => q.ghost).every((q) => q.dmg === 0);`); ok('(and does nothing there)', r, r);
@@ -394,6 +395,19 @@ const RUNS = {
     const there = await B.js(`return R.Hidden.list.some((q) => q.wkey === '${part.k}' && !q.found);`), bag0 = await B.js(`return JSON.stringify(G.bag);`);
     await A.js(`R.teleport(0, ${part.x}, ${part.z}); return 1;`); const gone = await run(2500, async () => B.js(`return !R.Hidden.list.some((q) => q.wkey === '${part.k}' && !q.found);`));
     ok('a part on the ground is there on both; picked up by one, it goes from both, and only the finder has it', there && gone && (await B.js(`return JSON.stringify(G.bag);`)) === bag0 && await A.js(`return JSON.stringify(rec('tester')?.world || {}).includes('${part.k}');`) && !(await B.js(`return JSON.stringify(rec('robo')?.world || {}).includes('${part.k}');`)), { there, gone });
+    // a part the joiner (B) walks onto alone: the host's page says yes, and it is B's
+    const findPart = (C, d0) => C.js(`let q = null; for (let d = ${d0}; d < ${d0} + 900 && !q; d += 50) { R.worldGo(-d, -d); q = R.Hidden.list.find((c) => c.wkey && !c.found); } return q && { x: q.x, z: q.z, k: q.wkey };`);
+    const p2 = await findPart(A, 120); await B.js(`R.worldGo(${p2.x} + 25, ${p2.z}); return 1;`); await run(500);
+    const bg0 = await B.js(`return JSON.stringify(G.bag);`); await B.js(`R.teleport(0, ${p2.x}, ${p2.z}); return 1;`);
+    const got2 = await run(3000, async () => B.js(`return JSON.stringify(rec('robo')?.world || {}).includes('${p2.k}');`));
+    const bg1 = await B.js(`return JSON.stringify(G.bag);`), ha = await A.js(`return { there: R.Hidden.list.some((q) => q.wkey === '${p2.k}' && !q.found), rec: JSON.stringify(rec('tester')?.world || {}).includes('${p2.k}') };`), asked = Wire.frames.some((f) => f.includes('"wantpart"') && f.includes(p2.k));
+    ok("the joiner's own part: asked for, then theirs (bag and record), and gone from the host's screen", got2 && asked && bg1 !== bg0 && !ha.there && !ha.rec, { got2, asked, bg0, bg1, ha, p2 });
+    // one part, both on it in the same moment: one bag and one record only
+    const p3 = await findPart(A, 400); await B.js(`R.worldGo(${p3.x} + 25, ${p3.z}); return 1;`); await run(500);
+    const bags = [await A.js(`return JSON.stringify(G.bag);`), await B.js(`return JSON.stringify(G.bag);`)];
+    await Promise.all([A.js(`R.teleport(0, ${p3.x}, ${p3.z}); return 1;`), B.js(`R.teleport(0, ${p3.x} + 0.3, ${p3.z}); return 1;`)]); await run(2500);
+    const has = [await A.js(`return JSON.stringify(rec('tester')?.world || {}).includes('${p3.k}');`), await B.js(`return JSON.stringify(rec('robo')?.world || {}).includes('${p3.k}');`)], bag2 = [await A.js(`return JSON.stringify(G.bag);`), await B.js(`return JSON.stringify(G.bag);`)];
+    ok('one part stepped on by both in the same moment: in one bag and one record, gone from both', has.filter(Boolean).length === 1 && bag2.filter((b, i) => b !== bags[i]).length === 1 && await B.js(`return !R.Hidden.list.some((q) => q.wkey === '${p3.k}' && !q.found);`), { has, bags, bag2 });
     // a kit
     const at = await A.js(`const p = m0().pos; return [p.x, p.z];`); await A.js(`R.Kits.drop({ pos: { x: ${at[0]} + 14, z: ${at[1]} }, legHeading: 0, wlevel: 1 }); return 1;`).catch(() => null);
     const kitHook = await A.js(`return !!R.Kits;`);
@@ -440,6 +454,15 @@ const RUNS = {
     let r = await run(3000, async () => { const b = await B.st(); return b.own.some((q) => q.type === 'charger') && b.peer.paused; }); const a1 = await A.st();
     ok("a pause: the friend plays on, the robots are theirs, and the paused mech isn't a target", r && !a1.own.some((q) => q.type === 'charger') && a1.peer.puppets.some((q) => q.type === 'charger') && await B.js(`return T.peer.m.away === true;`), a1);
     await A.ev(`(() => { const R = window.__rb; R.two.isStopped = R.two.isStopped0; return 1; })()`); await run(500);
+    // a fix open when the screen locks (the page hidden): the robot stays this page's, the board waits
+    const fx0 = await A.js(`const p = m0().pos, r = R.spawn('charger', p.x + 4, p.z + 3); R.damage(r.id, 1e7, 'gun'); return r.id;`); await run(2500, async () => (await B.st()).peer.puppets.some((q) => q.id && q.type === 'charger' && q.state === 'down'));
+    const fxo = await A.js(`const r = G.robots.find((q) => q.id === ${fx0}); let c = null; for (const o of [2.5, 4, 6]) { R.teleport(0, r.pos.x + o, r.pos.z); c = R.choose(r.id, 'fix'); if (c.ok) break; } return { ok: c.ok, nid: r.nid };`);
+    await B.js(`const r = pup('${fxo.nid}'); r && R.worldGo(r.pos.x - 6, r.pos.z); return 1;`); await run(600);
+    await A.ev(`(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); return 1; })()`); await run(1500);
+    await A.ev(`(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); return document.hidden; })()`); await run(800);
+    const fx1 = await A.js(`const r = G.robots.find((q) => q.id === ${fx0}); return { rep: G.humans[0].repair?.r === r, net: !!r?.net, left: !!r };`), fxb = await B.st();
+    ok('a fix open when the screen locks: still open after, and the robot is still this page\'s', fxo.ok && fx1.rep && !fx1.net && fx1.left && !fxb.own.some((q) => q.nid === fxo.nid) && fxb.peer.puppets.some((q) => q.nid === fxo.nid), { fxo, fx1, own: fxb.own.map((q) => q.nid) });
+    await A.js(`R.leaveFix(); return 1;`);
     const snap = (C, who) => C.js(`return { bag: JSON.stringify(G.bag), rec: JSON.stringify(rec('${who}')), x: m0().pos.x, z: m0().pos.z, hp: m0().health };`);
     await spawnOn(A, 'bouncer'); await run(3000, async () => (await B.st()).peer.puppets.some((q) => q.type === 'bouncer'));
     const b0 = await snap(B, 'robo'), b0h = await B.st();

@@ -12552,6 +12552,10 @@ const Hidden = {
   check(h) {
     const m = h.mech; if (m.state === 'down') return null;
     const q = this.list.find((k) => !k.found && Math.hypot(k.x - m.pos.x, k.z - m.pos.z) < HIDDEN.reach); if (!q) return null;
+    if (q.wkey && h.idx === 0 && Two.askPart(q)) return null;   // #167 slice 7: two players: the joiner asks the host's page first, so one part never goes in both bags
+    return this.take(q, h);
+  },
+  take(q, h) {
     q.found = true; q.foundBy = h.idx; scene.remove(q.g);
     if (q.wkey) { World.take(q.wkey); Two.did('part', { k: q.wkey }); }   // #189: a world part: kept in the record (Garage.collect saves it), never back
     Game.bag[q.part] = (Game.bag[q.part] || 0) + 1; Garage.collect(q.part, 'meadow');
@@ -17224,10 +17228,10 @@ const HomeTransport = {
   },
 };
 const Net = {
-  transport: HomeTransport, link: null, gen: 0, state: 'off', code: null, you: 0, sent: 0, got: 0, handlers: {},
+  transport: HomeTransport, link: null, gen: 0, state: 'off', code: null, you: 0, sent: 0, got: 0, handlers: Object.create(null),
   available() { return this.transport.available(); },
   on(type, fn) { (this.handlers[type] ||= []).push(fn); return fn; },
-  emit(m) { for (const fn of this.handlers[m.t] || []) fn(m); },
+  emit(m) { if (typeof m?.t !== 'string' || !Object.hasOwn(this.handlers, m.t)) return; for (const fn of this.handlers[m.t]) fn(m); },   // (a type off the wire such as '__proto__' finds nothing)
   async open() {
     if (this.link) return this.link;
     const gen = ++this.gen; this.state = 'connecting';
@@ -17263,6 +17267,7 @@ const Two = {
   met: false,            // this page was in the room first, or has been put beside the one that was
   mates: new Map(),      // the friend's squadmates, only drawn here: their id -> robot (in no list of the game's)
   dirty: false, stopped: false, wants: new Map(),
+  partAsks: new Map(),   // a world part the joiner stands on: its key -> when the host's page was asked for it
   // ---- the panel ----
   may() { return !!(Game.world && Game.pilot); },
   open() {
@@ -17354,7 +17359,7 @@ const Two = {
   },
   parted(why) {
     clearInterval(this.pulseT); clearTimeout(this.closeT); this.pulseT = this.closeT = 0;
-    const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear();
+    const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear(); this.partAsks.clear();
     if (P) {
       // every glitched or beaten robot of the friend's that's here is this page's now; their mech and their squad go
       for (const r of [...P.robots.values()]) this.adopt(r, P, true);
@@ -17551,9 +17556,25 @@ const Two = {
       this.drop(r);
     },
     part(o) {
-      if (!twKey(o.k)) return; World.taken.add(o.k);
+      if (!twKey(o.k)) return; World.taken.add(o.k); this.partAsks.delete(o.k);
       const q = Hidden.list.find((c) => c.wkey === o.k && !c.found); if (!q) return;
       q.found = true; q.foundBy = 'friend'; scene.remove(q.g); Sparks.burst(q.x, groundH(q.x, q.z) + 1, q.z, 24, SPARK_GLINT, 6);
+    },
+    // a world part: the host's page settles who has it (the joiner asks; the host's own steps take it at once)
+    wantpart(o) {
+      if (Net.you !== 0 || !twKey(o.k)) return;
+      const q = Hidden.list.find((c) => c.wkey === o.k);
+      if (!q || q.found || World.taken.has(o.k)) { this.say({ e: 'nopart', k: o.k }); return; }
+      World.taken.add(o.k); q.found = true; q.foundBy = 'friend'; scene.remove(q.g); Sparks.burst(q.x, groundH(q.x, q.z) + 1, q.z, 24, SPARK_GLINT, 6);
+      this.say({ e: 'givepart', k: o.k });
+    },
+    givepart(o) {
+      if (!twKey(o.k) || !this.partAsks.delete(o.k)) return;
+      const q = Hidden.list.find((c) => c.wkey === o.k && !c.found); if (q) Hidden.take(q, Game.humans[0]);
+    },
+    nopart(o) {
+      if (!twKey(o.k)) return; this.partAsks.delete(o.k);
+      const q = Hidden.list.find((c) => c.wkey === o.k && !c.found); if (q) { World.taken.add(o.k); q.found = true; q.foundBy = 'friend'; scene.remove(q.g); }
     },
     kit(o) {
       if (!twId(o.n) || Kits.list.some((k) => k.nid === o.n)) return;
@@ -17572,6 +17593,13 @@ const Two = {
       if (!twKey(o.k)) return; const sm = World.summits.get(o.k);
       this.quiet = true; try { if (sm && !sm.up) World.summitUp(sm); else World.summitsUp.add(o.k); } finally { this.quiet = false; }
     },
+  },
+  // the joiner, together, stands on world part q: ask the host's page (true: not this page's yet)
+  askPart(q) {
+    if (!this.peer?.hi || Net.you !== 1 || Net.state !== 'together') return false;
+    const now = performance.now(), at = this.partAsks.get(q.wkey);
+    if (at == null || now - at > 3000) { this.partAsks.set(q.wkey, now); this.say({ e: 'wantpart', k: q.wkey }); }
+    return true;
   },
   mine(n) { return twId(n) ? Game.robots.find((r) => r.nid === n && !r.net) || null : null; },
   // ---- the friend's robots here ----
@@ -17701,12 +17729,14 @@ const Two = {
     r.net = { snaps: [], seen: (P.clock || 0) + 2500 }; P.robots.set(r.nid, r);
     this.take(r, this.pose(r), performance.now()); r.net.seen = (P.clock || 0) + 2500;
   },
+  // a fix or a take-apart open here on r: it stays this page's, even while this page is paused or asleep (the board waits)
+  fixingHere(r) { return Game.humans.some((h) => h.repair?.r === r); },
   giveNear() {
     const P = this.peer; if (!P?.m || P.paused) return;
-    for (const r of [...Game.robots]) if (!r.net && r.state !== 'ally' && !Game.squad.includes(r) && flatDist(r, P.m) < TWO.reach) this.give(r);
+    for (const r of [...Game.robots]) if (!r.net && r.state !== 'ally' && !Game.squad.includes(r) && !this.fixingHere(r) && flatDist(r, P.m) < TWO.reach) this.give(r);
   },
   // World's sweep or a ring's chunk going: r is far from here, but not from the friend: theirs (true)
-  hand(r) { const P = this.peer; if (!P?.m || r.net || P.paused || flatDist(r, P.m) > TWO.reach) return false; this.give(r); return true; },
+  hand(r) { const P = this.peer; if (!P?.m || r.net || this.fixingHere(r) || P.paused || flatDist(r, P.m) > TWO.reach) return false; this.give(r); return true; },
   // a puppet is this page's own from now on
   adopt(r, P, parting = false) {
     if (!r.net) return;
