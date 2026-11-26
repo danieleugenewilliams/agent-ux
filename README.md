@@ -145,6 +145,10 @@ Two players, each on their own iPad or computer, explore the same world together
 
 Together you see each other move. While you play together, each of you can change into your own animals and your friend's too, and an animal either of you meets goes into both books for good. When you stop playing together, you each have your own animals again (plus the ones you met together). A human can ride a friend who is a horse, an elephant or a dolphin. **RACE** and **TAG** are in the pause menu. If the server stops, both games carry on alone with nothing lost. Press Ctrl+C in the Mac's terminal to stop the server.
 
+### Robot Battle's endless world, two players
+
+The same game server does Robot Battle's endless world. Open `http://<mac-name>.local:8160/robot-battle.html` on both iPads, and go into the endless world on each. On one, pause and tap **2 PLAYERS**, then **HOST**; on the other, pause and tap **2 PLAYERS**, then **JOIN**, and tap the same 4 pictures. The friend who joins starts beside the host, and you drive, climb, fight and go into caves and buildings together. Whoever fixes a robot or finds a part keeps it. If the server stops, both games carry on alone with nothing lost. Waves are one player.
+
 **Bookmark `http://<mac-name>.local:8160/wild-world.html` on each iPad as the home copy.** The game server's copy keeps its own saves, separate from the Pages copy, and the `.local` name stays the same even when the Mac's IP address changes, so the saves stay put. For a rare move between copies, open the parent view (hold the lock on the title screen), tap the save arrow, then load that file on the other copy.
 
 For tests, `window.__ww` exposes the game, and `node scripts/ww-world.mjs`, `node scripts/ww-spelling.mjs` and `node scripts/ww-two.mjs` check it.
