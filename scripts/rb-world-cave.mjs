@@ -20,10 +20,13 @@
 //
 //   camera - at 1280 x 800, 820 x 1180 (upright) and 844 x 390, aim level and down: driven in and out, and turned round inside,
 //            the camera never jumps from one frame to the next; well inside the roof is solid.
+//   roof   - (#247) at 1280 x 800, aim down and level, the footfalls' shake on: driving into 8 caves the roof changes once
+//            inside at most, not back and forth; stood inside with the shake held at its top it never changes; and after the
+//            cave cache clears itself, the cave the mech is in looks as it did.
 //
 // Usage:
-//   node scripts/rb-world-cave.mjs                     # ./robot-battle.html: logic, camera, then touch
-//   node scripts/rb-world-cave.mjs --logic             # the logic run only (--camera: the camera run only)
+//   node scripts/rb-world-cave.mjs                     # ./robot-battle.html: logic, camera, roof, then touch
+//   node scripts/rb-world-cave.mjs --logic             # the logic run only (--camera, --roof: that run only)
 //   node scripts/rb-world-cave.mjs path/or/url.html --json
 // Chrome: CHROME=/path, else Playwright's chrome-headless-shell, else Google Chrome / Chromium. Node 22+.
 // Exit 0 only if every check in every run passes with no page errors; 1 on a failed check; 2 if a run could not finish.
@@ -34,14 +37,15 @@ import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
-let target = null, json = false, logicOnly = false, camOnly = false;
+let target = null, json = false, logicOnly = false, camOnly = false, roofOnly = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--json') json = true;
   else if (args[i] === '--logic') logicOnly = true;
   else if (args[i] === '--camera') camOnly = true;
+  else if (args[i] === '--roof') roofOnly = true;
   else target = args[i];
 }
-const runs = camOnly ? ['camera'] : logicOnly ? ['logic'] : ['logic', 'camera', 'touch'];
+const runs = roofOnly ? ['roof'] : camOnly ? ['camera'] : logicOnly ? ['logic'] : ['logic', 'camera', 'roof', 'touch'];
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 target ||= path.join(repo, 'robot-battle.html');
 const url = /^(https?|file):/.test(target) ? target : pathToFileURL(path.resolve(target)).href;
@@ -277,6 +281,52 @@ async function runCam(C) {
   return out;
 }
 
+// #247: the roof's two leftovers from #246. (1) World.caves, the cave cache, clears itself past 8192 entries; a cave the
+// mech is standing in must still look solid afterwards. (2) Driving in with the footfalls' shake on, the roof changes
+// between solid and see-through once, not back and forth as the shake moves the camera. At 1280 x 800, aim down and level.
+async function runRoof(C) {
+  const out = [], ok = (name, pass, got) => { out.push({ name: 'roof: ' + name, pass: !!pass, got: pass && !json ? undefined : got }); return !!pass; };
+  await C.ev(`localStorage.clear()`).catch(() => {});
+  await C.open(1280, 800, false);
+  await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); })()`);
+  // (2), run first (the cache clear below would leave this page's caves cleared too). The game's own camera each frame with
+  // its footfall shake, then World.sync, as render does them (not drawn: thousands of frames would take minutes here).
+  // Driven in with the drive key held from 20 m out to the back wall, in each of the 8 nearest caves, aim down and level:
+  // the roof may change twice at the door (see-through as the mech comes close outside, solid again a step in) and at
+  // most once more inside (more than half a metre in), and is solid at the back. Then stood at four depths with the shake
+  // held at its top (as a run of stomps): the roof doesn't change at all, and from 60% of the way in it's solid.
+  const roofRun = (pitch) => C.ev(String.raw`(() => { ${H} const m = m0(), rig = G.humans[0].rig, pitch = ${pitch}, res = [];
+    const frame = () => { rig.pitch = pitch; R.step(1); calm(); rig.update(1 / 60, m); W.sync(); };
+    for (const [ci, c] of R.worldCaves(2500).sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z)).slice(0, 8).entries()) {
+      const cv = () => [...W.chunks.values()].flatMap((ch) => ch.caves).find((q) => Math.hypot(q.c.x - c.x, q.c.z - c.z) < 1), roof = () => cv().parts[3].material.transparent;
+      const into = () => +(((m.pos.x - c.x) * (c.bx - c.x) + (m.pos.z - c.z) * (c.bz - c.z)) / Math.hypot(c.bx - c.x, c.bz - c.z)).toFixed(2);
+      stand(c, -0.8); m.aimPitch = pitch; for (let i = 0; i < 90; i++) frame();
+      const flips = []; let last = null, shook = 0; R.hold('KeyW', true);
+      for (let i = 0; i < 900; i++) { head(c.bx * 3 - c.x * 2, c.bz * 3 - c.z * 2); frame(); shook = Math.max(shook, rig.shake);
+        const t = roof(); if (t !== last) { flips.push({ i, t, at: into() }); last = t; }
+        if (W.depthAt(m.pos.x, m.pos.z) > 0.97) break; }
+      R.hold('KeyW', false); const end = W.depthAt(m.pos.x, m.pos.z);
+      const held = [0.25, 0.4, 0.6, 0.9].map((u) => { stand(c, u); m.aimPitch = pitch; for (let i = 0; i < 60; i++) frame(); let n = 0, l = roof(); for (let i = 0; i < 120; i++) { rig.shake = 1.2; frame(); const t = roof(); if (t !== l) n++; l = t; } return { n, solid: !l }; });
+      res.push({ ci, flips, shook: +shook.toFixed(2), end: +end.toFixed(3), held }); }
+    return res; })()`);
+  const said = (q) => q.flips.map((f) => (f.t ? 'see-through' : 'solid') + ' at ' + f.at + ' m').join(', ');
+  for (const pitch of [-0.35, 0]) {
+    const res = await roofRun(pitch), bad = res.filter((q) => !(q.end > 0.96 && q.shook > 0.3 && q.flips.length <= 4 && q.flips.slice(1).filter((f) => f.at > 0.5).length <= 1 && !q.flips[q.flips.length - 1].t));
+    ok(`driving in, aim ${pitch}, footfall shake on, 8 caves: the roof changes at most once inside, not back and forth${bad.length ? ' (' + bad.map((q) => 'cave ' + q.ci + ': ' + said(q)).join('; ') + ')' : ''}`, res.length === 8 && !bad.length, res);
+    const shaky = res.filter((q) => q.held.some((v, i) => v.n || (i >= 2 && !v.solid)));
+    ok(`stood 25, 40, 60 and 90% of the way in, aim ${pitch}, the shake held at its top for 120 frames: the roof never changes, and from 60% in it's solid${shaky.length ? ' (' + shaky.map((q) => 'cave ' + q.ci + ': ' + q.held.map((v) => v.n + (v.solid ? '' : ' see-through')).join('/') + ' changes').join('; ') + ')' : ''}`, res.length === 8 && !shaky.length, res.map((q) => q.held.map((v) => [v.n, v.solid])));
+  }
+  // (1) the cache cleared the real way (more than 8192 caves looked up, far off), with player 1 well inside a cave
+  const r = await C.ev(String.raw`(() => { ${H} const c = cave(), m = m0(), rig = G.humans[0].rig; stand(c, 0.6); const cv = [...W.chunks.values()].flatMap((ch) => ch.caves).find((q) => Math.hypot(q.c.x - c.x, q.c.z - c.z) < 1);
+    const look = () => { for (let i = 0; i < 30; i++) { R.step(1); calm(); m.aimPitch = 0; rig.update(1 / 60, m); W.sync(); } return { see: cv.parts.map((p) => p.material.transparent), depth: W.status().dark.depth }; };
+    const before = look(), n0 = W.caves.size, obj0 = W.inCave(m.pos.x, m.pos.z);
+    let k = 0; while (W.caves.size >= n0 && k < 20000) { W.cave(100000 + k, 100000); k++; }
+    const after = look(), obj1 = W.inCave(m.pos.x, m.pos.z);
+    return { before, after, n0, k, cleared: W.caves.size < n0, fresh: obj1 !== obj0 && !!obj1 }; })()`);
+  ok(`the cave cache cleared (after ${r.k} more caves looked up) with the mech inside: the hall looks as it did (the roof solid, the walls as before)`, r.cleared && r.fresh && r.before.depth > 0.5 && r.after.depth > 0.5 && !r.before.see[3] && JSON.stringify(r.after.see) === JSON.stringify(r.before.see), r);
+  return out;
+}
+
 async function runTouch(C) {
   const out = [], ok = (name, pass, got) => { out.push({ name: 'touch: ' + name, pass: !!pass, got: pass && !json ? undefined : got }); return !!pass; };
   for (const [w, h] of [[844, 390], [740, 360], [667, 375]]) {
@@ -300,7 +350,7 @@ async function main() {
     const S = launch(); const t0 = Date.now();
     try {
       const C = await connect(S);
-      const res = run === 'logic' ? await runLogic(C) : run === 'camera' ? await runCam(C) : await runTouch(C);
+      const res = run === 'logic' ? await runLogic(C) : run === 'camera' ? await runCam(C) : run === 'roof' ? await runRoof(C) : await runTouch(C);
       if (C.errs.length) res.push({ name: run + ': no page errors', pass: false, got: C.errs.slice(0, 10) });
       else res.push({ name: run + ': no page errors', pass: true });
       all.push(...res);
