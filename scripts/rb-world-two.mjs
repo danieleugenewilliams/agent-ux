@@ -12,7 +12,7 @@
 //   play    - each sees the other move, turn, jump, go down; climb a summit, go into a cave and a tower together
 //   robots  - every robot type drawn on both, hit and beaten from either, handed over, fixed or taken apart: one keeps it
 //   things  - ground parts, kits, smashed props, a summit's flag, a ring: the same on both; each record has only its own
-//   lines   - a pause, a dropped line, a silent line, a reload: each plays on with nothing lost; a join again
+//   lines   - a pause, a dropped line (and one with a fix open: the robot stays the fixer's), a silent line, a reload: each plays on with nothing lost; a join again
 //   wire    - every frame sent: no name, id or record, at most 4096 bytes, inside the relay's caps; storage keys the same
 //   touch   - 844 x 390, 740 x 360, 667 x 375: the pause menu and each page of the panel fit, at most 4 touch buttons
 //
@@ -365,8 +365,12 @@ const RUNS = {
     const busy = await B.js(`const r = pup('${nid}'); R.teleport(0, r.pos.x - 3, r.pos.z); const c = R.choose(r.id, 'fix'); return c.why;`); await run(700);
     const still = await A.js(`return G.humans[0].repair?.r.id === ${id};`);
     ok('one is fixing it: the friend sees that and cannot take it', ca && seen && busy === 'busy' && still, { ca, seen, busy, still });
-    const race = await B.js(`const r = pup('${nid}'); r.repairBy = null; const c = R.choose(r.id, 'fix'); return c.why;`); await run(1200); const toast = await B.ev(`document.getElementById('twToast').textContent`);
-    ok('asked for in the same moment: no, with a calm line', race === 'asked' && /fixing that one/.test(toast) && await A.js(`return G.humans[0].repair?.r.id === ${id};`), { race, toast });
+    // (#252: the no comes back through both pages' event batches, each waiting on the other's ack: 0.6 to 1 s here, more on a
+    // loaded machine, so it is waited for, up to 3.5 s, inside the 4 s an ask is kept, rather than for a fixed 1.2 s)
+    await B.ev(`document.getElementById('twToast').textContent = ''`); const t0 = Date.now();
+    const race = await B.js(`const r = pup('${nid}'); r.repairBy = null; const c = R.choose(r.id, 'fix'); return c.why;`);
+    const said = await run(3500, async () => /fixing that one/.test(await B.ev(`document.getElementById('twToast').textContent`)) && Date.now() - t0); const toast = await B.ev(`document.getElementById('twToast').textContent`);
+    ok(`asked for in the same moment: no, with a calm line (after ${said || '-'} ms)`, race === 'asked' && said && /fixing that one/.test(toast) && await A.js(`return G.humans[0].repair?.r.id === ${id};`), { race, toast, said });
     await A.js(`R.leaveFix(); return 1;`);
     // the friend's squadmate is seen
     const sq = await A.js(`const r = G.robots.find((q) => q.id === ${id}); R.teleport(0, r.pos.x + 3, r.pos.z); const c = R.choose(${id}, 'fix', 'Boltz'); return c.ok && solve(${id}) && G.squad.length;`);
@@ -490,6 +494,27 @@ const RUNS = {
     await A.ev(`(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); return document.hidden; })()`); await run(800);
     const fx1 = await A.js(`const r = G.robots.find((q) => q.id === ${fx0}); return { rep: G.humans[0].repair?.r === r, net: !!r?.net, left: !!r };`), fxb = await B.st();
     ok('a fix open when the screen locks: still open after, and the robot is still this page\'s', fxo.ok && fx1.rep && !fx1.net && fx1.left && !fxb.own.some((q) => q.nid === fxo.nid) && fxb.peer.puppets.some((q) => q.nid === fxo.nid), { fxo, fx1, own: fxb.own.map((q) => q.nid) });
+    // #252: the line drops while a fix is open: the robot stays only on the page fixing it, whichever page that is
+    const downAt = (C, x, z) => C.js(`return G.robots.filter((q) => q.type === 'charger' && q.state === 'down' && !q.net && Math.hypot(q.pos.x - ${x}, q.pos.z - ${z}) < 2).map((q) => ({ id: q.id, fixing: G.humans[0].repair?.r === q }));`);
+    const fxp = await A.js(`const r = G.robots.find((q) => q.id === ${fx0}); return [r.pos.x, r.pos.z];`);
+    await run(2000, async () => (await B.st()).peer.puppets.find((q) => q.nid === fxo.nid)?.fixing);
+    B.drop(); await run(600);
+    let ma = await downAt(A, ...fxp), mb = await downAt(B, ...fxp), na = await A.st(), nb = await B.st();
+    ok('a line dropped while the owner fixes a robot: it stays on the fixer\'s page only, the fix still open', na.net === 'waiting' && nb.net === 'dropped' && ma.length === 1 && ma[0].fixing && mb.length === 0, { ma, mb, na: na.net, nb: nb.net });
+    await B.js(`T.join(${JSON.stringify(code)}); return 1;`); let back = !!(await run(8000, together)); await run(400);
+    await A.js(`R.leaveFix(); return 1;`);
+    // (a second robot, so this case doesn't lean on the one before)
+    const fx2 = await A.js(`const p = m0().pos, r = R.spawn('charger', p.x - 4, p.z - 6); R.damage(r.id, 1e7, 'gun'); return T.nid(r);`);
+    const nid2 = await run(3000, async () => (await B.st()).peer.puppets.find((q) => q.nid === fx2 && q.state === 'down' && !q.fixing)?.nid);
+    const fxp2 = await A.js(`const r = G.robots.find((q) => q.nid === '${fx2}'); return [r.pos.x, r.pos.z];`);
+    const ask = await B.js(`const r = pup('${nid2}'); if (!r) return null; let c = null; for (const o of [2.5, 4, 6]) { R.teleport(0, r.pos.x - o, r.pos.z); c = R.choose(r.id, 'fix'); if (c.ok || c.why === 'asked') break; } return c.why || c.ok;`);
+    const mine2 = await run(3000, async () => B.js(`return G.humans[0].repair?.kind === 'fix';`));
+    await run(2000, async () => (await A.st()).peer.puppets.find((q) => q.nid === nid2)?.fixing);
+    B.drop(); await run(600);
+    ma = await downAt(A, ...fxp2); mb = await downAt(B, ...fxp2); na = await A.st(); nb = await B.st();
+    ok('a line dropped while the friend fixes a robot they asked for: it stays on their page only, the fix still open', back && nid2 && ask === 'asked' && mine2 && na.net === 'waiting' && nb.net === 'dropped' && mb.length === 1 && mb[0].fixing && ma.length === 0, { back, nid2, ask, mine2, ma, mb, na: na.net, nb: nb.net });
+    await B.js(`R.leaveFix(); T.join(${JSON.stringify(code)}); return 1;`); back = !!(await run(8000, together)); await run(400);
+    ok('(and they join again)', back, [await A.st(), await B.st()]);
     await A.js(`R.leaveFix(); return 1;`);
     const snap = (C, who) => C.js(`return { bag: JSON.stringify(G.bag), rec: JSON.stringify(rec('${who}')), x: m0().pos.x, z: m0().pos.z, hp: m0().health };`);
     await spawnOn(A, 'bouncer'); await run(3000, async () => (await B.st()).peer.puppets.some((q) => q.type === 'bouncer'));
