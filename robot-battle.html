@@ -1607,6 +1607,12 @@
   #twToast.on { display: flex; }
   #twToast .tf2 { width: 44px; height: 44px; flex: none; }
   #twToast small { display: block; font: 900 15px 'Asap', sans-serif; color: var(--yellow); }
+  /* #255: a checkpoint reached (below the friend's toast, so the two never sit on each other) */
+  #cpToast { position: fixed; left: 50%; top: max(34%, 250px); translate: -50% 0; z-index: 40; display: none; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 6px 20px 6px 10px; border-radius: 22px; box-sizing: border-box;
+    border: 4px solid var(--ink); background: rgba(20,24,42,.92); color: #fff; font: 900 20px 'Asap', sans-serif; pointer-events: none; }
+  #cpToast.on { display: flex; }
+  #cpToast .ic { font-size: 36px; display: inline-flex; }
+  @media (max-height: 460px) { #cpToast { top: 152px; font-size: 18px; } #cpToast .ic { font-size: 30px; } }
   @media (max-height: 460px) { #twToast { top: 84px; } .tw-big { min-height: 64px; flex-direction: row; gap: 10px; } .tw-big .ic { font-size: 32px; } .tw-code { --cs: 52px; --ci: 32px; } .tw-slot { --cs: 46px; --ci: 28px; } .tw-key { height: 56px; } .tw-panel { gap: 6px; padding: 8px; }
     .tw-with .tw-face { width: 48px; height: 48px; font-size: 26px; } }
   @media (orientation: landscape) and (min-width: 700px) and (min-height: 700px) { html.tp-mode #start:not(.title) .tpmenu.seven { width: 740px; } #start .tpmenu.seven .tm { width: 170px; } }
@@ -1706,6 +1712,8 @@
 <div id="peerTag"></div><div id="peerArrow"><div class="pt"></div><div class="fc"></div></div>
 <div id="two" role="dialog" aria-label="2 players"><div class="tw-panel" id="twPanel"></div></div>
 <div id="twToast" role="status"></div>
+<!-- #255: a checkpoint reached: the flag icon, then the word -->
+<div id="cpToast" role="status"></div>
 <div id="hud" class="screen on">
   <div class="reticle"></div>
   <div class="health" id="health"><div class="who" id="pilotHud"><img class="face" id="pilotFace" alt=""><span id="pilotName"></span></div><span class="ico"><i data-ic="energy"></i></span><div class="bar"><b id="hpFill"></b></div><button class="mendb" id="mendBtn" aria-label="Fix my mech"><i data-ic="wrench"></i><small>R</small></button><button class="mendb jumpb" id="jumpBtn" aria-label="Jump"><i data-ic="jump"></i><small>C</small></button></div>
@@ -4789,6 +4797,7 @@ const Sfx = {
   servo() { this.tone(180, 0.12, 'sawtooth', 0.025, 240); },
   // #167 slice 5: a foot gripping the rock on a climb: a gritty scrape and a claw's clank; a summit reached: a rising horn
   clamber() { this.noise(0.16, 0.14, 1800, 0, 1.4); this.tone(420, 0.08, 'square', 0.04, 300, 0.03); this.noise(0.1, 0.08, 700, 0.08, 1, 'lowpass'); },
+  checkpoint() { [659, 880, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.12, null, i * 0.09)); this.noise(0.2, 0.05, 7000, 0.25, 2, 'highpass'); },   // #255
   summit() { [392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.3, 'sawtooth', 0.06, null, i * 0.12)); this.tone(1047, 1, 'triangle', 0.12, null, 0.5); this.noise(0.3, 0.06, 7500, 0.5, 2, 'highpass'); },
   click() { this.tone(660, 0.06, 'triangle', 0.15, 990); },
   // Combat. `k` is a 0..1 loudness for sounds out in the meadow.
@@ -9119,6 +9128,7 @@ function powerDownMech(m) {
 function rebootMech(m) {
   m.state = 'up'; m.reboots++; m.downT = 0;
   healMech(m, Math.round(m.maxHealth * PLAYER.rebootHealth) - m.health, 'reboot');
+  if (Game.world && m.human?.checkpoint) World.cpBack(m.human);   // #255: in the world, back at the last checkpoint reached
   if (m.human) m.human.rig.yaw = m.torsoYaw;    // the aim picks up where the torso is
   Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 40, SPARK_ZAP, 9);
   if (!Game.manual) Sfx.reboot(1);
@@ -9165,7 +9175,7 @@ function repairSelf(h, picks, mate) {
 // URL -> an Image -> the canvas), one CanvasTexture per icon, cached. The texture is made at once and drawn when the image
 // has loaded, so every icon a sprite can show (WORLD_ICONS) is loaded at boot (iconTex.preload), while no sprite shows yet;
 // pending = icon images not loaded yet, blank = frames rendered with a sprite showing one of those
-const WORLD_ICONS = ['sleep', 'warn', 'alert', 'bolt', 'home', 'wrench', 'search', 'kit', 'ring', ...Object.values(PARTS).map((P) => P.ic)];
+const WORLD_ICONS = ['sleep', 'warn', 'alert', 'bolt', 'home', 'wrench', 'search', 'kit', 'ring', 'flag', ...Object.values(PARTS).map((P) => P.ic)];
 // I4: the one rasterise path. Icon `name`'s standalone SVG as an Image, loaded once and cached; img.ready resolves (to the
 // image, or null if it failed) once it has loaded. iconTex, the emblem decal (decalTex) and the pilots' portraits
 // (pilotFace) all draw from it, so no picture in the game is a font glyph
@@ -12749,6 +12759,19 @@ const WORLD = {
   //            point must be this far inside it (a top on the chunk's edge is no summit: it slopes up into the next chunk)
   climb: { span: 2, up: 0.85, floor: 0.45, down: 0.25, fast: 1.15, steep: 0.5, ease: 6,
     summit: { min: 24, reach: 6, below: 3, edge: 1, pole: 7 } },
+  // #255 (the boys' note on #167: "can you make it so that there are checkpoints and when you get knocked down you go to
+  // them?"; Daniel: "yes to checkpoints"): a checkpoint post stands in every other chunk, in a checkerboard (chunks whose
+  // cx + cz is a multiple of `grid`), so one is never much more than 100 m away. Its spot is the nearest to the chunk's
+  // middle, on a `scan` m grid out to `out` m, that a mech can stand on: off the start (`from` m), out of caves, towers
+  // and ring floors, `clear` m from the chunk's parts, kits and summit, clear of its own obstacles (out to 36 m keeps it 12 m in from the edge). It uses no random numbers
+  // and adds no obstacle, and is placed after everything else in the chunk (before the props smashed are taken out), so
+  // nothing else moves and it stands at the same spot every time its chunk loads. No post in a boss's chunk. Drive within
+  // `reach` m of a post (powered up) and it's that player's checkpoint: its light goes green, a toast and a chime. When
+  // the mech is knocked down in the world, it powers down where it fell as ever, and when it reboots it comes back at the
+  // last checkpoint it reached (one touched again becomes the last), its squad beside it. Before any checkpoint it
+  // reboots where it fell, as before. Each player has their own (two players: each page its own mech's). Kept for the
+  // run only, as a summit climbed is: nothing is saved. Starting values, tuned at the playtest
+  checkpoints: { grid: 2, scan: 6, out: 36, from: 60, clear: 8, reach: 6, post: 4.4, toast: 2600 },
 };
 const PLACES = ['mountains', 'city', 'junkyard', 'desert', 'snow', 'cave'];
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]];   // #167 slice 4: a tower's four faces' outward normals (its door is on one)
@@ -12791,6 +12814,8 @@ const World = {
   summits: new Map(),         // #167 slice 5: 'cx,cz' -> the loaded chunk's summit flag (summitFor)
   summitSpots: new Map(),     // the seeded summit of each chunk looked at (summitAt; null: none)
   summitsUp: new Set(),       // the summits climbed this run (their keys): the flag stays up gold
+  cps: new Map(),             // #255: 'cx,cz' -> the loaded chunk's checkpoint post (cpFor)
+  cpReached: new Set(),       // #255: the checkpoints reached this run (their keys): their light stays green
   // ---- places: jittered cells; every 2 x 3 block of cells holds all six, in a seeded order, warped so borders wander ----
   block(si, sj) {
     const k = si * 65536 + sj; let o = this.blocks.get(k);
@@ -13045,6 +13070,7 @@ const World = {
     Props.list.length = 0; obstacles.length = 0;
     for (const k of Kits.list) scene.remove(k.g); Kits.list.length = 0;
     this.lvl = 0; this.copied.clear();   // (#194: the Copier's levels: this run's)
+    this.cpReached.clear(); for (const h of Game.humans) h.checkpoint = null;   // (#255: the checkpoints: this run's)
     for (const q of Hidden.list) scene.remove(q.g); Hidden.list.length = 0;
     scene.fog.near = WORLD.fog[0]; scene.fog.far = WORLD.fog[1];
     this.darkMake();   // #167 slice 6
@@ -13073,6 +13099,7 @@ const World = {
     this.fill(ch);
     this.ringFor(ch);   // #167 slice 3: its boxing ring and champion, if it has one (after the parts: their placing is as before)
     this.summitFor(ch);   // #167 slice 5: its summit flag, if its top is one (nothing else moves: it's on no random numbers)
+    this.cpFor(ch);   // #255: its checkpoint post, if it has one (last: nothing else moves, and before the props smashed go)
     this.dropBroken(ch);   // #198: the props smashed (this session, or saved) go now the chunk is built, so nothing else moves
     if (this.savedOf('gone').has(ch.key + ':r')) this.gone.add(ch.key + ':r');   // #198: its robot, beaten and saved
     scene.add(ch.group);
@@ -13083,6 +13110,7 @@ const World = {
     const ch = this.chunks.get(k); if (!ch) return;
     this.ringGone(ch);   // #167 slice 3
     if (ch.summit) { ch.summit.mark.material.dispose(); this.summits.delete(ch.summit.s.key); }   // #167 slice 5
+    if (ch.cp) { ch.cp.mark.material.dispose(); this.cps.delete(ch.cp.key); }   // #255
     for (const p of ch.props) {
       if (p.broken) this.broken.add(p.wkey);
       for (const o of p.obs) { const i = obstacles.indexOf(o); if (i >= 0) obstacles.splice(i, 1); }
@@ -13663,6 +13691,7 @@ const World = {
     this.sweepT -= dt; if (this.sweepT <= 0) { this.sweepT = 2; this.sweep(); }
     this.ringTick(dt);   // #167 slice 3
     this.summitTick(dt);   // #167 slice 5
+    this.cpTick(dt);   // #255
     this.peopleTick(dt);   // #167 slice 4
   },
   // drawn: a tower or a cave between the camera and the mech (or round the camera) goes see-through; a mech inside a cave's
@@ -13950,6 +13979,92 @@ const World = {
   summitState(sm) {
     const s = sm.s; return { key: s.key, x: r3(s.x), z: r3(s.z), y: r3(s.y), place: s.place, level: s.level, up: sm.up, lift: r3(sm.lift), beacon: !!sm.beacon.visible, flagY: r3(sm.flag.position.y) };
   },
+  // ---- #255: checkpoints (WORLD.checkpoints). A post with a lamp and a flag in every other chunk; reach one and it's your
+  // checkpoint; knocked down, the mech reboots there (rebootMech -> cpBack). Nothing is saved ----
+  // the spots tried round a chunk's middle, nearest first (ties in a fixed order): the same list every time
+  cpOffsets() {
+    if (this.cpOff) return this.cpOff;
+    const P = WORLD.checkpoints, n = Math.floor(P.out / P.scan), out = [];
+    for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) out.push([i * P.scan, j * P.scan]);
+    out.sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]) || a[0] - b[0] || a[1] - b[1]);
+    return (this.cpOff = out);
+  },
+  // loaded chunk ch's checkpoint spot: { key, x, z, level } or null (none in this chunk)
+  cpAt(ch) {
+    const P = WORLD.checkpoints, C = WORLD.chunk;
+    if ((((ch.cx + ch.cz) % P.grid) + P.grid) % P.grid || this.bossAt(ch.cx, ch.cz)) return null;
+    const cave = this.cave(ch.cx, ch.cz), ring = this.ringAt(ch.cx, ch.cz), sm = this.summitAt(ch.cx, ch.cz), mx = (ch.cx + 0.5) * C, mz = (ch.cz + 0.5) * C;
+    const own = [...ch.obs, ...ch.props.flatMap((p) => p.obs || [])];   // (this chunk's obstacles: its walls and rocks, and its props')
+    const ok = (x, z) => Math.hypot(x, z) > P.from && !this.inCave(x, z, -4) && (!cave || Math.hypot(x - cave.mx, z - cave.mz) > WORLD.cave.flat + 4)
+      && !this.inTower(x, z, -4) && (!ring || Math.hypot(x - ring.x, z - ring.z) > WORLD.rings.flat + 4) && (!sm || Math.hypot(x - sm.x, z - sm.z) > P.clear)
+      && own.every((o) => Math.hypot(o.x - x, o.z - z) > o.r + MECH.radius + 1.5)
+      && (ch.partSpots || []).every(([px, pz]) => Math.hypot(px - x, pz - z) > P.clear) && ch.kits.every((k) => Math.hypot(k.x - x, k.z - z) > P.clear);
+    for (const [dx, dz] of this.cpOffsets()) { const x = mx + dx, z = mz + dz; if (ok(x, z)) return { key: ch.key, x, z, level: this.level(x, z) }; }
+    return null;
+  },
+  cpMats() {
+    if (this.CM) return this.CM;
+    this.CM = { post: mat('#c9ced6', { roughness: 0.4, metalness: 0.7 }), base: mat('#4a5266', { roughness: 0.7, metalness: 0.5 }),
+      off: glowMat('#3fb4ff', 1.2), on: glowMat('#3dff7a', 1.8) };
+    return this.CM;
+  },
+  // build chunk ch's checkpoint post (if it has one): a base, the post, its lamp and flag (blue till it's reached, then
+  // green), and a beacon over it till it's reached
+  cpFor(ch) {
+    const c = this.cpAt(ch); if (!c) return;
+    const P = WORLD.checkpoints, M = this.cpMats(), G = this.G, grp = new THREE.Group(), y = this.h(c.x, c.z);
+    grp.position.set(c.x, y, c.z); ch.group.add(grp);
+    this.mesh(G.cyl, M.base, 0, 0.15, 0, 2.2, 0.3, 2.2, grp);
+    this.mesh(G.cyl, M.post, 0, P.post / 2, 0, 0.16, P.post, 0.16, grp);
+    const lamp = this.mesh(G.ball, M.off, 0, P.post + 0.3, 0, 0.55, 0.55, 0.55, grp);
+    const flag = this.mesh(G.box, M.off, 0.85, P.post - 0.6, 0, 1.5, 0.9, 0.08, grp);
+    const { beam, mark } = Beacon.add(grp, '#3fb4ff', 'flag', 12); beam.scale.set(2.2, 1, 2.2); mark.scale.set(2.6, 2.6, 1);
+    const cp = { ...c, y, ch, grp, lamp, flag, beacon: beam, mark, t: 0, on: null };
+    ch.cp = cp; this.cps.set(c.key, cp);
+    this.cpLook(cp);
+  },
+  cpLook(cp) {
+    const on = this.cpReached.has(cp.key); if (cp.on === on) return; cp.on = on;
+    const m = on ? this.cpMats().on : this.cpMats().off; cp.lamp.material = m; cp.flag.material = m; Beacon.show(cp, !on, cp.t);
+  },
+  // a running player's mech within reach of a post: it's that player's checkpoint now
+  cpTick(dt) {
+    const P = WORLD.checkpoints;
+    for (const cp of this.cps.values()) {
+      cp.t += dt; Beacon.show(cp, !this.cpReached.has(cp.key), cp.t);
+      cp.flag.rotation.y = Math.sin(cp.t * 2.2) * 0.25;
+      const cur = Game.humans.some((h) => h.checkpoint?.key === cp.key); cp.lamp.scale.setScalar(0.55 * (cur ? 1 + 0.15 * Math.sin(cp.t * 5) : 1));
+      for (const h of Game.humans) if (h.mech.state !== 'down' && h.checkpoint?.key !== cp.key && Math.hypot(h.mech.pos.x - cp.x, h.mech.pos.z - cp.z) < P.reach) this.cpReach(h, cp);
+    }
+  },
+  cpReach(h, cp) {
+    h.checkpoint = { key: cp.key, x: cp.x, z: cp.z }; h.cpN = (h.cpN || 0) + 1;
+    this.cpReached.add(cp.key); this.cpLook(cp);
+    Sparks.burst(cp.x, cp.y + WORLD.checkpoints.post, cp.z, 30, SPARK_GLINT, 6); Impacts.flash(new V3(cp.x, cp.y + 3, cp.z), 3);
+    if (h.idx === 0) cpToast();
+    if (!Game.manual) Sfx.checkpoint();
+  },
+  // player h's mech, rebooting in the world with a checkpoint reached: it comes back there, its squad beside and behind it
+  // (as Two.beside brings a squad along), the chunks round it loaded at once
+  cpBack(h) {
+    const k0 = h.checkpoint, m = h.mech; if (!k0) return false;
+    const c = { x: k0.x, z: k0.z + 3 };   // (beside the post, not in it)
+    m.pos.set(c.x, 0, c.z); this.update(true);
+    m.pos.y = groundH(c.x, c.z); m.hop = null; m.speed = 0; m.turnVel = 0; m.push.set(0, 0, 0);
+    Game.squad.forEach((r, k) => {
+      let x = c.x, z = c.z;
+      for (let t = 0; t < 12; t++) {
+        const a = m.legHeading + Math.PI + (k - 1) * 0.7 + (t ? (Math.random() - 0.5) * 1.6 : 0), d = 7 + (t ? Math.random() * 4 : 0);
+        x = c.x - Math.sin(a) * d; z = c.z - Math.cos(a) * d;
+        if (!obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + 2.5) && !this.inTower(x, z, -2) && !this.inCave(x, z)) break;
+      }
+      r.pos.set(x, groundH(x, z) + (r.lift || 0), z); r.speed = 0; r.push?.set(0, 0, 0);
+    });
+    if (h.rig) h.rig.snap = true;
+    h.cpBacks = (h.cpBacks || 0) + 1;
+    return true;
+  },
+  cpState(cp) { return { key: cp.key, x: r3(cp.x), z: r3(cp.z), y: r3(cp.y), level: cp.level, reached: this.cpReached.has(cp.key), lamp: cp.on ? 'green' : 'blue', beacon: !!cp.beacon.visible }; },
   // what the hooks see
   status() {
     const glitched = Game.robots.filter((r) => r.wkey && r.state === 'glitched').length, p = Game.humans[0]?.mech.pos;
@@ -13980,11 +14095,21 @@ const World = {
       // #167 slice 5: the summits loaded and how many climbed this run; player 1 on the slopes (grade along its way, × its
       // walk, clambering 0..1)
       summits: [...this.summits.values()].map((sm) => this.summitState(sm)), summitsUp: this.summitsUp.size,
+      // #255: the checkpoint posts loaded, how many reached this run, and player 1's checkpoint (null: none yet)
+      checkpoints: [...this.cps.values()].map((c) => this.cpState(c)), cpReached: this.cpReached.size,
+      checkpoint: Game.humans[0]?.checkpoint ? { ...Game.humans[0].checkpoint } : null,
       climb: Game.humans[0] ? { grade: r3(Game.humans[0].mech.grade || 0), k: r3(Game.humans[0].mech.climbK ?? 1), on: r3(Game.humans[0].mech.climb || 0), y: r3(Game.humans[0].mech.pos.y) } : null };
   },
 };
 const W_COL = { dirt: new THREE.Color('#7a6a4a'), rock: new THREE.Color('#8a8a8e'), rust: new THREE.Color('#a8673a'), sandDark: new THREE.Color('#c9a35e'), snow: new THREE.Color('#f4f8fb'), cave: new THREE.Color('#3e3a44') };
 // the found count (the HUD's and the pause menu's): found / all in the meadow; in the endless world, how many found
+// #255: the checkpoint toast (player 1's): the flag, then the word, for WORLD.checkpoints.toast ms
+function cpToast() {
+  const el = $('cpToast'); clearTimeout(cpToast.t);
+  el.innerHTML = `<span class="ic">${icon('flag')}</span><span>Checkpoint!</span>`;
+  el.classList.add('on'); cpToast.t = setTimeout(() => el.classList.remove('on'), WORLD.checkpoints.toast);
+  cpToast.n = (cpToast.n || 0) + 1;
+}
 const foundText = () => Game.world ? String(World.foundN()) : `${Hidden.list.filter((q) => q.found).length}/${Hidden.list.length}`;
 
 // ===========================================================================
