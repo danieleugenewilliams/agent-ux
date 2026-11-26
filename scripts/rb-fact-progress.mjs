@@ -556,6 +556,46 @@ const QUOTA_242_AFTER = (row, samSaves) => String.raw`(() => {
   return out;
 })()`;
 
+// #242 review, round 2: a restore made while the list waits. As above, a new Max is made with ~60 chars free (the list's
+// write fails), plays and saves, and Dad makes a backup then (as the warning asks). Guest is picked, space frees up (row 1:
+// all of it; row 2: only the backup's size), and that backup is restored with 'best'. The restore's writes must reach disk
+// together: no record or pick for a profile disk's list lacks. After a reload, the backup is one the game takes, and still
+// is after Sam plays and saves; the new Max is still a profile, with the record the restore wrote.
+const QUOTA_242_RESTORE = (row, all) => String.raw`(() => {
+  ${QUOTA_242}
+  R.manual(true); R.player('sam'); fast(2, 2); R.Facts.save(); R.Profiles.remove('max');
+  let a, err = null, full = false, listed = null, b = null, v = null, res = null;
+  try {
+    full = fill();
+    if (full) {
+      leave(60);
+      a = R.addProfile('Max'); listed = disk();
+      R.player(a.id); fast(2, 3); fast(2, 3); R.Facts.save();
+      b = R.backup(); v = R.backupLib.validate(b);
+      R.player('guest');
+      leave(${all ? 'pool' : 'JSON.stringify(b).length + 200'});
+      res = R.restore(b, 'best');
+    }
+  } catch (e) { err = String(e); }
+  ok('#242 ${row}: storage fills to a real quota', full, full);
+  ok('#242 ${row}: a new Max is made while storage is nearly full, and its list write fails', a?.ok === true && !err && !!listed && !listed.includes(a.id), { a, err, listed });
+  ok('#242 ${row}: the backup made while the list waits is one the game takes', v?.ok === true, v?.ok ? v : { why: v?.why });
+  ok('#242 ${row}: the restore works and writes the new Max\'s record', res?.ok === true && res.summary?.writes?.includes('facts.' + a?.id), { ok: res?.ok, why: res?.why, writes: res?.summary?.writes });
+  const t = together();
+  ok('#242 ${row}: after the restore, disk holds no record and no pick for a profile its list lacks', t.ok, t);
+  out.push({ id: a?.id });
+  return out;
+})()`;
+const QUOTA_242_RESTORED = (row, id, samSaves) => String.raw`(() => {
+  ${HELPERS}
+  ${samSaves ? "R.manual(true); R.player('sam'); fast(2, 4); R.Facts.save();" : ''}
+  const b = R.backup(), v = R.backupLib.validate(b);
+  ok('#242 ${row}: ' + ${JSON.stringify(samSaves ? 'after the restore, a reload and Sam playing and saving, the backup is one the game takes' : 'after the restore and a reload, the backup is one the game takes')}, v?.ok === true, v?.ok ? v : { why: v?.why });
+  ${samSaves ? '' : String.raw`const listed = R.Profiles.list().some((p) => p.id === ${JSON.stringify(id)}), rec = localStorage.getItem('robotbattle.facts.' + ${JSON.stringify(id)});
+  ok('#242 ${row}: after the reload the new Max is still a profile, with the record the restore wrote', listed && rec != null, { listed, rec: rec != null });`}
+  return out;
+})()`;
+
 async function runLogic(C) {
   await C.open(1280, 800, false);
   const res = await C.ev(LOGIC);
@@ -599,6 +639,15 @@ async function runLogic(C) {
       await C.open(1280, 800, false);
       for (const r of await C.ev(QUOTA_242_AFTER(row + ', reloaded again', false))) out.push(r);
     }
+  }
+  // #242 review, round 2: a restore made while the list waits writes the list with it, all or nothing
+  for (const [row, all] of [['restore, space freed', 1], ['restore, only the backup size freed', 0]]) {
+    await C.ev(CLEAR); await C.open(1280, 800, false);
+    const r1 = await C.ev(QUOTA_242_RESTORE(row, all)), id = r1.pop()?.id;
+    for (const r of r1) out.push(r);
+    await C.open(1280, 800, false);
+    for (const r of await C.ev(QUOTA_242_RESTORED(row, id, false))) out.push(r);
+    for (const r of await C.ev(QUOTA_242_RESTORED(row, id, true))) out.push(r);
   }
   return out;
 }

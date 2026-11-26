@@ -4551,6 +4551,10 @@ const Backup = {
       kids.push({ child: C.id, name: C.name, ic: C.ic, hex: C.hex, newProfile: !!C.incoming, renamed: C.renamed ?? null, choice, inBackup: !!bak || !!C.incoming, write, device: a, backup: this.count(bak), result: z, lower });
     }
     for (const k of ['child', 'pilot']) if (v.settings[k] != null && dev.settings[k] == null) writes.push({ key: k, value: v.settings[k] });
+    // #242: while the profile list waits (store.unsaved: storage was full), a profile made since is in CHILDREN but not in
+    // disk's list, so a record or pick of it written alone would be an orphan on disk (every backup refused after a reload).
+    // The waiting list is written first, in the same all-or-nothing writes: they all reach disk together, or none do
+    if (writes.length && !writes.some((w) => w.key === 'profiles') && store.unsaved.has('profiles')) writes.unshift({ key: 'profiles', value: store.unsaved.get('profiles') });
     return { ok: true, writes, summary: { kids, settings: { ...v.settings }, skipped: [...v.skipped], meta: { ...v.meta }, writes: writes.map((w) => w.key), added: inc.map((C) => C.id) } };
   },
   // ---- the parts that touch the browser (D4 has its own) ----
@@ -4597,6 +4601,8 @@ const Backup = {
       return { ok: false, why: "this browser wouldn't save it (storage is full or turned off), so nothing was changed" };
     }
     for (const w of writes) store.unsaved.delete(w.key);   // (#224: written now)
+    // (#242: with the list on disk now, a record or pick that waited for it can go too, as store.set's retry would)
+    if (writes.some((w) => w.key === 'profiles')) for (const [k, v] of [...store.unsaved]) store.put(k, v);
     return { ok: true };
   },
   // check, plan and (with a choice) write a restore: __rb.restore and the parent view's ✔ both come here. choices left
