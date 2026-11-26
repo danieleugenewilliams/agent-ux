@@ -17,6 +17,8 @@
 //               the parent view, and it goes once a save works again;
 //             * #240: a backup made while saves fail holds the latest record; storage turned off (SecurityError) gets a warning
 //               that says so; a profile picked while saves fail and then removed isn't saved back as who's playing;
+//             * #242: while saves fail, profiles removed stay removed, ones made stay in the list, and a backup holds the
+//               record of a player made then (the list waiting in store.unsaved, not the one on disk);
 //             * reading never writes: the saved record, the stage counts, the star total and the backup are the same
 //               before and after opening the grid and the parent view and tapping facts; entries keep their old fields
 //               only; a saved record reloads as it was, with the same progress.
@@ -428,6 +430,71 @@ const SAVE_240 = String.raw`(() => {
   return out;
 })()`;
 
+// #242: while saves fail, the profile list waiting in store.unsaved is the list (not the older one on disk). Each case starts
+// on a fresh device with Sam and Max (CLEAR, then the page opened again), stubs setItem to throw a QuotaExceededError, and
+// puts it back in a finally. The write that works after is a Guest pick (robotbattle.child), not a save of the list, so the
+// waiting list reaches disk through store.set's retry of what's waiting.
+//   remove: Sam, then Max, removed while saves fail: neither comes back;
+//   add: Max removed while saves work, then a new "Max" made and Sam removed while saves fail: the new one stays, and a
+//        backup made while saves fail holds the new player's record (and is a backup the game takes);
+//   add twice: everyone removed while saves work, then Sam and Max made again while saves fail: both stay.
+const SAVE_242_HEAD = String.raw`
+  ${HELPERS}
+  const orig = Storage.prototype.setItem;
+  const fail = () => { Storage.prototype.setItem = function () { throw new DOMException('storage stub', 'QuotaExceededError'); }; };
+  const disk = () => { try { return (JSON.parse(localStorage.getItem('robotbattle.profiles')) || []).map((p) => p.id); } catch (e) { return 'unreadable'; } };
+  const names = () => { try { return (JSON.parse(localStorage.getItem('robotbattle.profiles')) || []).map((p) => p.name); } catch (e) { return 'unreadable'; } };
+  const works = () => R.player('guest');   // (a write that works: who's playing, Guest)
+`;
+const SAVE_242_REMOVE = String.raw`(() => {
+  ${SAVE_242_HEAD}
+  ok('#242 remove: a fresh device has Sam and Max', js(disk()) === js(['sam', 'max']), disk());
+  let r1, r2;
+  fail();
+  try { r1 = R.Profiles.remove('sam'); r2 = R.Profiles.remove('max'); } finally { Storage.prototype.setItem = orig; }
+  ok('#242 remove: Sam and then Max are removed while saves fail', r1?.ok === true && r2?.ok === true, { r1, r2 });
+  ok('#242 remove: the list on disk did not change while saves failed (the stub took)', js(disk()) === js(['sam', 'max']), disk());
+  works();
+  ok('#242 remove: after the next write that works, neither removed profile is back in the list', js(disk()) === js([]), disk());
+  ok('#242 remove: and neither has a record', localStorage.getItem('robotbattle.facts.sam') === null && localStorage.getItem('robotbattle.facts.max') === null, null);
+  return out;
+})()`;
+const SAVE_242_ADD = String.raw`(() => {
+  ${SAVE_242_HEAD}
+  R.Profiles.remove('max');
+  ok('#242 add: Max removed while saves work leaves Sam', js(disk()) === js(['sam']), disk());
+  let a, bak, rec, rs;
+  fail();
+  try {
+    a = R.addProfile('Max');
+    R.manual(true); R.player(a.id); fast(2, 3); fast(2, 3); R.Facts.save(); rec = js(R.Facts.rec);
+    bak = R.backup();
+    rs = R.Profiles.remove('sam');
+  } finally { Storage.prototype.setItem = orig; }
+  ok('#242 add: a new Max is made and Sam removed while saves fail', a?.ok === true && rs?.ok === true, { a, rs });
+  ok("#242 add: the new Max's record really did not save (the stub took)", localStorage.getItem('robotbattle.facts.' + a.id) === null, null);
+  ok('#242 backup: a backup made while saves fail lists the new player', (bak?.data?.profiles || []).some((p) => p.id === a.id), bak?.data?.profiles);
+  ok('#242 backup: and holds the new player\'s latest record', !!bak && js(bak.data?.['facts.' + a.id]) === rec, { inBackup: bak?.data?.['facts.' + a.id] ?? null });
+  const v = bak ? R.backupLib.validate(bak) : null;
+  ok('#242 backup: the game takes that backup (it validates)', v?.ok === true, v);
+  works();
+  ok('#242 add: after the next write that works, the list is just the new Max (Sam stays removed)', js(disk()) === js([a.id]) && js(names()) === js(['Max']), disk());
+  ok("#242 add: and the new Max's record is saved", js(JSON.parse(localStorage.getItem('robotbattle.facts.' + a.id) || 'null')) === rec, null);
+  return out;
+})()`;
+const SAVE_242_ADD2 = String.raw`(() => {
+  ${SAVE_242_HEAD}
+  R.Profiles.remove('sam'); R.Profiles.remove('max');
+  ok('#242 add twice: everyone removed while saves work', js(disk()) === js([]), disk());
+  let a, b;
+  fail();
+  try { a = R.addProfile('Sam'); b = R.addProfile('Max'); } finally { Storage.prototype.setItem = orig; }
+  ok('#242 add twice: Sam and Max are made again while saves fail', a?.ok === true && b?.ok === true, { a, b });
+  works();
+  ok('#242 add twice: after the next write that works, both are in the list', js(disk()) === js([a.id, b.id]), disk());
+  return out;
+})()`;
+
 async function runLogic(C) {
   await C.open(1280, 800, false);
   const res = await C.ev(LOGIC);
@@ -455,6 +522,11 @@ async function runLogic(C) {
   // #240: the backup holds what's waiting to save; the warning is true when storage is off; a removed profile stays gone
   const left = await C.ev(SAVE_240);
   for (const r of left) out.push(r);
+  // #242: while saves fail, removing and adding profiles works from the waiting list; a backup then holds a new player's record
+  for (const t of [SAVE_242_REMOVE, SAVE_242_ADD, SAVE_242_ADD2]) {
+    await C.ev(CLEAR); await C.open(1280, 800, false);
+    for (const r of await C.ev(t)) out.push(r);
+  }
   return out;
 }
 

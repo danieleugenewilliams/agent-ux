@@ -3341,8 +3341,10 @@ const Profiles = {
   },
   // the saved list. None yet: made from the records here (#161: none on a fresh device, so only Guest and ➕; a device from
   // before #49 gets a profile per record), saved once when there were any. One that can't be read: made from the records
-  // the same way, not written until something changes
+  // the same way, not written until something changes. #242: a list waiting in store.unsaved (saves failing) is the list:
+  // it's newer than disk, so a profile removed while saves fail stays removed and one made then stays in the list
   read() {
+    if (store.unsaved.has('profiles')) return this.cleanList(store.unsaved.get('profiles'));
     let raw = null; try { raw = localStorage.getItem('robotbattle.profiles'); } catch (e) {}
     if (raw == null) { const list = this.fromRecords(this.records()); if (list.length) store.set('profiles', list); return list; }
     let v = null; try { v = JSON.parse(raw); } catch (e) {}
@@ -3416,8 +3418,11 @@ const Profiles = {
     return { ok: true, id: C.id, ladder, changed: was !== ladder || !!rec };
   },
   // #50: id is still in the saved list (a list that's missing or can't be read: yes, as read() would rebuild it from the
-  // records). Facts.save asks first, so a page left open on a profile removed elsewhere can't write its record back
+  // records). Facts.save asks first, so a page left open on a profile removed elsewhere can't write its record back.
+  // #242: a list waiting in store.unsaved is asked instead of disk, so a profile made while saves fail has its record kept
+  // waiting too (and in a backup made then)
   saved(id) {
+    if (store.unsaved.has('profiles')) { const w = store.unsaved.get('profiles'); return Array.isArray(w) && w.some((p) => p && p.id === id); }
     let v = null; try { const raw = localStorage.getItem('robotbattle.profiles'); if (raw == null) return true; v = JSON.parse(raw); } catch (e) { return true; }
     return !Array.isArray(v) || v.some((p) => p && p.id === id);
   },
