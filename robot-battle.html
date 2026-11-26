@@ -7759,6 +7759,7 @@ class CamRig {
       this.slope = dy >= (this.slope || 0) || snapped ? dy : lerp(this.slope, dy, 1 - Math.exp(-3 * dt));
       c.position.y += this.slope;
     }
+    (this.steady ||= new V3()).copy(c.position);   // #247: where the camera is before the shake and the kick (World.sync judges the cave roof from here)
     if (this.shake > 0.001) {
       const s = this.shake * this.shake * 0.35, t = this.t * 40;
       c.position.y += Math.sin(t * 1.3) * s; c.position.x += Math.sin(t * 0.9 + 1) * s * 0.6;
@@ -12674,7 +12675,7 @@ const WORLD = {
   //                  part's spot is as before; only its kind may change
   partsFar: { every: 4, most: 3, rareFrom: 6, rare: 0.05, rareMax: 0.5, kinds: ['ram', 'scope', 'rotor', 'spring', 'jetboots', 'solar'] },
   city: { block: 48, street: 14 },
-  cave: { chance: 0.75, hw: 7, back: 28, roof: 12, wall: 6, top: 18, flat: 30, blend: 8 },
+  cave: { chance: 0.75, hw: 7, back: 28, roof: 12, wall: 6, top: 18, flat: 30, blend: 8, keep: 0.2 },   // (#247 keep: World.sync's margin, m)
   // #167 slice 6 (the boys' "the farther you go the darker it gets"; Q7: "the mech gets headlights so the boys can still see
   // deep in, with the light shrinking as it gets darker"): depth 0 at a cave's door to 1 as far back as a mech gets, by how
   // far in player 1's mech is (World.depthAt). At the deepest:
@@ -13699,10 +13700,15 @@ const World = {
         for (const q of t.people) q.g.visible = ghost;
       }
       for (const cv of ch.caves) {
-        const inside = Game.humans.some((q) => this.inCave(q.mech.pos.x, q.mech.pos.z) === cv.c);
+        // (#247: the same cave by its chunk, not the same object: World.caves clears itself now and then and makes it anew)
+        const inside = Game.humans.some((q) => { const k = this.inCave(q.mech.pos.x, q.mech.pos.z); return !!k && k.cx === cv.c.cx && k.cz === cv.c.cz; });
         // (#167 slice 6: a mech inside: only the walls (or the roof, with the rock on it) in the camera's way; the rest stay
-        // solid, so the headlights have walls to shine on and the open air doesn't show through)
-        const ghost = !inside && cuts(cv.c.mx, cv.c.mz, cv.W + 2), hide = inside ? cv.parts.slice(0, 4).map((m) => this.inWay(cv.c, m, c, p)) : null;
+        // solid, so the headlights have walls to shine on and the open air doesn't show through.
+        // #247: judged from the camera before its shake (h.rig.steady), with a margin: a box that went see-through stays so
+        // until the view clears it by WORLD.cave.keep m more, so footfalls can't flick it back and forth)
+        const ghost = !inside && cuts(cv.c.mx, cv.c.mz, cv.W + 2), s = h.rig.steady || c;
+        const hide = inside ? cv.parts.slice(0, 4).map((m, i) => this.inWay(cv.c, m, s, p, cv.hid?.[i] ? WORLD.cave.keep : 0)) : null;
+        cv.hid = hide;
         cv.parts.forEach((m, i) => { m.material = ghost || hide?.[Math.min(i, 3)] ? M.caveGhost : M.caveRock; });
       }
     }
@@ -13723,11 +13729,12 @@ const World = {
     this.DK = { beam, lamps: [lamp(), lamp()], hemi: Meadow.hemi.intensity, sun: Meadow.sun.intensity, fog: scene.fog.color.clone(), sky: ['top', 'mid', 'bot'].map((k) => [U[k].value, U[k].value.clone()]), depth: 0, v: new THREE.Vector3() };
   },
   // is cave c's box m (a wall, or its roof) on the way from the camera (a) to over the mech (at b), or round the camera?
-  inWay(c, m, a, b) {
+  // (more: m more all round, #247's margin for a box already see-through)
+  inWay(c, m, a, b, more = 0) {
     const [ax, az] = this.local(c, a.x, a.z), [bx, bz] = this.local(c, b.x, b.z), A = [ax, a.y - (c.y - 1), az], B = [bx, b.y + 6.2 - (c.y - 1), bz];
     const O = m.position.toArray(), S = m.scale.toArray(); let t0 = 0, t1 = 1;
     for (let i = 0; i < 3; i++) {
-      const lo = O[i] - S[i] / 2 - 0.25, hi = O[i] + S[i] / 2 + 0.25, d = B[i] - A[i];
+      const lo = O[i] - S[i] / 2 - 0.25 - more, hi = O[i] + S[i] / 2 + 0.25 + more, d = B[i] - A[i];
       if (Math.abs(d) < 1e-6) { if (A[i] < lo || A[i] > hi) return false; continue; }
       const u = (lo - A[i]) / d, v = (hi - A[i]) / d; t0 = Math.max(t0, Math.min(u, v)); t1 = Math.min(t1, Math.max(u, v));
     }
