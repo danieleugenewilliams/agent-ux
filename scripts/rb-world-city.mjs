@@ -52,7 +52,16 @@
 //              tower right ahead, is outside every tower;
 //            * #233: dropSpot's last fallback, every try round the player failed and the player inside a 12 m tower off its
 //              door's line, is outside every tower; and so it is, 4 m clear, for a player inside any loaded tower;
-//            * the storage keys the same, nothing new in the record.
+//            * the storage keys the same, nothing new in the record;
+//            * #245 (on a fresh page, after the saves check): a fixed Bouncer or Charger in its squad slot, its leader in
+//              front of a 12 or 16 m tower's door, gets back to its slot within 15 s, never standing in the tower for 2 s,
+//              when the leader is moved to 14 m past the far wall, and when the leader walks twice round the tower first;
+//            * #245: a fixed Charger or Bouncer in slot 0, player 1 4, 5 or 6 m out from a 16 m tower's side wall facing
+//              away (its slot in the tower), starting 13 m along the wall, goes idle within 6 s, flips its throttle between
+//              forward and back at most 4 times in 20 s, and ends idle outside the tower;
+//            * #245: a fixed Bouncer or Charger (slot 0 or 1) inside a 16 or 20 m tower, player 1 standing 3-5 m outside it
+//              facing away (placed 2.5 m inside a side wall, or left inside as player 1 walks out of the door and stops on
+//              its line), is out of the tower (the doorstep counts) within 12 s, then idle and out, at most 4 throttle flips.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
 // Usage:
@@ -810,6 +819,187 @@ async function runLogic(C) {
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);
   ok('the storage keys the same, nothing new in the record', JSON.stringify(r.k0) === JSON.stringify(r.k1) && r.r0.every((k) => r.r1.includes(k)) && r.r1.every((k) => r.r0.includes(k) || !/tower|people|inside|city/i.test(k)), r);
+
+  // ---- #245: a squadmate whose leader goes past a tower goes round it and catches up (on a fresh page, after the saves
+  // check, as fixing a robot saves the squad). It steered straight at its slot, so it stood behind the wall or walked in
+  // at the door and stayed there
+  const SOLVE = String.raw`
+    const st = (id) => R.state().robots.find((q) => q.id === id);
+    const solve = (id) => {
+      for (let pass = 0; pass < 12; pass++) {
+        const s = st(id); if (!s || s.state === 'ally') return true;
+        for (const [k, q] of (s.board?.puzzles || []).entries()) if (!q.done) R.puzzle(id, k, q.answer);
+        const t = st(id); if (!t || t.state === 'ally') return true;
+        const Wi = t.wires; if (!Wi) break;
+        for (let i = 0; i < Wi.plugs.length; i++) {
+          if (Wi.link[i] >= 0) continue;
+          if (Wi.burnt[i]) { R.patch(id, i); continue; }
+          if (Wi.typed[i]) { R.type(id, i, Wi.facts[i].answer, 1500); continue; }
+          const j = Wi.facts ? Wi.answers.findIndex((a, j) => a === Wi.facts[i].answer && !Wi.link.includes(j)) : Wi.ports.findIndex((p, j) => p.color === Wi.plugs[i].color && !Wi.link.includes(j));
+          if (j >= 0) R.wire(id, [[i, j]], 1500);
+        }
+      }
+      const s = st(id); return !s || s.state === 'ally';
+    };`;
+  for (const [type, W0, how, SL] of [['bouncer', 12, 'moved', 0], ['charger', 16, 'moved', 0], ['bouncer', 16, 'walks round', 1], ['charger', 16, 'walks round', 0]]) {
+    await C.ev(`localStorage.clear()`); await C.open(1280, 800, false);
+    await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); return true; })()`);
+    r = await C.ev(String.raw`(() => { ${H} ${SOLVE} let P = null;
+      for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break; const t = R.worldTowers().find((q) => q.w === ${W0}); if (t) P = { k, key: t.key }; }
+      if (!P) return { none: true };
+      const rnd = Math.random; let sd = 245; Math.random = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      try {
+        for (const o of [...G.squad]) R.sendHome(o.id); R.step(2);
+        goCity(P.k); calm(); R.step(2); const t = tw(P.key), h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz, az = nx;
+        const at = (a, b) => ({ x: t.x + ax * a + nx * b, z: t.z + az * a + nz * b });
+        // the leader 12 m in front of the door, facing away; the robot beaten and fixed beside it
+        const p = at(0, h + 12); pose(p.x, p.z, nx, nz); R.step(1);
+        const sp = at(6, h + 20), s = R.spawn(${JSON.stringify(type)}, sp.x, sp.z), q = G.robots.find((o) => o.id === s.id);
+        R.damage(q.id, 1e6, 'gun'); R.teleport(0, q.pos.x + 2.5, q.pos.z); const c = R.choose(q.id, 'fix', 'Mate'); const solved = c.ok && solve(q.id);
+        if (!G.squad.includes(q)) return { notMate: true, why: c.why, solved };
+        q.ai.slot = ${SL}; R.manual(true); pose(p.x, p.z, nx, nz);
+        const slot = () => { const m = m0(), hd = m.legHeading, [sx, sb] = [[-6, 7], [6, 7], [0, 12]][q.ai.slot % 3], fx = -Math.sin(hd), fz = -Math.cos(hd), rx = Math.cos(hd), rz = -Math.sin(hd);
+          return { x: m.pos.x + rx * sx - fx * sb, z: m.pos.z + rz * sx - fz * sb }; };
+        let sl = slot(); q.pos.x = sl.x; q.pos.z = sl.z; q.speed = 0; q.legHeading = m0().legHeading; R.step(30); calm();
+        // the leader ends 14 m past the far wall, facing away: moved there, or walking twice round the tower first (7 m/s, a mech
+        // with motor upgrades); the mate is in the tower once it's 1.5 m past a wall's line (not on the doorstep)
+        const end = at(0, -h - 14), path = [];
+        if (${JSON.stringify(how)} === 'walks round') { const E = h + 3.5, cs = [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([a, b]) => at(a * E, b * E)); path.push(...cs, ...cs, end); }
+        else pose(end.x, end.z, -nx, -nz);
+        let wi = 0, stopT = path.length ? null : 0, reachT = null, inN = 0, inMax = 0, inAt = null, tick = 0;
+        for (let k = 0; k < 60 * 120; k++) { tick++;
+          if (wi < path.length) { const m = m0(), w = path[wi], dx = w.x - m.pos.x, dz = w.z - m.pos.z, d = Math.hypot(dx, dz), v = 7 / 60;
+            if (d > v) pose(m.pos.x + dx / d * v, m.pos.z + dz / d * v, dx / d, dz / d);
+            else if (++wi < path.length) pose(w.x, w.z, dx / (d || 1), dz / (d || 1));
+            else { pose(w.x, w.z, -nx, -nz); stopT = tick; } }
+          R.step(1); calm(); const m = m0(); m.health = m.maxHealth || 100;
+          if (!G.squad.includes(q)) return { lost: true, tick };
+          if (W.inTower(q.pos.x, q.pos.z, 1.5)) { inN++; if (inN > inMax) { inMax = inN; const dx = q.pos.x - t.x, dz = q.pos.z - t.z; inAt = { s: +(tick / 60).toFixed(1), a: +(dx * ax + dz * az).toFixed(1), b: +(dx * nx + dz * nz).toFixed(1), mode: q.ai.mode }; } } else inN = 0;
+          if (stopT != null) { sl = slot(); if (Math.hypot(q.pos.x - sl.x, q.pos.z - sl.z) < 4) { reachT = +((tick - stopT) / 60).toFixed(1); break; } if (tick - stopT > 60 * 30) break; }
+        }
+        sl = slot();
+        return { key: P.key, w: t.w, solved, slot: q.ai.slot, walkS: stopT ? +(stopT / 60).toFixed(1) : 0, reachT, inMaxS: +(inMax / 60).toFixed(1), inAt, offSlot: +Math.hypot(q.pos.x - sl.x, q.pos.z - sl.z).toFixed(1), mode: q.ai.mode };
+      } finally { Math.random = rnd; } })()`);
+    ok(`#245: a fixed ${type} in squad slot ${SL}, its leader in front of a ${W0} m tower's door, gets back to its slot within 15 s (${r.reachT ?? 'never'}) when the leader ${how === 'moved' ? 'is moved' : 'walks twice round the tower'} to 14 m past the far wall, never standing in the tower 2 s (longest ${r.inMaxS} s)`,
+      !r.none && !r.notMate && !r.lost && r.reachT != null && r.reachT <= 15 && r.inMaxS < 2, r);
+  }
+
+  // ---- #245 (hand-back 1): player 1 standing with its back to a tower's side wall, slot 0 falling in the tower. The
+  // pull-in moved the slot inside the back-off ring, so the mate rocked forever (follow pulling it in, back-off pushing it
+  // out) and never went idle. It must go idle within 6 s and flip its throttle between forward and back at most 4 times
+  // in 20 s (it flipped 24-39 times at 09e4a3d)
+  for (const [type, gap] of [['charger', 4], ['charger', 5], ['charger', 6], ['bouncer', 4], ['bouncer', 5], ['bouncer', 6]]) {
+    await C.ev(`localStorage.clear()`); await C.open(1280, 800, false);
+    await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); return true; })()`);
+    r = await C.ev(String.raw`(() => { ${H} ${SOLVE} let P = null;
+      for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break;
+        for (const t of R.worldTowers().filter((q) => q.w === 16)) for (const sd of [1, -1]) { if (P) break;
+          const h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz * sd, az = nx * sd;
+          const ok = [0, 7, -7, 14, -14].every((b) => !W.inTower(t.x + ax * (h + ${gap}) + nx * b, t.z + az * (h + ${gap}) + nz * b, -3));
+          if (ok) P = { k, key: t.key, sd }; } }
+      if (!P) return { none: true };
+      const rnd = Math.random; let sd = 2451; Math.random = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      try {
+        for (const o of [...G.squad]) R.sendHome(o.id); R.step(2);
+        goCity(P.k); calm(); R.step(2); const t = tw(P.key), h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz * P.sd, az = nx * P.sd;
+        // player 1 ${gap} m out from the side wall, facing straight away from it
+        const p = { x: t.x + ax * (h + ${gap}), z: t.z + az * (h + ${gap}) }; pose(p.x, p.z, ax, az); R.step(1);
+        const sp = { x: p.x + ax * 8, z: p.z + az * 8 }, s = R.spawn(${JSON.stringify(type)}, sp.x, sp.z), q = G.robots.find((o) => o.id === s.id);
+        R.damage(q.id, 1e6, 'gun'); R.teleport(0, q.pos.x + 2.5, q.pos.z); const c = R.choose(q.id, 'fix', 'Mate'); const solved = c.ok && solve(q.id);
+        if (!G.squad.includes(q)) return { notMate: true, why: c.why, solved };
+        q.ai.slot = 0; R.manual(true); pose(p.x, p.z, ax, az);
+        // the mate starts 13 m along the wall from player 1 on its slot's side, as far from the wall as player 1 is
+        const m = m0(), hd = m.legHeading, rx = Math.cos(hd), rz = -Math.sin(hd);
+        q.pos.x = p.x - rx * 13; q.pos.z = p.z - rz * 13; q.speed = 0; q.legHeading = hd; q.input.throttle = 0;
+        let idleT = null, flips = 0, last = 0, lastFlipT = null;
+        for (let k = 0; k < 60 * 20; k++) {
+          R.step(1); calm(); m.health = m.maxHealth || 100;
+          if (!G.squad.includes(q)) return { lost: true, k };
+          const th = q.input.throttle, sg = th > 0.05 ? 1 : th < -0.05 ? -1 : 0;
+          if (sg && last && sg !== last) { flips++; lastFlipT = +(k / 60).toFixed(1); } if (sg) last = sg;
+          if (idleT == null && q.ai.mode === 'idle') idleT = +(k / 60).toFixed(1);
+        }
+        return { key: P.key, solved, idleT, flips, lastFlipT, mode: q.ai.mode, lead: +Math.hypot(q.pos.x - m.pos.x, q.pos.z - m.pos.z).toFixed(1), inTower: !!W.inTower(q.pos.x, q.pos.z, 0) };
+      } finally { Math.random = rnd; } })()`);
+    ok(`#245: a fixed ${type} in slot 0, player 1 ${gap} m out from a 16 m tower's side wall facing away, goes idle within 6 s (${r.idleT ?? 'never'}) and flips throttle at most 4 times in 20 s (${r.flips})`,
+      !r.none && !r.notMate && !r.lost && r.idleT != null && r.idleT <= 6 && r.flips <= 4 && r.mode === 'idle' && !r.inTower, r);
+  }
+
+  // ---- #245 (hand-back 2): a mate inside a tower its leader isn't in, player 1 standing still a few metres outside it.
+  // The ring rule (hand-back 1) ran before the out-of-the-door rule, so the mate went idle in there and stayed. Two ways
+  // in: placed 2.5 m inside a side wall, 3 m to its slot's side, with player 1 outside that wall facing away; and left
+  // inside when player 1 walks out of the door (5.5 m/s) and stops on the door's line facing away. 16 and 20 m towers,
+  // slots 0 and 1, gaps 3-5. It must be out of the tower (no more than 1.5 m past a wall's line, as above: the doorstep
+  // counts as out) within 12 s, then idle and out at 20 s, flipping its throttle between forward and back at most 4 times
+  // once out. (At 8636d69 all 16 fail: 24 of the 48 mates never get out, and Chargers at gap 3 rock or wander)
+  for (const type of ['bouncer', 'charger']) {
+    await C.ev(`localStorage.clear()`); await C.open(1280, 800, false);
+    await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); return true; })()`);
+    r = await C.ev(String.raw`(() => { ${H} ${SOLVE}
+      const cases = []; for (const how of ['wall', 'door']) for (const w of [16, 20]) for (const slot of [0, 1]) for (const gap of [3, 4, 5]) cases.push({ how, w, slot, gap });
+      // the spots round where player 1 stops clear of every tower by 3 m (sd: which side wall)
+      const fits = (t, c, sd) => { const h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz * sd, az = nx * sd;
+        const sp = c.how === 'wall' ? [0, 7, -7, 14, -14].map((b) => [ax * (h + c.gap) + nx * b, az * (h + c.gap) + nz * b])
+          : [[0, 0], [7, 0], [-7, 0], [0, 7]].map(([a, b]) => [ax * a + nx * (h + c.gap + b), az * a + nz * (h + c.gap + b)]);
+        return sp.every(([x, z]) => !W.inTower(t.x + x, t.z + z, -3)); };
+      for (let k = 0; k < 30 && cases.some((c) => !c.P); k++) { if (!goCity(k)) break;
+        for (const c of cases) if (!c.P) for (const t of R.worldTowers().filter((q) => q.w === c.w)) for (const sd of [1, -1]) if (!c.P && fits(t, c, sd)) c.P = { k, key: t.key, sd }; }
+      const rnd = Math.random; let sd = 2452; Math.random = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      try {
+        for (const o of [...G.squad]) R.sendHome(o.id); R.step(2);
+        const c0 = cases.find((c) => c.P); if (!c0) return { none: true };
+        goCity(c0.P.k); calm(); R.step(2); let atK = c0.P.k;
+        // the robot beaten and fixed beside player 1, away from the towers
+        { const t = tw(c0.P.key), h = t.w / 2, ax = -t.door.nz * c0.P.sd, az = t.door.nx * c0.P.sd, p = { x: t.x + ax * (h + c0.gap), z: t.z + az * (h + c0.gap) };
+          pose(p.x, p.z, ax, az); R.step(1); }
+        const p0 = m0().pos, s = R.spawn(${JSON.stringify(type)}, p0.x + 6, p0.z), q = G.robots.find((o) => o.id === s.id);
+        R.damage(q.id, 1e6, 'gun'); R.teleport(0, q.pos.x + 2.5, q.pos.z); const ch = R.choose(q.id, 'fix', 'Mate'); const solved = ch.ok && solve(q.id);
+        if (!G.squad.includes(q)) return { notMate: true, why: ch.why, solved };
+        R.manual(true);
+        const res = [];
+        for (const c of cases) {
+          if (!c.P) { res.push({ ...c, none: true }); continue; }
+          if (c.P.k !== atK) { goCity(c.P.k); atK = c.P.k; } calm();
+          const t = tw(c.P.key), h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz * c.P.sd, az = nx * c.P.sd, m = m0();
+          const inside = () => { const L = loc(t, q.pos.x, q.pos.z); return Math.abs(L.a) < h - 1.5 && Math.abs(L.b) < h - 1.5; };
+          const place = (x, z) => { q.pos.x = x; q.pos.z = z; q.speed = 0; q.legHeading = m.legHeading; q.input.throttle = 0; q.ai.mode = 'idle'; };
+          q.ai.slot = c.slot; let tick = 0;
+          if (c.how === 'wall') {
+            // player 1 gap m out from the side wall facing straight away; the mate 2.5 m inside that wall, 3 m to its slot's side
+            const p = { x: t.x + ax * (h + c.gap), z: t.z + az * (h + c.gap) }; pose(p.x, p.z, ax, az);
+            const hd = m.legHeading, rx = Math.cos(hd), rz = -Math.sin(hd), sx = [-3, 3][c.slot];
+            place(t.x + ax * (h - 2.5) + rx * sx, t.z + az * (h - 2.5) + rz * sx);
+          } else {
+            // player 1 inside, 2 m out from the middle towards the door and facing it, the mate in its slot behind (in there too);
+            // then player 1 walks out of the door and stops gap m out on its line, facing away
+            pose(t.x + nx * 2, t.z + nz * 2, nx, nz);
+            const hd = m.legHeading, rx = Math.cos(hd), rz = -Math.sin(hd), [sx, sb] = [[-6, 7], [6, 7]][c.slot];
+            place(m.pos.x + rx * sx - nx * sb, m.pos.z + rz * sx - nz * sb);
+            for (let k = 0; k < 30; k++) { R.step(1); calm(); m.health = m.maxHealth || 100; }
+            const v = 5.5 / 60; let b = 2;
+            while (b < h + c.gap) { b = Math.min(h + c.gap, b + v); pose(t.x + nx * b, t.z + nz * b, nx, nz); R.step(1); calm(); m.health = m.maxHealth || 100; }
+          }
+          const in0 = inside(), mx = m.pos.x, mz = m.pos.z; let outT = null, idleT = null, flips = 0, last = 0, everIn = in0, flipsAll = 0, lastA = 0;
+          for (let k = 0; k < 60 * 20; k++) {
+            R.step(1); calm(); m.health = m.maxHealth || 100;
+            if (!G.squad.includes(q)) { res.push({ ...c, lost: true }); break; }
+            { const th = q.input.throttle, sg = th > 0.05 ? 1 : th < -0.05 ? -1 : 0; if (sg && lastA && sg !== lastA) flipsAll++; if (sg) lastA = sg; }
+            const inn = inside(); if (inn) { everIn = true; outT = null; } else if (outT == null) outT = +(k / 60).toFixed(1);
+            if (outT != null) { const th = q.input.throttle, sg = th > 0.05 ? 1 : th < -0.05 ? -1 : 0; if (sg && last && sg !== last) flips++; if (sg) last = sg;
+              if (idleT == null && q.ai.mode === 'idle') idleT = +(k / 60).toFixed(1); }
+          }
+          const L = loc(t, q.pos.x, q.pos.z);
+          res.push({ ...c, key: c.P.key, in0, everIn, outT, idleT, flips, flipsAll, mode: q.ai.mode, inside: inside(), at: { a: +L.a.toFixed(1), b: +L.b.toFixed(1) }, lead: +Math.hypot(q.pos.x - m.pos.x, q.pos.z - m.pos.z).toFixed(1), shoved: +Math.hypot(m.pos.x - mx, m.pos.z - mz).toFixed(2) });
+        }
+        return { solved, res };
+      } finally { Math.random = rnd; } })()`);
+    for (const how of ['wall', 'door']) for (const w of [16, 20]) for (const slot of [0, 1]) {
+      const rs = (r.res || []).filter((x) => x.how === how && x.w === w && x.slot === slot);
+      const good = (x) => !x.none && !x.lost && x.in0 && x.outT != null && x.outT <= 12 && !x.inside && x.mode === 'idle' && x.flips <= 4;
+      ok(`#245: a fixed ${type} in slot ${slot} ${how === 'wall' ? `placed 2.5 m inside a ${w} m tower's side wall, player 1 outside it` : `left inside a ${w} m tower when player 1 walks out of the door and stops`} 3-5 m out facing away, is out within 12 s (${rs.map((x) => x.outT ?? 'never').join('/')}) and then idle outside, flipping throttle at most 4 times (${rs.map((x) => x.flips).join('/')})`,
+        !r.none && !r.notMate && rs.length === 3 && rs.every(good), { none: r.none, notMate: r.notMate, rs });
+    }
+  }
   return out;
 }
 const WI_PEOPLE = () => '2-4';
