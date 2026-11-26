@@ -12330,10 +12330,16 @@ function allyAI(r, dt) {
   // #245: in the world, a slot that falls in a tower its leader isn't in (nor right by) moves in towards the leader until
   // it's clear of the tower's walls (it can't stand in there, and World.round leaves alone a tower its target is in)
   const pad = -(r.spec.radius + 1.5), lt = Game.world && World.inTower(lead.pos.x, lead.pos.z, 0), lp = Game.world && World.inTower(lead.pos.x, lead.pos.z, pad);
-  for (let k = 0; Game.world && k < 12; k++) { const q = World.inTower(tx, tz, pad); if (!q || q === lp) break; tx += (lead.pos.x - tx) / (12 - k); tz += (lead.pos.z - tz) / (12 - k); }
+  let pulled = false;
+  for (let k = 0; Game.world && k < 12; k++) { const q = World.inTower(tx, tz, pad); if (!q || q === lp) break; tx += (lead.pos.x - tx) / (12 - k); tz += (lead.pos.z - tz) / (12 - k); pulled = true; }
   const dx = tx - r.pos.x, dz = tz - r.pos.z, dist = Math.hypot(dx, dz);
+  // #245: a slot pulled in inside the back-off ring (the leader by a wall) can't be reached without coming nose to nose,
+  // so follow pulled the mate in and back-off pushed it out for ever. At the ring with its pulled slot inside it, it's in
+  // its slot. (Only a pulled slot: every other slot is as before, the meadow's included)
+  const ring = MECH.radius + r.spec.radius + 2.5;
+  const atRing = pulled && Math.hypot(tx - lead.pos.x, tz - lead.pos.z) < ring && Math.hypot(lead.pos.x - r.pos.x, lead.pos.z - r.pos.z) < ring + 1;
   let err;
-  if (dist < 1.5) { inp.throttle = 0; err = wrapAngle(h - r.legHeading); r.ai.mode = 'idle'; }   // in its slot: face the way the leader faces
+  if (dist < 1.5 || atRing) { inp.throttle = 0; err = wrapAngle(h - r.legHeading); r.ai.mode = 'idle'; }   // in its slot: face the way the leader faces
   else {
     // walk round the leader and the other squadmates, not through them
     const bodies = [{ x: lead.pos.x, z: lead.pos.z, r: MECH.radius + 1.5 }, ...Game.squad.filter((q) => q !== r).map((q) => ({ x: q.pos.x, z: q.pos.z, r: q.spec.radius + 0.5 }))];
@@ -12348,7 +12354,7 @@ function allyAI(r, dt) {
     inp.boost = dist > 14 && Math.abs(err) < 0.4;                        // sprint to catch up
     // nose to nose with the leader: back off instead of shoving the mech
     const lx = lead.pos.x - r.pos.x, lz = lead.pos.z - r.pos.z, ld = Math.hypot(lx, lz) || 1;
-    if (ld < MECH.radius + r.spec.radius + 2.5 && (-lx * Math.sin(r.legHeading) - lz * Math.cos(r.legHeading)) / ld > 0.3) { inp.throttle = -0.6; inp.boost = false; }
+    if (ld < ring && (-lx * Math.sin(r.legHeading) - lz * Math.cos(r.legHeading)) / ld > 0.3) { inp.throttle = -0.6; inp.boost = false; }
     r.ai.mode = 'follow';
   }
   inp.turn = clamp(-err * 2.5, -1, 1);

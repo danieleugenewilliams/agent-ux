@@ -55,7 +55,10 @@
 //            * the storage keys the same, nothing new in the record;
 //            * #245 (on a fresh page, after the saves check): a fixed Bouncer or Charger in its squad slot, its leader in
 //              front of a 12 or 16 m tower's door, gets back to its slot within 15 s, never standing in the tower for 2 s,
-//              when the leader is moved to 14 m past the far wall, and when the leader walks twice round the tower first.
+//              when the leader is moved to 14 m past the far wall, and when the leader walks twice round the tower first;
+//            * #245: a fixed Charger or Bouncer in slot 0, player 1 4, 5 or 6 m out from a 16 m tower's side wall facing
+//              away (its slot in the tower), starting 13 m along the wall, goes idle within 6 s, flips its throttle between
+//              forward and back at most 4 times in 20 s, and ends idle outside the tower.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
 // Usage:
@@ -876,6 +879,47 @@ async function runLogic(C) {
       } finally { Math.random = rnd; } })()`);
     ok(`#245: a fixed ${type} in squad slot ${SL}, its leader in front of a ${W0} m tower's door, gets back to its slot within 15 s (${r.reachT ?? 'never'}) when the leader ${how === 'moved' ? 'is moved' : 'walks twice round the tower'} to 14 m past the far wall, never standing in the tower 2 s (longest ${r.inMaxS} s)`,
       !r.none && !r.notMate && !r.lost && r.reachT != null && r.reachT <= 15 && r.inMaxS < 2, r);
+  }
+
+  // ---- #245 (hand-back 1): player 1 standing with its back to a tower's side wall, slot 0 falling in the tower. The
+  // pull-in moved the slot inside the back-off ring, so the mate rocked forever (follow pulling it in, back-off pushing it
+  // out) and never went idle. It must go idle within 6 s and flip its throttle between forward and back at most 4 times
+  // in 20 s (it flipped 24-39 times at 09e4a3d)
+  for (const [type, gap] of [['charger', 4], ['charger', 5], ['charger', 6], ['bouncer', 4], ['bouncer', 5], ['bouncer', 6]]) {
+    await C.ev(`localStorage.clear()`); await C.open(1280, 800, false);
+    await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); return true; })()`);
+    r = await C.ev(String.raw`(() => { ${H} ${SOLVE} let P = null;
+      for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break;
+        for (const t of R.worldTowers().filter((q) => q.w === 16)) for (const sd of [1, -1]) { if (P) break;
+          const h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz * sd, az = nx * sd;
+          const ok = [0, 7, -7, 14, -14].every((b) => !W.inTower(t.x + ax * (h + ${gap}) + nx * b, t.z + az * (h + ${gap}) + nz * b, -3));
+          if (ok) P = { k, key: t.key, sd }; } }
+      if (!P) return { none: true };
+      const rnd = Math.random; let sd = 2451; Math.random = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      try {
+        for (const o of [...G.squad]) R.sendHome(o.id); R.step(2);
+        goCity(P.k); calm(); R.step(2); const t = tw(P.key), h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz * P.sd, az = nx * P.sd;
+        // player 1 ${gap} m out from the side wall, facing straight away from it
+        const p = { x: t.x + ax * (h + ${gap}), z: t.z + az * (h + ${gap}) }; pose(p.x, p.z, ax, az); R.step(1);
+        const sp = { x: p.x + ax * 8, z: p.z + az * 8 }, s = R.spawn(${JSON.stringify(type)}, sp.x, sp.z), q = G.robots.find((o) => o.id === s.id);
+        R.damage(q.id, 1e6, 'gun'); R.teleport(0, q.pos.x + 2.5, q.pos.z); const c = R.choose(q.id, 'fix', 'Mate'); const solved = c.ok && solve(q.id);
+        if (!G.squad.includes(q)) return { notMate: true, why: c.why, solved };
+        q.ai.slot = 0; R.manual(true); pose(p.x, p.z, ax, az);
+        // the mate starts 13 m along the wall from player 1 on its slot's side, as far from the wall as player 1 is
+        const m = m0(), hd = m.legHeading, rx = Math.cos(hd), rz = -Math.sin(hd);
+        q.pos.x = p.x - rx * 13; q.pos.z = p.z - rz * 13; q.speed = 0; q.legHeading = hd; q.input.throttle = 0;
+        let idleT = null, flips = 0, last = 0, lastFlipT = null;
+        for (let k = 0; k < 60 * 20; k++) {
+          R.step(1); calm(); m.health = m.maxHealth || 100;
+          if (!G.squad.includes(q)) return { lost: true, k };
+          const th = q.input.throttle, sg = th > 0.05 ? 1 : th < -0.05 ? -1 : 0;
+          if (sg && last && sg !== last) { flips++; lastFlipT = +(k / 60).toFixed(1); } if (sg) last = sg;
+          if (idleT == null && q.ai.mode === 'idle') idleT = +(k / 60).toFixed(1);
+        }
+        return { key: P.key, solved, idleT, flips, lastFlipT, mode: q.ai.mode, lead: +Math.hypot(q.pos.x - m.pos.x, q.pos.z - m.pos.z).toFixed(1), inTower: !!W.inTower(q.pos.x, q.pos.z, 0) };
+      } finally { Math.random = rnd; } })()`);
+    ok(`#245: a fixed ${type} in slot 0, player 1 ${gap} m out from a 16 m tower's side wall facing away, goes idle within 6 s (${r.idleT ?? 'never'}) and flips throttle at most 4 times in 20 s (${r.flips})`,
+      !r.none && !r.notMate && !r.lost && r.idleT != null && r.idleT <= 6 && r.flips <= 4 && r.mode === 'idle' && !r.inTower, r);
   }
   return out;
 }
