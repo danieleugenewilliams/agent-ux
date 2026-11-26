@@ -10334,7 +10334,7 @@ function hop(r, target, plan) {
   const stop = Game.world && World.hopStop(from.x, from.z, to.x, to.z, r.spec.radius);
   if (stop) { to.x = stop.x; to.z = stop.z; to.y = landY(null, to); off = { x: 0, z: 0 }; target = { x: to.x, z: to.z }; plan = []; r.hopStops = (r.hopStops || 0) + 1; }
   const dist = Math.hypot(to.x - from.x, to.z - from.z);
-  r.air = { from, to, off, body: target.body || null, plan, u: 0, dur: clamp(0.5 + dist / 18, 0.55, 1.3), h: 3 + dist * 0.18 };
+  r.air = { from, to, off, body: target.body || null, plan, u: 0, dur: clamp(0.5 + dist / 18, 0.55, 1.3), h: 3 + dist * 0.18, stopped: !!stop };   // (#244: bounceLand)
   if (dist > 0.1) r.legHeading = r.torsoYaw = Math.atan2(-(to.x - from.x), -(to.z - from.z));
   r.speed = 0; r.ai.mode = 'air'; r.ai.door = null;
   const k = loud(r.pos); if (k > 0) Sfx.boing(k, r.bounces);
@@ -10346,7 +10346,7 @@ function bouncerFly(r, dt) {
   if (A.body?.type && Game.robots.includes(A.body)) {
     const x = A.body.pos.x + A.off.x, z = A.body.pos.z + A.off.z, stop = Game.world && World.hopStop(A.from.x, A.from.z, x, z, r.spec.radius);
     // (#236: one it's following into a tower: it lets it go and comes down where it was heading, its way there clear)
-    if (stop) { A.to.y = landY(null, A.to); A.body = null; A.plan = []; r.hopStops = (r.hopStops || 0) + 1; }
+    if (stop) { A.to.y = landY(null, A.to); A.body = null; A.plan = []; A.stopped = true; r.hopStops = (r.hopStops || 0) + 1; }
     else { A.to.x = x; A.to.z = z; A.to.y = landY(A.body, A.to); }
   }
   const u = Math.min(A.u, 1);
@@ -10366,8 +10366,9 @@ function bounceLand(r) {
   const m = r.state === 'glitched' && !A.last ? Game.mechs.find((q) => q.state !== 'down' && under(q, MECH.radius) && !sheltered(q))
     || Game.squad.find((q) => q.state === 'ally' && !q.air && !ROBOT_TYPES[q.type].flies && under(q, q.spec.radius)) : null;
   if (m) return bounceStomp(r, m, A);
-  // another robot: spring off its head
-  const q = A.last ? null : Game.robots.find((o) => o !== r && !o.air && ROBOT_TYPES[o.type].top != null && under(o, o.spec.radius));
+  // another robot: spring off its head (#244: not after a hop stopped at a tower's wall: that chain is over. Robots crowding
+  // the door under it sprang it on at its foe inside, stopped at the same wall again, up to 22 bounces in place)
+  const q = A.last || A.stopped ? null : Game.robots.find((o) => o !== r && !o.air && ROBOT_TYPES[o.type].top != null && under(o, o.spec.radius));
   if (q) return bounceOff(r, q, A);
   // the ground: the chain is over (aimed at a head that moved away, it drops the rest of the way)
   r.lift = Math.max(0, A.to.y - groundH(r.pos.x, r.pos.z));
@@ -12916,9 +12917,11 @@ const World = {
   // door: the walls stop it anywhere else) is undone, and it picks somewhere else to go. Chasing a player it still follows
   // them in; once it gives up it comes back out (wayOut). (#236, A1: but never a Bouncer, whatever it's doing: one hopping at
   // the door, knocked over the doorstep as it landed, was inside and stomped the player there)
+  // (#244: nor a downed world Bouncer: one pushed in over the doorstep rebooted in there and stomped the player)
   keepOut(r, x0, z0) {
-    if (r.state !== 'glitched' || (r.ai?.mode !== 'roam' && r.type !== 'bouncer') || !this.inTower(r.pos.x, r.pos.z, 0) || this.inTower(x0, z0, 0)) return false;
-    if (r.type === 'bouncer') { r.ai.door = this.inTower(r.pos.x, r.pos.z, 0); r.ai.doorT = 4; }   // (#236: offDoor)
+    const down = r.state === 'down' && r.type === 'bouncer' && !Game.squad.includes(r);
+    if ((r.state !== 'glitched' && !down) || (r.ai?.mode !== 'roam' && r.type !== 'bouncer') || !this.inTower(r.pos.x, r.pos.z, 0) || this.inTower(x0, z0, 0)) return false;
+    if (r.type === 'bouncer' && !down) { r.ai.door = this.inTower(r.pos.x, r.pos.z, 0); r.ai.doorT = 4; }   // (#236: offDoor)
     r.pos.x = x0; r.pos.z = z0; r.pos.y = groundH(x0, z0); r.speed = 0;
     r.ai.wp = null; if (r.swarm != null && Game.swarms[r.swarm]) Game.swarms[r.swarm].wp = null;
     return true;
