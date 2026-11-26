@@ -17,6 +17,10 @@
 //               the parent view, and it goes once a save works again;
 //             * #240: a backup made while saves fail holds the latest record; storage turned off (SecurityError) gets a warning
 //               that says so; a profile picked while saves fail and then removed isn't saved back as who's playing;
+//             * #242: while saves fail, profiles removed stay removed, ones made stay in the list, and a backup holds the
+//               record of a player made then (the list waiting in store.unsaved, not the one on disk);
+//               and on storage really nearly full (filled to its quota) nothing for a profile only the waiting list holds
+//               reaches disk, so the backup after a reload is one the game takes;
 //             * reading never writes: the saved record, the stage counts, the star total and the backup are the same
 //               before and after opening the grid and the parent view and tapping facts; entries keep their old fields
 //               only; a saved record reloads as it was, with the same progress.
@@ -428,6 +432,190 @@ const SAVE_240 = String.raw`(() => {
   return out;
 })()`;
 
+// #242: while saves fail, the profile list waiting in store.unsaved is the list (not the older one on disk). Each case starts
+// on a fresh device with Sam and Max (CLEAR, then the page opened again), stubs setItem to throw a QuotaExceededError, and
+// puts it back in a finally. The write that works after is a Guest pick (robotbattle.child), not a save of the list, so the
+// waiting list reaches disk through store.set's retry of what's waiting.
+//   remove: Sam, then Max, removed while saves fail: neither comes back;
+//   add: Max removed while saves work, then a new "Max" made and Sam removed while saves fail: the new one stays, and a
+//        backup made while saves fail holds the new player's record (and is a backup the game takes);
+//   add twice: everyone removed while saves work, then Sam and Max made again while saves fail: both stay.
+const SAVE_242_HEAD = String.raw`
+  ${HELPERS}
+  const orig = Storage.prototype.setItem;
+  const fail = () => { Storage.prototype.setItem = function () { throw new DOMException('storage stub', 'QuotaExceededError'); }; };
+  const disk = () => { try { return (JSON.parse(localStorage.getItem('robotbattle.profiles')) || []).map((p) => p.id); } catch (e) { return 'unreadable'; } };
+  const names = () => { try { return (JSON.parse(localStorage.getItem('robotbattle.profiles')) || []).map((p) => p.name); } catch (e) { return 'unreadable'; } };
+  const works = () => R.player('guest');   // (a write that works: who's playing, Guest)
+`;
+const SAVE_242_REMOVE = String.raw`(() => {
+  ${SAVE_242_HEAD}
+  ok('#242 remove: a fresh device has Sam and Max', js(disk()) === js(['sam', 'max']), disk());
+  let r1, r2;
+  fail();
+  try { r1 = R.Profiles.remove('sam'); r2 = R.Profiles.remove('max'); } finally { Storage.prototype.setItem = orig; }
+  ok('#242 remove: Sam and then Max are removed while saves fail', r1?.ok === true && r2?.ok === true, { r1, r2 });
+  ok('#242 remove: the list on disk did not change while saves failed (the stub took)', js(disk()) === js(['sam', 'max']), disk());
+  works();
+  ok('#242 remove: after the next write that works, neither removed profile is back in the list', js(disk()) === js([]), disk());
+  ok('#242 remove: and neither has a record', localStorage.getItem('robotbattle.facts.sam') === null && localStorage.getItem('robotbattle.facts.max') === null, null);
+  return out;
+})()`;
+const SAVE_242_ADD = String.raw`(() => {
+  ${SAVE_242_HEAD}
+  R.Profiles.remove('max');
+  ok('#242 add: Max removed while saves work leaves Sam', js(disk()) === js(['sam']), disk());
+  let a, bak, rec, rs;
+  fail();
+  try {
+    a = R.addProfile('Max');
+    R.manual(true); R.player(a.id); fast(2, 3); fast(2, 3); R.Facts.save(); rec = js(R.Facts.rec);
+    bak = R.backup();
+    rs = R.Profiles.remove('sam');
+  } finally { Storage.prototype.setItem = orig; }
+  ok('#242 add: a new Max is made and Sam removed while saves fail', a?.ok === true && rs?.ok === true, { a, rs });
+  ok("#242 add: the new Max's record really did not save (the stub took)", localStorage.getItem('robotbattle.facts.' + a.id) === null, null);
+  ok('#242 backup: a backup made while saves fail lists the new player', (bak?.data?.profiles || []).some((p) => p.id === a.id), bak?.data?.profiles);
+  ok('#242 backup: and holds the new player\'s latest record', !!bak && js(bak.data?.['facts.' + a.id]) === rec, { inBackup: bak?.data?.['facts.' + a.id] ?? null });
+  const v = bak ? R.backupLib.validate(bak) : null;
+  ok('#242 backup: the game takes that backup (it validates)', v?.ok === true, v);
+  works();
+  ok('#242 add: after the next write that works, the list is just the new Max (Sam stays removed)', js(disk()) === js([a.id]) && js(names()) === js(['Max']), disk());
+  ok("#242 add: and the new Max's record is saved", js(JSON.parse(localStorage.getItem('robotbattle.facts.' + a.id) || 'null')) === rec, null);
+  return out;
+})()`;
+const SAVE_242_ADD2 = String.raw`(() => {
+  ${SAVE_242_HEAD}
+  R.Profiles.remove('sam'); R.Profiles.remove('max');
+  ok('#242 add twice: everyone removed while saves work', js(disk()) === js([]), disk());
+  let a, b;
+  fail();
+  try { a = R.addProfile('Sam'); b = R.addProfile('Max'); } finally { Storage.prototype.setItem = orig; }
+  ok('#242 add twice: Sam and Max are made again while saves fail', a?.ok === true && b?.ok === true, { a, b });
+  works();
+  ok('#242 add twice: after the next write that works, both are in the list', js(disk()) === js([a.id, b.id]), disk());
+  return out;
+})()`;
+
+// #242 review: a store that's really nearly full fails a write by its size, so a small write can work while the list's
+// write fails. These use the browser's real quota, no stub: storage is filled with junk keys until a 1-char write fails,
+// then one junk key is swapped for a filler sized to leave n chars free (leave(n)). Storage stays full across a reload, as
+// on a real device. Fresh device, Sam with a record; Max removed while saves work (so a new "Max" can be made). Then, with
+// ~60 chars free, a new Max is made (the list's write fails) and picked. Row 1 saves their record with ~60 free; row 2 first
+// frees their record's size + ~60 (about 680 chars, one first record's worth), as another page on the same origin might.
+// Whatever reaches disk must hang together: no record and no pick for a profile the list on disk lacks; and after a reload
+// (still full) the device's backup is one the game takes (row 2: still, after Sam plays and saves, and after another reload).
+const QUOTA_242 = String.raw`
+  ${HELPERS}
+  const disk = () => { try { return (JSON.parse(localStorage.getItem('robotbattle.profiles')) || []).map((p) => p.id); } catch (e) { return null; } };
+  // what's on disk, hanging together: every record and the last player in the list on disk
+  const together = () => {
+    const ids = disk() || [], recs = Object.keys(localStorage).filter((k) => k.startsWith('robotbattle.facts.')).map((k) => k.slice(18));
+    let child = null; try { child = JSON.parse(localStorage.getItem('robotbattle.child')); } catch (e) {}
+    return { ok: recs.every((id) => ids.includes(id)) && (child == null || child === 'guest' || ids.includes(child)), ids, recs, child };
+  };
+  // fill storage to its real quota (false if 16M chars went in without a write failing: no quota to test against)
+  const fill = () => {
+    let n = 0, size = 1 << 20, total = 0;
+    while (size >= 1) {
+      try { localStorage.setItem('rbjunk' + n, 'x'.repeat(size)); n++; total += size; if (total > 16e6) return false; } catch (e) { size >>= 1; }
+    }
+    return true;
+  };
+  let pool = null;
+  const leave = (n) => {
+    if (pool == null) { pool = 'rbjunk0'.length + localStorage.getItem('rbjunk0').length; localStorage.removeItem('rbjunk0'); } else localStorage.removeItem('rbfill');
+    localStorage.setItem('rbfill', 'x'.repeat(Math.max(0, pool - 'rbfill'.length - n)));
+  };
+`;
+const QUOTA_242_PLAY = (row, freed) => String.raw`(() => {
+  ${QUOTA_242}
+  R.manual(true); R.player('sam'); fast(2, 2); R.Facts.save(); R.Profiles.remove('max');
+  let a, err = null, full = false, listed = null;
+  try {
+    full = fill();
+    if (full) {
+      leave(60);
+      a = R.addProfile('Max'); listed = disk();
+      R.player(a.id); fast(2, 3); fast(2, 3);
+      ${freed ? "leave(JSON.stringify(R.Facts.rec).length + 18 + a.id.length + 60 + (localStorage.getItem('robotbattle.child') === JSON.stringify(a.id) ? 0 : 17 + JSON.stringify(a.id).length));" : ''}
+      R.Facts.save();
+    }
+  } catch (e) { err = String(e); }
+  ok('#242 ${row}: storage fills to a real quota', full, full);
+  ok('#242 ${row}: a new Max is made while storage is nearly full, and its list write fails', a?.ok === true && !err && !!listed && !listed.includes(a.id), { a, err, listed });
+  const t = together();
+  ok('#242 ${row}: after playing as them, disk holds no record and no pick for a profile its list lacks', t.ok, t);
+  return out;
+})()`;
+const QUOTA_242_AFTER = (row, samSaves) => String.raw`(() => {
+  ${HELPERS}
+  ${samSaves ? "R.manual(true); R.player('sam'); fast(2, 4); R.Facts.save();" : ''}
+  const b = R.backup(), v = R.backupLib.validate(b);
+  ok('#242 ${row}: ' + ${JSON.stringify(samSaves ? 'after a reload and Sam playing and saving, the backup is one the game takes' : 'after a reload, still full, the backup is one the game takes')}, v?.ok === true, v?.ok ? v : { why: v?.why });
+  return out;
+})()`;
+
+// #242 review, round 2: a restore made while the list waits. As above, a new Max is made with ~60 chars free (the list's
+// write fails), plays and saves, and Dad makes a backup then (as the warning asks). Guest is picked, space frees up (row 1:
+// all of it; row 2: only the backup's size), and that backup is restored with 'best'. The restore's writes must reach disk
+// together: no record or pick for a profile disk's list lacks. After a reload, the backup is one the game takes, and still
+// is after Sam plays and saves; the new Max is still a profile, with the record the restore wrote.
+const QUOTA_242_RESTORE = (row, all) => String.raw`(() => {
+  ${QUOTA_242}
+  R.manual(true); R.player('sam'); fast(2, 2); R.Facts.save(); R.Profiles.remove('max');
+  let a, err = null, full = false, listed = null, b = null, v = null, res = null;
+  try {
+    full = fill();
+    if (full) {
+      leave(60);
+      a = R.addProfile('Max'); listed = disk();
+      R.player(a.id); fast(2, 3); fast(2, 3); R.Facts.save();
+      b = R.backup(); v = R.backupLib.validate(b);
+      R.player('guest');
+      leave(${all ? 'pool' : 'JSON.stringify(b).length + 200'});
+      res = R.restore(b, 'best');
+    }
+  } catch (e) { err = String(e); }
+  ok('#242 ${row}: storage fills to a real quota', full, full);
+  ok('#242 ${row}: a new Max is made while storage is nearly full, and its list write fails', a?.ok === true && !err && !!listed && !listed.includes(a.id), { a, err, listed });
+  ok('#242 ${row}: the backup made while the list waits is one the game takes', v?.ok === true, v?.ok ? v : { why: v?.why });
+  ok('#242 ${row}: the restore works and writes the new Max\'s record', res?.ok === true && res.summary?.writes?.includes('facts.' + a?.id), { ok: res?.ok, why: res?.why, writes: res?.summary?.writes });
+  const t = together();
+  ok('#242 ${row}: after the restore, disk holds no record and no pick for a profile its list lacks', t.ok, t);
+  out.push({ id: a?.id });
+  return out;
+})()`;
+const QUOTA_242_RESTORED = (row, id, samSaves) => String.raw`(() => {
+  ${HELPERS}
+  ${samSaves ? "R.manual(true); R.player('sam'); fast(2, 4); R.Facts.save();" : ''}
+  const b = R.backup(), v = R.backupLib.validate(b);
+  ok('#242 ${row}: ' + ${JSON.stringify(samSaves ? 'after the restore, a reload and Sam playing and saving, the backup is one the game takes' : 'after the restore and a reload, the backup is one the game takes')}, v?.ok === true, v?.ok ? v : { why: v?.why });
+  ${samSaves ? '' : String.raw`const listed = R.Profiles.list().some((p) => p.id === ${JSON.stringify(id)}), rec = localStorage.getItem('robotbattle.facts.' + ${JSON.stringify(id)});
+  ok('#242 ${row}: after the reload the new Max is still a profile, with the record the restore wrote', listed && rec != null, { listed, rec: rec != null });`}
+  return out;
+})()`;
+
+// and a restore that writes only for a profile already in disk's list goes alone, as before: with room for Sam's record but
+// not the waiting list too, a restore of Sam's earlier record still works (the list isn't forced in) and disk hangs together
+const QUOTA_242_SAM_ONLY = String.raw`(() => {
+  ${QUOTA_242}
+  R.manual(true); R.player('sam'); fast(2, 2); R.Facts.save(); R.Profiles.remove('max');
+  const b0 = R.backup();
+  fast(2, 3); fast(2, 3); R.Facts.save();
+  let a, res = null, err = null, full = false, listed = null;
+  try {
+    full = fill();
+    if (full) { leave(30); a = R.addProfile('Max'); listed = disk(); R.player('guest'); res = R.restore(b0, 'backup'); }
+  } catch (e) { err = String(e); }
+  ok('#242 restore of Sam only: storage fills to a real quota', full, full);
+  ok('#242 restore of Sam only: a new Max is made while storage is nearly full, and its list write fails', a?.ok === true && !err && !!listed && !listed.includes(a.id), { a, err, listed });
+  ok('#242 restore of Sam only: it works with room for his record alone, and writes just that', res?.ok === true && JSON.stringify(res.summary?.writes) === '["facts.sam"]', { ok: res?.ok, why: res?.why, writes: res?.summary?.writes });
+  const t = together();
+  ok('#242 restore of Sam only: disk holds no record and no pick for a profile its list lacks', t.ok, t);
+  return out;
+})()`;
+
 async function runLogic(C) {
   await C.open(1280, 800, false);
   const res = await C.ev(LOGIC);
@@ -455,6 +643,34 @@ async function runLogic(C) {
   // #240: the backup holds what's waiting to save; the warning is true when storage is off; a removed profile stays gone
   const left = await C.ev(SAVE_240);
   for (const r of left) out.push(r);
+  // #242: while saves fail, removing and adding profiles works from the waiting list; a backup then holds a new player's record
+  for (const t of [SAVE_242_REMOVE, SAVE_242_ADD, SAVE_242_ADD2]) {
+    await C.ev(CLEAR); await C.open(1280, 800, false);
+    for (const r of await C.ev(t)) out.push(r);
+  }
+  // #242 review: a nearly full store (a write fails by its size): nothing for a profile only the waiting list holds reaches disk
+  for (const [row, freed] of [['nearly full (~60 chars free)', 0], ['space freed (a record + ~60 chars free)', 1]]) {
+    await C.ev(CLEAR); await C.open(1280, 800, false);
+    for (const r of await C.ev(QUOTA_242_PLAY(row, freed))) out.push(r);
+    await C.open(1280, 800, false);
+    for (const r of await C.ev(QUOTA_242_AFTER(row, false))) out.push(r);
+    if (freed) {
+      for (const r of await C.ev(QUOTA_242_AFTER(row, true))) out.push(r);
+      await C.open(1280, 800, false);
+      for (const r of await C.ev(QUOTA_242_AFTER(row + ', reloaded again', false))) out.push(r);
+    }
+  }
+  // #242 review, round 2: a restore made while the list waits writes the list with it, all or nothing
+  for (const [row, all] of [['restore, space freed', 1], ['restore, only the backup size freed', 0]]) {
+    await C.ev(CLEAR); await C.open(1280, 800, false);
+    const r1 = await C.ev(QUOTA_242_RESTORE(row, all)), id = r1.pop()?.id;
+    for (const r of r1) out.push(r);
+    await C.open(1280, 800, false);
+    for (const r of await C.ev(QUOTA_242_RESTORED(row, id, false))) out.push(r);
+    for (const r of await C.ev(QUOTA_242_RESTORED(row, id, true))) out.push(r);
+  }
+  await C.ev(CLEAR); await C.open(1280, 800, false);
+  for (const r of await C.ev(QUOTA_242_SAM_ONLY)) out.push(r);
   return out;
 }
 
