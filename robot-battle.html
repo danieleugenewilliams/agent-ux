@@ -17425,8 +17425,9 @@ const Two = {
     clearInterval(this.pulseT); clearTimeout(this.closeT); this.pulseT = this.closeT = 0;
     const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear(); this.partAsks.clear(); this.hostTook.clear();
     if (P) {
-      // every glitched or beaten robot of the friend's that's here is this page's now; their mech and their squad go
-      for (const r of [...P.robots.values()]) this.adopt(r, P, true);
+      // every glitched or beaten robot of the friend's that's here is this page's now; their mech and their squad go.
+      // #252: not one the friend has a fix, a parts pick or a send-home open on: that one stays theirs, so it goes from here
+      for (const r of [...P.robots.values()]) { if (r.repairBy?.friend) { P.robots.delete(r.nid); this.drop(r); } else this.adopt(r, P, true); }
       for (const r of Game.robots) r.nid = null;
       for (const k of Kits.list) k.nid = null;
       for (const r of this.mates.values()) freeModel(r.model);
