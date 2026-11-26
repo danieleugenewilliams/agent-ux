@@ -2910,10 +2910,10 @@ const HomeTransport = {
 
 // ---------- Net: the only thing the game talks to.  state: off | connecting | waiting (hosting, alone) | together | dropped
 const Net = {
-  transport: HomeTransport, link: null, gen: 0, state: 'off', code: null, you: 0, sent: 0, got: 0, handlers: {},
+  transport: HomeTransport, link: null, gen: 0, state: 'off', code: null, you: 0, sent: 0, got: 0, handlers: Object.create(null),
   available() { return this.transport.available(); },
   on(type, fn) { (this.handlers[type] ||= []).push(fn); return fn; },
-  emit(m) { for (const fn of this.handlers[m.t] || []) fn(m); },
+  emit(m) { if (typeof m?.t !== 'string' || !Object.hasOwn(this.handlers, m.t)) return; for (const fn of this.handlers[m.t]) fn(m); },   // (a type off the wire such as '__proto__' finds nothing: #249)
   async open() {
     if (this.link) return this.link;
     const gen = ++this.gen; this.state = 'connecting';
