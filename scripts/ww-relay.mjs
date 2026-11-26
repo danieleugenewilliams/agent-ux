@@ -9,6 +9,7 @@
 //      Only files inside the repo: no path that leaves it (.. or a symlink out), no dotfile or dot-folder (.git, .claude, .env).
 //      wild-world.html is sent with one extra line, <script>window.WW_RELAY={v:1}</script>, which is how the page knows it can
 //      offer two players (the Pages copy and a plain file never have it, so they explain instead and make no request).
+//      robot-battle.html is sent with the same line (#167 slice 7): its endless world uses the same rooms (TWO_PAGES).
 //   2. relays messages between the two players of a room over a WebSocket at /ww. Hand-rolled RFC 6455 (Node has no WebSocket
 //      server and this file takes no npm packages): the upgrade handshake, masked client frames, text frames, fragments,
 //      ping/pong and close. No extensions (Safari asks for permessage-deflate; it is not echoed, so frames stay plain).
@@ -71,6 +72,8 @@ function resolveFile(rawPath) {
   if (!st.isFile()) return { code: 404 };
   return { file: real };
 }
+// the pages that play two players through this relay
+const TWO_PAGES = new Set(['wild-world.html', 'robot-battle.html']);
 function serveFile(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { allow: 'GET, HEAD' }); res.end(); return; }
   const r = resolveFile(req.url || '/');
@@ -78,7 +81,7 @@ function serveFile(req, res) {
   if (!r.file) { res.writeHead(r.code, { 'content-type': 'text/plain; charset=utf-8' }); res.end(r.code === 403 ? 'Not here.\n' : r.code === 400 ? 'Bad path.\n' : 'Not found.\n'); return; }
   let body;
   try { body = fs.readFileSync(r.file); } catch { res.writeHead(404); res.end(); return; }
-  if (path.basename(r.file) === 'wild-world.html') {
+  if (TWO_PAGES.has(path.basename(r.file))) {
     const s = body.toString('utf8'), i = s.indexOf('<head>');
     body = Buffer.from(i >= 0 ? s.slice(0, i + 6) + '\n' + MARK + s.slice(i + 6) : MARK + s, 'utf8');
   }
@@ -249,6 +252,7 @@ server.listen(PORT, HOST, () => {
   console.log(`Wild World two players: open this on both iPads (the same Wi-Fi as this computer):`);
   console.log(`  http://${ip}:${port}/wild-world.html`);
   if (!local) { const hn = os.hostname().replace(/\.local$/i, ''); if (/^[A-Za-z0-9-]+$/.test(hn)) console.log(`  (or http://${hn}.local:${port}/wild-world.html, which stays the same if the address changes)`); }
+  console.log(`Robot Battle's endless world, two players: http://${ip}:${port}/robot-battle.html`);
   console.log(`Serving ${ROOT} on ${HOST}:${port}. Ctrl+C stops it.`);
 });
 server.on('error', (e) => { console.error('ww-relay: ' + (e.code === 'EADDRINUSE' ? `port ${PORT} is in use (another relay running?)` : e.message)); process.exit(1); });

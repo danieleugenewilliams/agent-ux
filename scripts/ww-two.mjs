@@ -257,7 +257,7 @@ async function runRelay() {
   ok(`the relay starts on 127.0.0.1 and prints the URL to open (${R.url})`, /^http:\/\/127\.0\.0\.1:\d+\/wild-world\.html$/.test(R.url), R.out);
   // files
   const status = (raw) => +(raw.match(/^HTTP\/1\.1 (\d+)/) || [])[1];
-  const page = await rawGet(R.port, '/wild-world.html'), other = await rawGet(R.port, '/robot-battle.html'), readme = await rawGet(R.port, '/README.md');
+  const page = await rawGet(R.port, '/wild-world.html'), other = await rawGet(R.port, '/neon-dash.html'), readme = await rawGet(R.port, '/README.md');
   ok(`it serves the repo's files: wild-world.html (${status(page)}) with the WW_RELAY line, another page (${status(other)}) without it`, status(page) === 200 && page.includes('window.WW_RELAY={v:1}') && /<title>Wild World<\/title>/.test(page) && status(other) === 200 && !other.includes('WW_RELAY') && status(readme) === 200, { page: status(page), other: status(other) });
   const bad = ['/../../../../etc/passwd', '/..%2f..%2f..%2fetc%2fpasswd', '/%2e%2e/%2e%2e/%2e%2e/etc/passwd', '/scripts/../../../etc/hosts', '/.git/config', '/.git/HEAD', '/%2egit/config', '/.gitignore', '/.claude/settings.json', '/docs/../.git/HEAD', '/scripts/%2e%2e/.git/HEAD', '/wild-world.html%00.png', '/..\\..\\etc\\passwd'];
   const res = [];
