@@ -44,6 +44,9 @@
 //            * #236: once player 1 is outside again that Bouncer stomps them; and one on a doorstep facing in, player 1
 //              outside (in front, to a side, behind the tower), never freezes there and gets to them; nor does one
 //              beside a wall, player 1 on that side of the tower;
+//            * #244: a downed Bouncer at a door is never pushed or shoved in, and after it reboots it stays out; a Bouncer
+//              whose hops at player 1 inside stop at the wall over Chargers doesn't bounce on their heads in place (5 at
+//              most in a chain); and the 10 s door check puts the Bouncer back at the door (keepOut) itself, not by chance;
 //            * #222: the Copier's saucer never passes through a tower, coming in over one to a player behind it or to a
 //              player inside it (in, scan, print and out); dropSpot's fallback, every spot round the player blocked and a
 //              tower right ahead, is outside every tower;
@@ -413,6 +416,57 @@ async function runLogic(C) {
     ok(`#236 (A1): a Bouncer at a tower's door in '${mode}', player 1 inside, is never pushed in by a Charger (${r.pushed} of 30 ticks inside) or shoved in by a hit (${r.shoved} of 30)`, !r.none && r.loaded && r.other === 0 && r.inside === 0 && r.stomps === 0 && r.minB >= r.w / 2, r);
   }
 
+  // ---- #244: nor a downed Bouncer. keepOut looked only at glitched robots, so a beaten Bouncer on the doorstep could be
+  // pushed in, reboot in there and stomp player 1. Beaten through the game's own path (R.damage), 0.6 m out on the door's
+  // middle line, player 1 3 m inside: a Charger overlapping it 2.4 m from outside, 30 ticks; a shove straight in at the
+  // door, 30 more; then its down clock run out, and 10 s after it reboots. Never inside, before or after, and no stomp
+  r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0]; if (!t) return { none: true };
+    const half = t.w / 2, nx = t.door.nx, nz = t.door.nz, at = (b) => ({ x: t.x + nx * b, z: t.z + nz * b }), me = at(half - 3);
+    const rnd = Math.random; let sd = 244; Math.random = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    try {
+      pose(me.x, me.z, nx, nz); R.step(2);
+      const put = (type, b) => { const p = at(b), s = R.spawn(type, p.x + 30, p.z + 30), q = G.robots.find((o) => o.id === s.id);
+        q.pos.x = p.x; q.pos.z = p.z; q.pos.y = W.h(p.x, p.z); q.speed = 0; q.legHeading = q.torsoYaw = Math.atan2(nx, nz); q.ai.alert = 0; return q; };
+      const b = put('bouncer', half + 0.6); R.damage(b.id, 1e6); const wasDown = b.state === 'down'; b.downT = 60;
+      const c = put('charger', half + 1.6); c.ai.mode = 'roam'; c.ai.wp = at(half + 40); c.ai.wpT = 1e9;
+      let inside = 0, minB = Infinity, upIn = 0; const st0 = b.stomps || 0;
+      const go = (n) => { for (let k = 0; k < n; k++) { R.step(1); calm(); m0().health = m0().maxHealth; const inT = W.inTower(b.pos.x, b.pos.z, 0)?.key === t.key; if (inT) { inside++; if (b.state !== 'down') upIn++; } minB = Math.min(minB, loc(t, b.pos.x, b.pos.z).b); } };
+      go(30); const pushed = inside; c.pos.x += 5000;
+      const p = at(half + 0.6); b.pos.x = p.x; b.pos.z = p.z; b.speed = 0; b.push.set(-nx * 12, 0, -nz * 12); go(30); const shoved = inside - pushed, downAll = b.state === 'down';
+      b.downT = 0.01; go(600);
+      const res = { key: t.key, w: t.w, wasDown, downAll, rebooted: b.state === 'glitched' && (b.reboots || 0) > 0, inside, pushed, shoved, upIn, minB: +minB.toFixed(2), stomps: (b.stomps || 0) - st0, loaded: !!real(t.key) };
+      b.air = null; b.pos.x += 5000; return res;
+    } finally { Math.random = rnd; } })()`);
+  ok(`#244: a downed Bouncer at a tower's door, player 1 inside, is never pushed in by a Charger (${r.pushed} of 30 ticks inside) or shoved in (${r.shoved} of 30), and after it reboots it stays out (${r.upIn} of 600 ticks inside, ${r.stomps} stomps)`, !r.none && r.loaded && r.wasDown && r.downAll && r.rebooted && r.inside === 0 && r.stomps === 0 && r.minB >= r.w / 2, r);
+
+  // ---- #244: a Bouncer stopped at a tower's wall doesn't bounce on robots' heads in place. Seen: Chargers under the spot a
+  // hop at player 1 inside stops (World.hopStop), and it sprang off their heads at player 1 again and again, stopped at the
+  // same wall each time: up to 22 bounces in one chain (before #236, 5 at most). Forced: player 1 3 m inside a 16 m tower,
+  // a Bouncer 8 m out on the door's middle line crouched to hop, two Chargers held still where its hop at player 1 stops
+  // (one on the spot, one 1.5 m to its side), every other robot cleared each tick, 20 s, Math.random seeded: no chain over
+  // 5 bounces, never inside, no stomp on player 1
+  r = await C.ev(String.raw`(() => { ${H} let P = null;
+    for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break; const t = R.worldTowers().find((q) => q.w === 16); if (t) P = { k, key: t.key }; }
+    if (!P) return { none: true };
+    const rnd = Math.random; let sd = 244; Math.random = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    try {
+      goCity(P.k); calm(); R.step(2); const t = tw(P.key), h = t.w / 2, nx = t.door.nx, nz = t.door.nz, at = (a, b) => ({ x: t.x - nz * a + nx * b, z: t.z + nx * a + nz * b });
+      const me = at(0, h - 3), start = at(0, h + 8); pose(me.x, me.z, nx, nz); R.step(2);
+      const put = (type, p) => { const s = R.spawn(type, p.x + 30, p.z + 30), q = G.robots.find((o) => o.id === s.id);
+        q.pos.x = p.x; q.pos.z = p.z; q.pos.y = W.h(p.x, p.z); q.speed = 0; q.legHeading = q.torsoYaw = Math.atan2(-nx, -nz); q.ai.alert = 0; return q; };
+      const q = put('bouncer', start), stop = W.hopStop(start.x, start.z, me.x, me.z, q.spec.radius); if (!stop) return { none: true, why: 'no stop' };
+      const sb = loc(t, stop.x, stop.z), spots = [at(sb.a, sb.b), at(sb.a + 1.5, sb.b)], ch = spots.map((p) => put('charger', p));
+      const hold = () => ch.forEach((c, i) => { c.pos.x = spots[i].x; c.pos.z = spots[i].z; c.pos.y = W.h(c.pos.x, c.pos.z); c.speed = 0; c.push.set(0, 0, 0); c.ai.mode = 'recover'; c.ai.t = 10; });
+      const keep = new Set([q, ...ch]), others = () => { for (const o of G.robots) if (!keep.has(o) && o.state === 'glitched' && Math.abs(o.pos.x - t.x) < 2000) { o.air = null; o.pos.x += 5000; } };
+      q.ai.mode = 'crouch'; q.ai.t = 0.01; hold(); others();
+      const st0 = q.stomps || 0, sp0 = q.hopStops || 0, best0 = q.bestChain || 0; let inside = 0, hops = 0, wasAir = false, maxNow = 0;
+      for (let k = 0; k < 1200; k++) { R.step(1); hold(); others(); m0().health = m0().maxHealth || 100; maxNow = Math.max(maxNow, q.bounces || 0);
+        if (W.inTower(q.pos.x, q.pos.z, 0)?.key === t.key) inside++; if (q.air && !wasAir) hops++; wasAir = !!q.air; }
+      const res = { key: P.key, w: t.w, stop: [+sb.a.toFixed(2), +sb.b.toFixed(2)], hops, stops: (q.hopStops || 0) - sp0, chain: maxNow, best: q.bestChain, best0, inside, stomps: (q.stomps || 0) - st0, loaded: !!real(P.key) };
+      q.air = null; q.pos.x += 5000; ch.forEach((c) => { c.pos.x += 5000; }); return res;
+    } finally { Math.random = rnd; } })()`);
+  ok(`#244: a Bouncer whose hops at player 1, inside a 16 m tower, stop at the wall over two Chargers doesn't bounce on their heads in place (longest chain ${r.chain} bounces, at most 5; ${r.hops} times up, ${r.stops} stopped at the wall, ${r.inside} ticks inside, ${r.stomps} stomps)`, !r.none && r.loaded && r.stops >= 1 && r.chain >= 1 && r.chain <= 5 && r.inside === 0 && r.stomps === 0, r);
+
   // ---- #236 (A1): nor is player 1 stomped through the doorway. Seen: a Bouncer hopping in place on the doorstep, outside,
   // came down within a stomp's reach of player 1 3 m inside. Forced: a Bouncer 0.4 m out from the door, crouched to hop
   r = await C.ev(String.raw`(() => { ${H} goCity(); calm(); R.step(2); const t = R.worldTowers(1)[0]; if (!t) return { none: true };
@@ -484,11 +538,17 @@ async function runLogic(C) {
       for (const [a, b] of [[0, 12], [9, 9], [-9, 9], [14, 4]]) {
         goCity(P.k); calm(); R.step(2); const t = tw(P.key), h = t.w / 2, nx = t.door.nx, nz = t.door.nz, at = (a, b) => ({ x: t.x - nz * a + nx * b, z: t.z + nx * a + nz * b });
         const me = at(0, h - 3); pose(me.x, me.z, nx, nz); R.step(2); const q = bounce(at(0, h + 10), -nx, -nz);
-        const w0 = watch(q, t, me, 600), w = watch(q, t, at(a, h + b), 1800, true); rows.push({ a, b, first: w0, ...w, loaded: !!real(P.key) }); q.air = null; q.pos.x += 5000;
+        const w0 = watch(q, t, me, 600);
+        // (#244: then put back at the door by keepOut, as only chance had it before, so the outcome doesn't hang on it: once
+        // down, on the doorstep 2.6 m off the middle facing in, and a shove in through the door, player 1 still inside)
+        for (let k = 0; k < 120 && q.air; k++) { pose(me.x, me.z, -nx, -nz); R.step(1); others(q, t); }
+        const d = at(2.6, h + 0.05); q.pos.x = d.x; q.pos.z = d.z; q.pos.y = W.h(d.x, d.z); q.lift = 0; q.speed = 0; q.turnVel = 0; q.input.throttle = q.input.turn = 0; q.ai.think = 0; q.ai.wp = null; q.legHeading = q.torsoYaw = Math.atan2(nx, nz);
+        q.ai.mode = 'stalk'; q.ai.t = 0.6; q.push.set(-nx * 6, 0, -nz * 6); const wk = watch(q, t, me, 1), kept = !q.air && wk.inside === 0 && Math.hypot(q.pos.x - d.x, q.pos.z - d.z) < 0.01;
+        const w = watch(q, t, at(a, h + b), 1800, true); rows.push({ a, b, first: w0, kept, ...w, loaded: !!real(P.key) }); q.air = null; q.pos.x += 5000;
       }
       return { key: P.key, rows };
     } finally { Math.random = rnd; } })()`);
-  ok(`#236: a Bouncer that hopped 10 s at a 16 m tower's door, player 1 inside, stomps them again once they're outside, at 4 spots (${(r.rows || []).map((q) => q.a + ',' + q.b + ': ' + (q.hitAt == null ? 'never in 30 s, at ' + q.end : q.hitAt + ' s')).join('; ')})`, !r.none && r.rows.length === 4 && r.rows.every((q) => q.loaded && q.first.inside === 0 && q.first.hitAt == null && q.inside === 0 && q.hitAt != null), r);
+  ok(`#236: a Bouncer that hopped 10 s at a 16 m tower's door, player 1 inside, stomps them again once they're outside, at 4 spots (${(r.rows || []).map((q) => q.a + ',' + q.b + ': ' + (q.hitAt == null ? 'never in 30 s, at ' + q.end : q.hitAt + ' s')).join('; ')})`, !r.none && r.rows.length === 4 && r.rows.every((q) => q.loaded && q.first.inside === 0 && q.first.hitAt == null && q.kept && q.inside === 0 && q.hitAt != null), r);
   for (const W0 of [12, 16, 20]) {
     r = await C.ev(String.raw`(() => { ${H} ${FZ} let P = null;
       for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break; const t = R.worldTowers().find((q) => q.w === ${W0}); if (t) P = { k, key: t.key }; }
