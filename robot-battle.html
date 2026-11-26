@@ -12293,14 +12293,24 @@ function allyAI(r, dt) {
   if (!lead) { inp.throttle = inp.turn = 0; return; }
   const [sx, sb] = SQUAD_SLOTS[r.ai.slot % SQUAD_SLOTS.length], h = lead.legHeading;
   const fx = -Math.sin(h), fz = -Math.cos(h), rx = Math.cos(h), rz = -Math.sin(h);
-  const tx = lead.pos.x + rx * sx - fx * sb, tz = lead.pos.z + rz * sx - fz * sb;
+  let tx = lead.pos.x + rx * sx - fx * sb, tz = lead.pos.z + rz * sx - fz * sb;
+  // #245: in the world, a slot that falls in a tower its leader isn't in (nor right by) moves in towards the leader until
+  // it's clear of the tower's walls (it can't stand in there, and World.round leaves alone a tower its target is in)
+  const pad = -(r.spec.radius + 1.5), lt = Game.world && World.inTower(lead.pos.x, lead.pos.z, 0), lp = Game.world && World.inTower(lead.pos.x, lead.pos.z, pad);
+  for (let k = 0; Game.world && k < 12; k++) { const q = World.inTower(tx, tz, pad); if (!q || q === lp) break; tx += (lead.pos.x - tx) / (12 - k); tz += (lead.pos.z - tz) / (12 - k); }
   const dx = tx - r.pos.x, dz = tz - r.pos.z, dist = Math.hypot(dx, dz);
   let err;
   if (dist < 1.5) { inp.throttle = 0; err = wrapAngle(h - r.legHeading); r.ai.mode = 'idle'; }   // in its slot: face the way the leader faces
   else {
     // walk round the leader and the other squadmates, not through them
     const bodies = [{ x: lead.pos.x, z: lead.pos.z, r: MECH.radius + 1.5 }, ...Game.squad.filter((q) => q !== r).map((q) => ({ x: q.pos.x, z: q.pos.z, r: q.spec.radius + 0.5 }))];
-    err = avoid(r, wrapAngle(Math.atan2(-dx, -dz) - r.legHeading), dist, bodies);
+    // #245: a tower between it and its slot: round it by a corner first (World.round, as a Bouncer chasing its foe does,
+    // #231), and out of the door first from inside a tower its leader isn't in (World.wayOut). It steered straight at the
+    // slot, so with the leader past a tower it stood behind the tower's wall
+    const mt = Game.world && World.inTower(r.pos.x, r.pos.z, 0);
+    const via = Game.world ? (mt && mt !== lt ? World.wayOut(r.pos.x, r.pos.z, r.spec.radius) : World.round(r, { pos: { x: tx, z: tz } })) : null;
+    const gx = via ? via.x - r.pos.x : dx, gz = via ? via.z - r.pos.z : dz;
+    err = avoid(r, wrapAngle(Math.atan2(-gx, -gz) - r.legHeading), via ? Math.hypot(gx, gz) : dist, bodies, !via);   // (round's corner, not bent off the wall circles: #231)
     inp.throttle = Math.abs(err) > 1.3 ? 0.2 : clamp(dist / 6, 0.25, 1);
     inp.boost = dist > 14 && Math.abs(err) < 0.4;                        // sprint to catch up
     // nose to nose with the leader: back off instead of shoving the mech

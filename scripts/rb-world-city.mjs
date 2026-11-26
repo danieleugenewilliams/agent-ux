@@ -49,7 +49,10 @@
 //              tower right ahead, is outside every tower;
 //            * #233: dropSpot's last fallback, every try round the player failed and the player inside a 12 m tower off its
 //              door's line, is outside every tower; and so it is, 4 m clear, for a player inside any loaded tower;
-//            * the storage keys the same, nothing new in the record.
+//            * the storage keys the same, nothing new in the record;
+//            * #245 (on a fresh page, after the saves check): a fixed Bouncer or Charger in its squad slot, its leader in
+//              front of a 12 or 16 m tower's door, gets back to its slot within 15 s, never standing in the tower for 2 s,
+//              when the leader is moved to 14 m past the far wall, and when the leader walks twice round the tower first.
 //   touch  - at 844 x 390 with touch: a world run, player 1 inside a tower: at most 4 touch buttons, no sideways scroll.
 //
 // Usage:
@@ -750,6 +753,70 @@ async function runLogic(C) {
   // ---- saves
   r = await C.ev(String.raw`(() => { ${H} return { k0: window.__k0, k1: keys(), r0: window.__r0, r1: Object.keys(rec() || {}).sort() }; })()`);
   ok('the storage keys the same, nothing new in the record', JSON.stringify(r.k0) === JSON.stringify(r.k1) && r.r0.every((k) => r.r1.includes(k)) && r.r1.every((k) => r.r0.includes(k) || !/tower|people|inside|city/i.test(k)), r);
+
+  // ---- #245: a squadmate whose leader goes past a tower goes round it and catches up (on a fresh page, after the saves
+  // check, as fixing a robot saves the squad). It steered straight at its slot, so it stood behind the wall or walked in
+  // at the door and stayed there
+  const SOLVE = String.raw`
+    const st = (id) => R.state().robots.find((q) => q.id === id);
+    const solve = (id) => {
+      for (let pass = 0; pass < 12; pass++) {
+        const s = st(id); if (!s || s.state === 'ally') return true;
+        for (const [k, q] of (s.board?.puzzles || []).entries()) if (!q.done) R.puzzle(id, k, q.answer);
+        const t = st(id); if (!t || t.state === 'ally') return true;
+        const Wi = t.wires; if (!Wi) break;
+        for (let i = 0; i < Wi.plugs.length; i++) {
+          if (Wi.link[i] >= 0) continue;
+          if (Wi.burnt[i]) { R.patch(id, i); continue; }
+          if (Wi.typed[i]) { R.type(id, i, Wi.facts[i].answer, 1500); continue; }
+          const j = Wi.facts ? Wi.answers.findIndex((a, j) => a === Wi.facts[i].answer && !Wi.link.includes(j)) : Wi.ports.findIndex((p, j) => p.color === Wi.plugs[i].color && !Wi.link.includes(j));
+          if (j >= 0) R.wire(id, [[i, j]], 1500);
+        }
+      }
+      const s = st(id); return !s || s.state === 'ally';
+    };`;
+  for (const [type, W0, how, SL] of [['bouncer', 12, 'moved', 0], ['charger', 16, 'moved', 0], ['bouncer', 16, 'walks round', 1], ['charger', 16, 'walks round', 0]]) {
+    await C.ev(`localStorage.clear()`); await C.open(1280, 800, false);
+    await C.ev(String.raw`(() => { ${H} R.player('tester'); R.world(true); R.start(0); R.manual(true); R.step(2); return true; })()`);
+    r = await C.ev(String.raw`(() => { ${H} ${SOLVE} let P = null;
+      for (let k = 0; k < 30 && !P; k++) { if (!goCity(k)) break; const t = R.worldTowers().find((q) => q.w === ${W0}); if (t) P = { k, key: t.key }; }
+      if (!P) return { none: true };
+      const rnd = Math.random; let sd = 245; Math.random = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+      try {
+        for (const o of [...G.squad]) R.sendHome(o.id); R.step(2);
+        goCity(P.k); calm(); R.step(2); const t = tw(P.key), h = t.w / 2, nx = t.door.nx, nz = t.door.nz, ax = -nz, az = nx;
+        const at = (a, b) => ({ x: t.x + ax * a + nx * b, z: t.z + az * a + nz * b });
+        // the leader 12 m in front of the door, facing away; the robot beaten and fixed beside it
+        const p = at(0, h + 12); pose(p.x, p.z, nx, nz); R.step(1);
+        const sp = at(6, h + 20), s = R.spawn(${JSON.stringify(type)}, sp.x, sp.z), q = G.robots.find((o) => o.id === s.id);
+        R.damage(q.id, 1e6, 'gun'); R.teleport(0, q.pos.x + 2.5, q.pos.z); const c = R.choose(q.id, 'fix', 'Mate'); const solved = c.ok && solve(q.id);
+        if (!G.squad.includes(q)) return { notMate: true, why: c.why, solved };
+        q.ai.slot = ${SL}; R.manual(true); pose(p.x, p.z, nx, nz);
+        const slot = () => { const m = m0(), hd = m.legHeading, [sx, sb] = [[-6, 7], [6, 7], [0, 12]][q.ai.slot % 3], fx = -Math.sin(hd), fz = -Math.cos(hd), rx = Math.cos(hd), rz = -Math.sin(hd);
+          return { x: m.pos.x + rx * sx - fx * sb, z: m.pos.z + rz * sx - fz * sb }; };
+        let sl = slot(); q.pos.x = sl.x; q.pos.z = sl.z; q.speed = 0; q.legHeading = m0().legHeading; R.step(30); calm();
+        // the leader ends 14 m past the far wall, facing away: moved there, or walking twice round the tower first (7 m/s, a mech
+        // with motor upgrades); the mate is in the tower once it's 1.5 m past a wall's line (not on the doorstep)
+        const end = at(0, -h - 14), path = [];
+        if (${JSON.stringify(how)} === 'walks round') { const E = h + 3.5, cs = [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([a, b]) => at(a * E, b * E)); path.push(...cs, ...cs, end); }
+        else pose(end.x, end.z, -nx, -nz);
+        let wi = 0, stopT = path.length ? null : 0, reachT = null, inN = 0, inMax = 0, inAt = null, tick = 0;
+        for (let k = 0; k < 60 * 120; k++) { tick++;
+          if (wi < path.length) { const m = m0(), w = path[wi], dx = w.x - m.pos.x, dz = w.z - m.pos.z, d = Math.hypot(dx, dz), v = 7 / 60;
+            if (d > v) pose(m.pos.x + dx / d * v, m.pos.z + dz / d * v, dx / d, dz / d);
+            else if (++wi < path.length) pose(w.x, w.z, dx / (d || 1), dz / (d || 1));
+            else { pose(w.x, w.z, -nx, -nz); stopT = tick; } }
+          R.step(1); calm(); const m = m0(); m.health = m.maxHealth || 100;
+          if (!G.squad.includes(q)) return { lost: true, tick };
+          if (W.inTower(q.pos.x, q.pos.z, 1.5)) { inN++; if (inN > inMax) { inMax = inN; const dx = q.pos.x - t.x, dz = q.pos.z - t.z; inAt = { s: +(tick / 60).toFixed(1), a: +(dx * ax + dz * az).toFixed(1), b: +(dx * nx + dz * nz).toFixed(1), mode: q.ai.mode }; } } else inN = 0;
+          if (stopT != null) { sl = slot(); if (Math.hypot(q.pos.x - sl.x, q.pos.z - sl.z) < 4) { reachT = +((tick - stopT) / 60).toFixed(1); break; } if (tick - stopT > 60 * 30) break; }
+        }
+        sl = slot();
+        return { key: P.key, w: t.w, solved, slot: q.ai.slot, walkS: stopT ? +(stopT / 60).toFixed(1) : 0, reachT, inMaxS: +(inMax / 60).toFixed(1), inAt, offSlot: +Math.hypot(q.pos.x - sl.x, q.pos.z - sl.z).toFixed(1), mode: q.ai.mode };
+      } finally { Math.random = rnd; } })()`);
+    ok(`#245: a fixed ${type} in squad slot ${SL}, its leader in front of a ${W0} m tower's door, gets back to its slot within 15 s (${r.reachT ?? 'never'}) when the leader ${how === 'moved' ? 'is moved' : 'walks twice round the tower'} to 14 m past the far wall, never standing in the tower 2 s (longest ${r.inMaxS} s)`,
+      !r.none && !r.notMate && !r.lost && r.reachT != null && r.reachT <= 15 && r.inMaxS < 2, r);
+  }
   return out;
 }
 const WI_PEOPLE = () => '2-4';
