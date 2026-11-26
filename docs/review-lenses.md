@@ -47,8 +47,8 @@ read through the game's test hooks before and after.
 ## 4. Family privacy (a careful parent)
 
 Checks that nothing about the children leaves the browser:
-- Progress lives in browser storage only. Wild World's two-player server runs on the home
-  Mac and nowhere else.
+- Progress lives in browser storage only. The two-player server for Wild World and Robot
+  Battle's endless world runs on the home Mac and nowhere else.
 - No names, ages or progress sent to any outside server, log or analytics.
 - No child's name, grade or reading level in the game, its tests, scripts, commits, PR body
   or comments (#161).
