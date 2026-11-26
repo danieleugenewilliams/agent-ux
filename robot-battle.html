@@ -17332,6 +17332,10 @@ const Two = {
   dirty: false, stopped: false, wants: new Map(),
   partAsks: new Map(),   // a world part the joiner stands on: its key -> when the host's page was asked for it
   hostTook: new Set(),   // the host's page: world parts its own players took while together this time (the only ones the joiner is told no)
+  // #256: two windows where a world part can land in both bags. Both give a duplicate, never a loss:
+  // 1. The host takes a part within about 8 s of a silent line drop, before the drop is noticed, and they then rejoin.
+  //    The joiner never heard about it and hostTook starts empty again, so the joiner can take it too.
+  // 2. The joiner's page reloads and rejoins. The host's earlier part shows again for the joiner, and taking it makes a duplicate.
   // ---- the panel ----
   may() { return !!(Game.world && Game.pilot); },
   open() {
