@@ -4553,8 +4553,9 @@ const Backup = {
     for (const k of ['child', 'pilot']) if (v.settings[k] != null && dev.settings[k] == null) writes.push({ key: k, value: v.settings[k] });
     // #242: while the profile list waits (store.unsaved: storage was full), a profile made since is in CHILDREN but not in
     // disk's list, so a record or pick of it written alone would be an orphan on disk (every backup refused after a reload).
-    // The waiting list is written first, in the same all-or-nothing writes: they all reach disk together, or none do
-    if (writes.length && !writes.some((w) => w.key === 'profiles') && store.unsaved.has('profiles')) writes.unshift({ key: 'profiles', value: store.unsaved.get('profiles') });
+    // When a write is one store.held would hold, the waiting list is written first, in the same all-or-nothing writes: they
+    // all reach disk together, or none do. (Writes only for profiles already in disk's list go alone, as before)
+    if (!writes.some((w) => w.key === 'profiles') && writes.some((w) => store.held(w.key, w.value))) writes.unshift({ key: 'profiles', value: store.unsaved.get('profiles') });
     return { ok: true, writes, summary: { kids, settings: { ...v.settings }, skipped: [...v.skipped], meta: { ...v.meta }, writes: writes.map((w) => w.key), added: inc.map((C) => C.id) } };
   },
   // ---- the parts that touch the browser (D4 has its own) ----

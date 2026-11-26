@@ -596,6 +596,26 @@ const QUOTA_242_RESTORED = (row, id, samSaves) => String.raw`(() => {
   return out;
 })()`;
 
+// and a restore that writes only for a profile already in disk's list goes alone, as before: with room for Sam's record but
+// not the waiting list too, a restore of Sam's earlier record still works (the list isn't forced in) and disk hangs together
+const QUOTA_242_SAM_ONLY = String.raw`(() => {
+  ${QUOTA_242}
+  R.manual(true); R.player('sam'); fast(2, 2); R.Facts.save(); R.Profiles.remove('max');
+  const b0 = R.backup();
+  fast(2, 3); fast(2, 3); R.Facts.save();
+  let a, res = null, err = null, full = false, listed = null;
+  try {
+    full = fill();
+    if (full) { leave(30); a = R.addProfile('Max'); listed = disk(); R.player('guest'); res = R.restore(b0, 'backup'); }
+  } catch (e) { err = String(e); }
+  ok('#242 restore of Sam only: storage fills to a real quota', full, full);
+  ok('#242 restore of Sam only: a new Max is made while storage is nearly full, and its list write fails', a?.ok === true && !err && !!listed && !listed.includes(a.id), { a, err, listed });
+  ok('#242 restore of Sam only: it works with room for his record alone, and writes just that', res?.ok === true && JSON.stringify(res.summary?.writes) === '["facts.sam"]', { ok: res?.ok, why: res?.why, writes: res?.summary?.writes });
+  const t = together();
+  ok('#242 restore of Sam only: disk holds no record and no pick for a profile its list lacks', t.ok, t);
+  return out;
+})()`;
+
 async function runLogic(C) {
   await C.open(1280, 800, false);
   const res = await C.ev(LOGIC);
@@ -649,6 +669,8 @@ async function runLogic(C) {
     for (const r of await C.ev(QUOTA_242_RESTORED(row, id, false))) out.push(r);
     for (const r of await C.ev(QUOTA_242_RESTORED(row, id, true))) out.push(r);
   }
+  await C.ev(CLEAR); await C.open(1280, 800, false);
+  for (const r of await C.ev(QUOTA_242_SAM_ONLY)) out.push(r);
   return out;
 }
 
