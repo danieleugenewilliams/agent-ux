@@ -23,8 +23,8 @@ boys' own design ideas in Neon Dash.
 ## Not the goal (for now)
 
 - Anything that leaves the browser: no accounts, no outside servers, no analytics, no names
-  sent anywhere. The one exception is Wild World's two-player game server, which runs only on
-  the Mac on the home Wi-Fi.
+  sent anywhere. The one exception is the two-player game server for Wild World and Robot
+  Battle's endless world, which runs only on the Mac on the home Wi-Fi.
 - A child's name, grade or reading level anywhere in a game, test, issue, PR or commit
   (#161). Players make their own profiles in the game.
 - Commercial release. Games inspired by commercial titles are unofficial, non-commercial fan

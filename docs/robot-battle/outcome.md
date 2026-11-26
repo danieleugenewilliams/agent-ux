@@ -25,4 +25,6 @@ repair a robot, not a quiz in the way of the game.
 
 - Facts beyond 9×9. They use regrouping for bigger numbers.
 - Physics. It may come later; nothing here should block it, and nothing should claim it.
-- Anything that leaves the browser: no accounts, no servers, no names sent anywhere.
+- Anything that leaves the browser: no accounts, no servers, no names sent anywhere. The one
+  exception is the endless world's two-player mode: two iPads on the home Wi-Fi play together
+  through the relay on the Mac, the same one Wild World uses.
