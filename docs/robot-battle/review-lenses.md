@@ -44,7 +44,8 @@ through the changed flow.
 ## 4. Family privacy (a careful parent)
 
 Checks that nothing about the boys leaves the browser:
-- Progress lives in browser storage only. Guest saves nothing.
+- Progress lives in browser storage only. Guest saves nothing. The endless world's two-player
+  server runs on the home Mac and nowhere else, the same relay Wild World uses.
 - No names, ages or progress sent to any server, log or analytics.
 - Screens that show a child's name can be left out of a screen recording.
 
