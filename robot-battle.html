@@ -17457,6 +17457,11 @@ const Two = {
   dirty: false, stopped: false, wants: new Map(),
   partAsks: new Map(),   // a world part the joiner stands on: its key -> when the host's page was asked for it
   hostTook: new Set(),   // the host's page: world parts its own players took while together this time (the only ones the joiner is told no)
+  // #256: a world part can land in both bags (a duplicate, never a loss) whenever a page shows a part the friend already took:
+  // 1. The host takes it in the ~8 s before a silent drop is noticed. The joiner never hears 'part' and can take it after the
+  //    drop, alone (askPart stops asking once peer is null) or together again (parted() clears hostTook, so a rejoin's ask is a yes).
+  // 2. Either page reloads (or plays another day). The friend's parts are kept only in this session's World.taken, not the
+  //    record, so they show again and that page's player can take them.
   // ---- the panel ----
   may() { return !!(Game.world && Game.pilot); },
   open() {
