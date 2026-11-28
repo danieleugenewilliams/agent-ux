@@ -1558,6 +1558,28 @@
      over their mech (or an arrow at the screen's edge), and its own one-line toast ---- */
   .garb.two { background: var(--orange); display: none; }
   .garb.two.on { display: flex; }
+  /* #167 slice 8: Battle: the pause button and tile (only while together), the badge and the winner screen */
+  .garb.battle { background: #5a6684; display: none; }
+  .garb.battle.on { display: flex; }
+  .garb.battle[aria-pressed="true"] { background: #ff3b4e; box-shadow: 0 6px 0 var(--ink), 0 0 22px rgba(255,59,78,.6); }
+  #start .tm .bt-on { display: none; }
+  #start .tm[aria-pressed="true"] { background: #ff3b4e; }
+  #start .tm[aria-pressed="true"] .bt-on { display: block; color: #fff; }
+  #battleTag { position: fixed; left: 50%; top: 10px; translate: -50% 0; z-index: 5; display: none; align-items: center; gap: 6px; padding: 3px 12px 3px 8px; border-radius: 16px; border: 3px solid var(--ink);
+    background: rgba(20,24,42,.8); color: #c9d2e3; font: 900 15px 'Asap', sans-serif; pointer-events: none; opacity: .75; }
+  #battleTag.on { display: flex; }
+  #battleTag.live { background: #ff3b4e; color: #fff; opacity: 1; }
+  #battleTag .ic { font-size: 20px; margin: 0; }
+  #battleTag small { font: 900 12px 'Asap', sans-serif; color: var(--yellow); }
+  #start.on ~ #battleTag, body.garage #battleTag { display: none; }
+  #battleWin { position: fixed; inset: 0; z-index: 42; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,24,.55); color: #fff; pointer-events: none; text-align: center; }
+  #battleWin.on { display: flex; }
+  #battleWin .bw-face { width: min(140px, 30vh); height: min(140px, 30vh); }
+  #battleWin .bw-face .tw-face { font-size: min(80px, 17vh); border-width: 6px; }
+  #battleWin .bw-face.two { display: flex; gap: 16px; width: auto; }
+  #battleWin .bw-face.two .tw-face { width: min(110px, 24vh); height: min(110px, 24vh); }
+  #battleWin b { font: 900 min(64px, 13vh) 'Asap', sans-serif; color: var(--yellow); text-shadow: 0 4px 0 var(--ink); }
+  #battleWin small { font: 900 min(22px, 5vh) 'Asap', sans-serif; }
   #two { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(10,14,30,.6); }
   #two.on { display: flex; }
   .tw-panel { position: relative; width: min(640px, calc(100vw - 16px)); max-height: calc(100% - 12px); overflow: hidden; display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 24px;
@@ -1651,7 +1673,8 @@
     <div class="pilots" id="pilots"></div>
     <!-- PAUSE: who's piloting, and ▶ to carry on -->
     <div class="resume"><div class="who" id="who"></div><div class="rcol"><button class="gridb" id="gridB" aria-label="My facts"><i data-ic="star"></i><b id="gridN"></b><small>T</small></button><button class="garb" id="garageB" aria-label="Garage"><i data-ic="wrench"></i><small>G</small></button><!--
-      #167 slice 7: the endless world with a friend on another screen (only in the world) --><button class="garb two" id="twoB" aria-label="2 players"><i data-ic="two"></i></button></div><button id="go" aria-label="Play"><i data-ic="play"></i></button></div>
+      #167 slice 7: the endless world with a friend on another screen (only in the world) --><button class="garb two" id="twoB" aria-label="2 players"><i data-ic="two"></i></button><!--
+      #167 slice 8: Battle, on or off (only while playing together) --><button class="garb battle" id="battleB" aria-label="Battle" aria-pressed="false"><i data-ic="sword"></i></button></div><button id="go" aria-label="Play"><i data-ic="play"></i></button></div>
     <!-- #103: on a touch screen the pause screen is a menu instead: Resume, the bag (and its parts count), the garage, my facts
          (⭐ mastered of the goal), the trophies (hidden parts found) and the sound on or off -->
     <div class="tpmenu" id="tpMenu">
@@ -1662,6 +1685,7 @@
       <button class="tm" id="tmTrophies" aria-label="Trophies"><i data-ic="trophy"></i><span>Trophies</span><b id="tmFoundN">0</b></button>
       <button class="tm" id="tmSound" aria-label="Sound"><i class="snd"></i><span>Sound</span></button>
       <button class="tm off" id="tmTwo" aria-label="2 players"><i data-ic="two"></i><span>2 Players</span></button>
+      <button class="tm off" id="tmBattle" aria-label="Battle" aria-pressed="false"><i data-ic="sword"></i><span>Battle</span><b class="bt-on">ON</b></button>
     </div>
     <div class="keys">
       <div class="hint"><div class="keyset">
@@ -1712,6 +1736,9 @@
 <div id="peerTag"></div><div id="peerArrow"><div class="pt"></div><div class="fc"></div></div>
 <div id="two" role="dialog" aria-label="2 players"><div class="tw-panel" id="twPanel"></div></div>
 <div id="twToast" role="status"></div>
+<!-- #167 slice 8: the Battle badge (this player has it on; lit once the friend has too) and the round's winner screen -->
+<div id="battleTag" role="status"></div>
+<div id="battleWin" role="status"></div>
 <!-- #255: a checkpoint reached: the flag icon, then the word -->
 <div id="cpToast" role="status"></div>
 <div id="hud" class="screen on">
@@ -2192,6 +2219,8 @@ const HIT_AREAS = { hit: { hull: 1 }, ram: { hull: 0.5, legs: 0.5 }, snipe: { hu
   ckick: { hull: 0.4, legs: 0.6 }, cem: { power: 0.5, wiring: 0.5 },
   axe: { hull: 0.3, legs: 0.7 },   // (#122: the Knight's axe comes along the ground: mostly the legs; its sword, the hull)
   laser: { hull: 0.5, power: 0.5 }, crunch: { hull: 0.7, legs: 0.3 }, dig: { hull: 0.3, legs: 0.7 } };   // (#141: the Centipede's: its laser burns, its dig comes up from under)
+// #167 slice 8: where a player's weapon lands on the friend's mech in a Battle (the rounds, rail and punch on the hull)
+const BATTLE_AREAS = { gun: 'hit', rail: 'hit', punch: 'hit', kick: 'nkick', em: 'cem' };
 const HEAL = { part: 25, allyRate: 5, allyRange: 15, safeRange: 30, kit: 75, kitReach: 3.5, kits: 6 };
 const HEAL_IC = { parts: 'wrench', ally: 'robot', kit: 'kit', reboot: 'wiring' };   // I1: each heal's icon (the HUD's +N pop)
 // G2: mech upgrades, bought in the garage's 🦾 tab. Each costs UPGRADE.cost of its part per level, taken
@@ -8458,7 +8487,7 @@ const Bullets = {
       if (b.ghost) { /* the friend's: only to see */ }
       else if (b.foe) {
         for (const m of Game.mechs) {
-          if (m.state === 'down') continue;            // a powered-down mech is left alone
+          if (m.state === 'down' || Two.shielded(m)) continue;   // a powered-down mech is left alone (#167 slice 8: and a fighting one)
           const t = sweep(m.pos.x, m.pos.y + MECH_HIT.y, m.pos.z, MECH_HIT.r, best);
           if (t != null) { best = t; hit = m; at = q.clone(); }
         }
@@ -8476,6 +8505,9 @@ const Bullets = {
           const t = sweep(r.pos.x, r.pos.y + T.hitY, r.pos.z, T.hitR, best);
           if (t != null) { best = t; hit = r; at = q.clone(); }
         }
+        const f = Two.foe(b.owner);                    // #167 slice 8: in a Battle, the friend's mech too
+        if (f) { const t = sweep(f.pos.x, f.pos.y + MECH_HIT.y, f.pos.z, MECH_HIT.r, best); if (t != null) { best = t; hit = f; at = q.clone(); } }
+        if (hit === f && f) { Two.strike(f, b.dmg, b.kind, b.v.x, b.v.z, at); this.list.splice(k, 1); continue; }
         if (hit) { hitRobot(hit, b.dmg, b.kind, b.v.x, b.v.z, at); this.list.splice(k, 1); continue; }
       }
       // anything else in the way: the first of the ground or a tree / rock along the segment
@@ -8906,6 +8938,8 @@ function railShot(m) {
     if (at.distanceTo(c) > T.hitR) continue;
     hits.push({ r, t, at });
   }
+  const f = Two.foe(m);   // #167 slice 8: in a Battle, the line passes through the friend's mech too
+  if (f) { c.set(f.pos.x, f.pos.y + MECH_HIT.y, f.pos.z); const t = c.clone().sub(from).dot(dir), at = from.clone().addScaledVector(dir, t); if (t >= 0 && t <= len && at.distanceTo(c) <= MECH_HIT.r) Two.strike(f, W.dmg, 'rail', dir.x, dir.z, at); }
   hits.sort((a, b) => a.t - b.t);
   for (const q of hits) hitRobot(q.r, W.dmg, 'rail', dir.x, dir.z, q.at);
   if (land) Impacts.at(land.kind, land.p, dir);
@@ -8938,6 +8972,11 @@ function meleeStrike(m, w) {
     if (Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) > W.arc) continue;
     const at = new V3(r.pos.x - dx / d * r.spec.radius, r.pos.y + T.hitY * (w === 'kick' ? 0.6 : 1.1), r.pos.z - dz / d * r.spec.radius);
     hitRobot(r, dmg, w, dx, dz, at, push); any = true;
+  }
+  const f = Two.foe(m);   // #167 slice 8: in a Battle, the friend's mech in reach and in the arc
+  if (f) {
+    const dx = f.pos.x - m.pos.x, dz = f.pos.z - m.pos.z, d = Math.hypot(dx, dz) || 1;
+    if (d <= MECH.radius * 2 + W.reach && Math.abs(wrapAngle(Math.atan2(-dx, -dz) - face)) <= W.arc) { Two.strike(f, dmg, w, dx, dz, new V3(f.pos.x - dx / d * MECH.radius, f.pos.y + MECH_HIT.y * (w === 'kick' ? 0.5 : 1), f.pos.z - dz / d * MECH.radius)); any = true; }
   }
   // and any tree, rock or fence within reach and in the arc (a prop counts once, however many circles it has)
   for (const p of Props.list) {
@@ -9022,6 +9061,7 @@ function shotMech(m, b, at) {
 // down too (mateDown). Only a running squadmate ('ally') can be hurt here.
 function hurtMech(m, amount, how = 'hit') {
   if (m.state === 'down' || (m.type && m.state !== 'ally')) return 0;
+  if (!m.type && !Two.bhitting && Two.shielded(m)) { m.push.set(0, 0, 0); return 0; }   // #167 slice 8: a fighting mech takes only Battle hits
   if (m.peer) return Two.hurtPeer(m, amount, how);       // #167 slice 7: the friend's page takes it off their energy
   if (m.type) amount *= linkTake(m);                      // #123: a squadmate linked by your satellite: its shield
   // G4 shield emitter: the bubble takes the hit whole while it has hits left (ADV.shield a wave), then it's gone till the next wave
@@ -9130,6 +9170,17 @@ function rebootMech(m) {
   healMech(m, Math.round(m.maxHealth * PLAYER.rebootHealth) - m.health, 'reboot');
   if (Game.world && m.human?.checkpoint) World.cpBack(m.human);   // #255: in the world, back at the last checkpoint reached
   if (m.human) m.human.rig.yaw = m.torsoYaw;    // the aim picks up where the torso is
+  Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 40, SPARK_ZAP, 9);
+  if (!Game.manual) Sfx.reboot(1);
+}
+// #167 slice 8: a Battle round is over: the mech reboots with full energy, at its last checkpoint if it has reached one, else
+// where it stands (down or not: both mechs reboot). Nothing is saved.
+function battleReboot(m) {
+  const was = m.state === 'down';
+  m.state = 'up'; m.downT = 0; if (was) m.reboots++;
+  healMech(m, m.maxHealth - m.health, 'reboot');
+  if (Game.world && m.human?.checkpoint) World.cpBack(m.human);
+  if (m.human) m.human.rig.yaw = m.torsoYaw;
   Sparks.burst(m.pos.x, m.pos.y + 5, m.pos.z, 40, SPARK_ZAP, 9);
   if (!Game.manual) Sfx.reboot(1);
 }
@@ -9975,11 +10026,11 @@ function spawn(type, x, z, n) {
 function nearestPlayer(r) {
   let best = null, bd = Infinity;
   for (const h of Game.humans) {
-    if (h.mech.state === 'down') continue;      // a powered-down mech isn't a target
+    if (h.mech.state === 'down' || Two.shielded(h.mech)) continue;      // a powered-down mech isn't a target (#167 slice 8: nor a fighting one)
     const d = Math.hypot(h.mech.pos.x - r.pos.x, h.mech.pos.z - r.pos.z); if (d < bd) { bd = d; best = h.mech; }
   }
   // #167 slice 7: or the friend's (not while their page is paused)
-  const f = Two.peer?.m; if (f && f.state !== 'down' && !f.away && flatDist(f, r) < bd) best = f;
+  const f = Two.peer?.m; if (f && f.state !== 'down' && !f.away && !Two.shielded(f) && flatDist(f, r) < bd) best = f;
   return best;
 }
 // #59: what a glitched robot goes for: the nearest running player's mech or running squadmate. A Charger or a Bouncer
@@ -14180,7 +14231,7 @@ const Beams = {
 // mending and any kit it walks onto.
 function playerTick(h, dt) {
   const m = h.mech;
-  if (m.state === 'down') {
+  if (m.state === 'down' && !(Two.round && h.idx === 0)) {   // (#167 slice 8: a Battle round's reboot waits for its winner screen)
     m.downT -= dt;
     if (m.downT <= 0 || m.health >= m.maxHealth * PLAYER.wakeHealth) rebootMech(m);
   }
@@ -14454,6 +14505,7 @@ function tick(dt) {
   allyRams();
   separate();
   for (const h of Game.humans) playerTick(h, dt);
+  Two.battleTick(dt);                                    // #167 slice 8
   Sparks.tick(dt);
   Impacts.tick(dt);
   RailFx.tick(dt);
@@ -17371,6 +17423,8 @@ $('go').addEventListener('click', (e) => { e.stopPropagation(); startPlay(); });
 // garage on its 🦾 Mech tab and Trophies on its 🏆 Trophies tab; Facts is the ⭐ grid; Sound turns all sound off or on.
 function drawPauseMenu() {
   const two = Two.may(); $('tmTwo').classList.toggle('off', !two); $('tpMenu').classList.toggle('seven', two); $('twoB').classList.toggle('on', two);   // #167 slice 7
+  const bt = two && !!Two.peer?.hi; $('tmBattle').classList.toggle('off', !bt); $('battleB').classList.toggle('on', bt);   // #167 slice 8: Battle, while together
+  for (const id of ['tmBattle', 'battleB']) $(id).setAttribute('aria-pressed', String(Two.battle));
   $('tmBagN').textContent = Game.parts;
   $('tmFacts').classList.toggle('off', !$('gridB').classList.contains('on')); $('tmFactsN').textContent = $('gridN').textContent;
   $('tmFoundN').textContent = foundText();
@@ -17384,6 +17438,7 @@ $('tmGarage').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock
 $('tmFacts').addEventListener('click', (e) => { e.stopPropagation(); Progress.openGrid('pause'); });
 $('tmTrophies').addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); if (Garage.open('pause').ok) Garage.setTab('trophies'); });
 for (const id of ['twoB', 'tmTwo']) $(id).addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); Sfx.click(); Two.open(); });   // #167 slice 7
+for (const id of ['battleB', 'tmBattle']) $(id).addEventListener('click', (e) => { e.stopPropagation(); Sfx.unlock(); Sfx.click(); Two.setBattle(!Two.battle); drawPauseMenu(); });   // #167 slice 8
 $('tmSound').addEventListener('click', (e) => { e.stopPropagation(); Sfx.setMuted(!Sfx.muted); Sfx.unlock(); Sfx.click(); drawPauseMenu(); });
 
 // ===========================================================================
@@ -17399,6 +17454,8 @@ $('tmSound').addEventListener('click', (e) => { e.stopPropagation(); Sfx.setMute
 //   st: where things are, unreliable. ev: what happened, one batch at a time, sent again till the friend's st acks it (ack).
 // ===========================================================================
 const TWO = { hz: 30, interp: 50, snap: 8, silent: 8000, reach: 200, robots: 30, shots: 6, frame: 3600, resend: 300, v: 1 };
+// #167 slice 8: a Battle round's winner screen shows `show` s, then both mechs reboot with full energy
+const BATTLE = { show: 4 };
 const TWO_WHY = 'Two players works at home: ask a parent to start the game server';
 const CODE_ICONS = ['rocket', 'gem', 'flame', 'bolt', 'star', 'moon', 'spider', 'trophy'];
 const HomeTransport = {
@@ -17455,6 +17512,10 @@ const Two = {
   met: false,            // this page was in the room first, or has been put beside the one that was
   mates: new Map(),      // the friend's squadmates, only drawn here: their id -> robot (in no list of the game's)
   dirty: false, stopped: false, wants: new Map(),
+  battle: false,         // #167 slice 8: this player has Battle on (the friend's is peer.battle, from their st)
+  round: null,           // a Battle round just ended: { t: s of the winner screen left, won: this player won, both: both went down }
+  bhitting: false,       // a Battle hit is being taken (the one hit a fighting mech takes)
+  dealt: 0,              // (for the hooks: Battle damage this page sent)
   partAsks: new Map(),   // a world part the joiner stands on: its key -> when the host's page was asked for it
   hostTook: new Set(),   // the host's page: world parts its own players took while together this time (the only ones the joiner is told no)
   // #256: a world part can land in both bags (a duplicate, never a loss) whenever a page shows a part the friend already took:
@@ -17543,7 +17604,7 @@ const Two = {
     this.parted('');
     this.page = 'together'; this.msg = '';
     this.peer = { av: this.cleanAv(null), hi: false, snaps: [], m: null, robots: new Map(), known: new Set(), seen: 0, paused: false, health: 1,
-      q: [], fly: null, seq: 0, inSeq: 0, shots: [], hurts: new Map(), hurtMe: [], shotsIn: 0 };
+      q: [], fly: null, seq: 0, inSeq: 0, shots: [], hurts: new Map(), hurtMe: [], shotsIn: 0, battle: false };
     const m = Game.humans[0].mech;
     Net.send({ t: 'hi', g: 'rb', v: TWO.v, world: 'rb' + WORLD.seed, seed: WORLD.seed, av: this.av(), x: r2(m.pos.x), z: r2(m.pos.z) });
     this.stopped = this.isStopped();
@@ -17554,6 +17615,7 @@ const Two = {
   parted(why) {
     clearInterval(this.pulseT); clearTimeout(this.closeT); this.pulseT = this.closeT = 0;
     const P = this.peer; this.peer = null; this.stopped = false; this.wants.clear(); this.partAsks.clear(); this.hostTook.clear();
+    this.battle = false; this.battleEnd();               // #167 slice 8: no friend, no Battle (a round on ends now, with its reboot)
     if (P) {
       // every glitched or beaten robot of the friend's that's here is this page's now; their mech and their squad go.
       // #252: not one the friend has a fix, a parts pick or a send-home open on: that one stays theirs, so it goes from here
@@ -17589,7 +17651,7 @@ const Two = {
       this.met = true;
       this.toast('Your friend is here!', 'Find their face, or follow the arrow.', P.av);
     }
-    this.draw();
+    this.draw(); this.battleDraw();   // (#167 slice 8: the Battle tile shows while together)
   },
   // the joiner starts beside the host: the first clear spot round them (inside the same cave or tower, or outside as they are)
   beside(x, z) {
@@ -17631,6 +17693,7 @@ const Two = {
     if (m.swing) s.w = [m.swing.w, r2(m.swing.t)];
     if (m.charge) s.c = r2(m.charge.t);
     if (m.shield > 0) s.sh = 1;
+    if (this.battle) s.b = 1;                            // #167 slice 8
     if (P.shots.length) s.s = P.shots.splice(0, TWO.shots);
     P.shots.length = 0;
     if (P.hi && P.m) {
@@ -17697,6 +17760,7 @@ const Two = {
     const b = P.m;
     if (Array.isArray(m.h)) { b.maxHealth = twN(m.h[1], 150, 1, 1e4); b.health = twN(m.h[0], b.maxHealth, 0, b.maxHealth); }
     P.paused = m.p === 1; b.away = P.paused;
+    const bt = m.b === 1; if (bt !== P.battle) { P.battle = bt; this.battleSaid(bt); }   // #167 slice 8
     b.state = twN(m.d) > 0 ? 'down' : 'up'; b.downT = twN(m.d);
     P.hop = twN(m.j, 0, 0, 60);
     b.swing = Array.isArray(m.w) && typeof m.w[0] === 'string' && Object.hasOwn(WEAPON, m.w[0]) && WEAPON[m.w[0]].dur ? Object.assign(b.swing || {}, { w: m.w[0], t: twN(m.w[1], 0, 0, 5), hit: true }) : null;
@@ -17726,6 +17790,22 @@ const Two = {
       const m = Game.humans[0].mech; if (m.state === 'down') return;
       m.push.x += twN(o.x, 0, -60, 60); m.push.z += twN(o.z, 0, -60, 60);
       hurtMech(m, twN(o.a, 0, 0, 500), typeof o.w === 'string' && Object.hasOwn(HIT_AREAS, o.w) ? o.w : 'hit');
+    },
+    // #167 slice 8: the friend's own weapon hit this player's mech in a Battle (only while both have it on, as this page sees it)
+    bhit(o) {
+      const m = Game.humans[0].mech; if (!this.fight() || this.isStopped() || m.state === 'down') return;
+      m.push.x += twN(o.x, 0, -60, 60); m.push.z += twN(o.z, 0, -60, 60);
+      const w = typeof o.w === 'string' && Object.hasOwn(WEAPON, o.w) ? o.w : 'gun';
+      this.bhitting = true; try { hurtMech(m, twN(o.a, 0, 0, 500), BATTLE_AREAS[w] || 'hit'); } finally { this.bhitting = false; }
+      if (m.state === 'down') this.ko();
+    },
+    // the friend's mech went down to this player's hits: the round is over
+    ko() {
+      if (!this.peer || !this.battle) return;
+      if (this.round && !this.round.won) { this.round.both = true; this.winScreen(); return; }   // (both went down at once)
+      if (this.round) return;
+      this.round = { t: BATTLE.show, won: true, both: false }; this.winScreen();
+      if (!Game.manual) Sfx.fixed();
     },
     // the friend wants to fix it, or take its parts: theirs, if it's down and nobody here is at it
     want(o) {
@@ -17948,6 +18028,66 @@ const Two = {
     if (r.wkey && !r.ring) { const L = World.live.get(r.wkey); if (L) { if (!L.includes(r)) L.push(r); } else { const N = [r]; if (ROBOT_TYPES[r.type].boss) N.boss = r.type; World.live.set(r.wkey, N); } }
     if (r.ring) { const g = World.rings.get(r.ring); if (g) g.champ = r; }
   },
+  // ---- #167 slice 8: Battle ----
+  // Opt-in on both pages (Dad's 1 b): hits land only while both have it on. A knockdown by the friend ends the round: the "I win!"
+  // screen on both, then both mechs reboot with full energy, at their checkpoints if they've reached one, else where they stand
+  // (2 b). Nothing is lost and nothing is saved (3 a). Robots leave both fighting mechs alone and squadmates stay out (4 b). The
+  // FIRE button and the weapon in hand hit the friend's mech too (5 a), each mech as built (6 a): the hitter's page works out the
+  // hit with its own weapons and upgrades, and the friend's page takes it off their energy as any hit is (shield, areas).
+  armed() { const P = this.peer; return !!(this.battle && P?.hi && P.m && P.battle); },
+  fight() { return this.armed() && !this.round && !this.peer.paused; },
+  // a fighting mech: robots leave it alone, and only a Battle hit hurts it
+  shielded(m) { return !!m && this.armed() && (m === this.peer.m || m === Game.humans[0]?.mech); },
+  // the friend's mech, as a target for this player's mech m's hits (null when it isn't one)
+  foe(m) { return m?.human && m === Game.humans[0]?.mech && this.fight() && this.peer.m.state !== 'down' ? this.peer.m : null; },
+  setBattle(on) {
+    on = !!on; if (on && !this.peer?.hi) return false;
+    if (on === this.battle) return true;
+    this.battle = on; if (!on) this.battleEnd();
+    if (this.peer) { const both = this.armed(); this.toast(on ? (both ? 'Battle on!' : 'Battle is on for you') : 'Battle off', on ? (both ? 'FIRE hits your friend\'s mech now. Robots leave you both alone.' : 'It starts when your friend turns it on too.') : '', this.av()); this.pulse(); }
+    this.battleDraw(); return true;
+  },
+  battleSaid(on) {
+    if (on) this.toast(this.battle ? 'Battle on!' : 'Your friend wants to battle!', this.battle ? 'FIRE hits your friend\'s mech now. Robots leave you both alone.' : 'Turn on Battle in the pause menu to fight.');
+    else if (this.battle) this.toast('Your friend turned Battle off');
+    this.battleDraw();
+  },
+  // this player's weapon hit the friend's mech m: sparks here, the hit to the friend's page (their energy is theirs)
+  strike(m, dmg, w, dx, dz, at) {
+    const P = this.peer; if (!P || !(dmg > 0)) return;
+    const L = Math.hypot(dx, dz) || 1, pk = (WEAPON[w]?.push || 0) * 0.5;
+    if (at) { if (w === 'em') { Sparks.burst(at.x, at.y, at.z, 22, SPARK_ZAP, 7); Impacts.flash(at, 1.4); } else { Sparks.burst(at.x, at.y, at.z, 18, SPARK_HOT, 9); Impacts.flash(at, 1.6); } }
+    const k = loud(m.pos); if (k > 0) (w === 'gun' || w === 'rail' ? Sfx.ping(k) : Sfx.whack(k));
+    this.say({ e: 'bhit', a: r2(Math.min(dmg, 500)), w, x: r2(clamp(dx / L * pk, -60, 60)), z: r2(clamp(dz / L * pk, -60, 60)) });
+    this.dealt += dmg;
+  },
+  // this player's mech went down to the friend's hits: the round is over, the friend won
+  ko() {
+    if (this.round) { if (this.round.won) { this.round.both = true; this.winScreen(); } return; }
+    this.round = { t: BATTLE.show, won: false, both: false }; this.say({ e: 'ko' }); this.winScreen();
+  },
+  winScreen() {
+    const R = this.round, el = $('battleWin'); if (!R) { el.classList.remove('on'); return; }
+    const me = this.av(), fr = this.peer?.av || me;
+    el.innerHTML = R.both ? `<div class="bw-face two">${this.face(me)}${this.face(fr)}</div><b>Both down!</b><small>Rebooting with full energy...</small>`
+      : `<div class="bw-face">${this.face(R.won ? me : fr)}</div><b>I win!</b><small>${R.won ? 'You won the battle!' : 'Your friend won this one!'} Rebooting with full energy...</small>`;
+    el.classList.add('on');
+  },
+  // each tick: the winner screen runs out, then this player's mech reboots
+  battleTick(dt) { const R = this.round; if (!R) return; R.t -= dt; if (R.t <= 0) this.battleEnd(); },
+  battleEnd() {
+    if (!this.round) { this.battleDraw(); return; }
+    this.round = null; $('battleWin').classList.remove('on');
+    const h = Game.humans[0]; if (h) battleReboot(h.mech);
+    this.battleDraw();
+  },
+  battleDraw() {
+    const el = $('battleTag'), live = this.armed();
+    el.classList.toggle('on', this.battle); el.classList.toggle('live', live);
+    if (this.battle) el.innerHTML = `${icon('sword')}<span>BATTLE</span>${live ? '' : '<small>waiting for your friend</small>'}`;
+    for (const id of ['tmBattle', 'battleB']) $(id).setAttribute('aria-pressed', String(this.battle));
+    if (typeof drawPauseMenu === 'function' && Game.paused) drawPauseMenu();
+  },
   // ---- the hooks in the game ----
   // a hit on a puppet goes to its owner
   hitPuppet(r, a, w, s = 0) {
@@ -18017,7 +18157,8 @@ const Two = {
       peer: P ? { av: P.av, hi: P.hi, paused: P.paused, shown: P.shown || null, shotsIn: P.shotsIn, queue: P.q.length + (P.fly ? 1 : 0), m: m ? { x: r3(m.pos.x), y: r3(m.pos.y), z: r3(m.pos.z), health: m.health, max: m.maxHealth, state: m.state, heading: r3(m.legHeading), swing: m.swing?.w ?? null } : null,
         puppets: [...P.robots.values()].map((r) => ({ nid: r.nid, id: r.id, type: r.type, state: r.state, health: r3(r.health), x: r3(r.pos.x), z: r3(r.pos.z), key: r.wkey ?? null, fixing: !!r.repairBy, mode: r.ai.mode })) } : null,
       own: Game.robots.filter((r) => !r.net).map((r) => ({ nid: r.nid ?? null, id: r.id, type: r.type, state: r.state, health: r3(r.health), x: r3(r.pos.x), z: r3(r.pos.z), key: r.wkey ?? null })),
-      mates: [...this.mates.values()].map((r) => ({ type: r.type, x: r3(r.pos.x), z: r3(r.pos.z), name: r.name, state: r.state })), mechs: Game.mechs.length };
+      mates: [...this.mates.values()].map((r) => ({ type: r.type, x: r3(r.pos.x), z: r3(r.pos.z), name: r.name, state: r.state })), mechs: Game.mechs.length,
+      battle: { me: this.battle, friend: !!P?.battle, friendPaused: !!P?.paused, stopped: this.isStopped(), armed: this.armed(), fight: this.fight(), round: this.round ? { ...this.round, t: r3(this.round.t) } : null, dealt: r3(this.dealt), badge: $('battleTag').classList.contains('on'), live: $('battleTag').classList.contains('live'), screen: $('battleWin').classList.contains('on') ? $('battleWin').textContent : null } };
   },
 };
 Net.on('room', (m) => { Two.met = !(m.peers > 1); if (Net.state === 'together') Two.together(); else { Two.page = 'wait'; Two.draw(); } });
@@ -18844,6 +18985,8 @@ window.__rb = {
   // #121: spawn('clone', x, z) drops a clone of player 1 as it is now (as the copier's scan makes one) and returns its state
   // #120: spawn('ninja', x, z, n) drops a Ninja with n minions (left out: as many as the wave out now brings, minionsFor)
   // and returns the list of their states, the Ninja first
+  // #167 slice 8: who robot id goes for now (nearestFoe): 'me' (player 1's mech), 'friend' (the friend's), 'squad', or null
+  target(id) { const r = Game.robots.find((q) => q.id === id); if (!r) return undefined; const t = nearestFoe(r); return !t ? null : t === Game.humans[0]?.mech ? 'me' : t === Two.peer?.m ? 'friend' : t.type ? 'squad' : 'other'; },
   spawn(type, x, z, n) {
     const out = spawn(type, x, z, n); if (!out) return null;
     const st = this.state().robots, of = (r) => st.find((q) => q.id === r.id);
