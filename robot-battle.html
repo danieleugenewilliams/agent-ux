@@ -3320,6 +3320,9 @@ const Icons = {
 const store = {
   unsaved: new Map(),
   get(k, d) { try { const v = localStorage.getItem('robotbattle.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  // #258: k as this device has it: a value waiting in unsaved (newer than disk's, or the only one: a profile made while the
+  // list waits has nothing on disk) over disk's. A copy, as a read from disk is, so changing it doesn't change what waits
+  read(k, d) { return this.unsaved.has(k) ? JSON.parse(JSON.stringify(this.unsaved.get(k))) : this.get(k, d); },
   // (on disk: in disk's list; with no list, or one that can't be read, a record of theirs on disk is what makes them a profile)
   held(k, v) {
     if (k === 'profiles' || !this.unsaved.has('profiles')) return false;
@@ -3773,10 +3776,11 @@ const Facts = {
   date(t = this.now()) { const d = new Date(t), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; },
   blank(C) { const now = this.now(); return { v: 1, child: C.id, ladder: C.ladder, step: 1, opened: [{ step: 1, at: now, by: 'start' }], wiring: C.wiring, inPlay: [], facts: {}, practice: {}, last: null, created: now, cheered: {}, garage: blankGarage() }; },
   valid(r, C) { return !!r && r.v === 1 && r.child === C.id && !!ladderSteps(r.ladder) && Number.isInteger(r.step) && r.step >= 1 && r.step <= ladderSteps(r.ladder).length && r.facts && typeof r.facts === 'object' && Array.isArray(r.inPlay); },
-  // pick who's playing: their saved record (a fresh one if there's none, or it can't be read); Guest's is never saved
+  // pick who's playing: their saved record (a fresh one if there's none, or it can't be read); Guest's is never saved.
+  // #258: one waiting in store.unsaved (saves failing) is their record, so picking them again doesn't start them blank
   load(c) {
     const C = childOf(c); if (!C) return null;
-    let r = C.guest ? null : store.get('facts.' + C.id, null);
+    let r = C.guest ? null : store.read('facts.' + C.id, null);
     if (!this.valid(r, C)) r = this.blank(C);
     r.practice ||= {}; r.opened ||= []; r.cheered ||= {}; fillGarage(r);   // a record saved before G1 gets an empty garage
     r.puzzles ||= { seq: 0, seen: {} };                                   // P3-1: when each puzzle type was last seen
@@ -3833,7 +3837,7 @@ const Facts = {
   peek(c) {
     const C = childOf(c); if (!C) return null;
     if (C === this.child && this.rec) return this.rec;
-    const r = C.guest ? null : store.get('facts.' + C.id, null);
+    const r = C.guest ? null : store.read('facts.' + C.id, null);   // (#258: one waiting to save, as load takes)
     const out = this.valid(r, C) ? r : this.blank(C);
     out.practice ||= {}; out.opened ||= []; out.cheered ||= {}; fillGarage(out);
     out.puzzles ||= { seq: 0, seen: {} }; fillSquad(out); if (!C.guest) { this.keepStars(out); fillWaves(out); } out.mode = modeOf(out.mode);   // (#115, #129, #132: as load will; not saved here)
@@ -4596,7 +4600,7 @@ const Backup = {
   // one of those for everyone, or { childId: choice }; a child left out gets 'best'
   choiceFor(choices, id) { const c = typeof choices === 'string' ? choices : isObj(choices) ? choices[id] : null; return BACKUP.choices.includes(c) ? c : c == null ? 'best' : null; },
   // the writes a restore would make, and a summary per child. v = validate()'s result; dev = this device's
-  // { kids: { id: record or null }, settings: { child, pilot } }. Pure: nothing is written. A setting is only filled
+  // { kids: { id: record or null }, settings: { child, pilot }, waiting: [keys waiting in store.unsaved] (#258; optional) }. Pure: nothing is written. A setting is only filled
   // in where this device has none (it's this device's choice, not progress). Only what changes is written.
   plan(v, choices, dev) {
     if (!v?.ok) return { ok: false, why: v?.why ?? 'nothing to restore' };
@@ -4620,7 +4624,9 @@ const Backup = {
       // #129: and its best wave cleared: keepWaves; #132: and its mode: keepMode; #152: and its Quick Fix wiring: keepWiring;
       // #189: and the world parts it has picked up: keepTaken)
       const res = !bak || choice === 'device' ? here : !here ? bak : choice === 'backup' ? this.keepTaken(this.keepWiring(this.keepMode(this.keepWaves(this.keepMastered(this.keepGone(bak, here), here), here), here), here), here) : this.merge(here, bak);
-      const write = !!bak && canon(res) !== canon(here);
+      // (#258: a record of this device's that is only waiting in store.unsaved is written too, even when the backup changes
+      // nothing in it, so a restore that says it worked leaves it on disk, with the waiting list if it needs one)
+      const write = !!bak && (canon(res) !== canon(here) || !!dev.waiting?.includes('facts.' + C.id));
       if (write) writes.push({ key: 'facts.' + C.id, value: res });
       const a = this.count(here), z = this.count(res);
       const lower = a && z ? BACKUP.rise.filter((k) => z[k] < a[k]) : [];
@@ -4642,11 +4648,12 @@ const Backup = {
     return out;
   },
   // this device's side of a restore: each child's saved record (null only if there's none, or the game itself wouldn't
-  // load it: a record the game plays from every day is never treated as missing)
+  // load it: a record the game plays from every day is never treated as missing). #258: a record or setting waiting in
+  // store.unsaved (saves failing) is this device's, as Backup.now takes it, so a restore merges with it instead of replacing it
   device() {
     const kids = {};
-    for (const C of CHILDREN.filter((q) => !q.guest)) { const r = store.get('facts.' + C.id, null); kids[C.id] = Facts.valid(r, C) ? r : null; }
-    return { kids, settings: { child: store.get('child', null), pilot: store.get('pilot', null) } };
+    for (const C of CHILDREN.filter((q) => !q.guest)) { const r = store.read('facts.' + C.id, null); kids[C.id] = Facts.valid(r, C) ? r : null; }
+    return { kids, settings: { child: store.read('child', null), pilot: store.read('pilot', null) }, waiting: [...store.unsaved.keys()] };
   },
   // a short name for this device and browser, for the file
   deviceName() {

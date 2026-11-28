@@ -21,6 +21,8 @@
 //               record of a player made then (the list waiting in store.unsaved, not the one on disk);
 //               and on storage really nearly full (filled to its quota) nothing for a profile only the waiting list holds
 //               reaches disk, so the backup after a reload is one the game takes;
+//             * #258: on storage really nearly full, a player whose record waits in store.unsaved keeps it when picked again
+//               (through Guest or another player), and a restore with 'best' merges with it instead of replacing it;
 //             * reading never writes: the saved record, the stage counts, the star total and the backup are the same
 //               before and after opening the grid and the parent view and tapping facts; entries keep their old fields
 //               only; a saved record reloads as it was, with the same progress.
@@ -616,6 +618,75 @@ const QUOTA_242_SAM_ONLY = String.raw`(() => {
   return out;
 })()`;
 
+// #258: while the list waits (a new Max made with ~60 chars free, so the list's write fails, as in #242), Max's record
+// waits in store.unsaved and is the only one there is. Real quota, no stub.
+//   pick again: Max answers 2 x 3 twice and saves, then is picked again through Guest and through Sam: each time his record
+//     still holds both answers (Facts.load takes the waiting record, not a blank one), so does the backup made then, and a
+//     third answer saved after the second pick is there after a third pick;
+//   restore: Max answers twice, a backup is made, he answers once more (3 waiting), Guest is picked, all the space frees up
+//     and the backup is restored with 'best': it merges with the waiting record (3 answers), not replacing it with the 2.
+const n23 = (r) => r?.facts?.['×2,3']?.n ?? 0;
+const QUOTA_258_PICK = String.raw`(() => {
+  ${QUOTA_242}
+  const n23 = ${n23.toString()};
+  R.manual(true); R.player('sam'); fast(2, 2); R.Facts.save(); R.Profiles.remove('max');
+  let a, err = null, full = false, listed = null, saved = null, bak1 = null, viaGuest = null, bak2 = null, viaSam = null, third = null, onDisk = null;
+  try {
+    full = fill();
+    if (full) {
+      leave(60);
+      a = R.addProfile('Max'); listed = disk();
+      R.player(a.id); fast(2, 3); fast(2, 3); R.Facts.save(); saved = n23(R.Facts.rec);
+      bak1 = n23(R.backup().data?.['facts.' + a.id]);
+      R.player('guest'); R.player(a.id); viaGuest = n23(R.Facts.rec); R.Facts.save();
+      bak2 = n23(R.backup().data?.['facts.' + a.id]);
+      R.player('sam'); R.player(a.id); viaSam = n23(R.Facts.rec);
+      fast(2, 3); R.Facts.save(); R.player('guest'); R.player(a.id); third = n23(R.Facts.rec);
+      onDisk = localStorage.getItem('robotbattle.facts.' + a.id);
+      leave(pool); R.player('guest');   // (space back and a write that works: nothing left waiting for the next case to find)
+    }
+  } catch (e) { err = String(e); }
+  ok('#258 pick again: storage fills to a real quota', full, full);
+  ok('#258 pick again: a new Max is made while storage is nearly full, and its list write fails', a?.ok === true && !err && !!listed && !listed.includes(a.id), { a, err, listed });
+  ok('#258 pick again: his record (waiting, not on disk) and a backup then hold both answers', saved === 2 && bak1 === 2 && onDisk === null, { saved, bak1, onDisk });
+  ok('#258 pick again: picked again through Guest, his record still holds both answers', viaGuest === 2, viaGuest);
+  ok('#258 pick again: and the backup made after that still holds them', bak2 === 2, bak2);
+  ok('#258 pick again: picked again through Sam, his record still holds both answers', viaSam === 2, viaSam);
+  ok('#258 pick again: a third answer saved then is there after he is picked a third time', third === 3, third);
+  return out;
+})()`;
+const QUOTA_258_RESTORE = String.raw`(() => {
+  ${QUOTA_242}
+  const n23 = ${n23.toString()};
+  R.manual(true); R.player('sam'); fast(2, 2); R.Facts.save(); R.Profiles.remove('max');
+  let a, err = null, full = false, listed = null, inBak = null, waiting = null, res = null, kid = null, after = null, onDisk = null;
+  try {
+    full = fill();
+    if (full) {
+      leave(60);
+      a = R.addProfile('Max'); listed = disk();
+      R.player(a.id); fast(2, 3); fast(2, 3); R.Facts.save();
+      const b = R.backup(); inBak = n23(b.data?.['facts.' + a.id]);
+      fast(2, 3); R.Facts.save(); waiting = n23(R.Facts.rec);
+      R.player('guest');
+      leave(pool);
+      res = R.restore(b, 'best');
+      kid = res?.summary?.kids?.find((k) => k.child === a.id) ?? null;
+      after = n23(R.Facts.peek(a.id));
+      R.player('sam');   // (a write that works: anything still waiting goes to disk)
+      try { onDisk = n23(JSON.parse(localStorage.getItem('robotbattle.facts.' + a.id))); } catch (e) {}
+    }
+  } catch (e) { err = String(e); }
+  ok('#258 restore: storage fills to a real quota', full, full);
+  ok('#258 restore: a new Max is made while storage is nearly full, and its list write fails', a?.ok === true && !err && !!listed && !listed.includes(a.id), { a, err, listed });
+  ok('#258 restore: the backup holds 2 answers and his waiting record 3', inBak === 2 && waiting === 3, { inBak, waiting });
+  ok('#258 restore: the restore works', res?.ok === true, { ok: res?.ok, why: res?.why });
+  ok("#258 restore: its summary has this device's side as his waiting record (2 x 3 answered), not none", kid?.device != null && kid.device.answered === 1, kid && { device: kid.device, result: kid.result });
+  ok('#258 restore: after it, his record keeps all 3 answers (merged, not replaced by the backup\'s 2)', after === 3, after);
+  ok('#258 restore: and once saves work, disk holds all 3', onDisk === 3, onDisk);
+  return out;
+})()`;
+
 async function runLogic(C) {
   await C.open(1280, 800, false);
   const res = await C.ev(LOGIC);
@@ -671,6 +742,11 @@ async function runLogic(C) {
   }
   await C.ev(CLEAR); await C.open(1280, 800, false);
   for (const r of await C.ev(QUOTA_242_SAM_ONLY)) out.push(r);
+  // #258: while the list waits, picking a waiting player again keeps their record, and a restore merges with it
+  for (const t of [QUOTA_258_PICK, QUOTA_258_RESTORE]) {
+    await C.ev(CLEAR); await C.open(1280, 800, false);
+    for (const r of await C.ev(t)) out.push(r);
+  }
   return out;
 }
 
